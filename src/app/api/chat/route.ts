@@ -192,10 +192,25 @@ Respond ONLY with this JSON (no markdown, no code fences):
       };
     }
 
+    // Build marketData for rich card rendering
+    const marketData = snapshot ? {
+      symbol: symbol,
+      displaySymbol: symDisplay,
+      price: snapshot.price,
+      rsi: snapshot.indicators.rsi,
+      macdHistogram: snapshot.indicators.macd?.histogram ?? null,
+      ema50: snapshot.indicators.ema50,
+      atr: snapshot.indicators.atr,
+      confluenceScore: snapshot.confluenceScore,
+      confluenceDirection: snapshot.confluenceDirection,
+      confidenceGrade: snapshot.confidenceGrade,
+    } : null;
+
     return NextResponse.json({
       text: parsed.text || 'Analysis complete.',
       ticket: (explicitSignal && parsed.ticket) ? parsed.ticket : null,
-      signalSymbol: !explicitSignal ? symbol : null, // Pass symbol for "Generate Signal" button
+      signalSymbol: !explicitSignal ? symbol : null,
+      marketData: !explicitSignal ? marketData : null,
     });
   } catch (error: any) {
     console.error('[Chat API] Unexpected error:', error);

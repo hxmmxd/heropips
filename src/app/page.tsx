@@ -162,6 +162,7 @@ export default function Home() {
         text: data.text || undefined,
         ticket: data.ticket || undefined,
         signalSymbol: data.signalSymbol || undefined,
+        marketData: data.marketData || undefined,
       };
 
       setMessages((prev) =>

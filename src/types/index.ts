@@ -26,7 +26,19 @@ export interface ChatMessage {
   sender: 'user' | 'bot';
   text?: string;
   ticket?: TradeTicketProps;
-  signalSymbol?: string; // If set, shows a "Generate Signal" button for this asset
+  signalSymbol?: string;
+  marketData?: {
+    symbol: string;
+    displaySymbol: string;
+    price: number;
+    rsi: number | null;
+    macdHistogram: number | null;
+    ema50: number | null;
+    atr: number | null;
+    confluenceScore: number;
+    confluenceDirection: string;
+    confidenceGrade: string;
+  };
 }
 
 export interface Partner {
