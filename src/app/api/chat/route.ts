@@ -29,9 +29,17 @@ export async function POST(request: Request) {
     const symbol = detectSymbol(lastUserMessage);
     const explicitSignal = forceSignal || wantsSignal(lastUserMessage);
 
-    // Check if this is a direct asset query (short, 1-3 word message like "Gold", "EURUSD", "bitcoin")
+    // Keywords that trigger the analysis card (even in longer messages)
+    const ANALYSIS_KEYWORDS = [
+      'forecast', 'prediction', 'predict', 'analysis', 'analyze', 'analyse',
+      'outlook', 'trend', 'chart', 'technical', 'price', 'where is',
+      'how is', 'what about', 'target', 'support', 'resistance',
+    ];
+    const hasAnalysisIntent = ANALYSIS_KEYWORDS.some(kw => lastUserMessage.toLowerCase().includes(kw));
+
+    // Show rich card if: short direct query (≤3 words) OR has analysis/forecast intent OR signal request
     const wordCount = lastUserMessage.trim().split(/\s+/).length;
-    const isDirectQuery = symbol && (wordCount <= 3 || explicitSignal || forceSignal);
+    const isDirectQuery = symbol && (wordCount <= 3 || explicitSignal || forceSignal || hasAnalysisIntent);
 
     // 2. No asset detected OR conversational mention → general conversation
     if (!symbol || !isDirectQuery) {
