@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Menu, ChevronDown, Sun, Moon } from 'lucide-react';
+import { Menu, ChevronDown, Lightbulb } from 'lucide-react';
 import { Broker } from '../types';
 
 interface HeaderProps {
@@ -12,6 +12,67 @@ interface HeaderProps {
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
 }
+
+// Programmatic synthesizer for physical switch toggle sounds using Web Audio API
+const playSwitchSound = (isLight: boolean) => {
+  try {
+    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+
+    // 1. Mechanical switch click (high pass noise)
+    const bufferSize = ctx.sampleRate * 0.04; // 40ms transient buffer
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'highpass';
+    filter.frequency.value = 1800;
+
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.06, ctx.currentTime);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.035);
+
+    noise.connect(filter);
+    filter.connect(noiseGain);
+    noiseGain.connect(ctx.destination);
+
+    // 2. Sine tone chime (ON chime vs OFF deep click)
+    const osc = ctx.createOscillator();
+    const oscGain = ctx.createGain();
+
+    osc.type = 'sine';
+    if (isLight) {
+      // Switch ON: bright, rising chime tone
+      osc.frequency.setValueAtTime(800, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1300, ctx.currentTime + 0.05);
+      oscGain.gain.setValueAtTime(0.04, ctx.currentTime);
+      oscGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+    } else {
+      // Switch OFF: deeper, falling off tone
+      osc.frequency.setValueAtTime(500, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(250, ctx.currentTime + 0.05);
+      oscGain.gain.setValueAtTime(0.04, ctx.currentTime);
+      oscGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+    }
+
+    osc.connect(oscGain);
+    oscGain.connect(ctx.destination);
+
+    noise.start();
+    osc.start();
+    noise.stop(ctx.currentTime + 0.04);
+    osc.stop(ctx.currentTime + 0.12);
+  } catch (e) {
+    console.warn("AudioContext not allowed or supported:", e);
+  }
+};
 
 export default function Header({
   brokers,
@@ -26,6 +87,12 @@ export default function Header({
   const handleBrokerClick = (name: string) => {
     onSelectBroker(name);
     setDropdownOpen(false);
+  };
+
+  const handleToggleTheme = () => {
+    // Play lightbulb click sound effect (switching to light mode if current theme is dark)
+    playSwitchSound(theme === 'dark');
+    onToggleTheme();
   };
 
   const isPositivePnl = activeBroker.pnl.startsWith('+');
@@ -82,17 +149,19 @@ export default function Header({
             )}
           </div>
 
-          {/* Theme Toggle Button */}
+          {/* Theme Toggle Button (Lightbulb) */}
           <button
-            onClick={onToggleTheme}
+            onClick={handleToggleTheme}
             className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-[var(--input-bg)] transition text-[var(--subtext)]"
             aria-label="Toggle Theme Mode"
           >
-            {theme === 'dark' ? (
-              <Sun className="w-4.5 h-4.5" />
-            ) : (
-              <Moon className="w-4.5 h-4.5" />
-            )}
+            <Lightbulb
+              className={`w-4.5 h-4.5 transition-all duration-300 ${
+                theme === 'light'
+                  ? 'text-yellow-500 fill-yellow-500/20 drop-shadow-[0_0_8px_rgba(234,179,8,0.5)]'
+                  : 'text-[var(--subtext)]'
+              }`}
+            />
           </button>
         </div>
       </div>
