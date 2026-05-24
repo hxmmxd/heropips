@@ -115,21 +115,24 @@ export default function Home() {
   };
 
   // Handle sending messages via live API
-  const handleSendMessage = async (text: string) => {
+  const handleSendMessage = async (text: string, forceSignal?: boolean) => {
     const newUserMessage: ChatMessage = {
       id: `msg-${Date.now()}-user`,
       sender: 'user',
       text,
     };
 
-    setMessages((prev) => [...prev, newUserMessage]);
+    // Don't show user message for button-triggered signals
+    if (!forceSignal) {
+      setMessages((prev) => [...prev, newUserMessage]);
+    }
 
     // Show typing indicator
     const typingId = `msg-${Date.now()}-typing`;
     const typingMessage: ChatMessage = {
       id: typingId,
       sender: 'bot',
-      text: '◉ Analyzing market conditions...',
+      text: forceSignal ? '◉ Generating trade signal...' : '◉ Analyzing market conditions...',
     };
     setMessages((prev) => [...prev, typingMessage]);
 
@@ -146,6 +149,7 @@ export default function Home() {
         body: JSON.stringify({
           messages: conversationHistory,
           accountBalance: activeBroker.balance,
+          forceSignal: forceSignal || false,
         }),
       });
 
@@ -157,6 +161,7 @@ export default function Home() {
         sender: 'bot',
         text: data.text || undefined,
         ticket: data.ticket || undefined,
+        signalSymbol: data.signalSymbol || undefined,
       };
 
       setMessages((prev) =>
@@ -173,6 +178,11 @@ export default function Home() {
         prev.filter((m) => m.id !== typingId).concat(errorReply)
       );
     }
+  };
+
+  // Handle "Generate Signal" button click
+  const handleGenerateSignal = (symbolKeyword: string) => {
+    handleSendMessage(`generate trade signal for ${symbolKeyword}`, true);
   };
 
   return (
@@ -202,7 +212,7 @@ export default function Home() {
         {/* Tab display contents */}
         <div id="scroll-area" className={`flex-1 no-scrollbar relative flex flex-col bg-[var(--bg)] ${currentTab === 'terminal' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
           {currentTab === 'terminal' && (
-            <TerminalTab messages={messages} onSendMessage={handleSendMessage} />
+            <TerminalTab messages={messages} onSendMessage={handleSendMessage} onGenerateSignal={handleGenerateSignal} />
           )}
 
           {currentTab === 'brokers' && (

@@ -26,6 +26,7 @@ export interface ChatMessage {
   sender: 'user' | 'bot';
   text?: string;
   ticket?: TradeTicketProps;
+  signalSymbol?: string; // If set, shows a "Generate Signal" button for this asset
 }
 
 export interface Partner {

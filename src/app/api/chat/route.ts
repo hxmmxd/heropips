@@ -6,17 +6,30 @@ import {
   calculateRiskParams,
 } from '@/lib/market';
 
+// Keywords that indicate user explicitly wants a trade signal
+const SIGNAL_KEYWORDS = [
+  'signal', 'trade', 'buy', 'sell', 'entry', 'position',
+  'setup', 'execute', 'generate signal', 'open', 'short', 'long',
+];
+
+function wantsSignal(message: string): boolean {
+  const lower = message.toLowerCase();
+  return SIGNAL_KEYWORDS.some(kw => lower.includes(kw));
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const userMessages = body.messages || [];
     const lastUserMessage = userMessages[userMessages.length - 1]?.content || '';
     const accountBalance = body.accountBalance ? parseFloat(body.accountBalance.replace(/,/g, '')) : 10000;
+    const forceSignal = body.forceSignal === true; // From "Generate Signal" button
 
-    // 1. Detect asset from user message (returns null if no asset mentioned)
+    // 1. Detect asset from user message
     const symbol = detectSymbol(lastUserMessage);
+    const explicitSignal = forceSignal || wantsSignal(lastUserMessage);
 
-    // 2. If no specific asset detected, respond as a general trading assistant
+    // 2. No asset detected — general conversation
     if (!symbol) {
       const apiKey = process.env.NVIDIA_API_KEY;
       const response = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
@@ -42,7 +55,7 @@ When users greet you or ask general questions:
 
 Supported assets: Gold/XAUUSD, EURUSD, GBPUSD, USDJPY, Bitcoin/BTC, Ethereum/ETH, Nasdaq/NAS100, Dow/US30, Oil
 
-You MUST respond in this JSON format only: {"text":"your response","ticket":null}`
+You MUST respond in this JSON format only: {"text":"your response"}`
             },
             ...userMessages,
           ],
@@ -83,7 +96,9 @@ Grade: ${snapshot.confidenceGrade}
 `
       : `[Market data unavailable for ${symDisplay}.]`;
 
-    const systemPrompt = `You are TradeGPT, an institutional quantitative trading terminal with live market data.
+    // 4. Build prompt based on whether user wants signal or just analysis
+    const systemPrompt = explicitSignal
+      ? `You are TradeGPT, an institutional quantitative trading terminal with live market data.
 
 Rules:
 1. Analyze the market data below and give a 2-3 sentence technical analysis.
@@ -96,9 +111,22 @@ ${marketContextBlock}
 Account Balance: $${accountBalance.toFixed(2)} | Max Risk: 1.5%
 
 Respond ONLY with this JSON (no markdown, no code fences):
-{"text":"your analysis","ticket":{"ticketId":"5 digit number","symbol":"${symDisplay}","action":"BUY or SELL","entryPrice":"price","lotVolume":"lots","rrRatio":"ratio","stopLoss":"sl","takeProfit":"tp","margin":"margin","risk":"risk","profit":"profit","confidence":"${snapshot?.confidenceGrade || 'BBB'}"}}`;
+{"text":"your analysis","ticket":{"ticketId":"5 digit number","symbol":"${symDisplay}","action":"BUY or SELL","entryPrice":"price","lotVolume":"lots","rrRatio":"ratio","stopLoss":"sl","takeProfit":"tp","margin":"margin","risk":"risk","profit":"profit","confidence":"${snapshot?.confidenceGrade || 'BBB'}"}}`
+      : `You are TradeGPT, an institutional quantitative trading terminal with live market data.
 
-    // 4. Call NVIDIA NIM API
+Rules:
+1. Analyze the market data below and give a clear, concise technical analysis (3-4 sentences).
+2. Mention key indicator levels and what they suggest.
+3. State the current market bias (bullish/bearish/neutral).
+4. Do NOT generate a trade ticket — the user hasn't requested one yet.
+5. Use ONLY the real data provided.
+
+${marketContextBlock}
+
+Respond ONLY with this JSON (no markdown, no code fences):
+{"text":"your analysis"}`;
+
+    // 5. Call NVIDIA NIM API
     const apiKey = process.env.NVIDIA_API_KEY;
     const llmResponse = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
       method: 'POST',
@@ -127,7 +155,7 @@ Respond ONLY with this JSON (no markdown, no code fences):
       );
     }
 
-    // 5. Parse structured JSON from LLM
+    // 6. Parse structured JSON from LLM
     let rawContent = llmData.choices?.[0]?.message?.content || '{}';
     rawContent = rawContent.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
 
@@ -138,8 +166,8 @@ Respond ONLY with this JSON (no markdown, no code fences):
       parsed = { text: rawContent, ticket: null };
     }
 
-    // 6. Override ticket with engine-calculated risk params for accuracy
-    if (parsed.ticket && snapshot) {
+    // 7. Override ticket with engine-calculated risk params
+    if (parsed.ticket && snapshot && explicitSignal) {
       const riskParams = calculateRiskParams(
         snapshot.price,
         snapshot.indicators.atr,
@@ -166,7 +194,8 @@ Respond ONLY with this JSON (no markdown, no code fences):
 
     return NextResponse.json({
       text: parsed.text || 'Analysis complete.',
-      ticket: parsed.ticket || null,
+      ticket: (explicitSignal && parsed.ticket) ? parsed.ticket : null,
+      signalSymbol: !explicitSignal ? symbol : null, // Pass symbol for "Generate Signal" button
     });
   } catch (error: any) {
     console.error('[Chat API] Unexpected error:', error);

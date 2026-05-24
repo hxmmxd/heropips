@@ -1,16 +1,17 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Bolt, Plus, Mic, ArrowUp } from 'lucide-react';
+import { Bolt, Plus, Mic, ArrowUp, Zap } from 'lucide-react';
 import { ChatMessage } from '../types';
 import TradeTicket from './TradeTicket';
 
 interface TerminalTabProps {
   messages: ChatMessage[];
   onSendMessage: (text: string) => void;
+  onGenerateSignal?: (symbol: string) => void;
 }
 
-export default function TerminalTab({ messages, onSendMessage }: TerminalTabProps) {
+export default function TerminalTab({ messages, onSendMessage, onGenerateSignal }: TerminalTabProps) {
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -86,6 +87,15 @@ export default function TerminalTab({ messages, onSendMessage }: TerminalTabProp
                         <div className="bg-[var(--sidebar-bg)] border border-[var(--border)] px-5 py-3 rounded-[20px] max-w-[85%] text-[15px] shadow-sm text-[var(--text)]">
                           {msg.text}
                         </div>
+                      )}
+                      {msg.signalSymbol && !msg.ticket && (
+                        <button
+                          onClick={() => onGenerateSignal?.(msg.signalSymbol!)}
+                          className="flex items-center gap-2 mt-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-500 text-white text-[12px] font-bold uppercase tracking-wider shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 active:scale-95 transition-all"
+                        >
+                          <Zap className="w-3.5 h-3.5" />
+                          Generate Trade Signal
+                        </button>
                       )}
                       {msg.ticket && <TradeTicket ticket={msg.ticket} />}
                     </div>
