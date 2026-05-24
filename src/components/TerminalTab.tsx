@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Bolt, Plus, Mic, ArrowUp, Zap } from 'lucide-react';
+import { Plus, Mic, ArrowUp, Zap } from 'lucide-react';
 import { ChatMessage } from '../types';
 import TradeTicket from './TradeTicket';
 
@@ -77,8 +77,8 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal 
                 return (
                   <div key={msg.id} className="flex space-x-3 px-4 mb-6 animate-in slide-in-from-bottom-2">
                     {/* Bot Icon */}
-                    <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center shrink-0 shadow-lg shadow-blue-500/20">
-                      <Bolt className="w-4 h-4 text-white" />
+                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shrink-0 mt-0.5">
+                      <span className="text-[10px] font-black text-white tracking-tight">T</span>
                     </div>
 
                     {/* Bot Response Content */}
