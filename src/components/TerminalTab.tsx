@@ -4,6 +4,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Plus, Mic, ArrowUp, Zap } from 'lucide-react';
 import { ChatMessage } from '../types';
 import TradeTicket from './TradeTicket';
+import dynamic from 'next/dynamic';
+
+const MiniChart = dynamic(() => import('./MiniChart'), { ssr: false });
 
 interface TerminalTabProps {
   messages: ChatMessage[];
@@ -171,6 +174,11 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal 
                                 {msg.marketData.confluenceDirection} Bias
                               </span>
                             </div>
+                          </div>
+
+                          {/* Mini Price Chart */}
+                          <div className="border-b border-[var(--border)]">
+                            <MiniChart symbol={msg.marketData.symbol} height={140} />
                           </div>
 
                           {/* AI Analysis Text */}

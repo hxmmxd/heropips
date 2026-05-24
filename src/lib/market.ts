@@ -3,6 +3,14 @@
 
 const BASE_URL = 'https://api.twelvedata.com';
 
+export interface CandleData {
+  time: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+}
+
 // Read API key at call time (not module load time) to ensure env is loaded
 function getApiKey(): string {
   return process.env.TWELVE_DATA_API_KEY || '';
@@ -416,3 +424,32 @@ export async function getMarketSnapshot(symbol: string): Promise<MarketSnapshot 
   }
 }
 
+// ── Candle Data for Mini Charts ────────────────────────────
+
+export async function fetchCandles(symbol: string, interval: string = '1h', outputsize: number = 50): Promise<CandleData[]> {
+  try {
+    const res = await fetch(
+      `${BASE_URL}/time_series?symbol=${encodeURIComponent(symbol)}&interval=${interval}&outputsize=${outputsize}&apikey=${getApiKey()}`
+    );
+    const data = await res.json();
+
+    if (data.status === 'error' || !data.values) {
+      console.error(`[Market Engine] /time_series error:`, data.message || 'unknown');
+      return [];
+    }
+
+    // Twelve Data returns newest first, reverse for chart
+    return data.values
+      .map((v: any) => ({
+        time: v.datetime,
+        open: parseFloat(v.open),
+        high: parseFloat(v.high),
+        low: parseFloat(v.low),
+        close: parseFloat(v.close),
+      }))
+      .reverse();
+  } catch (error) {
+    console.error('[Market Engine] Failed to fetch candles:', error);
+    return [];
+  }
+}
