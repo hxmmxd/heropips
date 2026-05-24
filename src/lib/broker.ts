@@ -107,18 +107,27 @@ export async function connectBroker(
       
       const account = await metaApiInstance.metatraderAccountApi.createAccount({
         name: name,
-        type: 'cloud',
+        type: 'cloud-g2',
         platform: 'mt5',
         login: login,
         password: password || '',
-        server: server || 'DemoServer'
+        server: server || 'DemoServer',
+        magic: 0, // 0 = manual trades (required field)
+        reliability: 'high',
       });
       
-      // Wait for account deployment
+      // Wait for account deployment and connection
+      console.log(`[Broker Engine] Account created (${account.id}). Deploying...`);
       await account.deploy();
+      console.log(`[Broker Engine] Deployed. Waiting for connection...`);
       await account.waitConnected();
+      console.log(`[Broker Engine] Connected to MT5 server.`);
       
-      const details = await account.getAccountInformation();
+      const connection = account.getRPCConnection();
+      await connection.connect();
+      await connection.waitSynchronized();
+      
+      const details = await connection.getAccountInformation();
       
       return {
         id: account.id,
@@ -132,8 +141,9 @@ export async function connectBroker(
         positions: []
       };
     } catch (err: any) {
-      console.error('[Broker Engine] Live MT5 connection failed:', err);
-      throw new Error(`MT5 Server connection failed: ${err.message}`);
+      const errMsg = err?.details || err?.message || String(err);
+      console.error('[Broker Engine] Live MT5 connection failed:', errMsg);
+      throw new Error(`MT5 Server connection failed: ${errMsg}`);
     }
   }
 
@@ -210,22 +220,33 @@ export async function executeBrokerOrder(
 ): Promise<any> {
   if (metaApiInstance) {
     try {
-      console.log(`[Broker Engine] Sending order to live broker ${id}: ${action} ${volume} lot(s) ${symbol}`);
-      const connection = metaApiInstance.getConnection(id);
+      console.log(`[Broker Engine] Sending ${action} order to live broker ${id}: ${volume} lot(s) ${symbol}`);
       
-      const order = await connection.createLimitOrder({
-        symbol: symbol.replace('/', ''), // MT5 format (e.g. XAUUSD instead of XAU/USD)
-        actionType: action === 'BUY' ? 'ORDER_TYPE_BUY' : 'ORDER_TYPE_SELL',
-        volume: volume,
-        price: entryPrice,
-        stopLoss: stopLoss,
-        takeProfit: takeProfit
-      });
+      // Get the MetaAPI account and establish RPC connection
+      const account = await metaApiInstance.metatraderAccountApi.getAccount(id);
+      const connection = account.getRPCConnection();
+      await connection.connect();
+      await connection.waitSynchronized();
       
-      return order;
+      const mt5Symbol = symbol.replace('/', ''); // MT5 format (e.g. XAUUSD)
+      let order;
+      
+      if (action === 'BUY') {
+        order = await connection.createMarketBuyOrder(mt5Symbol, volume, stopLoss, takeProfit);
+      } else {
+        order = await connection.createMarketSellOrder(mt5Symbol, volume, stopLoss, takeProfit);
+      }
+      
+      console.log(`[Broker Engine] Order executed:`, order);
+      return {
+        orderId: order.orderId || order.positionId || id,
+        status: 'success',
+        fillPrice: order.openPrice || entryPrice,
+      };
     } catch (err: any) {
-      console.error('[Broker Engine] Live trade execution failed:', err);
-      throw new Error(`Execution Failed: ${err.message}`);
+      const errMsg = err?.details || err?.message || String(err);
+      console.error('[Broker Engine] Live trade execution failed:', errMsg);
+      throw new Error(`Execution Failed: ${errMsg}`);
     }
   }
 
@@ -277,8 +298,10 @@ export async function getAllBrokers(): Promise<BrokerNode[]> {
         if (account.state === 'DEPLOYED') {
           status = 'connected';
           try {
-            details = await account.getAccountInformation();
-            const connection = metaApiInstance.getConnection(account.id);
+            const connection = account.getRPCConnection();
+            await connection.connect();
+            await connection.waitSynchronized();
+            details = await connection.getAccountInformation();
             positions = await connection.getPositions();
           } catch (err) {
             console.warn(`[Broker Engine] Failed to fetch live details for account ${account.id}:`, err);

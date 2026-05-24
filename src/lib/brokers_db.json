@@ -59,8 +59,36 @@
     "server": "MetaQuotes-Demo",
     "status": "connected",
     "balance": 100000,
-    "equity": 100000,
-    "pnl": 0,
-    "positions": []
+    "equity": 99865,
+    "pnl": -135,
+    "positions": [
+      {
+        "id": "pos-705284",
+        "symbol": "XAUUSD",
+        "type": "SELL",
+        "volume": 0.1,
+        "openPrice": 4500,
+        "currentPrice": 4499.6,
+        "profit": -45
+      },
+      {
+        "id": "pos-436735",
+        "symbol": "XAUUSD",
+        "type": "SELL",
+        "volume": 0.1,
+        "openPrice": 4500,
+        "currentPrice": 4499.6,
+        "profit": -45
+      },
+      {
+        "id": "pos-299873",
+        "symbol": "XAUUSD",
+        "type": "SELL",
+        "volume": 0.1,
+        "openPrice": 4500,
+        "currentPrice": 4499.6,
+        "profit": -45
+      }
+    ]
   }
 ]
