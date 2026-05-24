@@ -6,7 +6,8 @@ import {
   Search, Crown, Zap, Rocket, ChevronDown, ChevronUp, Activity,
   BarChart3, Eye, Ban, MoreVertical, RefreshCw, Download,
   ArrowUpRight, Globe, Clock, Wifi, WifiOff, Receipt, CheckCircle, XCircle,
-  Heart, Cpu, Database, Pencil, Check, X, Mail, User
+  Heart, Cpu, Database, Pencil, Check, X, Mail, User, Settings, Megaphone,
+  FileText, Power, ToggleLeft, ToggleRight, AlertTriangle, Plus, Trash2
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
@@ -37,7 +38,7 @@ interface TradeRow { id: string; user_id: string; symbol: string; type: string; 
 
 type SortKey = 'full_name' | 'email' | 'plan' | 'created_at';
 type SortDir = 'asc' | 'desc';
-type Section = 'overview' | 'users' | 'brokers' | 'trades' | 'analytics';
+type Section = 'overview' | 'users' | 'brokers' | 'trades' | 'analytics' | 'settings' | 'audit';
 
 export default function AdminPage() {
   const [stats, setStats] = useState<AdminStats | null>(null);
@@ -65,6 +66,12 @@ export default function AdminPage() {
   const [editPlan, setEditPlan] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState('');
+  const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [config, setConfig] = useState<Record<string, any>>({});
+  const [auditLog, setAuditLog] = useState<any[]>([]);
+  const [suspendDialog, setSuspendDialog] = useState<{userId: string, name: string} | null>(null);
+  const [suspendReason, setSuspendReason] = useState('');
+  const [newAnnouncement, setNewAnnouncement] = useState({ title: '', message: '', type: 'info' });
 
   useEffect(() => { loadData(); }, []);
 
@@ -78,6 +85,9 @@ export default function AdminPage() {
       setUsers(data.users);
       setBrokers(data.brokers || []);
       setTrades(data.trades || []);
+      setAnnouncements(data.announcements || []);
+      setConfig(data.config || {});
+      setAuditLog(data.auditLog || []);
     } catch (err: any) { setError(err.message); }
     finally { setLoading(false); }
   };
@@ -246,6 +256,12 @@ export default function AdminPage() {
           <div className="adm-nav-divider" />
           <button className={`adm-nav-item ${activeSection === 'analytics' ? 'active' : ''}`} onClick={() => setActiveSection('analytics')}>
             <TrendingUp /><span>Analytics</span>
+          </button>
+          <button className={`adm-nav-item ${activeSection === 'settings' ? 'active' : ''}`} onClick={() => setActiveSection('settings')}>
+            <Settings /><span>Settings</span>
+          </button>
+          <button className={`adm-nav-item ${activeSection === 'audit' ? 'active' : ''}`} onClick={() => setActiveSection('audit')}>
+            <FileText /><span>Audit Log</span>
           </button>
         </nav>
 
@@ -431,7 +447,7 @@ export default function AdminPage() {
                                 <div className="adm-action-menu">
                                   <button onClick={() => { openDrawer(u); setActionMenu(null); }}><Eye /> View Profile</button>
                                   <button onClick={() => handleToggleAdmin(u.id, u.is_admin)}>{u.is_admin ? <><ShieldOff /> Remove Admin</> : <><Shield /> Make Admin</>}</button>
-                                  <button className="adm-action-danger"><Ban /> Suspend User</button>
+                                  <button className="adm-action-danger" onClick={() => { setSuspendDialog({ userId: u.id, name: u.full_name || u.email }); setActionMenu(null); }}><Ban /> Suspend User</button>
                                 </div>
                               </>)}
                             </div>
@@ -518,7 +534,7 @@ export default function AdminPage() {
                           <button onClick={() => setEditMode(true)} className="adm-drawer-btn"><Pencil /> Edit User Info</button>
                           <button onClick={() => { handleUpdatePlan(drawerUser.id, 'pro'); setDrawerUser({...drawerUser, plan: 'pro'}); }} className="adm-drawer-btn"><Crown /> Upgrade to Pro</button>
                           <button onClick={() => { handleToggleAdmin(drawerUser.id, drawerUser.is_admin); setDrawerUser({...drawerUser, is_admin: !drawerUser.is_admin}); }} className="adm-drawer-btn">{drawerUser.is_admin ? <><ShieldOff /> Remove Admin</> : <><Shield /> Make Admin</>}</button>
-                          <button className="adm-drawer-btn adm-drawer-btn-danger"><Ban /> Suspend Account</button>
+                          <button className="adm-drawer-btn adm-drawer-btn-danger" onClick={() => { setSuspendDialog({ userId: drawerUser.id, name: drawerUser.full_name || drawerUser.email }); setDrawerUser(null); }}><Ban /> Suspend Account</button>
                         </div>
                       </>
                     )}
@@ -637,6 +653,125 @@ export default function AdminPage() {
               </div>
             </>
           )}
+
+          {activeSection === 'settings' && (
+            <>
+              {/* Toggle Controls */}
+              <div className="adm-card">
+                <div className="adm-card-head"><h3>Platform Controls</h3></div>
+                <div className="adm-card-body">
+                  <div className="adm-toggle-list">
+                    <div className="adm-toggle-row">
+                      <div className="adm-toggle-info"><AlertTriangle className="adm-toggle-icon adm-toggle-warn" /><div><p className="adm-toggle-name">Maintenance Mode</p><p className="adm-toggle-desc">Show maintenance page to all users</p></div></div>
+                      <button className={`adm-toggle ${config.maintenance_mode ? 'adm-toggle-on' : ''}`} onClick={async () => {
+                        const val = !config.maintenance_mode;
+                        await fetch('/api/admin', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ configKey: 'maintenance_mode', configValue: val }) });
+                        setConfig({ ...config, maintenance_mode: val });
+                      }}>{config.maintenance_mode ? <ToggleRight /> : <ToggleLeft />}</button>
+                    </div>
+                    <div className="adm-toggle-row">
+                      <div className="adm-toggle-info"><Power className="adm-toggle-icon adm-toggle-danger" /><div><p className="adm-toggle-name">AI Kill Switch</p><p className="adm-toggle-desc">Immediately pause all AI signal generation</p></div></div>
+                      <button className={`adm-toggle ${config.ai_kill_switch ? 'adm-toggle-on' : ''}`} onClick={async () => {
+                        const val = !config.ai_kill_switch;
+                        await fetch('/api/admin', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ configKey: 'ai_kill_switch', configValue: val }) });
+                        setConfig({ ...config, ai_kill_switch: val });
+                      }}>{config.ai_kill_switch ? <ToggleRight /> : <ToggleLeft />}</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Feature Flags */}
+              <div className="adm-card">
+                <div className="adm-card-head"><h3>Feature Flags</h3></div>
+                <div className="adm-card-body">
+                  <div className="adm-toggle-list">
+                    {config.feature_flags && Object.entries(config.feature_flags as Record<string, boolean>).map(([key, val]) => (
+                      <div key={key} className="adm-toggle-row">
+                        <div className="adm-toggle-info"><Zap className="adm-toggle-icon" /><div><p className="adm-toggle-name">{key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p></div></div>
+                        <button className={`adm-toggle ${val ? 'adm-toggle-on' : ''}`} onClick={async () => {
+                          const flags = { ...config.feature_flags, [key]: !val };
+                          await fetch('/api/admin', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ configKey: 'feature_flags', configValue: flags }) });
+                          setConfig({ ...config, feature_flags: flags });
+                        }}>{val ? <ToggleRight /> : <ToggleLeft />}</button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Announcements */}
+              <div className="adm-card">
+                <div className="adm-card-head"><h3>Announcements ({announcements.length})</h3></div>
+                <div className="adm-card-body">
+                  <div className="adm-announce-form">
+                    <input className="adm-edit-input" placeholder="Title" value={newAnnouncement.title} onChange={e => setNewAnnouncement({ ...newAnnouncement, title: e.target.value })} />
+                    <input className="adm-edit-input" placeholder="Message" value={newAnnouncement.message} onChange={e => setNewAnnouncement({ ...newAnnouncement, message: e.target.value })} />
+                    <div className="adm-announce-row">
+                      <select className="adm-select" value={newAnnouncement.type} onChange={e => setNewAnnouncement({ ...newAnnouncement, type: e.target.value })}>
+                        <option value="info">Info</option><option value="warning">Warning</option><option value="success">Success</option>
+                      </select>
+                      <button className="adm-edit-save" onClick={async () => {
+                        if (!newAnnouncement.title) return;
+                        await fetch('/api/admin', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ announcement: newAnnouncement }) });
+                        setNewAnnouncement({ title: '', message: '', type: 'info' });
+                        handleRefresh();
+                      }}><Plus /> Post</button>
+                    </div>
+                  </div>
+                  {announcements.map(a => (
+                    <div key={a.id} className={`adm-announce-item adm-announce-${a.type}`}>
+                      <div><p className="adm-announce-title">{a.title}</p><p className="adm-announce-msg">{a.message}</p><p className="adm-announce-date">{new Date(a.created_at).toLocaleDateString()}</p></div>
+                      <button className="adm-announce-del" onClick={async () => {
+                        await fetch('/api/admin', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ announcement: { id: a.id, is_active: false } }) });
+                        setAnnouncements(announcements.filter(x => x.id !== a.id));
+                      }}><Trash2 /></button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          {activeSection === 'audit' && (
+            <div className="adm-card adm-card-full">
+              <div className="adm-card-head"><h3>Audit Trail ({auditLog.length})</h3></div>
+              {auditLog.length === 0 ? (
+                <div className="adm-empty-state"><FileText className="adm-empty-icon" /><p>No audit entries yet</p></div>
+              ) : (
+                <div className="adm-audit-list">
+                  {auditLog.map((entry: any) => (
+                    <div key={entry.id} className="adm-audit-item">
+                      <div className={`adm-audit-dot ${entry.action.includes('suspend') ? 'adm-audit-red' : entry.action.includes('config') ? 'adm-audit-amber' : 'adm-audit-green'}`} />
+                      <div className="adm-audit-body">
+                        <p className="adm-audit-action">{entry.action.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}</p>
+                        <p className="adm-audit-details">{entry.target_type}{entry.target_id ? ` · ${entry.target_id.slice(0, 8)}…` : ''}</p>
+                        <p className="adm-audit-time">{new Date(entry.created_at).toLocaleString()}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Suspend Dialog */}
+          {suspendDialog && (<>
+            <div className="adm-drawer-overlay" onClick={() => setSuspendDialog(null)} />
+            <div className="adm-suspend-dialog">
+              <h3>Suspend {suspendDialog.name}</h3>
+              <p>This will disable the user&apos;s access to the platform.</p>
+              <textarea className="adm-suspend-input" placeholder="Reason for suspension…" value={suspendReason} onChange={e => setSuspendReason(e.target.value)} />
+              <div className="adm-edit-buttons">
+                <button className="adm-edit-cancel" onClick={() => setSuspendDialog(null)}><X /> Cancel</button>
+                <button className="adm-edit-save" style={{background:'#ef4444'}} onClick={async () => {
+                  await fetch('/api/admin', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: suspendDialog.userId, status: 'suspended', suspended_reason: suspendReason }) });
+                  setUsers(users.map(u => u.id === suspendDialog.userId ? { ...u, status: 'suspended' } as any : u));
+                  setSuspendDialog(null); setSuspendReason('');
+                }}><Ban /> Suspend</button>
+              </div>
+            </div>
+          </>)}
         </main>
       </div>
     </div>
