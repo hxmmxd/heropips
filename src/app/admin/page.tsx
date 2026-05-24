@@ -4,8 +4,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   Users, Server, TrendingUp, DollarSign, Shield, ShieldOff, ArrowLeft,
   Search, Crown, Zap, Rocket, ChevronDown, ChevronUp, Activity,
-  BarChart3, Settings, Eye, Ban, MoreVertical, RefreshCw, Download,
-  Calendar, ArrowUpRight, ArrowDownRight, Globe, Clock
+  BarChart3, Eye, Ban, MoreVertical, RefreshCw, Download,
+  ArrowUpRight, Globe, Clock, Wifi, WifiOff, Receipt, CheckCircle, XCircle,
+  Heart, Cpu, Database
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
@@ -31,17 +32,23 @@ interface UserRow {
   created_at: string;
 }
 
+interface BrokerRow { id: string; user_id: string; broker_name: string; account_id: string; server: string; status: string; created_at: string; }
+interface TradeRow { id: string; user_id: string; symbol: string; type: string; volume: number; open_price: number; close_price: number; pnl: number; status: string; created_at: string; }
+
 type SortKey = 'full_name' | 'email' | 'plan' | 'created_at';
 type SortDir = 'asc' | 'desc';
+type Section = 'overview' | 'users' | 'brokers' | 'trades' | 'analytics';
 
 export default function AdminPage() {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [users, setUsers] = useState<UserRow[]>([]);
+  const [brokers, setBrokers] = useState<BrokerRow[]>([]);
+  const [trades, setTrades] = useState<TradeRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [editingUser, setEditingUser] = useState<string | null>(null);
-  const [activeSection, setActiveSection] = useState<'overview' | 'users'>('overview');
+  const [activeSection, setActiveSection] = useState<Section>('overview');
   const [sortKey, setSortKey] = useState<SortKey>('created_at');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [refreshing, setRefreshing] = useState(false);
@@ -57,6 +64,8 @@ export default function AdminPage() {
       const data = await res.json();
       setStats(data.stats);
       setUsers(data.users);
+      setBrokers(data.brokers || []);
+      setTrades(data.trades || []);
     } catch (err: any) { setError(err.message); }
     finally { setLoading(false); }
   };
@@ -168,6 +177,16 @@ export default function AdminPage() {
           </button>
           <button className={`adm-nav-item ${activeSection === 'users' ? 'active' : ''}`} onClick={() => setActiveSection('users')}>
             <Users /><span>Users</span>
+          </button>
+          <button className={`adm-nav-item ${activeSection === 'brokers' ? 'active' : ''}`} onClick={() => setActiveSection('brokers')}>
+            <Server /><span>Brokers</span>
+          </button>
+          <button className={`adm-nav-item ${activeSection === 'trades' ? 'active' : ''}`} onClick={() => setActiveSection('trades')}>
+            <Receipt /><span>Trades</span>
+          </button>
+          <div className="adm-nav-divider" />
+          <button className={`adm-nav-item ${activeSection === 'analytics' ? 'active' : ''}`} onClick={() => setActiveSection('analytics')}>
+            <TrendingUp /><span>Analytics</span>
           </button>
         </nav>
 
@@ -363,6 +382,116 @@ export default function AdminPage() {
                 </table>
               </div>
             </div>
+          )}
+
+          {activeSection === 'brokers' && (
+            <div className="adm-card adm-card-full">
+              <div className="adm-card-head">
+                <h3>Broker Accounts ({brokers.length})</h3>
+              </div>
+              {brokers.length === 0 ? (
+                <div className="adm-empty-state"><Server className="adm-empty-icon" /><p>No broker accounts connected yet</p></div>
+              ) : (
+                <div className="adm-table-wrap"><table className="adm-table"><thead><tr>
+                  <th>Broker</th><th>Account ID</th><th>Server</th><th>Status</th><th>Connected</th>
+                </tr></thead><tbody>
+                  {brokers.map(b => (
+                    <tr key={b.id}>
+                      <td><span className="adm-broker-name">{b.broker_name || 'MT5'}</span></td>
+                      <td className="adm-mono">{b.account_id}</td>
+                      <td className="adm-date-cell">{b.server || '—'}</td>
+                      <td><span className={`adm-status ${b.status === 'connected' ? 'adm-status-on' : 'adm-status-off'}`}>
+                        {b.status === 'connected' ? <><Wifi /> Connected</> : <><WifiOff /> Offline</>}
+                      </span></td>
+                      <td className="adm-date-cell">{b.created_at ? new Date(b.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}</td>
+                    </tr>
+                  ))}
+                </tbody></table></div>
+              )}
+            </div>
+          )}
+
+          {activeSection === 'trades' && (
+            <div className="adm-card adm-card-full">
+              <div className="adm-card-head">
+                <h3>Trade Log ({trades.length})</h3>
+                <button className="adm-export-btn" onClick={() => {
+                  const csv = 'Symbol,Type,Volume,Open,Close,P&L,Status,Date\n' + trades.map(t => `${t.symbol},${t.type},${t.volume},${t.open_price},${t.close_price},${t.pnl},${t.status},${t.created_at}`).join('\n');
+                  const blob = new Blob([csv], { type: 'text/csv' });
+                  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'trades.csv'; a.click();
+                }}><Download /> Export CSV</button>
+              </div>
+              {trades.length === 0 ? (
+                <div className="adm-empty-state"><Receipt className="adm-empty-icon" /><p>No trades recorded yet</p></div>
+              ) : (
+                <div className="adm-table-wrap"><table className="adm-table"><thead><tr>
+                  <th>Symbol</th><th>Type</th><th>Volume</th><th>Open</th><th>Close</th><th>P&L</th><th>Status</th><th>Date</th>
+                </tr></thead><tbody>
+                  {trades.map(t => (
+                    <tr key={t.id}>
+                      <td><span className="adm-symbol">{t.symbol}</span></td>
+                      <td><span className={`adm-trade-type ${t.type === 'buy' ? 'adm-buy' : 'adm-sell'}`}>{(t.type || '').toUpperCase()}</span></td>
+                      <td>{t.volume}</td>
+                      <td className="adm-mono">{t.open_price}</td>
+                      <td className="adm-mono">{t.close_price || '—'}</td>
+                      <td className={`adm-pnl ${(t.pnl || 0) >= 0 ? 'adm-pnl-pos' : 'adm-pnl-neg'}`}>{(t.pnl || 0) >= 0 ? '+' : ''}{(t.pnl || 0).toFixed(2)}</td>
+                      <td><span className={`adm-status ${t.status === 'open' ? 'adm-status-on' : 'adm-status-off'}`}>{t.status === 'open' ? 'Open' : 'Closed'}</span></td>
+                      <td className="adm-date-cell">{t.created_at ? new Date(t.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}</td>
+                    </tr>
+                  ))}
+                </tbody></table></div>
+              )}
+            </div>
+          )}
+
+          {activeSection === 'analytics' && stats && (
+            <>
+              {/* Revenue Breakdown */}
+              <div className="adm-card">
+                <div className="adm-card-head"><h3>Revenue Breakdown</h3></div>
+                <div className="adm-card-body">
+                  <div className="adm-rev-grid">
+                    <div className="adm-rev-item"><div className="adm-rev-bar-wrap"><div className="adm-rev-bar" style={{ height: `${Math.min((stats.proUsers * 50 / Math.max(stats.revenue, 1)) * 100, 100)}%`, background: '#8b5cf6' }} /></div><p className="adm-rev-val">${stats.proUsers * 50}</p><p className="adm-rev-label">Pro</p></div>
+                    <div className="adm-rev-item"><div className="adm-rev-bar-wrap"><div className="adm-rev-bar" style={{ height: `${Math.min((stats.enterpriseUsers * 100 / Math.max(stats.revenue, 1)) * 100, 100)}%`, background: '#f59e0b' }} /></div><p className="adm-rev-val">${stats.enterpriseUsers * 100}</p><p className="adm-rev-label">Enterprise</p></div>
+                  </div>
+                </div>
+              </div>
+
+              {/* System Health */}
+              <div className="adm-card">
+                <div className="adm-card-head"><h3>System Health</h3></div>
+                <div className="adm-card-body">
+                  <div className="adm-health-grid">
+                    <div className="adm-health-item"><div className="adm-health-dot adm-health-green" /><Cpu className="adm-health-icon" /><div><p className="adm-health-name">API Server</p><p className="adm-health-status">Operational</p></div></div>
+                    <div className="adm-health-item"><div className="adm-health-dot adm-health-green" /><Database className="adm-health-icon" /><div><p className="adm-health-name">Database</p><p className="adm-health-status">Operational</p></div></div>
+                    <div className="adm-health-item"><div className="adm-health-dot adm-health-green" /><Globe className="adm-health-icon" /><div><p className="adm-health-name">Auth Service</p><p className="adm-health-status">Operational</p></div></div>
+                    <div className="adm-health-item"><div className="adm-health-dot adm-health-green" /><Server className="adm-health-icon" /><div><p className="adm-health-name">Broker Gateway</p><p className="adm-health-status">Operational</p></div></div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Conversion & Engagement */}
+              <div className="adm-grid-3">
+                <div className="adm-metric"><Heart className="adm-metric-icon" /><div><p className="adm-metric-val">{stats.totalUsers > 0 ? ((stats.proUsers + stats.enterpriseUsers) / stats.totalUsers * 100).toFixed(1) : 0}%</p><p className="adm-metric-label">Conversion Rate</p></div></div>
+                <div className="adm-metric"><DollarSign className="adm-metric-icon" /><div><p className="adm-metric-val">${stats.totalUsers > 0 ? (stats.revenue / stats.totalUsers).toFixed(0) : 0}</p><p className="adm-metric-label">ARPU</p></div></div>
+                <div className="adm-metric"><Activity className="adm-metric-icon" /><div><p className="adm-metric-val">{stats.totalUsers > 0 ? (stats.totalTrades / stats.totalUsers).toFixed(1) : 0}</p><p className="adm-metric-label">Trades/User</p></div></div>
+              </div>
+
+              {/* Export */}
+              <div className="adm-card">
+                <div className="adm-card-head"><h3>Data Export</h3></div>
+                <div className="adm-card-body adm-export-grid">
+                  <button className="adm-export-card" onClick={() => {
+                    const csv = 'Name,Email,Plan,Admin,Joined\n' + users.map(u => `"${u.full_name || ''}",${u.email},${u.plan || 'free'},${u.is_admin},${u.created_at}`).join('\n');
+                    const blob = new Blob([csv], { type: 'text/csv' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'users.csv'; a.click();
+                  }}><Users className="adm-export-card-icon" /><span>Export Users</span><Download /></button>
+                  <button className="adm-export-card" onClick={() => {
+                    const csv = 'Broker,AccountID,Server,Status,Date\n' + brokers.map(b => `${b.broker_name},${b.account_id},${b.server},${b.status},${b.created_at}`).join('\n');
+                    const blob = new Blob([csv], { type: 'text/csv' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'brokers.csv'; a.click();
+                  }}><Server className="adm-export-card-icon" /><span>Export Brokers</span><Download /></button>
+                </div>
+              </div>
+            </>
           )}
         </main>
       </div>

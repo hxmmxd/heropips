@@ -1307,3 +1307,74 @@ body {
 .adm-action-menu button:hover { background: var(--input-bg); }
 .adm-action-danger { color: #ef4444 !important; }
 .adm-action-danger:hover { background: rgba(239,68,68,0.08) !important; }
+
+/* Nav divider */
+.adm-nav-divider { height: 1px; background: var(--border); margin: 8px 10px; }
+
+/* Status badges */
+.adm-status { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; }
+.adm-status svg { width: 13px; height: 13px; }
+.adm-status-on { color: #22c55e; }
+.adm-status-off { color: var(--subtext); }
+
+/* Broker/Trade table extras */
+.adm-mono { font-family: 'SF Mono', 'Menlo', monospace; font-size: 12px; letter-spacing: -0.02em; }
+.adm-broker-name { font-weight: 600; }
+.adm-symbol { font-weight: 700; letter-spacing: 0.02em; }
+.adm-trade-type { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
+.adm-buy { background: rgba(34,197,94,0.12); color: #22c55e; }
+.adm-sell { background: rgba(239,68,68,0.12); color: #ef4444; }
+.adm-pnl { font-weight: 700; font-family: 'SF Mono', monospace; font-size: 13px; }
+.adm-pnl-pos { color: #22c55e; }
+.adm-pnl-neg { color: #ef4444; }
+
+/* Empty state */
+.adm-empty-state { display: flex; flex-direction: column; align-items: center; padding: 60px 20px; gap: 10px; color: var(--subtext); }
+.adm-empty-icon { width: 36px; height: 36px; opacity: 0.4; }
+.adm-empty-state p { font-size: 14px; margin: 0; }
+
+/* Export button */
+.adm-export-btn {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--input-bg);
+  color: var(--text); font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: background 0.15s;
+}
+.adm-export-btn svg { width: 14px; height: 14px; }
+.adm-export-btn:hover { background: var(--border); }
+
+/* Revenue chart */
+.adm-rev-grid { display: flex; gap: 32px; justify-content: center; padding: 10px 0; }
+.adm-rev-item { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.adm-rev-bar-wrap { width: 48px; height: 120px; background: rgba(255,255,255,0.04); border-radius: 8px; display: flex; align-items: flex-end; overflow: hidden; }
+.adm-rev-bar { width: 100%; border-radius: 8px 8px 0 0; transition: height 0.5s ease; min-height: 4px; }
+.adm-rev-val { font-size: 16px; font-weight: 700; margin: 0; }
+.adm-rev-label { font-size: 12px; color: var(--subtext); margin: 0; }
+
+/* System Health */
+.adm-health-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 600px) { .adm-health-grid { grid-template-columns: 1fr; } }
+.adm-health-item { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 10px; background: rgba(255,255,255,0.02); border: 1px solid var(--border); }
+.adm-health-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.adm-health-green { background: #22c55e; box-shadow: 0 0 6px rgba(34,197,94,0.4); }
+.adm-health-yellow { background: #f59e0b; box-shadow: 0 0 6px rgba(245,158,11,0.4); }
+.adm-health-red { background: #ef4444; box-shadow: 0 0 6px rgba(239,68,68,0.4); }
+.adm-health-icon { width: 18px; height: 18px; color: var(--subtext); }
+.adm-health-name { font-size: 13px; font-weight: 600; margin: 0; }
+.adm-health-status { font-size: 11px; color: var(--subtext); margin: 1px 0 0; }
+
+/* Export cards */
+.adm-export-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 600px) { .adm-export-grid { grid-template-columns: 1fr; } }
+.adm-export-card {
+  display: flex; align-items: center; gap: 10px;
+  padding: 16px; border-radius: 12px;
+  border: 1px solid var(--border); background: rgba(255,255,255,0.02);
+  color: var(--text); font-size: 14px; font-weight: 500;
+  cursor: pointer; transition: all 0.15s;
+}
+.adm-export-card:hover { background: var(--input-bg); border-color: #10a37f; }
+.adm-export-card-icon { width: 20px; height: 20px; color: var(--subtext); }
+.adm-export-card span { flex: 1; }
+.adm-export-card svg:last-child { width: 16px; height: 16px; color: var(--subtext); }
