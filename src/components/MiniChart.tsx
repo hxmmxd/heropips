@@ -95,7 +95,8 @@ export default function MiniChart({ symbol, height = 120 }: MiniChartProps) {
       const lastClose = candles[candles.length - 1]?.close || 0;
       const isBullish = lastClose >= firstClose;
 
-      const candleSeries = chart.addCandlestickSeries({
+      const lc = await import('lightweight-charts');
+      const candleSeries = chart.addSeries(lc.CandlestickSeries, {
         upColor: '#22c55e',
         downColor: '#ef4444',
         borderDownColor: '#ef4444',
