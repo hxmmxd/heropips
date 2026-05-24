@@ -24,7 +24,8 @@ export default function Home() {
   const [activeBrokerName, setActiveBrokerName] = useState('Vantage-Real-01');
 
   // Find currently active broker data
-  const activeBroker = brokers.find((b) => b.name === activeBrokerName) || brokers[0];
+  const defaultBroker: Broker = { name: 'No Broker', balance: '0.00', pnl: '0.00', equity: '0.00', acc: 'none' };
+  const activeBroker = brokers.find((b) => b.name === activeBrokerName) || brokers[0] || defaultBroker;
 
   // Chat Messages state
   const [messages, setMessages] = useState<ChatMessage[]>([]);
