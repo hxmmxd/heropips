@@ -292,7 +292,7 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal 
                             {msg.signalSymbol && !msg.ticket && (
                               <button
                                 onClick={() => onGenerateSignal?.(msg.signalSymbol!)}
-                                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white text-[10px] font-bold uppercase tracking-wider hover:shadow-lg hover:shadow-blue-500/30 active:scale-95 transition-all"
+                                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white text-[10px] font-bold uppercase tracking-wider hover:shadow-lg hover:shadow-blue-500/30 active:scale-95 transition-all whitespace-nowrap shrink-0"
                               >
                                 <Zap className="w-3 h-3" />
                                 Generate Signal
@@ -313,7 +313,7 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal 
                       {msg.signalSymbol && !msg.ticket && !msg.marketData && (
                         <button
                           onClick={() => onGenerateSignal?.(msg.signalSymbol!)}
-                          className="flex items-center gap-2 mt-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-500 text-white text-[12px] font-bold uppercase tracking-wider shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 active:scale-95 transition-all"
+                          className="flex items-center gap-2 mt-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-500 text-white text-[12px] font-bold uppercase tracking-wider shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 active:scale-95 transition-all whitespace-nowrap shrink-0"
                         >
                           <Zap className="w-3.5 h-3.5" />
                           Generate Trade Signal
