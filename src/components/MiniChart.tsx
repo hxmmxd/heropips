@@ -105,9 +105,9 @@ export default function MiniChart({ symbol, height = 120 }: MiniChartProps) {
         wickUpColor: '#22c55e',
       });
 
-      // Convert datetime strings to chart-compatible format
+      // Convert datetime strings to Unix timestamps for chart
       const chartData = candles.map((c) => ({
-        time: c.time.replace(' ', 'T') as any,
+        time: Math.floor(new Date(c.time.replace(' ', 'T') + 'Z').getTime() / 1000) as any,
         open: c.open,
         high: c.high,
         low: c.low,
