@@ -77,8 +77,10 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal 
                 return (
                   <div key={msg.id} className="flex space-x-3 px-4 mb-6 animate-in slide-in-from-bottom-2">
                     {/* Bot Icon */}
-                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shrink-0 mt-0.5">
-                      <span className="text-[10px] font-black text-white tracking-tight">T</span>
+                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shrink-0 mt-0.5">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                        <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="white" opacity="0.95"/>
+                      </svg>
                     </div>
 
                     {/* Bot Response Content */}
