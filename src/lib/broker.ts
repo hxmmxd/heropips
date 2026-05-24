@@ -113,7 +113,6 @@ export async function connectBroker(
         password: password || '',
         server: server || 'DemoServer',
         magic: 0, // 0 = manual trades (required field)
-        reliability: 'high',
       });
       
       // Wait for account deployment and connection
