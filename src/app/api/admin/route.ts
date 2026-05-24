@@ -77,11 +77,13 @@ export async function PATCH(request: Request) {
   }
 
   const body = await request.json();
-  const { userId, plan, is_admin } = body;
+  const { userId, plan, is_admin, full_name, email } = body;
 
   const update: any = { updated_at: new Date().toISOString() };
   if (plan !== undefined) update.plan = plan;
   if (is_admin !== undefined) update.is_admin = is_admin;
+  if (full_name !== undefined) update.full_name = full_name;
+  if (email !== undefined) update.email = email;
 
   const { error } = await supabaseAdmin
     .from('profiles')
@@ -90,6 +92,14 @@ export async function PATCH(request: Request) {
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // Also update auth metadata if name or email changed
+  if (full_name !== undefined || email !== undefined) {
+    const authUpdate: any = {};
+    if (email !== undefined) authUpdate.email = email;
+    if (full_name !== undefined) authUpdate.user_metadata = { full_name };
+    await supabaseAdmin.auth.admin.updateUserById(userId, authUpdate);
   }
 
   return NextResponse.json({ success: true });

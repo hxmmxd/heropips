@@ -6,7 +6,7 @@ import {
   Search, Crown, Zap, Rocket, ChevronDown, ChevronUp, Activity,
   BarChart3, Eye, Ban, MoreVertical, RefreshCw, Download,
   ArrowUpRight, Globe, Clock, Wifi, WifiOff, Receipt, CheckCircle, XCircle,
-  Heart, Cpu, Database
+  Heart, Cpu, Database, Pencil, Check, X, Mail, User
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
@@ -59,6 +59,12 @@ export default function AdminPage() {
   const [drawerUser, setDrawerUser] = useState<UserRow | null>(null);
   const [page, setPage] = useState(0);
   const PAGE_SIZE = 15;
+  const [editMode, setEditMode] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editPlan, setEditPlan] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState('');
 
   useEffect(() => { loadData(); }, []);
 
@@ -97,6 +103,33 @@ export default function AdminPage() {
   const handleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
     else { setSortKey(key); setSortDir('asc'); }
+  };
+
+  const openDrawer = (u: UserRow) => {
+    setDrawerUser(u);
+    setEditName(u.full_name || '');
+    setEditEmail(u.email || '');
+    setEditPlan(u.plan || 'free');
+    setEditMode(false);
+    setSaveMsg('');
+  };
+
+  const handleSaveUser = async () => {
+    if (!drawerUser) return;
+    setSaving(true); setSaveMsg('');
+    try {
+      await fetch('/api/admin', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: drawerUser.id, full_name: editName, email: editEmail, plan: editPlan }),
+      });
+      const updated = { ...drawerUser, full_name: editName, email: editEmail, plan: editPlan };
+      setUsers(users.map(u => u.id === drawerUser.id ? updated : u));
+      setDrawerUser(updated);
+      setEditMode(false);
+      setSaveMsg('Saved successfully');
+      setTimeout(() => setSaveMsg(''), 2000);
+    } catch { setSaveMsg('Error saving'); }
+    finally { setSaving(false); }
   };
 
   const filteredUsers = useMemo(() => {
@@ -373,7 +406,7 @@ export default function AdminPage() {
                         <tr key={u.id} className={selected.has(u.id) ? 'adm-row-selected' : ''}>
                           <td className="adm-td-check"><input type="checkbox" checked={selected.has(u.id)} onChange={() => toggleSelect(u.id)} /></td>
                           <td>
-                            <div className="adm-user-cell" onClick={() => setDrawerUser(u)} style={{cursor:'pointer'}}>
+                            <div className="adm-user-cell" onClick={() => openDrawer(u)} style={{cursor:'pointer'}}>
                               <img src={u.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.full_name || u.email)}&background=10a37f&color=fff&size=36`} alt="" className="adm-user-av" />
                               <div><p className="adm-user-name">{u.full_name || '—'}</p><p className="adm-user-email">{u.email}</p></div>
                             </div>
@@ -391,12 +424,12 @@ export default function AdminPage() {
                           <td className="adm-date-cell">{u.created_at ? new Date(u.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}</td>
                           <td>
                             <div className="adm-actions-cell">
-                              <button className="adm-action-dot" onClick={() => setDrawerUser(u)} title="View details"><Eye /></button>
+                              <button className="adm-action-dot" onClick={() => openDrawer(u)} title="View details"><Eye /></button>
                               <button className="adm-action-dot" onClick={() => setActionMenu(actionMenu === u.id ? null : u.id)}><MoreVertical /></button>
                               {actionMenu === u.id && (<>
                                 <div className="adm-action-overlay" onClick={() => setActionMenu(null)} />
                                 <div className="adm-action-menu">
-                                  <button onClick={() => { setDrawerUser(u); setActionMenu(null); }}><Eye /> View Profile</button>
+                                  <button onClick={() => { openDrawer(u); setActionMenu(null); }}><Eye /> View Profile</button>
                                   <button onClick={() => handleToggleAdmin(u.id, u.is_admin)}>{u.is_admin ? <><ShieldOff /> Remove Admin</> : <><Shield /> Make Admin</>}</button>
                                   <button className="adm-action-danger"><Ban /> Suspend User</button>
                                 </div>
@@ -424,30 +457,71 @@ export default function AdminPage() {
                 <div className="adm-drawer-overlay" onClick={() => setDrawerUser(null)} />
                 <div className="adm-drawer">
                   <div className="adm-drawer-head">
-                    <h3>User Details</h3>
-                    <button className="adm-drawer-close" onClick={() => setDrawerUser(null)}>✕</button>
+                    <h3>{editMode ? 'Edit User' : 'User Details'}</h3>
+                    <div className="adm-drawer-head-actions">
+                      {!editMode && <button className="adm-drawer-edit" onClick={() => setEditMode(true)}><Pencil /></button>}
+                      <button className="adm-drawer-close" onClick={() => setDrawerUser(null)}>✕</button>
+                    </div>
                   </div>
                   <div className="adm-drawer-body">
                     <div className="adm-drawer-profile">
                       <img src={drawerUser.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(drawerUser.full_name || drawerUser.email)}&background=10a37f&color=fff&size=80`} alt="" className="adm-drawer-avatar" />
-                      <h4>{drawerUser.full_name || drawerUser.email?.split('@')[0]}</h4>
-                      <p className="adm-drawer-email">{drawerUser.email}</p>
+                      {!editMode ? (
+                        <>
+                          <h4>{drawerUser.full_name || drawerUser.email?.split('@')[0]}</h4>
+                          <p className="adm-drawer-email">{drawerUser.email}</p>
+                        </>
+                      ) : (
+                        <div className="adm-edit-profile-fields">
+                          <div className="adm-edit-field"><User className="adm-edit-icon" /><input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Full name" className="adm-edit-input" /></div>
+                          <div className="adm-edit-field"><Mail className="adm-edit-icon" /><input value={editEmail} onChange={e => setEditEmail(e.target.value)} placeholder="Email" className="adm-edit-input" /></div>
+                        </div>
+                      )}
                       <div className="adm-drawer-tags">
                         <span className={`adm-tag adm-tag-${drawerUser.plan || 'free'}`}>{(drawerUser.plan || 'free').charAt(0).toUpperCase() + (drawerUser.plan || 'free').slice(1)}</span>
                         {drawerUser.is_admin && <span className="adm-tag" style={{background:'rgba(239,68,68,0.12)',color:'#f87171'}}>Admin</span>}
                       </div>
                     </div>
-                    <div className="adm-drawer-fields">
-                      <div className="adm-drawer-field"><span>User ID</span><span className="adm-mono">{drawerUser.id.slice(0, 8)}…</span></div>
-                      <div className="adm-drawer-field"><span>Plan</span><span>{(drawerUser.plan || 'free').charAt(0).toUpperCase() + (drawerUser.plan || 'free').slice(1)}</span></div>
-                      <div className="adm-drawer-field"><span>Role</span><span>{drawerUser.is_admin ? 'Admin' : 'User'}</span></div>
-                      <div className="adm-drawer-field"><span>Joined</span><span>{drawerUser.created_at ? new Date(drawerUser.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '—'}</span></div>
-                    </div>
-                    <div className="adm-drawer-actions">
-                      <button onClick={() => { handleUpdatePlan(drawerUser.id, 'pro'); setDrawerUser({...drawerUser, plan: 'pro'}); }} className="adm-drawer-btn"><Crown /> Upgrade to Pro</button>
-                      <button onClick={() => { handleToggleAdmin(drawerUser.id, drawerUser.is_admin); setDrawerUser({...drawerUser, is_admin: !drawerUser.is_admin}); }} className="adm-drawer-btn">{drawerUser.is_admin ? <><ShieldOff /> Remove Admin</> : <><Shield /> Make Admin</>}</button>
-                      <button className="adm-drawer-btn adm-drawer-btn-danger"><Ban /> Suspend Account</button>
-                    </div>
+
+                    {editMode ? (
+                      <>
+                        <div className="adm-edit-section">
+                          <label className="adm-edit-label">Subscription Plan</label>
+                          <div className="adm-edit-plan-row">
+                            {['free', 'pro', 'enterprise'].map(p => (
+                              <button key={p} className={`adm-edit-plan-opt ${editPlan === p ? 'active' : ''}`} onClick={() => setEditPlan(p)}>
+                                {p === 'free' && <Zap className="adm-edit-plan-icon" />}
+                                {p === 'pro' && <Crown className="adm-edit-plan-icon" />}
+                                {p === 'enterprise' && <Rocket className="adm-edit-plan-icon" />}
+                                {p.charAt(0).toUpperCase() + p.slice(1)}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        {saveMsg && <p className={`adm-save-msg ${saveMsg.includes('Error') ? 'adm-save-err' : ''}`}>{saveMsg}</p>}
+                        <div className="adm-edit-buttons">
+                          <button className="adm-edit-cancel" onClick={() => { setEditMode(false); setEditName(drawerUser.full_name || ''); setEditEmail(drawerUser.email || ''); setEditPlan(drawerUser.plan || 'free'); }}><X /> Cancel</button>
+                          <button className="adm-edit-save" onClick={handleSaveUser} disabled={saving}>{saving ? 'Saving…' : <><Check /> Save Changes</>}</button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="adm-drawer-fields">
+                          <div className="adm-drawer-field"><span>User ID</span><span className="adm-mono">{drawerUser.id.slice(0, 8)}…</span></div>
+                          <div className="adm-drawer-field"><span>Full Name</span><span>{drawerUser.full_name || '—'}</span></div>
+                          <div className="adm-drawer-field"><span>Email</span><span>{drawerUser.email}</span></div>
+                          <div className="adm-drawer-field"><span>Plan</span><span>{(drawerUser.plan || 'free').charAt(0).toUpperCase() + (drawerUser.plan || 'free').slice(1)}</span></div>
+                          <div className="adm-drawer-field"><span>Role</span><span>{drawerUser.is_admin ? 'Admin' : 'User'}</span></div>
+                          <div className="adm-drawer-field"><span>Joined</span><span>{drawerUser.created_at ? new Date(drawerUser.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '—'}</span></div>
+                        </div>
+                        <div className="adm-drawer-actions">
+                          <button onClick={() => setEditMode(true)} className="adm-drawer-btn"><Pencil /> Edit User Info</button>
+                          <button onClick={() => { handleUpdatePlan(drawerUser.id, 'pro'); setDrawerUser({...drawerUser, plan: 'pro'}); }} className="adm-drawer-btn"><Crown /> Upgrade to Pro</button>
+                          <button onClick={() => { handleToggleAdmin(drawerUser.id, drawerUser.is_admin); setDrawerUser({...drawerUser, is_admin: !drawerUser.is_admin}); }} className="adm-drawer-btn">{drawerUser.is_admin ? <><ShieldOff /> Remove Admin</> : <><Shield /> Make Admin</>}</button>
+                          <button className="adm-drawer-btn adm-drawer-btn-danger"><Ban /> Suspend Account</button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               </>)}

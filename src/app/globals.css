@@ -1479,3 +1479,62 @@ body {
 .adm-drawer-btn:hover { border-color: #10a37f; background: rgba(16,163,127,0.06); }
 .adm-drawer-btn-danger { color: #ef4444; border-color: rgba(239,68,68,0.2); }
 .adm-drawer-btn-danger:hover { background: rgba(239,68,68,0.06); border-color: #ef4444; }
+
+/* Drawer Edit Mode */
+.adm-drawer-head-actions { display: flex; align-items: center; gap: 6px; }
+.adm-drawer-edit {
+  width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+  border-radius: 8px; border: 1px solid var(--border); background: transparent;
+  color: var(--subtext); cursor: pointer; transition: all 0.15s;
+}
+.adm-drawer-edit svg { width: 14px; height: 14px; }
+.adm-drawer-edit:hover { background: var(--input-bg); color: var(--text); border-color: #10a37f; }
+
+.adm-edit-profile-fields { display: flex; flex-direction: column; gap: 8px; width: 100%; margin: 8px 0; }
+.adm-edit-field { display: flex; align-items: center; gap: 8px; }
+.adm-edit-icon { width: 16px; height: 16px; color: var(--subtext); flex-shrink: 0; }
+.adm-edit-input {
+  flex: 1; padding: 9px 12px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--input-bg);
+  color: var(--text); font-size: 13px; outline: none;
+  transition: border-color 0.15s;
+}
+.adm-edit-input:focus { border-color: #10a37f; }
+
+.adm-edit-section { margin-bottom: 20px; }
+.adm-edit-label { font-size: 12px; font-weight: 600; color: var(--subtext); margin-bottom: 8px; display: block; }
+.adm-edit-plan-row { display: flex; gap: 6px; }
+.adm-edit-plan-opt {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--input-bg);
+  color: var(--text); font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: all 0.15s;
+}
+.adm-edit-plan-opt:hover { border-color: #8b5cf6; }
+.adm-edit-plan-opt.active { background: rgba(139,92,246,0.12); border-color: #8b5cf6; color: #a78bfa; }
+.adm-edit-plan-icon { width: 14px; height: 14px; }
+
+.adm-edit-buttons { display: flex; gap: 8px; margin-top: 4px; }
+.adm-edit-cancel {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--input-bg);
+  color: var(--subtext); font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all 0.15s;
+}
+.adm-edit-cancel svg { width: 14px; height: 14px; }
+.adm-edit-cancel:hover { background: var(--border); }
+.adm-edit-save {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px; border-radius: 10px;
+  border: none; background: #10a37f;
+  color: white; font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: opacity 0.15s;
+}
+.adm-edit-save svg { width: 14px; height: 14px; }
+.adm-edit-save:hover { opacity: 0.9; }
+.adm-edit-save:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.adm-save-msg { font-size: 12px; font-weight: 600; margin: 0 0 8px; color: #22c55e; text-align: center; }
+.adm-save-err { color: #ef4444; }
