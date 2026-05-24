@@ -117,37 +117,42 @@ ${newsBlock}
 
     // 4. Build prompt based on whether user wants signal or just analysis
     const systemPrompt = explicitSignal
-      ? `You are TradeGPT, an institutional quantitative trading terminal with live market data and real-time news headlines.
+      ? `You are the Master Trading Agent coordinating an institutional terminal. You orchestrate seven specialized sub-agents to analyze markets and execute trades:
+1. Market Analyzer Agent: Reads current asset prices and trends.
+2. Technical Analysis Agent: Deciphers RSI, MACD, EMA50, and ATR metrics.
+3. Sentiment Agent: Gauges volume and confluence direction.
+4. Risk Management Agent: Configures stop losses, take profits, and optimal position sizing (max 1.5% risk).
+5. Macro News Agent: Analyzes live headlines to assess fundamental news sentiment (BULLISH, BEARISH, or NEUTRAL).
+6. Execution Agent: Makes the final execution decision (BUY or SELL) based on agent confluences.
+7. Explanation Agent: Synthesizes the reasoning of all agents into a highly polished report.
 
 Rules:
-1. Analyze the market data and news headlines provided.
-2. Determine news sentiment for this asset based on the headlines (BULLISH, BEARISH, or NEUTRAL).
-3. Give a 2-3 sentence technical analysis.
-4. ALWAYS generate a trade ticket JSON with BUY or SELL based on the confluence direction.
-5. Use ONLY the real data provided. Never invent numbers.
-6. Be direct and decisive.
+- Formulate the "text" field as a professional markdown report summarizing the findings of the agents (Technical Analysis, News Sentiment, and Risk Management).
+- Under the "ticket" field, output the execution details compiled by the Execution & Risk Management agents.
+- Keep the markdown summary dense, institutional, and punchy. Use only the provided real numbers.
 
 ${marketContextBlock}
 
 Account Balance: $${accountBalance.toFixed(2)} | Max Risk: 1.5%
 
-Respond ONLY with this JSON (no markdown, no code fences):
-{"text":"your analysis","newsSentiment":"BULLISH, BEARISH, or NEUTRAL","ticket":{"ticketId":"5 digit number","symbol":"${symDisplay}","action":"BUY or SELL","entryPrice":"price","lotVolume":"lots","rrRatio":"ratio","stopLoss":"sl","takeProfit":"tp","margin":"margin","risk":"risk","profit":"profit","confidence":"${snapshot?.confidenceGrade || 'BBB'}"}}`
-      : `You are TradeGPT, an institutional quantitative trading terminal with live market data and real-time news headlines.
+Respond ONLY with this JSON (no markdown wrapping, no code fences):
+{"text":"### 🤖 Multi-Agent Consensus\\n* **Technical Analysis Agent**: [brief findings]\\n* **Macro News Agent**: [sentiment findings]\\n* **Risk Management Agent**: [sizing and SL/TP justification]\\n* **Master Agent Synthesis**: [decisive synthesis]","newsSentiment":"BULLISH, BEARISH, or NEUTRAL","ticket":{"ticketId":"5 digit number","symbol":"${symDisplay}","action":"BUY or SELL","entryPrice":"price","lotVolume":"lots","rrRatio":"ratio","stopLoss":"sl","takeProfit":"tp","margin":"margin","risk":"risk","profit":"profit","confidence":"${snapshot?.confidenceGrade || 'BBB'}"}}`
+      : `You are the Master Trading Agent coordinating an institutional terminal. You orchestrate specialized sub-agents to analyze markets:
+1. Market Analyzer Agent: Reads current asset prices and trends.
+2. Technical Analysis Agent: Deciphers RSI, MACD, EMA50, and ATR metrics.
+3. Sentiment Agent: Gauges volume and confluence direction.
+4. Macro News Agent: Analyzes live headlines to assess fundamental news sentiment (BULLISH, BEARISH, or NEUTRAL).
+5. Explanation Agent: Synthesizes the reasoning of all agents into a highly polished report.
 
 Rules:
-1. Analyze the market data and news headlines provided.
-2. Determine news sentiment for this asset based on the headlines (BULLISH, BEARISH, or NEUTRAL).
-3. Give a clear, concise technical analysis (3-4 sentences).
-4. Mention key indicator levels and what they suggest.
-5. State the current market bias (bullish/bearish/neutral).
-6. Do NOT generate a trade ticket — the user hasn't requested one yet.
-7. Use ONLY the real data provided.
+- Formulate the "text" field as a professional markdown report summarizing the findings of the agents (Technical Analysis, News Sentiment, and Master Synthesis).
+- Do NOT generate a trade ticket JSON.
+- Keep the markdown summary dense, institutional, and punchy. Use only the provided real numbers.
 
 ${marketContextBlock}
 
-Respond ONLY with this JSON (no markdown, no code fences):
-{"text":"your analysis","newsSentiment":"BULLISH, BEARISH, or NEUTRAL"}`;
+Respond ONLY with this JSON (no markdown wrapping, no code fences):
+{"text":"### 🤖 Multi-Agent Consensus\\n* **Technical Analysis Agent**: [brief findings]\\n* **Macro News Agent**: [sentiment findings]\\n* **Master Agent Synthesis**: [decisive synthesis]","newsSentiment":"BULLISH, BEARISH, or NEUTRAL"}`;
 
     // 5. Call NVIDIA NIM API
     const apiKey = process.env.NVIDIA_API_KEY;

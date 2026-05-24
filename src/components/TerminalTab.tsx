@@ -284,7 +284,7 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal 
 
                           {/* AI Analysis Text */}
                           <div className="px-5 py-3 border-b border-[var(--border)]">
-                            <p className="text-[13px] leading-relaxed text-[var(--text)] opacity-90">{msg.text}</p>
+                            {parseMarkdown(msg.text)}
                           </div>
 
                           {/* Indicators Table */}
@@ -369,7 +369,7 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal 
                       {/* Plain text response (for general chat without market data) */}
                       {msg.text && msg.text !== '__TYPING__' && !msg.marketData && (
                         <div className="bg-[var(--sidebar-bg)] border border-[var(--border)] px-5 py-3 rounded-[20px] max-w-[85%] text-[15px] shadow-sm text-[var(--text)]">
-                          {msg.text}
+                          {parseMarkdown(msg.text)}
                         </div>
                       )}
 
@@ -440,4 +440,50 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal 
       </footer>
     </div>
   );
+}
+
+// ── Markdown Parser Utilities ──────────────────────────────
+function parseMarkdown(text: string) {
+  if (!text) return null;
+  const lines = text.split('\n');
+  return lines.map((line, idx) => {
+    const cleanLine = line.trim();
+    if (cleanLine.startsWith('###')) {
+      return (
+        <h3 key={idx} className="text-[11px] font-bold text-[var(--subtext)] mt-4 mb-2 flex items-center gap-1.5 uppercase tracking-widest">
+          {cleanLine.replace('###', '').trim()}
+        </h3>
+      );
+    }
+    if (cleanLine.startsWith('*')) {
+      const content = cleanLine.replace(/^\*\s*/, '');
+      return (
+        <div key={idx} className="text-[12.5px] leading-relaxed pl-3.5 border-l border-blue-500/40 my-2.5 text-[var(--text)] opacity-90">
+          {parseInlineMarkdown(content)}
+        </div>
+      );
+    }
+    if (cleanLine === '') {
+      return <div key={idx} className="h-1.5" />;
+    }
+    return (
+      <p key={idx} className="text-[13px] leading-relaxed text-[var(--text)] opacity-90 my-1.5">
+        {parseInlineMarkdown(cleanLine)}
+      </p>
+    );
+  });
+}
+
+function parseInlineMarkdown(text: string) {
+  const parts = text.split(/(\*\*.*?\*\*)/g);
+  return parts.map((part, idx) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return (
+        <strong key={idx} className="font-bold text-[var(--text)]">
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    return part;
+  });
 }
