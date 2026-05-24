@@ -161,3 +161,28 @@ body {
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
 }
 
+/* Typing indicator — cipher decode animation */
+.typing-loader {
+  width: fit-content;
+  font-weight: bold;
+  font-family: monospace;
+  white-space: pre;
+  font-size: 16px;
+  line-height: 1.2em;
+  height: 1.2em;
+  overflow: hidden;
+  color: var(--subtext);
+}
+
+.typing-loader::before {
+  content: "Thinking...\A⌰oading...\A⌰⍜ading...\A⌰⍜⏃ding...\A⌰⍜⏃⎅ing...\A⌰⍜⏃⎅⟟ng...\A⌰⍜⏃⎅⟟⋏g...\A⌰⍜⏃⎅⟟⋏☌...\A⌰⍜⏃⎅⟟⋏☌⟒..\A⌰⍜⏃⎅⟟⋏☌⟒⏁.\A⌰⍜⏃⎅⟟⋏☌⟒⏁⋔";
+  white-space: pre;
+  display: inline-block;
+  animation: typing-scroll 1s infinite steps(11) alternate;
+}
+
+@keyframes typing-scroll {
+  100% {
+    transform: translateY(-100%);
+  }
+}

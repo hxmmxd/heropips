@@ -132,7 +132,7 @@ export default function Home() {
     const typingMessage: ChatMessage = {
       id: typingId,
       sender: 'bot',
-      text: forceSignal ? '◉ Generating trade signal...' : '◉ Analyzing market conditions...',
+      text: '__TYPING__',
     };
     setMessages((prev) => [...prev, typingMessage]);
 

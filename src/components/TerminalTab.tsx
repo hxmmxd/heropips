@@ -83,9 +83,14 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal 
 
                     {/* Bot Response Content */}
                     <div className="flex-1 space-y-2">
-                      {msg.text && (
+                      {msg.text && msg.text !== '__TYPING__' && (
                         <div className="bg-[var(--sidebar-bg)] border border-[var(--border)] px-5 py-3 rounded-[20px] max-w-[85%] text-[15px] shadow-sm text-[var(--text)]">
                           {msg.text}
+                        </div>
+                      )}
+                      {msg.text === '__TYPING__' && (
+                        <div className="bg-[var(--sidebar-bg)] border border-[var(--border)] px-5 py-3 rounded-[20px] max-w-[85%] shadow-sm">
+                          <div className="typing-loader" />
                         </div>
                       )}
                       {msg.signalSymbol && !msg.ticket && (
