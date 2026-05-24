@@ -109,6 +109,51 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal 
   const [news, setNews] = useState<any[]>([]);
   const [currentNewsIndex, setCurrentNewsIndex] = useState(0);
 
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
+  const toggleSpeechToText = () => {
+    if (typeof window === 'undefined') return;
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert('Speech recognition is not supported in your browser. Please try Chrome or Safari.');
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+
+    recognition.onstart = () => {
+      setIsListening(true);
+    };
+
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setInputValue((prev) => (prev ? prev + ' ' + transcript : transcript));
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error('Speech recognition error', event.error);
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  };
+
   // Fetch news headlines on mount
   useEffect(() => {
     const fetchNews = async () => {
@@ -460,10 +505,15 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal 
             <div className="flex items-center space-x-1 pb-1">
               <button
                 type="button"
-                className="w-8 h-8 flex items-center justify-center text-[var(--subtext)] hover:opacity-80 transition"
+                onClick={toggleSpeechToText}
+                className={`w-8 h-8 flex items-center justify-center rounded-full transition-all duration-300 ${
+                  isListening 
+                    ? 'text-red-500 bg-red-500/15 shadow-md shadow-red-500/20 scale-110 animate-pulse' 
+                    : 'text-[var(--subtext)] hover:opacity-80'
+                }`}
                 aria-label="Voice input"
               >
-                <Mic className="w-5 h-5" />
+                <Mic className="w-4.5 h-4.5" />
               </button>
               <button
                 type="submit"
