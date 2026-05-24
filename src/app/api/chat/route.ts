@@ -8,6 +8,23 @@ import {
 } from '@/lib/market';
 import { executeBrokerOrder } from '@/lib/broker';
 
+// ── NVIDIA API Key Round-Robin Rotation ─────────────────────
+const NVIDIA_KEYS: string[] = (() => {
+  const multi = process.env.NVIDIA_API_KEYS;
+  if (multi) return multi.split(',').map(k => k.trim()).filter(Boolean);
+  const single = process.env.NVIDIA_API_KEY;
+  if (single) return [single];
+  return [];
+})();
+
+let keyIndex = 0;
+function getNextApiKey(): string | null {
+  if (NVIDIA_KEYS.length === 0) return null;
+  const key = NVIDIA_KEYS[keyIndex % NVIDIA_KEYS.length];
+  keyIndex++;
+  return key;
+}
+
 // Keywords that indicate user explicitly wants a trade signal
 const SIGNAL_KEYWORDS = [
   'signal', 'trade', 'buy', 'sell', 'entry', 'position',
@@ -46,7 +63,7 @@ export async function POST(request: Request) {
 
     // 2. No asset detected OR conversational mention → general conversation
     if (!symbol || !isDirectQuery) {
-      const apiKey = process.env.NVIDIA_API_KEY;
+      const apiKey = getNextApiKey();
       let parsedText = '';
 
       if (!apiKey) {
@@ -171,7 +188,7 @@ Respond ONLY with this JSON (no markdown wrapping, no code fences):
 {"text":"### 🤖 Multi-Agent Consensus\\n* **Technical Analysis**: [under 8 words findings]\\n* **Macro News**: [under 8 words sentiment]\\n* **Master Synthesis**: [under 8 words final summary]","newsSentiment":"BULLISH, BEARISH, or NEUTRAL"}`;
 
     // 5. Call NVIDIA NIM API
-    const apiKey = process.env.NVIDIA_API_KEY;
+    const apiKey = getNextApiKey();
     const llmResponse = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
       method: 'POST',
       headers: {
