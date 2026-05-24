@@ -82,6 +82,19 @@ export default function Home() {
     };
   }, []);
 
+  // Prevent iOS page-level scrolling/bouncing on input focus
+  useEffect(() => {
+    const preventScroll = () => {
+      if (window.scrollY !== 0) {
+        window.scrollTo(0, 0);
+      }
+    };
+    window.addEventListener('scroll', preventScroll);
+    return () => {
+      window.removeEventListener('scroll', preventScroll);
+    };
+  }, []);
+
   // Handle mobile tab switcher closing sidebar
   const handleSwitchTab = (tabId: string) => {
     setCurrentTab(tabId);
