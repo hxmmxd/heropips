@@ -209,9 +209,10 @@ Respond ONLY with this JSON (no markdown wrapping, no code fences):
     const llmData = await llmResponse.json();
 
     if (!llmResponse.ok) {
-      console.error('[Chat API] NVIDIA error:', JSON.stringify(llmData));
+      const errDetail = llmData?.detail || llmData?.error?.message || llmData?.message || JSON.stringify(llmData);
+      console.error(`[Chat API] NVIDIA error (status ${llmResponse.status}):`, errDetail);
       return NextResponse.json(
-        { text: 'Signal engine temporarily unavailable. Please try again.', ticket: null },
+        { text: `Signal engine error: ${errDetail}`, ticket: null },
         { status: 502 }
       );
     }
