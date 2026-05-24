@@ -33,9 +33,21 @@ const SYMBOL_MAP: Record<string, string> = {
   'oil': 'USO',
 };
 
-// Clean symbol for display (remove slash)
+// User-friendly display names for trade cards
+const DISPLAY_NAMES: Record<string, string> = {
+  'XAU/USD': 'GOLD',
+  'EUR/USD': 'EURUSD',
+  'GBP/USD': 'GBPUSD',
+  'USD/JPY': 'USDJPY',
+  'BTC/USD': 'BITCOIN',
+  'ETH/USD': 'ETHEREUM',
+  'NAS100': 'NASDAQ',
+  'US30': 'DOW JONES',
+  'USO': 'OIL',
+};
+
 export function displaySymbol(apiSymbol: string): string {
-  return apiSymbol.replace('/', '');
+  return DISPLAY_NAMES[apiSymbol] || apiSymbol.replace('/', '');
 }
 
 // Detect which asset the user is asking about (returns null if none detected)
