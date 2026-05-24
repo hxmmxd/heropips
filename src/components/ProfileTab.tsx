@@ -165,7 +165,7 @@ export default function ProfileTab({ theme, switchTab }: ProfileTabProps) {
         </div>
 
         {/* Plan */}
-        <div className="profile-section">
+        <div className="profile-section profile-section-clickable" onClick={() => switchTab?.('subscription')}>
           <h4 className="profile-section-title">Subscription</h4>
           <div className="profile-plan-card">
             <div className="profile-plan-info">
@@ -175,9 +175,12 @@ export default function ProfileTab({ theme, switchTab }: ProfileTabProps) {
                 <p className="profile-plan-desc">{plan === 'free' ? 'Limited features • Upgrade for full access' : 'Full access to all features'}</p>
               </div>
             </div>
-            {plan === 'free' && (
-              <button className="profile-upgrade-btn" onClick={() => switchTab?.('subscription')}>Upgrade</button>
-            )}
+            <button
+              className={plan === 'free' ? 'profile-upgrade-btn' : 'profile-manage-btn'}
+              onClick={(e) => { e.stopPropagation(); switchTab?.('subscription'); }}
+            >
+              {plan === 'free' ? 'Upgrade' : 'Manage'}
+            </button>
           </div>
         </div>
 
