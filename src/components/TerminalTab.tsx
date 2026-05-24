@@ -14,74 +14,91 @@ interface TerminalTabProps {
   onGenerateSignal?: (symbol: string) => void;
 }
 
-// Coin/Asset icons for analysis cards
+// Coin/Asset icons for analysis cards (larger versions of WatchIcon)
 function CoinIcon({ symbol }: { symbol: string }) {
   const s = symbol.toUpperCase();
-  if (s.includes('XAU') || s.includes('GOLD')) {
-    return (
-      <div className="w-10 h-10 rounded-full bg-yellow-500/10 flex items-center justify-center">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="10" width="18" height="10" rx="2" fill="#FFD700" opacity="0.3" stroke="#FFD700" strokeWidth="1.5"/><rect x="6" y="5" width="12" height="7" rx="1.5" fill="#FFD700" opacity="0.4" stroke="#FFD700" strokeWidth="1.5"/><rect x="9" y="2" width="6" height="5" rx="1" fill="#FFD700" opacity="0.5" stroke="#FFD700" strokeWidth="1.5"/></svg>
-      </div>
-    );
+  const sz = 32;
+  const getType = (): string => {
+    if (s.includes('XAU') || s.includes('GOLD')) return 'gold';
+    if (s.includes('BTC') || s.includes('BITCOIN')) return 'btc';
+    if (s.includes('ETH')) return 'eth';
+    if (s.includes('EUR')) return 'eur';
+    if (s.includes('GBP')) return 'gbp';
+    if (s.includes('JPY')) return 'jpy';
+    if (s.includes('NAS') || s.includes('NASDAQ')) return 'nasdaq';
+    if (s.includes('US30') || s.includes('DOW')) return 'dow';
+    if (s.includes('OIL') || s.includes('USO')) return 'oil';
+    if (s.includes('SP') || s.includes('SPY')) return 'spy';
+    return 'default';
+  };
+  const type = getType();
+
+  switch (type) {
+    case 'gold':
+      return <svg width={sz} height={sz} viewBox="0 0 24 24" fill="none"><path d="M4 20h16l-3-8H7L4 20z" fill="#FFD700"/><path d="M7 12h10l-2-6H9L7 12z" fill="#FFC107"/><path d="M9 6h6l-1.5-4h-3L9 6z" fill="#FFB300"/></svg>;
+    case 'btc':
+      return <svg width={sz} height={sz} viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#F7931A"/><path d="M22.5 14.2c.3-2.1-1.3-3.2-3.4-4l.7-2.8-1.7-.4-.7 2.7c-.4-.1-.9-.2-1.4-.3l.7-2.7-1.7-.4-.7 2.8c-.4-.1-.7-.2-1-.2l-2.3-.6-.5 1.8s1.3.3 1.2.3c.7.2.8.6.8 1l-.8 3.3c0 .1.1.1.1.1l-.1 0-1.2 4.7c-.1.2-.3.5-.8.4 0 0-1.2-.3-1.2-.3l-.8 1.9 2.2.5c.4.1.8.2 1.2.3l-.7 2.8 1.7.4.7-2.8c.5.1.9.2 1.4.3l-.7 2.8 1.7.4.7-2.8c2.9.5 5.1.3 6-2.3.7-2.1-.04-3.3-1.5-4 1.1-.2 1.9-1.1 2.1-2.6zm-3.8 5.3c-.5 2.1-4.1 1-5.3.7l.9-3.8c1.1.3 4.9.8 4.4 3.1zm.5-5.4c-.5 1.9-3.5.9-4.4.7l.8-3.4c1 .2 4.1.7 3.6 2.7z" fill="#fff"/></svg>;
+    case 'eth':
+      return <svg width={sz} height={sz} viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#627EEA"/><path d="M16.5 4v8.9l7.5 3.3L16.5 4z" fill="#fff" fillOpacity=".6"/><path d="M16.5 4L9 16.2l7.5-3.3V4z" fill="#fff"/><path d="M16.5 21.9v6.1l7.5-10.4-7.5 4.3z" fill="#fff" fillOpacity=".6"/><path d="M16.5 28V21.9L9 17.6l7.5 10.4z" fill="#fff"/><path d="M16.5 20.6l7.5-4.4-7.5-3.3v7.7z" fill="#fff" fillOpacity=".2"/><path d="M9 16.2l7.5 4.4v-7.7L9 16.2z" fill="#fff" fillOpacity=".5"/></svg>;
+    case 'eur':
+      return <svg width={sz} height={sz} viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#003399"/><path d="M20.5 23.5c-1.2.6-2.5 1-3.9 1-3.8 0-7-2.5-8-6h8.5v-2h-9c0-.3-.1-.7-.1-1s0-.7.1-1h8.9v-2h-8.5c1-3.4 4.2-6 8-6 1.4 0 2.7.3 3.9 1l1.1-2c-1.5-.8-3.2-1.3-5-1.3-5.1 0-9.4 3.5-10.6 8.3H5v2h2.1c0 .3-.1.7-.1 1s0 .7.1 1H5v2h2.4c1.2 4.7 5.5 8.3 10.6 8.3 1.8 0 3.5-.4 5-1.3l-1.1-2z" fill="#fff" fillOpacity=".9"/></svg>;
+    case 'gbp':
+      return <svg width={sz} height={sz} viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#1A237E"/><path d="M11 24v-2h2v-4h-2v-2h2c0-1.5-.3-2.8.5-4 .8-1.3 2.2-2 3.7-2 1.2 0 2.3.4 3.2 1.1l-1.2 1.8c-.6-.5-1.2-.7-1.9-.7-.7 0-1.3.3-1.6.8-.3.5-.3 1.3-.3 2h3.1v2h-3.1v4H21v2H11z" fill="#fff" fillOpacity=".9"/></svg>;
+    case 'jpy':
+      return <svg width={sz} height={sz} viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#C62828"/><path d="M10 8l6 8 6-8h-2.8l-3.2 4.3L12.8 8H10zm1 12h3v4h4v-4h3v-2h-3v-1.5h3v-2h-2.3L16 18l-2.7-3.5H11v2h3V18h-3v2z" fill="#fff" fillOpacity=".9"/></svg>;
+    case 'nasdaq':
+      return <svg width={sz} height={sz} viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#0D47A1"/><path d="M7 22l4-6 3 3 5-8 4 4" stroke="#4FC3F7" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/><circle cx="23" cy="15" r="2" fill="#4FC3F7"/></svg>;
+    case 'dow':
+      return <svg width={sz} height={sz} viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#1565C0"/><rect x="7" y="17" width="4" height="7" rx="1" fill="#90CAF9" opacity=".6"/><rect x="14" y="12" width="4" height="12" rx="1" fill="#90CAF9" opacity=".8"/><rect x="21" y="8" width="4" height="16" rx="1" fill="#90CAF9"/></svg>;
+    case 'oil':
+      return <svg width={sz} height={sz} viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#212121"/><path d="M16 6s-6 8-6 13a6 6 0 0012 0c0-5-6-13-6-13z" fill="#424242" stroke="#757575" strokeWidth="1"/><path d="M16 10s-3.5 5-3.5 9a3.5 3.5 0 007 0c0-4-3.5-9-3.5-9z" fill="#616161"/></svg>;
+    case 'spy':
+      return <svg width={sz} height={sz} viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#1B5E20"/><path d="M8 22l3.5-5 3 2.5 4-6 3 2 2.5-4" stroke="#66BB6A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/><circle cx="24" cy="11.5" r="2" fill="#66BB6A"/></svg>;
+    default:
+      return <svg width={sz} height={sz} viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#424242"/><path d="M8 20l5-5 4 3 7-8" stroke="#aaa" strokeWidth="2" strokeLinecap="round" fill="none"/></svg>;
   }
-  if (s.includes('BTC') || s.includes('BITCOIN')) {
-    return (
-      <div className="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center">
-        <span className="text-lg font-bold text-orange-500">₿</span>
-      </div>
-    );
+}
+
+// Watchlist icon SVGs (authentic brand logos)
+function WatchIcon({ type }: { type: string }) {
+  const s = 14;
+  switch (type) {
+    case 'gold':
+      return <svg width={s} height={s} viewBox="0 0 24 24" fill="none"><path d="M4 20h16l-3-8H7L4 20z" fill="#FFD700"/><path d="M7 12h10l-2-6H9L7 12z" fill="#FFC107"/><path d="M9 6h6l-1.5-4h-3L9 6z" fill="#FFB300"/></svg>;
+    case 'btc':
+      return <svg width={s} height={s} viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#F7931A"/><path d="M22.5 14.2c.3-2.1-1.3-3.2-3.4-4l.7-2.8-1.7-.4-.7 2.7c-.4-.1-.9-.2-1.4-.3l.7-2.7-1.7-.4-.7 2.8c-.4-.1-.7-.2-1-.2l-2.3-.6-.5 1.8s1.3.3 1.2.3c.7.2.8.6.8 1l-.8 3.3c0 .1.1.1.1.1l-.1 0-1.2 4.7c-.1.2-.3.5-.8.4 0 0-1.2-.3-1.2-.3l-.8 1.9 2.2.5c.4.1.8.2 1.2.3l-.7 2.8 1.7.4.7-2.8c.5.1.9.2 1.4.3l-.7 2.8 1.7.4.7-2.8c2.9.5 5.1.3 6-2.3.7-2.1-.04-3.3-1.5-4 1.1-.2 1.9-1.1 2.1-2.6zm-3.8 5.3c-.5 2.1-4.1 1-5.3.7l.9-3.8c1.1.3 4.9.8 4.4 3.1zm.5-5.4c-.5 1.9-3.5.9-4.4.7l.8-3.4c1 .2 4.1.7 3.6 2.7z" fill="#fff"/></svg>;
+    case 'eth':
+      return <svg width={s} height={s} viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#627EEA"/><path d="M16.5 4v8.9l7.5 3.3L16.5 4z" fill="#fff" fillOpacity=".6"/><path d="M16.5 4L9 16.2l7.5-3.3V4z" fill="#fff"/><path d="M16.5 21.9v6.1l7.5-10.4-7.5 4.3z" fill="#fff" fillOpacity=".6"/><path d="M16.5 28V21.9L9 17.6l7.5 10.4z" fill="#fff"/><path d="M16.5 20.6l7.5-4.4-7.5-3.3v7.7z" fill="#fff" fillOpacity=".2"/><path d="M9 16.2l7.5 4.4v-7.7L9 16.2z" fill="#fff" fillOpacity=".5"/></svg>;
+    case 'eur':
+      return <svg width={s} height={s} viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#003399"/><path d="M20.5 23.5c-1.2.6-2.5 1-3.9 1-3.8 0-7-2.5-8-6h8.5v-2h-9c0-.3-.1-.7-.1-1s0-.7.1-1h8.9v-2h-8.5c1-3.4 4.2-6 8-6 1.4 0 2.7.3 3.9 1l1.1-2c-1.5-.8-3.2-1.3-5-1.3-5.1 0-9.4 3.5-10.6 8.3H5v2h2.1c0 .3-.1.7-.1 1s0 .7.1 1H5v2h2.4c1.2 4.7 5.5 8.3 10.6 8.3 1.8 0 3.5-.4 5-1.3l-1.1-2z" fill="#fff" fillOpacity=".9"/></svg>;
+    case 'gbp':
+      return <svg width={s} height={s} viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#1A237E"/><path d="M11 24v-2h2v-4h-2v-2h2c0-1.5-.3-2.8.5-4 .8-1.3 2.2-2 3.7-2 1.2 0 2.3.4 3.2 1.1l-1.2 1.8c-.6-.5-1.2-.7-1.9-.7-.7 0-1.3.3-1.6.8-.3.5-.3 1.3-.3 2h3.1v2h-3.1v4H21v2H11z" fill="#fff" fillOpacity=".9"/></svg>;
+    case 'jpy':
+      return <svg width={s} height={s} viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#C62828"/><path d="M10 8l6 8 6-8h-2.8l-3.2 4.3L12.8 8H10zm1 12h3v4h4v-4h3v-2h-3v-1.5h3v-2h-2.3L16 18l-2.7-3.5H11v2h3V18h-3v2z" fill="#fff" fillOpacity=".9"/></svg>;
+    case 'nasdaq':
+      return <svg width={s} height={s} viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#0D47A1"/><path d="M7 22l4-6 3 3 5-8 4 4" stroke="#4FC3F7" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/><circle cx="23" cy="15" r="2" fill="#4FC3F7"/></svg>;
+    case 'dow':
+      return <svg width={s} height={s} viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#1565C0"/><rect x="7" y="17" width="4" height="7" rx="1" fill="#90CAF9" opacity=".6"/><rect x="14" y="12" width="4" height="12" rx="1" fill="#90CAF9" opacity=".8"/><rect x="21" y="8" width="4" height="16" rx="1" fill="#90CAF9"/></svg>;
+    case 'oil':
+      return <svg width={s} height={s} viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#212121"/><path d="M16 6s-6 8-6 13a6 6 0 0012 0c0-5-6-13-6-13z" fill="#424242" stroke="#757575" strokeWidth="1"/><path d="M16 10s-3.5 5-3.5 9a3.5 3.5 0 007 0c0-4-3.5-9-3.5-9z" fill="#616161"/></svg>;
+    case 'spy':
+      return <svg width={s} height={s} viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#1B5E20"/><path d="M8 22l3.5-5 3 2.5 4-6 3 2 2.5-4" stroke="#66BB6A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/><circle cx="24" cy="11.5" r="2" fill="#66BB6A"/></svg>;
+    default:
+      return <svg width={s} height={s} viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#424242"/><path d="M8 20l5-5 4 3 7-8" stroke="#aaa" strokeWidth="2" strokeLinecap="round" fill="none"/></svg>;
   }
-  if (s.includes('ETH')) {
-    return (
-      <div className="w-10 h-10 rounded-full bg-indigo-500/10 flex items-center justify-center">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2L5 12L12 16L19 12L12 2Z" fill="#627EEA" opacity="0.4" stroke="#627EEA" strokeWidth="1.2"/><path d="M12 16L5 12L12 22L19 12L12 16Z" fill="#627EEA" opacity="0.6" stroke="#627EEA" strokeWidth="1.2"/></svg>
-      </div>
-    );
-  }
-  if (s.includes('EUR')) {
-    return <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center"><span className="text-lg font-bold text-blue-400">€</span></div>;
-  }
-  if (s.includes('GBP')) {
-    return <div className="w-10 h-10 rounded-full bg-blue-600/10 flex items-center justify-center"><span className="text-lg font-bold text-blue-500">£</span></div>;
-  }
-  if (s.includes('JPY')) {
-    return <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center"><span className="text-lg font-bold text-red-400">¥</span></div>;
-  }
-  if (s.includes('NAS') || s.includes('NASDAQ')) {
-    return (
-      <div className="w-10 h-10 rounded-full bg-cyan-500/10 flex items-center justify-center">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 18L9 12L12 14L16 8L19 10" stroke="#00B4D8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="19" cy="10" r="1.5" fill="#00B4D8"/></svg>
-      </div>
-    );
-  }
-  if (s.includes('US30') || s.includes('DOW')) {
-    return (
-      <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="5" y="14" width="4" height="5" rx="1" fill="#0077B6" opacity="0.5"/><rect x="10" y="10" width="4" height="9" rx="1" fill="#0077B6" opacity="0.7"/><rect x="15" y="6" width="4" height="13" rx="1" fill="#0077B6"/></svg>
-      </div>
-    );
-  }
-  if (s.includes('OIL') || s.includes('USO')) {
-    return <div className="w-10 h-10 rounded-full bg-gray-500/10 flex items-center justify-center"><span className="text-lg">🛢</span></div>;
-  }
-  return (
-    <div className="w-10 h-10 rounded-full bg-gray-500/10 flex items-center justify-center">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 16L10 12L13 14L19 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity="0.5"/></svg>
-    </div>
-  );
 }
 
 // Default watchlist assets
 const WATCHLIST_ASSETS = [
-  { symbol: 'Gold', label: 'XAUUSD', icon: '🥇' },
-  { symbol: 'Bitcoin', label: 'BTCUSD', icon: '₿' },
-  { symbol: 'Ethereum', label: 'ETHUSD', icon: '⟠' },
-  { symbol: 'EURUSD', label: 'EURUSD', icon: '€' },
-  { symbol: 'GBPUSD', label: 'GBPUSD', icon: '£' },
-  { symbol: 'NAS100', label: 'NAS100', icon: '📈' },
-  { symbol: 'US30', label: 'US30', icon: '📊' },
-  { symbol: 'Oil', label: 'OIL', icon: '🛢' },
-  { symbol: 'SPY', label: 'SP500', icon: '🇺🇸' },
+  { symbol: 'Gold', label: 'XAUUSD', iconType: 'gold' },
+  { symbol: 'Bitcoin', label: 'BTCUSD', iconType: 'btc' },
+  { symbol: 'Ethereum', label: 'ETHUSD', iconType: 'eth' },
+  { symbol: 'EURUSD', label: 'EURUSD', iconType: 'eur' },
+  { symbol: 'GBPUSD', label: 'GBPUSD', iconType: 'gbp' },
+  { symbol: 'NAS100', label: 'NAS100', iconType: 'nasdaq' },
+  { symbol: 'US30', label: 'US30', iconType: 'dow' },
+  { symbol: 'Oil', label: 'OIL', iconType: 'oil' },
+  { symbol: 'SPY', label: 'SP500', iconType: 'spy' },
 ];
 
 export default function TerminalTab({ messages, onSendMessage, onGenerateSignal }: TerminalTabProps) {
@@ -134,7 +151,7 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal 
               onClick={() => onSendMessage(asset.symbol)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[var(--border)] bg-[var(--sidebar-bg)] hover:border-blue-500/40 hover:bg-blue-500/5 active:scale-95 transition-all shrink-0 group"
             >
-              <span className="text-sm">{asset.icon}</span>
+              <WatchIcon type={asset.iconType} />
               <span className="text-[11px] font-semibold text-[var(--text)] group-hover:text-blue-400 transition-colors">{asset.label}</span>
             </button>
           ))}
