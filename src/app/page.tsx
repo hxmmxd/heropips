@@ -114,8 +114,8 @@ export default function Home() {
     setActiveBrokerName(name);
   };
 
-  // Handle dynamic chatbot trade parsing simulation
-  const handleSendMessage = (text: string) => {
+  // Handle sending messages via live API
+  const handleSendMessage = async (text: string) => {
     const newUserMessage: ChatMessage = {
       id: `msg-${Date.now()}-user`,
       sender: 'user',
@@ -124,28 +124,55 @@ export default function Home() {
 
     setMessages((prev) => [...prev, newUserMessage]);
 
-    // Delayed bot response simulation with ticket parameter payload
-    setTimeout(() => {
-      const ticketId = Math.floor(10000 + Math.random() * 90000).toString();
+    // Show typing indicator
+    const typingId = `msg-${Date.now()}-typing`;
+    const typingMessage: ChatMessage = {
+      id: typingId,
+      sender: 'bot',
+      text: '◉ Analyzing market conditions...',
+    };
+    setMessages((prev) => [...prev, typingMessage]);
+
+    try {
+      // Build conversation history for context
+      const conversationHistory = [...messages, newUserMessage].map((msg) => ({
+        role: msg.sender === 'user' ? 'user' : 'assistant',
+        content: msg.text || '',
+      }));
+
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: conversationHistory,
+          accountBalance: activeBroker.balance,
+        }),
+      });
+
+      const data = await response.json();
+
+      // Remove typing indicator and add real response
       const botReply: ChatMessage = {
         id: `msg-${Date.now()}-bot`,
         sender: 'bot',
-        ticket: {
-          ticketId,
-          symbol: 'XAUUSD',
-          action: 'BUY',
-          entryPrice: '2341.20',
-          lotVolume: '0.50 Lots',
-          rrRatio: '1 : 3.2',
-          stopLoss: '2335.00',
-          takeProfit: '2360.00',
-          margin: '234.12',
-          risk: '31.00',
-          profit: '94.00',
-        },
+        text: data.text || undefined,
+        ticket: data.ticket || undefined,
       };
-      setMessages((prev) => [...prev, botReply]);
-    }, 600);
+
+      setMessages((prev) =>
+        prev.filter((m) => m.id !== typingId).concat(botReply)
+      );
+    } catch (error) {
+      // Remove typing indicator and show error
+      const errorReply: ChatMessage = {
+        id: `msg-${Date.now()}-error`,
+        sender: 'bot',
+        text: 'Signal engine connection failed. Please check your network and try again.',
+      };
+      setMessages((prev) =>
+        prev.filter((m) => m.id !== typingId).concat(errorReply)
+      );
+    }
   };
 
   return (

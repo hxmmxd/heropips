@@ -18,6 +18,7 @@ export interface TradeTicketProps {
   margin: string;
   risk: string;
   profit: string;
+  confidence?: 'AAA' | 'AA' | 'A' | 'BBB';
 }
 
 export interface ChatMessage {

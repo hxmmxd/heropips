@@ -8,8 +8,18 @@ interface TradeTicketComponentProps {
   onConfirm?: () => void;
 }
 
+const GRADE_STYLES: Record<string, { bg: string; text: string; label: string }> = {
+  AAA: { bg: 'bg-green-500/15', text: 'text-green-500', label: 'AAA — Max Conviction' },
+  AA:  { bg: 'bg-blue-500/15',  text: 'text-blue-500',  label: 'AA — High Probability' },
+  A:   { bg: 'bg-yellow-500/15', text: 'text-yellow-500', label: 'A — Standard Setup' },
+  BBB: { bg: 'bg-[var(--subtext)]/10', text: 'text-[var(--subtext)]', label: 'BBB — Low Confidence' },
+};
+
 export default function TradeTicket({ ticket, onConfirm }: TradeTicketComponentProps) {
   const isBuy = ticket.action === 'BUY';
+  const grade = ticket.confidence && GRADE_STYLES[ticket.confidence]
+    ? GRADE_STYLES[ticket.confidence]
+    : null;
 
   const handleConfirm = () => {
     if (onConfirm) {
@@ -26,9 +36,16 @@ export default function TradeTicket({ ticket, onConfirm }: TradeTicketComponentP
         <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--subtext)]">
           Ticket #{ticket.ticketId}
         </span>
-        <span className="text-[9px] font-bold text-green-500 bg-green-500/10 px-2 py-0.5 rounded uppercase">
-          Verified
-        </span>
+        <div className="flex items-center space-x-2">
+          {grade && (
+            <span className={`text-[8px] font-bold ${grade.bg} ${grade.text} px-2 py-0.5 rounded uppercase tracking-wider`}>
+              {ticket.confidence}
+            </span>
+          )}
+          <span className="text-[9px] font-bold text-green-500 bg-green-500/10 px-2 py-0.5 rounded uppercase">
+            Verified
+          </span>
+        </div>
       </div>
 
       {/* Symbol & Entry */}
@@ -81,6 +98,26 @@ export default function TradeTicket({ ticket, onConfirm }: TradeTicketComponentP
             <span className="font-bold text-green-600 font-mono">+{ticket.profit}</span>
           </div>
         </div>
+
+        {/* Confidence Bar (visual indicator) */}
+        {grade && (
+          <div className="space-y-1.5">
+            <div className="flex justify-between text-[9px]">
+              <span className="text-[var(--subtext)] uppercase font-bold tracking-widest">Confluence</span>
+              <span className={`font-bold ${grade.text}`}>{grade.label}</span>
+            </div>
+            <div className="h-1.5 rounded-full bg-[var(--input-bg)] overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-700 ${
+                  ticket.confidence === 'AAA' ? 'bg-green-500 w-[95%]'
+                  : ticket.confidence === 'AA' ? 'bg-blue-500 w-[82%]'
+                  : ticket.confidence === 'A' ? 'bg-yellow-500 w-[72%]'
+                  : 'bg-gray-400 w-[50%]'
+                }`}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Action Button */}
         <button
