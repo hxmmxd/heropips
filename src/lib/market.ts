@@ -453,3 +453,45 @@ export async function fetchCandles(symbol: string, interval: string = '1h', outp
     return [];
   }
 }
+
+// ── News Headlines Fetcher ────────────────────────────────
+export async function fetchNewsHeadlines(limit: number = 5): Promise<string[]> {
+  try {
+    const res = await fetch('https://finance.yahoo.com/news/rssindex', {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      },
+      next: { revalidate: 60 } // Cache for 60 seconds
+    });
+
+    if (!res.ok) return [];
+
+    const xmlText = await res.text();
+    const headlines: string[] = [];
+
+    const itemMatches = xmlText.matchAll(/<item>([\s\S]*?)<\/item>/g);
+    for (const match of itemMatches) {
+      const content = match[1];
+      const titleMatch = content.match(/<title><!\[CDATA\[([\s\S]*?)\]\]><\/title>/) || content.match(/<title>([\s\S]*?)<\/title>/);
+      const sourceMatch = content.match(/<source[^>]*>([\s\S]*?)<\/source>/);
+
+      if (titleMatch) {
+        const title = titleMatch[1].trim()
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&quot;/g, '"')
+          .replace(/&#039;/g, "'")
+          .replace(/&apos;/g, "'");
+        const source = sourceMatch ? sourceMatch[1].trim() : 'Yahoo Finance';
+        headlines.push(`[${source}] ${title}`);
+      }
+      if (headlines.length >= limit) break;
+    }
+
+    return headlines;
+  } catch (error) {
+    console.error('[Market Engine] Failed to fetch news:', error);
+    return [];
+  }
+}

@@ -106,6 +106,36 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  const [news, setNews] = useState<any[]>([]);
+  const [currentNewsIndex, setCurrentNewsIndex] = useState(0);
+
+  // Fetch news headlines on mount
+  useEffect(() => {
+    const fetchNews = async () => {
+      try {
+        const res = await fetch('/api/news');
+        const data = await res.json();
+        if (data.news?.length > 0) {
+          setNews(data.news);
+        }
+      } catch (err) {
+        console.error('Failed to fetch news:', err);
+      }
+    };
+    fetchNews();
+    const intervalId = setInterval(fetchNews, 300000); // refresh every 5 mins
+    return () => clearInterval(intervalId);
+  }, []);
+
+  // Rotate news headline every 6 seconds
+  useEffect(() => {
+    if (news.length <= 1) return;
+    const intervalId = setInterval(() => {
+      setCurrentNewsIndex((prev) => (prev + 1) % news.length);
+    }, 6000);
+    return () => clearInterval(intervalId);
+  }, [news]);
+
   // Auto-scroll to bottom of chat
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -157,6 +187,30 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal 
           ))}
         </div>
       </div>
+
+      {/* Live News Ticker Strip */}
+      {news.length > 0 && (
+        <div className="shrink-0 bg-[var(--sidebar-bg)] border-b border-[var(--border)] px-4 py-2 flex items-center justify-between text-[11px] font-mono text-[var(--subtext)]">
+          <div className="flex items-center gap-2 overflow-hidden mr-4 min-w-0">
+            <span className="flex items-center gap-1.5 text-blue-500 font-bold tracking-wider uppercase shrink-0">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+              LIVE NEWS
+            </span>
+            <span className="text-[var(--border)] shrink-0">|</span>
+            <a
+              href={news[currentNewsIndex].link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[var(--text)] opacity-85 hover:opacity-100 hover:text-blue-400 truncate transition-all duration-355"
+            >
+              {news[currentNewsIndex].title}
+            </a>
+          </div>
+          <span className="shrink-0 text-[10px] text-[var(--subtext)] opacity-60 ml-2">
+            {news[currentNewsIndex].source}
+          </span>
+        </div>
+      )}
 
       {/* Scrollable Chat Feed */}
       <div className="flex-1 overflow-y-auto no-scrollbar p-4 lg:p-8">
@@ -261,10 +315,20 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal 
                                 {msg.marketData.ema50 !== null ? `$${msg.marketData.ema50.toFixed(2)}` : '—'}
                               </span>
                             </div>
-                            <div className="flex justify-between items-center py-2">
+                            <div className="flex justify-between items-center py-2 border-b border-[var(--border)]/50">
                               <span className="text-[11px] text-[var(--subtext)] font-medium">ATR (14)</span>
                               <span className="text-[12px] font-bold font-mono text-[var(--text)]">
                                 {msg.marketData.atr !== null ? msg.marketData.atr.toFixed(2) : '—'}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center py-2">
+                              <span className="text-[11px] text-[var(--subtext)] font-medium">News Sentiment</span>
+                              <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                                msg.marketData.newsSentiment === 'BULLISH' ? 'bg-green-500/15 text-green-500'
+                                : msg.marketData.newsSentiment === 'BEARISH' ? 'bg-red-500/15 text-red-500'
+                                : 'bg-[var(--border)] text-[var(--subtext)]'
+                              }`}>
+                                {msg.marketData.newsSentiment || 'NEUTRAL'}
                               </span>
                             </div>
                           </div>

@@ -38,6 +38,7 @@ export interface ChatMessage {
     confluenceScore: number;
     confluenceDirection: string;
     confidenceGrade: string;
+    newsSentiment?: string;
   };
 }
 

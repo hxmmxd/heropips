@@ -4,6 +4,7 @@ import {
   detectSymbol,
   displaySymbol,
   calculateRiskParams,
+  fetchNewsHeadlines,
 } from '@/lib/market';
 
 // Keywords that indicate user explicitly wants a trade signal
@@ -91,9 +92,14 @@ You MUST respond in this JSON format only: {"text":"your response"}`
       }
     }
 
-    // 3. Asset detected — fetch live market data
+    // 3. Asset detected — fetch live market data and news headlines
     const symDisplay = displaySymbol(symbol);
     const snapshot = await getMarketSnapshot(symbol);
+    const news = await fetchNewsHeadlines(5);
+
+    const newsBlock = news.length > 0
+      ? `\nRECENT MARKET HEADLINES:\n${news.map((h, i) => `${i + 1}. ${h}`).join('\n')}\n`
+      : '';
 
     const marketContextBlock = snapshot
       ? `
@@ -105,38 +111,43 @@ EMA(50): ${snapshot.indicators.ema50?.toFixed(2) ?? 'N/A'}
 ATR(14): ${snapshot.indicators.atr?.toFixed(2) ?? 'N/A'}
 Confluence: ${snapshot.confluenceScore}% ${snapshot.confluenceDirection}
 Grade: ${snapshot.confidenceGrade}
+${newsBlock}
 `
-      : `[Market data unavailable for ${symDisplay}.]`;
+      : `[Market data unavailable for ${symDisplay}.]${newsBlock}`;
 
     // 4. Build prompt based on whether user wants signal or just analysis
     const systemPrompt = explicitSignal
-      ? `You are TradeGPT, an institutional quantitative trading terminal with live market data.
+      ? `You are TradeGPT, an institutional quantitative trading terminal with live market data and real-time news headlines.
 
 Rules:
-1. Analyze the market data below and give a 2-3 sentence technical analysis.
-2. ALWAYS generate a trade ticket JSON with BUY or SELL based on the confluence direction.
-3. Use ONLY the real data provided. Never invent numbers.
-4. Be direct and decisive.
+1. Analyze the market data and news headlines provided.
+2. Determine news sentiment for this asset based on the headlines (BULLISH, BEARISH, or NEUTRAL).
+3. Give a 2-3 sentence technical analysis.
+4. ALWAYS generate a trade ticket JSON with BUY or SELL based on the confluence direction.
+5. Use ONLY the real data provided. Never invent numbers.
+6. Be direct and decisive.
 
 ${marketContextBlock}
 
 Account Balance: $${accountBalance.toFixed(2)} | Max Risk: 1.5%
 
 Respond ONLY with this JSON (no markdown, no code fences):
-{"text":"your analysis","ticket":{"ticketId":"5 digit number","symbol":"${symDisplay}","action":"BUY or SELL","entryPrice":"price","lotVolume":"lots","rrRatio":"ratio","stopLoss":"sl","takeProfit":"tp","margin":"margin","risk":"risk","profit":"profit","confidence":"${snapshot?.confidenceGrade || 'BBB'}"}}`
-      : `You are TradeGPT, an institutional quantitative trading terminal with live market data.
+{"text":"your analysis","newsSentiment":"BULLISH, BEARISH, or NEUTRAL","ticket":{"ticketId":"5 digit number","symbol":"${symDisplay}","action":"BUY or SELL","entryPrice":"price","lotVolume":"lots","rrRatio":"ratio","stopLoss":"sl","takeProfit":"tp","margin":"margin","risk":"risk","profit":"profit","confidence":"${snapshot?.confidenceGrade || 'BBB'}"}}`
+      : `You are TradeGPT, an institutional quantitative trading terminal with live market data and real-time news headlines.
 
 Rules:
-1. Analyze the market data below and give a clear, concise technical analysis (3-4 sentences).
-2. Mention key indicator levels and what they suggest.
-3. State the current market bias (bullish/bearish/neutral).
-4. Do NOT generate a trade ticket — the user hasn't requested one yet.
-5. Use ONLY the real data provided.
+1. Analyze the market data and news headlines provided.
+2. Determine news sentiment for this asset based on the headlines (BULLISH, BEARISH, or NEUTRAL).
+3. Give a clear, concise technical analysis (3-4 sentences).
+4. Mention key indicator levels and what they suggest.
+5. State the current market bias (bullish/bearish/neutral).
+6. Do NOT generate a trade ticket — the user hasn't requested one yet.
+7. Use ONLY the real data provided.
 
 ${marketContextBlock}
 
 Respond ONLY with this JSON (no markdown, no code fences):
-{"text":"your analysis"}`;
+{"text":"your analysis","newsSentiment":"BULLISH, BEARISH, or NEUTRAL"}`;
 
     // 5. Call NVIDIA NIM API
     const apiKey = process.env.NVIDIA_API_KEY;
@@ -171,7 +182,7 @@ Respond ONLY with this JSON (no markdown, no code fences):
     let rawContent = llmData.choices?.[0]?.message?.content || '{}';
     rawContent = rawContent.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
 
-    let parsed: { text?: string; ticket?: any } = {};
+    let parsed: { text?: string; newsSentiment?: string; ticket?: any } = {};
     try {
       parsed = JSON.parse(rawContent);
     } catch {
@@ -216,6 +227,7 @@ Respond ONLY with this JSON (no markdown, no code fences):
       confluenceScore: snapshot.confluenceScore,
       confluenceDirection: snapshot.confluenceDirection,
       confidenceGrade: snapshot.confidenceGrade,
+      newsSentiment: parsed.newsSentiment || 'NEUTRAL',
     } : null;
 
     return NextResponse.json({
