@@ -14,10 +14,13 @@ const SYMBOL_MAP: Record<string, string> = {
   'xauusd': 'XAU/USD',
   'xau': 'XAU/USD',
   'eurusd': 'EUR/USD',
+  'eur/usd': 'EUR/USD',
   'eur': 'EUR/USD',
   'gbpusd': 'GBP/USD',
+  'gbp/usd': 'GBP/USD',
   'gbp': 'GBP/USD',
   'usdjpy': 'USD/JPY',
+  'usd/jpy': 'USD/JPY',
   'jpy': 'USD/JPY',
   'btc': 'BTC/USD',
   'bitcoin': 'BTC/USD',
@@ -25,17 +28,30 @@ const SYMBOL_MAP: Record<string, string> = {
   'eth': 'ETH/USD',
   'ethereum': 'ETH/USD',
   'ethusd': 'ETH/USD',
-  'nas100': 'NAS100',
-  'nasdaq': 'NAS100',
-  'us30': 'US30',
-  'dow': 'US30',
+  'nas100': 'QQQ',
+  'nasdaq': 'QQQ',
+  'qqq': 'QQQ',
+  'us30': 'DIA',
+  'dow': 'DIA',
+  'dia': 'DIA',
+  'spy': 'SPY',
+  's&p': 'SPY',
+  'sp500': 'SPY',
   'usoil': 'USO',
   'oil': 'USO',
+  'crude': 'USO',
 };
 
-// Clean symbol for display (remove slash)
+// Clean symbol for display
+const DISPLAY_MAP: Record<string, string> = {
+  'QQQ': 'NAS100',
+  'DIA': 'US30',
+  'SPY': 'SP500',
+  'USO': 'OIL',
+};
+
 export function displaySymbol(apiSymbol: string): string {
-  return apiSymbol.replace('/', '');
+  return DISPLAY_MAP[apiSymbol] || apiSymbol.replace('/', '');
 }
 
 // Detect which asset the user is asking about (returns null if none detected)
@@ -53,14 +69,16 @@ export function detectSymbol(userMessage: string): string | null {
 // dollarPerPoint: how much $1 price movement is worth per 1.0 standard lot
 // minSL: minimum realistic stop loss distance in price terms
 const CONTRACT_SPECS: Record<string, { dollarPerPoint: number; minSL: number }> = {
-  'XAU/USD': { dollarPerPoint: 100, minSL: 8 },     // 100 oz/lot, min $8 SL
-  'EUR/USD': { dollarPerPoint: 100000, minSL: 0.0020 }, // 100k units, min 20 pips
+  'XAU/USD': { dollarPerPoint: 100, minSL: 8 },
+  'EUR/USD': { dollarPerPoint: 100000, minSL: 0.0020 },
   'GBP/USD': { dollarPerPoint: 100000, minSL: 0.0025 },
-  'USD/JPY': { dollarPerPoint: 1000, minSL: 0.30 },     // per 1 yen move
-  'BTC/USD': { dollarPerPoint: 1, minSL: 500 },       // 1 BTC/lot, min $500 SL
+  'USD/JPY': { dollarPerPoint: 1000, minSL: 0.30 },
+  'BTC/USD': { dollarPerPoint: 1, minSL: 500 },
   'ETH/USD': { dollarPerPoint: 1, minSL: 40 },
-  'NAS100':  { dollarPerPoint: 20, minSL: 50 },       // $20 per point per lot
-  'US30':    { dollarPerPoint: 10, minSL: 80 },
+  'QQQ':     { dollarPerPoint: 100, minSL: 3 },       // ETF: ~$100/share, 100 shares/lot
+  'DIA':     { dollarPerPoint: 100, minSL: 3 },
+  'SPY':     { dollarPerPoint: 100, minSL: 3 },
+  'USO':     { dollarPerPoint: 100, minSL: 1 },
 };
 
 // ── Position Sizing ────────────────────────────────────────
