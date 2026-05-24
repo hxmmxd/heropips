@@ -6,7 +6,6 @@ import {
   calculateRiskParams,
   fetchNewsHeadlines,
 } from '@/lib/market';
-import { executeBrokerOrder } from '@/lib/broker';
 
 // ── NVIDIA API Key Round-Robin Rotation ─────────────────────
 const NVIDIA_KEYS: string[] = (() => {
@@ -43,7 +42,6 @@ export async function POST(request: Request) {
     const lastUserMessage = userMessages[userMessages.length - 1]?.content || '';
     const accountBalance = body.accountBalance ? parseFloat(body.accountBalance.replace(/,/g, '')) : 10000;
     const forceSignal = body.forceSignal === true; // From "Generate Signal" button
-    const activeBrokerId = body.activeBrokerId || '882910';
 
     // 1. Detect asset from user message
     const symbol = detectSymbol(lastUserMessage);
@@ -237,6 +235,7 @@ Respond ONLY with this JSON (no markdown wrapping, no code fences):
         ...parsed.ticket,
         ticketId: parsed.ticket.ticketId || Math.floor(10000 + Math.random() * 90000).toString(),
         symbol: symDisplay,
+        action: parsed.ticket.action || (snapshot.confluenceDirection === 'SELL' ? 'SELL' : 'BUY'),
         entryPrice: snapshot.price.toFixed(2),
         stopLoss: riskParams.stopLoss,
         takeProfit: riskParams.takeProfit,
@@ -246,31 +245,9 @@ Respond ONLY with this JSON (no markdown wrapping, no code fences):
         profit: riskParams.profit,
         rrRatio: riskParams.rrRatio,
         confidence: snapshot.confidenceGrade,
+        executionStatus: 'PENDING',
+        apiSymbol: symbol, // raw API symbol for execution (e.g. "XAU/USD")
       };
-
-      // Execute order on active broker node (MetaAPI/Simulator)
-      try {
-        const lotSize = parseFloat(parsed.ticket.lotVolume);
-        const entry = parseFloat(parsed.ticket.entryPrice);
-        const sl = parseFloat(parsed.ticket.stopLoss);
-        const tp = parseFloat(parsed.ticket.takeProfit);
-        
-        const execResult = await executeBrokerOrder(
-          activeBrokerId,
-          symbol,
-          parsed.ticket.action || (snapshot.confluenceDirection === 'SELL' ? 'SELL' : 'BUY'),
-          lotSize || 0.1,
-          entry || snapshot.price,
-          sl || undefined,
-          tp || undefined
-        );
-        parsed.ticket.ticketId = execResult.orderId || parsed.ticket.ticketId;
-        parsed.ticket.executionStatus = 'SUCCESS';
-      } catch (err: any) {
-        console.error('[Broker Engine] Failed to dispatch signal order:', err);
-        parsed.ticket.executionStatus = 'FAILED';
-        parsed.ticket.executionError = err.message;
-      }
     }
 
     // Build marketData for rich card rendering

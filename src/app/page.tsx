@@ -227,34 +227,6 @@ export default function Home() {
         prev.filter((m) => m.id !== typingId).concat(botReply)
       );
 
-      // If trade executed successfully, update broker balance and log the trade
-      if (data.ticket && data.ticket.executionStatus === 'SUCCESS') {
-        const newLog = {
-          symbol: data.ticket.symbol,
-          action: data.ticket.action || 'BUY',
-          orderId: data.ticket.ticketId,
-          amount: data.ticket.risk,
-          isWin: Math.random() > 0.4,
-        };
-        setLogs((prev) => [newLog, ...prev]);
-
-        setBrokers((prevBrokers) =>
-          prevBrokers.map((b) => {
-            if (b.acc === activeBroker.acc) {
-              const currentBal = parseFloat(b.balance.replace(/,/g, ''));
-              const marginUsed = parseFloat(data.ticket.margin.replace(/,/g, '')) || 0;
-              const newBalance = currentBal - marginUsed;
-              const newEquity = newBalance + (parseFloat(b.pnl) || 0);
-              return {
-                ...b,
-                balance: newBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-                equity: newEquity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-              };
-            }
-            return b;
-          })
-        );
-      }
     } catch (error) {
       // Remove typing indicator and show error
       const errorReply: ChatMessage = {
@@ -300,7 +272,41 @@ export default function Home() {
         {/* Tab display contents */}
         <div id="scroll-area" className={`flex-1 no-scrollbar relative flex flex-col bg-[var(--bg)] ${currentTab === 'terminal' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
           {currentTab === 'terminal' && (
-            <TerminalTab messages={messages} onSendMessage={handleSendMessage} onGenerateSignal={handleGenerateSignal} />
+            <TerminalTab
+              messages={messages}
+              onSendMessage={handleSendMessage}
+              onGenerateSignal={handleGenerateSignal}
+              activeBrokerId={activeBroker.acc}
+              onTradeExecuted={(result) => {
+                // Log the trade
+                const t = result.ticket;
+                setLogs((prev) => [{
+                  symbol: t.symbol,
+                  action: t.action || 'BUY',
+                  orderId: result.orderId,
+                  amount: t.risk,
+                  isWin: Math.random() > 0.4,
+                }, ...prev]);
+
+                // Update broker balance
+                setBrokers((prevBrokers) =>
+                  prevBrokers.map((b) => {
+                    if (b.acc === activeBroker.acc) {
+                      const currentBal = parseFloat(b.balance.replace(/,/g, ''));
+                      const marginUsed = parseFloat(t.margin?.replace(/,/g, '')) || 0;
+                      const newBalance = currentBal - marginUsed;
+                      const newEquity = newBalance + (parseFloat(b.pnl) || 0);
+                      return {
+                        ...b,
+                        balance: newBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                        equity: newEquity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                      };
+                    }
+                    return b;
+                  })
+                );
+              }}
+            />
           )}
 
           {currentTab === 'brokers' && (

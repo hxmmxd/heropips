@@ -19,6 +19,8 @@ export interface TradeTicketProps {
   risk: string;
   profit: string;
   confidence?: 'AAA' | 'AA' | 'A' | 'BBB';
+  apiSymbol?: string; // Raw API symbol (e.g. "XAU/USD") for execution
+  executionStatus?: 'PENDING' | 'SUCCESS' | 'FAILED';
 }
 
 export interface ChatMessage {
