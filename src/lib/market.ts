@@ -1,8 +1,12 @@
 // Market Data Engine — Multi-Indicator Confluence Analysis
 // Fetches real-time prices and technical indicators from Twelve Data API
 
-const API_KEY = process.env.TWELVE_DATA_API_KEY;
 const BASE_URL = 'https://api.twelvedata.com';
+
+// Read API key at call time (not module load time) to ensure env is loaded
+function getApiKey(): string {
+  return process.env.TWELVE_DATA_API_KEY || '';
+}
 
 // Supported symbol mappings (user-friendly → API format)
 const SYMBOL_MAP: Record<string, string> = {
@@ -80,17 +84,32 @@ export interface MarketSnapshot {
 // ── Fetch Helpers ──────────────────────────────────────────
 
 async function fetchJSON(endpoint: string, params: Record<string, string>) {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    console.error('[Market Engine] TWELVE_DATA_API_KEY is not set');
+    return null;
+  }
+
   const url = new URL(`${BASE_URL}${endpoint}`);
-  url.searchParams.set('apikey', API_KEY || '');
+  url.searchParams.set('apikey', apiKey);
   for (const [k, v] of Object.entries(params)) {
     url.searchParams.set(k, v);
   }
 
   try {
-    const res = await fetch(url.toString(), { next: { revalidate: 30 } }); // Cache for 30s
-    if (!res.ok) return null;
-    return await res.json();
-  } catch {
+    const res = await fetch(url.toString(), { cache: 'no-store' });
+    if (!res.ok) {
+      console.error(`[Market Engine] ${endpoint} returned ${res.status}`);
+      return null;
+    }
+    const data = await res.json();
+    if (data.status === 'error') {
+      console.error(`[Market Engine] ${endpoint} error:`, data.message);
+      return null;
+    }
+    return data;
+  } catch (err) {
+    console.error(`[Market Engine] ${endpoint} fetch failed:`, err);
     return null;
   }
 }
@@ -313,32 +332,56 @@ export function calculateRiskParams(
 
 export async function getMarketSnapshot(symbol: string): Promise<MarketSnapshot | null> {
   try {
-    // Fire all indicator requests in parallel for speed
-    const [price, rsi, macd, ema20, ema50, ema200, bbands, atr, stoch, htfBias] = await Promise.all([
-      fetchPrice(symbol),
+    console.log(`[Market Engine] Fetching snapshot for ${symbol}...`);
+
+    // Fetch price first to validate connectivity
+    const price = await fetchPrice(symbol);
+    if (price === null) {
+      console.error('[Market Engine] Failed to fetch price — aborting snapshot');
+      return null;
+    }
+    console.log(`[Market Engine] Price: $${price}`);
+
+    // Fetch 4 core indicators (5 total API calls incl. price)
+    // Stays within Twelve Data free tier of 8 credits/min
+    const [rsi, macd, ema50, atr] = await Promise.all([
       fetchRSI(symbol, '1h'),
       fetchMACD(symbol, '1h'),
-      fetchEMA(symbol, '20', '1h'),
       fetchEMA(symbol, '50', '1h'),
-      fetchEMA(symbol, '200', '1h'),
-      fetchBBands(symbol, '1h'),
       fetchATR(symbol, '1h'),
-      fetchStoch(symbol, '1h'),
-      fetchHTFBias(symbol),
     ]);
 
-    if (price === null) return null;
+    console.log(`[Market Engine] Indicators — RSI: ${rsi}, MACD: ${macd ? 'ok' : 'null'}, EMA50: ${ema50}, ATR: ${atr}`);
 
-    const { score, direction, signals } = scoreIndicators(
-      price, rsi, macd, ema20, ema50, ema200, bbands, stoch, htfBias
-    );
+    // Simplified directional bias using available indicators
+    let bullish = 0;
+    let bearish = 0;
+
+    if (rsi !== null) {
+      if (rsi < 50) bearish++;
+      else bullish++;
+    }
+    if (macd !== null) {
+      if (macd.histogram > 0) bullish++;
+      else bearish++;
+    }
+    if (ema50 !== null) {
+      if (price > ema50) bullish++;
+      else bearish++;
+    }
+
+    const direction: 'BUY' | 'SELL' = bullish >= bearish ? 'BUY' : 'SELL';
+    const total = bullish + bearish;
+    const score = total > 0 ? Math.round((Math.max(bullish, bearish) / total) * 100) : 50;
+
+    console.log(`[Market Engine] Confluence: ${score}% ${direction} (Grade: ${gradeConfidence(score)})`);
 
     return {
       symbol,
       displaySymbol: displaySymbol(symbol),
       price,
-      indicators: { rsi, macd, ema20, ema50, ema200, bbands, atr, stoch },
-      htfBias,
+      indicators: { rsi, macd, ema20: null, ema50, ema200: null, bbands: null, atr, stoch: null },
+      htfBias: direction === 'BUY' ? 'bullish' : 'bearish',
       confluenceScore: score,
       confluenceDirection: direction,
       confidenceGrade: gradeConfidence(score),
@@ -348,3 +391,4 @@ export async function getMarketSnapshot(symbol: string): Promise<MarketSnapshot 
     return null;
   }
 }
+

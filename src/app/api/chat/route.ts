@@ -55,7 +55,7 @@ CONFLUENCE ENGINE OUTPUT:
 Your role:
 1. Analyze the live market data provided below.
 2. Deliver a concise, professional technical analysis (2-4 sentences maximum).
-3. If the confluence score is ≥ 70% with a clear BUY or SELL direction, generate a trade ticket. Otherwise, set "ticket" to null and explain why no signal was generated.
+3. You MUST ALWAYS generate a trade ticket with a BUY or SELL recommendation based on the data. Use the confluence direction provided. The confidence grade reflects the signal strength.
 4. Never fabricate prices or indicator values — use ONLY the data provided.
 5. Be direct and decisive like an institutional trading desk. No hedging language.
 
@@ -68,7 +68,7 @@ ACCOUNT CONTEXT:
 You MUST respond in this EXACT JSON format and nothing else:
 {
   "text": "Your technical analysis here. Be concise and institutional.",
-  "ticket": null | {
+  "ticket": {
     "ticketId": "5-digit random number as string",
     "symbol": "${symDisplay}",
     "action": "BUY" or "SELL",
@@ -92,8 +92,9 @@ You MUST respond in this EXACT JSON format and nothing else:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'google/gemini-2.0-flash-001',
         temperature: 0.2,
+        max_tokens: 1024,
         response_format: { type: 'json_object' },
         messages: [
           { role: 'system', content: systemPrompt },
