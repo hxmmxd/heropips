@@ -17,7 +17,6 @@ interface MiniChartProps {
 
 export default function MiniChart({ symbol, height = 120 }: MiniChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const chartRef = useRef<any>(null);
   const [candles, setCandles] = useState<CandleData[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -44,19 +43,15 @@ export default function MiniChart({ symbol, height = 120 }: MiniChartProps) {
     if (!containerRef.current || candles.length === 0) return;
 
     let isMounted = true;
+    let chart: any = null;
+    let resizeObserver: ResizeObserver | null = null;
 
     const renderChart = async () => {
       const { createChart, ColorType, CrosshairMode } = await import('lightweight-charts');
 
       if (!isMounted || !containerRef.current) return;
 
-      // Clear previous chart
-      if (chartRef.current) {
-        chartRef.current.remove();
-        chartRef.current = null;
-      }
-
-      const chart = createChart(containerRef.current, {
+      chart = createChart(containerRef.current, {
         width: containerRef.current.clientWidth,
         height: height,
         layout: {
@@ -88,8 +83,6 @@ export default function MiniChart({ symbol, height = 120 }: MiniChartProps) {
         handleScale: false,
       });
 
-      chartRef.current = chart;
-
       // Determine color from price direction
       const firstClose = candles[0]?.close || 0;
       const lastClose = candles[candles.length - 1]?.close || 0;
@@ -118,25 +111,31 @@ export default function MiniChart({ symbol, height = 120 }: MiniChartProps) {
       chart.timeScale().fitContent();
 
       // Handle resize
-      const resizeObserver = new ResizeObserver((entries) => {
-        if (entries[0] && containerRef.current) {
-          chart.applyOptions({ width: containerRef.current.clientWidth });
+      resizeObserver = new ResizeObserver((entries) => {
+        if (entries[0] && containerRef.current && chart && isMounted) {
+          try {
+            chart.applyOptions({ width: containerRef.current.clientWidth });
+          } catch (err) {
+            // Ignore if chart is disposed
+          }
         }
       });
       resizeObserver.observe(containerRef.current);
-
-      return () => {
-        resizeObserver.disconnect();
-      };
     };
 
     renderChart();
 
     return () => {
       isMounted = false;
-      if (chartRef.current) {
-        chartRef.current.remove();
-        chartRef.current = null;
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
+      if (chart) {
+        try {
+          chart.remove();
+        } catch (err) {
+          // Ignore
+        }
       }
     };
   }, [candles, height]);
