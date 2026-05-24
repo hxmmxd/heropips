@@ -6,8 +6,6 @@ import {
   calculateRiskParams,
 } from '@/lib/market';
 
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -26,76 +24,43 @@ export async function POST(request: Request) {
     const marketContextBlock = snapshot
       ? `
 LIVE MARKET DATA FOR ${symDisplay}:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Current Price: $${snapshot.price.toFixed(2)}
-
-TECHNICAL INDICATORS (1-Hour Timeframe):
-• RSI(14): ${snapshot.indicators.rsi?.toFixed(1) ?? 'N/A'}
-• MACD: ${snapshot.indicators.macd ? `Line=${snapshot.indicators.macd.macd.toFixed(4)}, Signal=${snapshot.indicators.macd.signal.toFixed(4)}, Histogram=${snapshot.indicators.macd.histogram.toFixed(4)}` : 'N/A'}
-• EMA(20): ${snapshot.indicators.ema20?.toFixed(2) ?? 'N/A'}
-• EMA(50): ${snapshot.indicators.ema50?.toFixed(2) ?? 'N/A'}
-• EMA(200): ${snapshot.indicators.ema200?.toFixed(2) ?? 'N/A'}
-• Bollinger Bands: ${snapshot.indicators.bbands ? `Upper=${snapshot.indicators.bbands.upper.toFixed(2)}, Middle=${snapshot.indicators.bbands.middle.toFixed(2)}, Lower=${snapshot.indicators.bbands.lower.toFixed(2)}` : 'N/A'}
-• ATR(14): ${snapshot.indicators.atr?.toFixed(2) ?? 'N/A'}
-• Stochastic(14,3): ${snapshot.indicators.stoch ? `%K=${snapshot.indicators.stoch.k.toFixed(1)}, %D=${snapshot.indicators.stoch.d.toFixed(1)}` : 'N/A'}
-
-MULTI-TIMEFRAME ANALYSIS:
-• 4H Bias: ${snapshot.htfBias.toUpperCase()}
-
-CONFLUENCE ENGINE OUTPUT:
-• Confluence Score: ${snapshot.confluenceScore}%
-• Direction: ${snapshot.confluenceDirection}
-• Confidence Grade: ${snapshot.confidenceGrade}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RSI(14): ${snapshot.indicators.rsi?.toFixed(1) ?? 'N/A'}
+MACD: ${snapshot.indicators.macd ? `Histogram=${snapshot.indicators.macd.histogram.toFixed(4)}` : 'N/A'}
+EMA(50): ${snapshot.indicators.ema50?.toFixed(2) ?? 'N/A'}
+ATR(14): ${snapshot.indicators.atr?.toFixed(2) ?? 'N/A'}
+Confluence: ${snapshot.confluenceScore}% ${snapshot.confluenceDirection}
+Grade: ${snapshot.confidenceGrade}
 `
-      : `\n[Market data temporarily unavailable for ${symDisplay}. Provide general analysis based on the user query.]\n`;
+      : `[Market data unavailable for ${symDisplay}.]`;
 
-    const systemPrompt = `You are TradeGPT — an institutional-grade quantitative trading terminal powered by real-time multi-indicator confluence analysis.
+    const systemPrompt = `You are TradeGPT, an institutional quantitative trading terminal with live market data.
 
-Your role:
-1. Analyze the live market data provided below.
-2. Deliver a concise, professional technical analysis (2-4 sentences maximum).
-3. You MUST ALWAYS generate a trade ticket with a BUY or SELL recommendation based on the data. Use the confluence direction provided. The confidence grade reflects the signal strength.
-4. Never fabricate prices or indicator values — use ONLY the data provided.
-5. Be direct and decisive like an institutional trading desk. No hedging language.
+Rules:
+1. Analyze the market data below and give a 2-3 sentence technical analysis.
+2. ALWAYS generate a trade ticket JSON with BUY or SELL based on the confluence direction.
+3. Use ONLY the real data provided. Never invent numbers.
+4. Be direct and decisive.
 
 ${marketContextBlock}
 
-ACCOUNT CONTEXT:
-• Account Balance: $${accountBalance.toFixed(2)}
-• Max Risk Per Trade: 1.5% ($${(accountBalance * 0.015).toFixed(2)})
+Account Balance: $${accountBalance.toFixed(2)} | Max Risk: 1.5%
 
-You MUST respond in this EXACT JSON format and nothing else:
-{
-  "text": "Your technical analysis here. Be concise and institutional.",
-  "ticket": {
-    "ticketId": "5-digit random number as string",
-    "symbol": "${symDisplay}",
-    "action": "BUY" or "SELL",
-    "entryPrice": "current price as string",
-    "lotVolume": "calculated lot size e.g. 0.25 Lots",
-    "rrRatio": "risk:reward ratio e.g. 1 : 2.5",
-    "stopLoss": "calculated stop loss level",
-    "takeProfit": "calculated take profit level",
-    "margin": "required margin estimate",
-    "risk": "dollar risk amount",
-    "profit": "dollar profit target",
-    "confidence": "${snapshot?.confidenceGrade || 'BBB'}"
-  }
-}`;
+Respond ONLY with this JSON (no markdown, no code fences):
+{"text":"your analysis","ticket":{"ticketId":"5 digit number","symbol":"${symDisplay}","action":"BUY or SELL","entryPrice":"price","lotVolume":"lots","rrRatio":"ratio","stopLoss":"sl","takeProfit":"tp","margin":"margin","risk":"risk","profit":"profit","confidence":"${snapshot?.confidenceGrade || 'BBB'}"}}`;
 
-    // 4. Call LLM via OpenRouter
-    const llmResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    // 4. Call NVIDIA NIM API (OpenAI-compatible)
+    const apiKey = process.env.NVIDIA_API_KEY;
+    const llmResponse = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.0-flash-001',
+        model: 'meta/llama-3.1-8b-instruct',
         temperature: 0.2,
         max_tokens: 1024,
-        response_format: { type: 'json_object' },
         messages: [
           { role: 'system', content: systemPrompt },
           ...userMessages,
@@ -106,7 +71,7 @@ You MUST respond in this EXACT JSON format and nothing else:
     const llmData = await llmResponse.json();
 
     if (!llmResponse.ok) {
-      console.error('[Chat API] LLM error:', llmData);
+      console.error('[Chat API] NVIDIA error:', JSON.stringify(llmData));
       return NextResponse.json(
         { text: 'Signal engine temporarily unavailable. Please try again.', ticket: null },
         { status: 502 }
@@ -114,18 +79,20 @@ You MUST respond in this EXACT JSON format and nothing else:
     }
 
     // 5. Parse structured JSON from LLM
-    const rawContent = llmData.choices?.[0]?.message?.content || '{}';
+    let rawContent = llmData.choices?.[0]?.message?.content || '{}';
+
+    // Strip markdown code fences if present
+    rawContent = rawContent.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+
     let parsed: { text?: string; ticket?: any } = {};
 
     try {
       parsed = JSON.parse(rawContent);
     } catch {
-      // If LLM didn't return valid JSON, treat entire response as text
       parsed = { text: rawContent, ticket: null };
     }
 
-    // 6. If LLM generated a ticket but we have real snapshot data,
-    //    override with our engine's calculated risk params for accuracy
+    // 6. Override ticket with engine-calculated risk params for accuracy
     if (parsed.ticket && snapshot) {
       const riskParams = calculateRiskParams(
         snapshot.price,
