@@ -98,7 +98,9 @@ Respond ONLY with this JSON (no markdown, no code fences):
         snapshot.price,
         snapshot.indicators.atr,
         snapshot.confluenceDirection === 'SELL' ? 'SELL' : 'BUY',
-        accountBalance
+        accountBalance,
+        1.5,
+        symbol
       );
       parsed.ticket = {
         ...parsed.ticket,

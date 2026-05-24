@@ -49,17 +49,63 @@ export function detectSymbol(userMessage: string): string {
   return 'XAU/USD'; // Default to Gold
 }
 
-// Pip value lookup for position sizing
-const PIP_VALUES: Record<string, number> = {
-  'XAU/USD': 0.10,   // $0.10 per pip per 0.01 lot
-  'EUR/USD': 0.0001,
-  'GBP/USD': 0.0001,
-  'USD/JPY': 0.01,
-  'BTC/USD': 1.0,
-  'ETH/USD': 0.10,
-  'NAS100': 0.01,
-  'US30': 0.01,
+// Contract specifications per instrument
+// dollarPerPoint: how much $1 price movement is worth per 1.0 standard lot
+// minSL: minimum realistic stop loss distance in price terms
+const CONTRACT_SPECS: Record<string, { dollarPerPoint: number; minSL: number }> = {
+  'XAU/USD': { dollarPerPoint: 100, minSL: 8 },     // 100 oz/lot, min $8 SL
+  'EUR/USD': { dollarPerPoint: 100000, minSL: 0.0020 }, // 100k units, min 20 pips
+  'GBP/USD': { dollarPerPoint: 100000, minSL: 0.0025 },
+  'USD/JPY': { dollarPerPoint: 1000, minSL: 0.30 },     // per 1 yen move
+  'BTC/USD': { dollarPerPoint: 1, minSL: 500 },       // 1 BTC/lot, min $500 SL
+  'ETH/USD': { dollarPerPoint: 1, minSL: 40 },
+  'NAS100':  { dollarPerPoint: 20, minSL: 50 },       // $20 per point per lot
+  'US30':    { dollarPerPoint: 10, minSL: 80 },
 };
+
+// ── Position Sizing ────────────────────────────────────────
+
+export function calculateRiskParams(
+  price: number,
+  atr: number | null,
+  direction: 'BUY' | 'SELL',
+  accountBalance: number = 10000,
+  riskPercent: number = 1.5,
+  symbol: string = 'XAU/USD'
+) {
+  const spec = CONTRACT_SPECS[symbol] || CONTRACT_SPECS['XAU/USD'];
+
+  // Use ATR for SL distance, but enforce a minimum realistic distance
+  const atrBasedSL = (atr || price * 0.005) * 1.5;
+  const slDistance = Math.max(atrBasedSL, spec.minSL);
+  const tpDistance = slDistance * 2.5; // 1:2.5 R:R
+
+  const sl = direction === 'BUY' ? (price - slDistance) : (price + slDistance);
+  const tp = direction === 'BUY' ? (price + tpDistance) : (price - tpDistance);
+
+  // Position sizing: Risk$ / (SL distance × $ per point per lot)
+  const riskAmount = accountBalance * (riskPercent / 100);
+  const riskPerLot = slDistance * spec.dollarPerPoint;
+  const lotSize = Math.max(0.01, Math.min(2.0, riskAmount / riskPerLot));
+
+  // Margin at ~100:1 leverage approximation
+  const notionalValue = price * spec.dollarPerPoint * lotSize / (symbol.includes('USD') ? 1 : 100);
+  const margin = notionalValue * 0.01;
+
+  const projectedRisk = lotSize * slDistance * spec.dollarPerPoint;
+  const projectedProfit = lotSize * tpDistance * spec.dollarPerPoint;
+  const rrRatio = `1 : ${(tpDistance / slDistance).toFixed(1)}`;
+
+  return {
+    stopLoss: sl.toFixed(2),
+    takeProfit: tp.toFixed(2),
+    lotVolume: `${lotSize.toFixed(2)} Lots`,
+    margin: margin.toFixed(2),
+    risk: projectedRisk.toFixed(2),
+    profit: projectedProfit.toFixed(2),
+    rrRatio,
+  };
+}
 
 export interface MarketSnapshot {
   symbol: string;
@@ -287,46 +333,6 @@ function gradeConfidence(score: number): 'AAA' | 'AA' | 'A' | 'BBB' {
   return 'BBB';
 }
 
-// ── Position Sizing ────────────────────────────────────────
-
-export function calculateRiskParams(
-  price: number,
-  atr: number | null,
-  direction: 'BUY' | 'SELL',
-  accountBalance: number = 10000,
-  riskPercent: number = 1.5
-) {
-  const effectiveATR = atr || price * 0.005; // Fallback: 0.5% of price
-  const slDistance = effectiveATR * 1.5;
-  const tpDistance = slDistance * 2.5; // 1:2.5 R:R minimum
-
-  const sl = direction === 'BUY'
-    ? (price - slDistance)
-    : (price + slDistance);
-
-  const tp = direction === 'BUY'
-    ? (price + tpDistance)
-    : (price - tpDistance);
-
-  const riskAmount = accountBalance * (riskPercent / 100);
-  const pipValue = PIP_VALUES[detectSymbol('gold')] || 0.10;
-  const lotSize = Math.max(0.01, Math.min(5.0, riskAmount / (slDistance * pipValue * 100)));
-
-  const margin = price * lotSize * 0.01; // Approximate margin at 100:1 leverage
-  const projectedRisk = riskAmount;
-  const projectedProfit = riskAmount * 2.5;
-  const rrRatio = `1 : ${(tpDistance / slDistance).toFixed(1)}`;
-
-  return {
-    stopLoss: sl.toFixed(2),
-    takeProfit: tp.toFixed(2),
-    lotVolume: `${lotSize.toFixed(2)} Lots`,
-    margin: margin.toFixed(2),
-    risk: projectedRisk.toFixed(2),
-    profit: projectedProfit.toFixed(2),
-    rrRatio,
-  };
-}
 
 // ── Main Market Snapshot Assembler ─────────────────────────
 
