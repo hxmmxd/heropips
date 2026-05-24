@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { User, Mail, Shield, CreditCard, LogOut, ChevronRight, Trash2, Moon, Bell } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { User, Mail, Shield, CreditCard, LogOut, ChevronRight, Trash2, Moon, Bell, Camera } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 interface ProfileTabProps {
@@ -15,6 +15,14 @@ export default function ProfileTab({ theme }: ProfileTabProps) {
   const [editName, setEditName] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [currentAvatar, setCurrentAvatar] = useState('');
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordMsg, setPasswordMsg] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
 
   useEffect(() => {
@@ -25,6 +33,7 @@ export default function ProfileTab({ theme }: ProfileTabProps) {
         const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
         setProfile(data);
         setEditName(data?.full_name || user.user_metadata?.full_name || '');
+        setCurrentAvatar(data?.avatar_url || user.user_metadata?.avatar_url || '');
       }
       setLoading(false);
     };
@@ -46,9 +55,37 @@ export default function ProfileTab({ theme }: ProfileTabProps) {
     window.location.href = '/login';
   };
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    setUploading(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const filePath = `${user.id}/avatar.${ext}`;
+      // Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+      const urlWithCacheBust = `${publicUrl}?t=${Date.now()}`;
+      // Update profile and auth
+      await supabase.from('profiles').update({ avatar_url: urlWithCacheBust, updated_at: new Date().toISOString() }).eq('id', user.id);
+      await supabase.auth.updateUser({ data: { avatar_url: urlWithCacheBust } });
+      setCurrentAvatar(urlWithCacheBust);
+    } catch (err: any) {
+      console.error('Avatar upload failed:', err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User';
   const userEmail = user?.email || '';
-  const avatarUrl = user?.user_metadata?.avatar_url ||
+  const avatarUrl = currentAvatar ||
     `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=10a37f&color=fff&size=128`;
   const plan = profile?.plan || 'free';
   const joinDate = user?.created_at ? new Date(user.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '';
@@ -71,7 +108,23 @@ export default function ProfileTab({ theme }: ProfileTabProps) {
         {/* Profile Card */}
         <div className="profile-section">
           <div className="profile-avatar-row">
-            <img src={avatarUrl} alt={userName} className="profile-avatar" />
+            <div className="profile-avatar-wrap" onClick={() => fileInputRef.current?.click()}>
+              <img src={avatarUrl} alt={userName} className="profile-avatar" />
+              <div className="profile-avatar-overlay">
+                {uploading ? (
+                  <div className="auth-spinner" style={{ width: 18, height: 18, borderColor: 'rgba(255,255,255,0.3)', borderTopColor: 'white' }} />
+                ) : (
+                  <Camera className="profile-avatar-cam" />
+                )}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarUpload}
+                className="profile-avatar-input"
+              />
+            </div>
             <div className="profile-info">
               <h3 className="profile-name">{userName}</h3>
               <p className="profile-email">{userEmail}</p>
@@ -149,13 +202,66 @@ export default function ProfileTab({ theme }: ProfileTabProps) {
         {/* Security */}
         <div className="profile-section">
           <h4 className="profile-section-title">Security</h4>
-          <div className="profile-menu-item profile-menu-clickable">
+          <div
+            className="profile-menu-item profile-menu-clickable"
+            onClick={() => { setShowPasswordForm(!showPasswordForm); setPasswordMsg(''); }}
+          >
             <div className="profile-menu-left">
               <Shield className="profile-field-icon" />
               <span>Change password</span>
             </div>
-            <ChevronRight className="profile-field-icon" />
+            <ChevronRight className={`profile-field-icon transition-transform ${showPasswordForm ? 'rotate-90' : ''}`} />
           </div>
+          {showPasswordForm && (
+            <div className="profile-password-form">
+              <div className="profile-field">
+                <label>New password</label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Enter new password"
+                  minLength={6}
+                  className="profile-pw-input"
+                />
+              </div>
+              <div className="profile-field">
+                <label>Confirm password</label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm new password"
+                  minLength={6}
+                  className="profile-pw-input"
+                />
+              </div>
+              {passwordMsg && (
+                <p className={`profile-pw-msg ${passwordMsg.includes('success') ? 'profile-pw-success' : 'profile-pw-error'}`}>
+                  {passwordMsg}
+                </p>
+              )}
+              <button
+                className="profile-save-btn"
+                disabled={passwordSaving || !newPassword || newPassword.length < 6 || newPassword !== confirmPassword}
+                onClick={async () => {
+                  setPasswordSaving(true);
+                  setPasswordMsg('');
+                  const { error } = await supabase.auth.updateUser({ password: newPassword });
+                  if (error) {
+                    setPasswordMsg(error.message);
+                  } else {
+                    setPasswordMsg('Password updated successfully!');
+                    setNewPassword('');
+                    setConfirmPassword('');
+                  }
+                  setPasswordSaving(false);
+                }}
+              >
+                {passwordSaving ? '...' : 'Update password'}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Danger Zone */}
