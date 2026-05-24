@@ -190,25 +190,63 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal 
 
       {/* Live News Ticker Strip */}
       {news.length > 0 && (
-        <div className="shrink-0 bg-[var(--sidebar-bg)] border-b border-[var(--border)] px-4 py-2 flex items-center justify-between text-[11px] font-mono text-[var(--subtext)]">
-          <div className="flex items-center gap-2 overflow-hidden mr-4 min-w-0">
-            <span className="flex items-center gap-1.5 text-blue-500 font-bold tracking-wider uppercase shrink-0">
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-              LIVE NEWS
-            </span>
-            <span className="text-[var(--border)] shrink-0">|</span>
-            <a
-              href={news[currentNewsIndex].link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[var(--text)] opacity-85 hover:opacity-100 hover:text-blue-400 truncate transition-all duration-355"
-            >
-              {news[currentNewsIndex].title}
-            </a>
+        <div className="shrink-0 bg-[var(--sidebar-bg)] border-b border-[var(--border)] px-4 py-2 flex items-center text-[11px] font-mono text-[var(--subtext)] overflow-hidden relative">
+          <style>{`
+            @keyframes marquee {
+              0% { transform: translate3d(0, 0, 0); }
+              100% { transform: translate3d(-50%, 0, 0); }
+            }
+            .marquee-track {
+              display: flex;
+              width: max-content;
+              animation: marquee 85s linear infinite;
+              gap: 2rem;
+              padding-left: 1rem;
+            }
+            .marquee-track:hover {
+              animation-play-state: paused;
+            }
+          `}</style>
+          
+          <div className="flex items-center gap-1.5 text-blue-500 font-bold tracking-wider uppercase shrink-0 bg-[var(--sidebar-bg)] pr-3 z-10 border-r border-[var(--border)]/60">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+            LIVE NEWS
           </div>
-          <span className="shrink-0 text-[10px] text-[var(--subtext)] opacity-60 ml-2">
-            {news[currentNewsIndex].source}
-          </span>
+          
+          <div className="flex-1 overflow-hidden relative">
+            <div className="marquee-track">
+              {/* First batch */}
+              {news.map((item, idx) => (
+                <div key={`a-${idx}`} className="flex items-center gap-2 shrink-0">
+                  <a
+                    href={item.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[var(--text)] opacity-85 hover:opacity-100 hover:text-blue-400 transition-colors"
+                  >
+                    {item.title}
+                  </a>
+                  <span className="text-[10px] text-[var(--subtext)] opacity-60">({item.source})</span>
+                  <span className="text-blue-500/50 mx-2">•</span>
+                </div>
+              ))}
+              {/* Duplicate batch for seamless infinite loop */}
+              {news.map((item, idx) => (
+                <div key={`b-${idx}`} className="flex items-center gap-2 shrink-0">
+                  <a
+                    href={item.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[var(--text)] opacity-85 hover:opacity-100 hover:text-blue-400 transition-colors"
+                  >
+                    {item.title}
+                  </a>
+                  <span className="text-[10px] text-[var(--subtext)] opacity-60">({item.source})</span>
+                  <span className="text-blue-500/50 mx-2">•</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
