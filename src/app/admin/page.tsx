@@ -53,6 +53,12 @@ export default function AdminPage() {
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [refreshing, setRefreshing] = useState(false);
   const [actionMenu, setActionMenu] = useState<string | null>(null);
+  const [planFilter, setPlanFilter] = useState('all');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [drawerUser, setDrawerUser] = useState<UserRow | null>(null);
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 15;
 
   useEffect(() => { loadData(); }, []);
 
@@ -94,17 +100,37 @@ export default function AdminPage() {
   };
 
   const filteredUsers = useMemo(() => {
-    let list = users.filter(u =>
-      u.email?.toLowerCase().includes(search.toLowerCase()) ||
-      u.full_name?.toLowerCase().includes(search.toLowerCase())
-    );
+    let list = users.filter(u => {
+      const matchSearch = u.email?.toLowerCase().includes(search.toLowerCase()) || u.full_name?.toLowerCase().includes(search.toLowerCase());
+      const matchPlan = planFilter === 'all' || (planFilter === 'free' ? (!u.plan || u.plan === 'free') : u.plan === planFilter);
+      const matchRole = roleFilter === 'all' || (roleFilter === 'admin' ? u.is_admin : !u.is_admin);
+      return matchSearch && matchPlan && matchRole;
+    });
     list.sort((a, b) => {
       const aVal = (a[sortKey] || '').toString().toLowerCase();
       const bVal = (b[sortKey] || '').toString().toLowerCase();
       return sortDir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
     });
     return list;
-  }, [users, search, sortKey, sortDir]);
+  }, [users, search, sortKey, sortDir, planFilter, roleFilter]);
+
+  const pagedUsers = useMemo(() => filteredUsers.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE), [filteredUsers, page]);
+  const totalPages = Math.ceil(filteredUsers.length / PAGE_SIZE);
+
+  const toggleSelect = (id: string) => {
+    const next = new Set(selected);
+    next.has(id) ? next.delete(id) : next.add(id);
+    setSelected(next);
+  };
+  const toggleSelectAll = () => {
+    if (selected.size === pagedUsers.length) setSelected(new Set());
+    else setSelected(new Set(pagedUsers.map(u => u.id)));
+  };
+  const handleBulkPlan = async (plan: string) => {
+    await Promise.all([...selected].map(id => fetch('/api/admin', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: id, plan }) })));
+    setUsers(users.map(u => selected.has(u.id) ? { ...u, plan } : u));
+    setSelected(new Set());
+  };
 
   // Compute plan distribution for chart
   const planDist = useMemo(() => {
@@ -303,85 +329,129 @@ export default function AdminPage() {
           )}
 
           {activeSection === 'users' && (
-            <div className="adm-card adm-card-full">
-              <div className="adm-card-head">
-                <h3>User Management</h3>
-                <div className="adm-card-actions">
-                  <div className="adm-search">
-                    <Search className="adm-search-icon" />
-                    <input type="text" placeholder="Search by name or email…" value={search} onChange={(e) => setSearch(e.target.value)} />
-                  </div>
-                  <span className="adm-count-badge">{filteredUsers.length} users</span>
+            <>
+              {/* Filter bar */}
+              <div className="adm-filter-bar">
+                <div className="adm-search"><Search className="adm-search-icon" /><input type="text" placeholder="Search users…" value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} /></div>
+                <div className="adm-filters">
+                  <select className="adm-select" value={planFilter} onChange={e => { setPlanFilter(e.target.value); setPage(0); }}><option value="all">All Plans</option><option value="free">Free</option><option value="pro">Pro</option><option value="enterprise">Enterprise</option></select>
+                  <select className="adm-select" value={roleFilter} onChange={e => { setRoleFilter(e.target.value); setPage(0); }}><option value="all">All Roles</option><option value="admin">Admins</option><option value="user">Users</option></select>
+                  <button className="adm-export-btn" onClick={() => {
+                    const csv = 'Name,Email,Plan,Admin,Joined\n' + filteredUsers.map(u => `"${u.full_name || ''}",${u.email},${u.plan || 'free'},${u.is_admin},${u.created_at}`).join('\n');
+                    const blob = new Blob([csv], { type: 'text/csv' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'users.csv'; a.click();
+                  }}><Download /> Export</button>
                 </div>
               </div>
-              <div className="adm-table-wrap">
-                <table className="adm-table">
-                  <thead>
-                    <tr>
+
+              {/* Bulk bar */}
+              {selected.size > 0 && (
+                <div className="adm-bulk-bar">
+                  <span className="adm-bulk-count">{selected.size} selected</span>
+                  <div className="adm-bulk-actions">
+                    <button onClick={() => handleBulkPlan('free')}>Set Free</button>
+                    <button onClick={() => handleBulkPlan('pro')}>Set Pro</button>
+                    <button onClick={() => handleBulkPlan('enterprise')}>Set Enterprise</button>
+                    <button onClick={() => setSelected(new Set())} className="adm-bulk-clear">Clear</button>
+                  </div>
+                </div>
+              )}
+
+              <div className="adm-card adm-card-full">
+                <div className="adm-card-head"><h3>Users</h3><span className="adm-count-badge">{filteredUsers.length} results</span></div>
+                <div className="adm-table-wrap">
+                  <table className="adm-table">
+                    <thead><tr>
+                      <th className="adm-th-check"><input type="checkbox" checked={selected.size === pagedUsers.length && pagedUsers.length > 0} onChange={toggleSelectAll} /></th>
                       <th onClick={() => handleSort('full_name')} className="adm-th-sort">User <SortIcon col="full_name" /></th>
                       <th onClick={() => handleSort('plan')} className="adm-th-sort">Plan <SortIcon col="plan" /></th>
                       <th>Role</th>
                       <th onClick={() => handleSort('created_at')} className="adm-th-sort">Joined <SortIcon col="created_at" /></th>
                       <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredUsers.map((u) => (
-                      <tr key={u.id}>
-                        <td>
-                          <div className="adm-user-cell">
-                            <img src={u.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.full_name || u.email)}&background=10a37f&color=fff&size=36`} alt="" className="adm-user-av" />
-                            <div>
-                              <p className="adm-user-name">{u.full_name || '—'}</p>
-                              <p className="adm-user-email">{u.email}</p>
+                    </tr></thead>
+                    <tbody>
+                      {pagedUsers.map((u) => (
+                        <tr key={u.id} className={selected.has(u.id) ? 'adm-row-selected' : ''}>
+                          <td className="adm-td-check"><input type="checkbox" checked={selected.has(u.id)} onChange={() => toggleSelect(u.id)} /></td>
+                          <td>
+                            <div className="adm-user-cell" onClick={() => setDrawerUser(u)} style={{cursor:'pointer'}}>
+                              <img src={u.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.full_name || u.email)}&background=10a37f&color=fff&size=36`} alt="" className="adm-user-av" />
+                              <div><p className="adm-user-name">{u.full_name || '—'}</p><p className="adm-user-email">{u.email}</p></div>
                             </div>
-                          </div>
-                        </td>
-                        <td>
-                          {editingUser === u.id ? (
-                            <div className="adm-plan-picker">
-                              {['free', 'pro', 'enterprise'].map(p => (
-                                <button key={p} className={`adm-plan-opt ${u.plan === p || (!u.plan && p === 'free') ? 'active' : ''}`} onClick={() => handleUpdatePlan(u.id, p)}>
-                                  {p.charAt(0).toUpperCase() + p.slice(1)}
-                                </button>
-                              ))}
-                            </div>
-                          ) : (
-                            <button className={`adm-tag adm-tag-${u.plan || 'free'}`} onClick={() => setEditingUser(u.id)}>
-                              {(u.plan || 'free').charAt(0).toUpperCase() + (u.plan || 'free').slice(1)}
-                              <ChevronDown className="adm-tag-chevron" />
-                            </button>
-                          )}
-                        </td>
-                        <td><span className={`adm-role ${u.is_admin ? 'adm-role-admin' : ''}`}>{u.is_admin ? '🛡 Admin' : 'User'}</span></td>
-                        <td className="adm-date-cell">{u.created_at ? new Date(u.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}</td>
-                        <td>
-                          <div className="adm-actions-cell">
-                            <button className="adm-action-dot" onClick={() => setActionMenu(actionMenu === u.id ? null : u.id)}>
-                              <MoreVertical />
-                            </button>
-                            {actionMenu === u.id && (
-                              <>
+                          </td>
+                          <td>
+                            {editingUser === u.id ? (
+                              <div className="adm-plan-picker">
+                                {['free', 'pro', 'enterprise'].map(p => (<button key={p} className={`adm-plan-opt ${u.plan === p || (!u.plan && p === 'free') ? 'active' : ''}`} onClick={() => handleUpdatePlan(u.id, p)}>{p.charAt(0).toUpperCase() + p.slice(1)}</button>))}
+                              </div>
+                            ) : (
+                              <button className={`adm-tag adm-tag-${u.plan || 'free'}`} onClick={() => setEditingUser(u.id)}>{(u.plan || 'free').charAt(0).toUpperCase() + (u.plan || 'free').slice(1)}<ChevronDown className="adm-tag-chevron" /></button>
+                            )}
+                          </td>
+                          <td><span className={`adm-role ${u.is_admin ? 'adm-role-admin' : ''}`}>{u.is_admin ? '🛡 Admin' : 'User'}</span></td>
+                          <td className="adm-date-cell">{u.created_at ? new Date(u.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}</td>
+                          <td>
+                            <div className="adm-actions-cell">
+                              <button className="adm-action-dot" onClick={() => setDrawerUser(u)} title="View details"><Eye /></button>
+                              <button className="adm-action-dot" onClick={() => setActionMenu(actionMenu === u.id ? null : u.id)}><MoreVertical /></button>
+                              {actionMenu === u.id && (<>
                                 <div className="adm-action-overlay" onClick={() => setActionMenu(null)} />
                                 <div className="adm-action-menu">
-                                  <button onClick={() => handleToggleAdmin(u.id, u.is_admin)}>
-                                    {u.is_admin ? <><ShieldOff /> Remove Admin</> : <><Shield /> Make Admin</>}
-                                  </button>
+                                  <button onClick={() => { setDrawerUser(u); setActionMenu(null); }}><Eye /> View Profile</button>
+                                  <button onClick={() => handleToggleAdmin(u.id, u.is_admin)}>{u.is_admin ? <><ShieldOff /> Remove Admin</> : <><Shield /> Make Admin</>}</button>
                                   <button className="adm-action-danger"><Ban /> Suspend User</button>
                                 </div>
-                              </>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                    {filteredUsers.length === 0 && (
-                      <tr><td colSpan={5} className="adm-empty">No users found matching &quot;{search}&quot;</td></tr>
-                    )}
-                  </tbody>
-                </table>
+                              </>)}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                      {pagedUsers.length === 0 && (<tr><td colSpan={6} className="adm-empty">No users found</td></tr>)}
+                    </tbody>
+                  </table>
+                </div>
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="adm-pagination">
+                    <button disabled={page === 0} onClick={() => setPage(p => p - 1)}>← Prev</button>
+                    <span className="adm-page-info">Page {page + 1} of {totalPages}</span>
+                    <button disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>Next →</button>
+                  </div>
+                )}
               </div>
-            </div>
+
+              {/* User Drawer */}
+              {drawerUser && (<>
+                <div className="adm-drawer-overlay" onClick={() => setDrawerUser(null)} />
+                <div className="adm-drawer">
+                  <div className="adm-drawer-head">
+                    <h3>User Details</h3>
+                    <button className="adm-drawer-close" onClick={() => setDrawerUser(null)}>✕</button>
+                  </div>
+                  <div className="adm-drawer-body">
+                    <div className="adm-drawer-profile">
+                      <img src={drawerUser.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(drawerUser.full_name || drawerUser.email)}&background=10a37f&color=fff&size=80`} alt="" className="adm-drawer-avatar" />
+                      <h4>{drawerUser.full_name || drawerUser.email?.split('@')[0]}</h4>
+                      <p className="adm-drawer-email">{drawerUser.email}</p>
+                      <div className="adm-drawer-tags">
+                        <span className={`adm-tag adm-tag-${drawerUser.plan || 'free'}`}>{(drawerUser.plan || 'free').charAt(0).toUpperCase() + (drawerUser.plan || 'free').slice(1)}</span>
+                        {drawerUser.is_admin && <span className="adm-tag" style={{background:'rgba(239,68,68,0.12)',color:'#f87171'}}>Admin</span>}
+                      </div>
+                    </div>
+                    <div className="adm-drawer-fields">
+                      <div className="adm-drawer-field"><span>User ID</span><span className="adm-mono">{drawerUser.id.slice(0, 8)}…</span></div>
+                      <div className="adm-drawer-field"><span>Plan</span><span>{(drawerUser.plan || 'free').charAt(0).toUpperCase() + (drawerUser.plan || 'free').slice(1)}</span></div>
+                      <div className="adm-drawer-field"><span>Role</span><span>{drawerUser.is_admin ? 'Admin' : 'User'}</span></div>
+                      <div className="adm-drawer-field"><span>Joined</span><span>{drawerUser.created_at ? new Date(drawerUser.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '—'}</span></div>
+                    </div>
+                    <div className="adm-drawer-actions">
+                      <button onClick={() => { handleUpdatePlan(drawerUser.id, 'pro'); setDrawerUser({...drawerUser, plan: 'pro'}); }} className="adm-drawer-btn"><Crown /> Upgrade to Pro</button>
+                      <button onClick={() => { handleToggleAdmin(drawerUser.id, drawerUser.is_admin); setDrawerUser({...drawerUser, is_admin: !drawerUser.is_admin}); }} className="adm-drawer-btn">{drawerUser.is_admin ? <><ShieldOff /> Remove Admin</> : <><Shield /> Make Admin</>}</button>
+                      <button className="adm-drawer-btn adm-drawer-btn-danger"><Ban /> Suspend Account</button>
+                    </div>
+                  </div>
+                </div>
+              </>)}
+            </>
           )}
 
           {activeSection === 'brokers' && (
