@@ -459,7 +459,7 @@ function parseMarkdown(text: string) {
       const content = cleanLine.replace(/^\*\s*/, '');
       return (
         <div key={idx} className="text-[12.5px] leading-relaxed pl-3.5 border-l border-blue-500/40 my-2.5 text-[var(--text)] opacity-90">
-          {parseInlineMarkdown(content)}
+          {formatBulletContent(content)}
         </div>
       );
     }
@@ -472,6 +472,22 @@ function parseMarkdown(text: string) {
       </p>
     );
   });
+}
+
+function formatBulletContent(content: string) {
+  const colonIndex = content.indexOf(':');
+  if (colonIndex !== -1) {
+    const header = content.substring(0, colonIndex).trim();
+    const body = content.substring(colonIndex + 1);
+    const cleanHeader = header.replace(/\*\*|^\*|\*$/g, '').trim();
+    return (
+      <>
+        <strong className="font-bold text-[var(--text)] mr-1">{cleanHeader}:</strong>
+        {parseInlineMarkdown(body)}
+      </>
+    );
+  }
+  return parseInlineMarkdown(content);
 }
 
 function parseInlineMarkdown(text: string) {
