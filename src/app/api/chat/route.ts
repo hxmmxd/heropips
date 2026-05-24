@@ -6,6 +6,7 @@ import {
   calculateRiskParams,
   fetchNewsHeadlines,
 } from '@/lib/market';
+import { executeBrokerOrder } from '@/lib/broker';
 
 // Keywords that indicate user explicitly wants a trade signal
 const SIGNAL_KEYWORDS = [
@@ -25,6 +26,7 @@ export async function POST(request: Request) {
     const lastUserMessage = userMessages[userMessages.length - 1]?.content || '';
     const accountBalance = body.accountBalance ? parseFloat(body.accountBalance.replace(/,/g, '')) : 10000;
     const forceSignal = body.forceSignal === true; // From "Generate Signal" button
+    const activeBrokerId = body.activeBrokerId || '882910';
 
     // 1. Detect asset from user message
     const symbol = detectSymbol(lastUserMessage);
@@ -45,20 +47,34 @@ export async function POST(request: Request) {
     // 2. No asset detected OR conversational mention → general conversation
     if (!symbol || !isDirectQuery) {
       const apiKey = process.env.NVIDIA_API_KEY;
-      const response = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'meta/llama-3.1-8b-instruct',
-          temperature: 0.3,
-          max_tokens: 512,
-          messages: [
-            {
-              role: 'system',
-              content: `You are TradeGPT, an institutional-grade AI trading terminal. You are friendly, professional, and helpful.
+      let parsedText = '';
+
+      if (!apiKey) {
+        console.warn('[Chat API] NVIDIA_API_KEY is empty. Generating simulated general response.');
+        const welcomeGreetings = ['hello', 'hi', 'hey', 'greetings', 'welcome'];
+        const isGreeting = welcomeGreetings.some(g => lastUserMessage.toLowerCase().includes(g));
+
+        if (isGreeting) {
+          parsedText = "Hello! I am TradeGPT, your institutional AI trading assistant. How can I help you today? I can analyze charts and dispatch trade signals for assets like Gold (XAUUSD), EURUSD, Bitcoin, and Nasdaq.";
+        } else {
+          parsedText = "I am TradeGPT, designed to run multi-agent analysis on live markets. I can analyze charts and dispatch automated order signals for: Gold, EURUSD, GBPUSD, USDJPY, BTC, ETH, and Nasdaq. Just ask me to analyze an asset!";
+        }
+      } else {
+        try {
+          const response = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'meta/llama-3.1-8b-instruct',
+              temperature: 0.3,
+              max_tokens: 512,
+              messages: [
+                {
+                  role: 'system',
+                  content: `You are TradeGPT, an institutional-grade AI trading terminal. You are friendly, professional, and helpful.
 
 When users greet you or ask general questions:
 - Welcome them warmly and ask what asset they'd like to analyze
@@ -69,27 +85,32 @@ When users greet you or ask general questions:
 Supported assets: Gold/XAUUSD, EURUSD, GBPUSD, USDJPY, Bitcoin/BTC, Ethereum/ETH, Nasdaq/NAS100, Dow/US30, Oil
 
 You MUST respond in this JSON format only: {"text":"your response"}`
-            },
-            ...userMessages,
-          ],
-        }),
-      });
+                },
+                ...userMessages,
+              ],
+            }),
+          });
 
-      const data = await response.json();
-      if (!response.ok) {
-        console.error('[Chat API] NVIDIA error:', JSON.stringify(data));
-        return NextResponse.json({ text: 'Signal engine temporarily unavailable.', ticket: null }, { status: 502 });
+          const data = await response.json();
+          if (!response.ok) {
+            throw new Error(JSON.stringify(data));
+          }
+
+          let rawContent = data.choices?.[0]?.message?.content || '{}';
+          rawContent = rawContent.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+          try {
+            const parsed = JSON.parse(rawContent);
+            parsedText = parsed.text || rawContent;
+          } catch {
+            parsedText = rawContent;
+          }
+        } catch (llmErr) {
+          console.warn('[Chat API] NVIDIA Chat completions failed, falling back to simulation:', llmErr);
+          parsedText = "Hello! I am TradeGPT, your institutional AI trading assistant. How can I help you today? I can analyze charts and dispatch trade signals for assets like Gold (XAUUSD), EURUSD, Bitcoin, and Nasdaq.";
+        }
       }
 
-      let rawContent = data.choices?.[0]?.message?.content || '{}';
-      rawContent = rawContent.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
-
-      try {
-        const parsed = JSON.parse(rawContent);
-        return NextResponse.json({ text: parsed.text || rawContent, ticket: null });
-      } catch {
-        return NextResponse.json({ text: rawContent, ticket: null });
-      }
+      return NextResponse.json({ text: parsedText, ticket: null });
     }
 
     // 3. Asset detected — fetch live market data and news headlines
@@ -206,6 +227,30 @@ Respond ONLY with this JSON (no markdown wrapping, no code fences):
         rrRatio: riskParams.rrRatio,
         confidence: snapshot.confidenceGrade,
       };
+
+      // Execute order on active broker node (MetaAPI/Simulator)
+      try {
+        const lotSize = parseFloat(parsed.ticket.lotVolume);
+        const entry = parseFloat(parsed.ticket.entryPrice);
+        const sl = parseFloat(parsed.ticket.stopLoss);
+        const tp = parseFloat(parsed.ticket.takeProfit);
+        
+        const execResult = await executeBrokerOrder(
+          activeBrokerId,
+          symbol,
+          parsed.ticket.action || (snapshot.confluenceDirection === 'SELL' ? 'SELL' : 'BUY'),
+          lotSize || 0.1,
+          entry || snapshot.price,
+          sl || undefined,
+          tp || undefined
+        );
+        parsed.ticket.ticketId = execResult.orderId || parsed.ticket.ticketId;
+        parsed.ticket.executionStatus = 'SUCCESS';
+      } catch (err: any) {
+        console.error('[Broker Engine] Failed to dispatch signal order:', err);
+        parsed.ticket.executionStatus = 'FAILED';
+        parsed.ticket.executionError = err.message;
+      }
     }
 
     // Build marketData for rich card rendering

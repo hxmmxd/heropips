@@ -1,0 +1,66 @@
+[
+  {
+    "id": "882910",
+    "name": "Vantage-Real-01",
+    "login": "882910",
+    "server": "VantageInternational-Live",
+    "status": "connected",
+    "balance": 12450,
+    "equity": 12690.12,
+    "pnl": 240.12,
+    "positions": [
+      {
+        "id": "t1",
+        "symbol": "XAUUSD",
+        "type": "BUY",
+        "volume": 0.1,
+        "openPrice": 2315.5,
+        "currentPrice": 2317.9,
+        "profit": 240.12
+      }
+    ]
+  },
+  {
+    "id": "110922",
+    "name": "IC-Markets-Pro",
+    "login": "110922",
+    "server": "ICMarketsSC-Live",
+    "status": "connected",
+    "balance": 5200.5,
+    "equity": 5080.5,
+    "pnl": -120,
+    "positions": [
+      {
+        "id": "t2",
+        "symbol": "EURUSD",
+        "type": "SELL",
+        "volume": 0.5,
+        "openPrice": 1.0855,
+        "currentPrice": 1.0879,
+        "profit": -120
+      }
+    ]
+  },
+  {
+    "id": "994821",
+    "name": "AxiTrader-Real",
+    "login": "994821",
+    "server": "AxiTrader-Live-02",
+    "status": "connected",
+    "balance": 10000,
+    "equity": 10000,
+    "pnl": 0,
+    "positions": []
+  },
+  {
+    "id": "107447821",
+    "name": "MetaQuotes-Demo-Real",
+    "login": "107447821",
+    "server": "MetaQuotes-Demo",
+    "status": "connected",
+    "balance": 100000,
+    "equity": 100000,
+    "pnl": 0,
+    "positions": []
+  }
+]

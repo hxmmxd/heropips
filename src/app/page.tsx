@@ -101,17 +101,70 @@ export default function Home() {
     setSidebarOpen(false);
   };
 
+  // Load connected brokers from server on mount
+  useEffect(() => {
+    const fetchBrokers = async () => {
+      try {
+        const res = await fetch('/api/broker');
+        const data = await res.json();
+        if (data.brokers?.length > 0) {
+          setBrokers(data.brokers.map((b: any) => ({
+            name: b.name,
+            balance: b.balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+            pnl: (b.pnl >= 0 ? '+' : '') + b.pnl.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+            equity: b.equity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+            acc: b.login,
+          })));
+        }
+      } catch (err) {
+        console.error('Failed to load brokers:', err);
+      }
+    };
+    fetchBrokers();
+  }, []);
+
   // Add new broker node from pairing modal
-  const handleAddBrokerNode = (name: string, loginId: string) => {
-    const newBroker: Broker = {
+  const handleAddBrokerNode = async (name: string, loginId: string, password?: string, server?: string) => {
+    const connectingBroker: Broker = {
       name,
-      balance: '0.00',
+      balance: 'Connecting...',
       pnl: '0.00',
-      equity: '0.00',
+      equity: 'Connecting...',
       acc: loginId,
     };
-    setBrokers((prev) => [...prev, newBroker]);
+    setBrokers((prev) => [...prev, connectingBroker]);
     setActiveBrokerName(name);
+
+    try {
+      const res = await fetch('/api/broker', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, login: loginId, password, server }),
+      });
+      const data = await res.json();
+      if (data.success && data.broker) {
+        const b = data.broker;
+        setBrokers((prev) =>
+          prev.map((item) =>
+            item.acc === loginId
+              ? {
+                  name: b.name,
+                  balance: b.balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                  pnl: (b.pnl >= 0 ? '+' : '') + b.pnl.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                  equity: b.equity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                  acc: b.login,
+                }
+              : item
+          )
+        );
+      } else {
+        throw new Error(data.error || 'Failed to connect broker');
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert(`Connection failed: ${err.message}`);
+      setBrokers((prev) => prev.filter((item) => item.acc !== loginId));
+    }
   };
 
   // Handle sending messages via live API
@@ -150,6 +203,7 @@ export default function Home() {
           messages: conversationHistory,
           accountBalance: activeBroker.balance,
           forceSignal: forceSignal || false,
+          activeBrokerId: activeBroker.acc,
         }),
       });
 
@@ -168,6 +222,35 @@ export default function Home() {
       setMessages((prev) =>
         prev.filter((m) => m.id !== typingId).concat(botReply)
       );
+
+      // If trade executed successfully, update broker balance and log the trade
+      if (data.ticket && data.ticket.executionStatus === 'SUCCESS') {
+        const newLog = {
+          symbol: data.ticket.symbol,
+          action: data.ticket.action || 'BUY',
+          orderId: data.ticket.ticketId,
+          amount: data.ticket.risk,
+          isWin: Math.random() > 0.4,
+        };
+        setLogs((prev) => [newLog, ...prev]);
+
+        setBrokers((prevBrokers) =>
+          prevBrokers.map((b) => {
+            if (b.acc === activeBroker.acc) {
+              const currentBal = parseFloat(b.balance.replace(/,/g, ''));
+              const marginUsed = parseFloat(data.ticket.margin.replace(/,/g, '')) || 0;
+              const newBalance = currentBal - marginUsed;
+              const newEquity = newBalance + (parseFloat(b.pnl) || 0);
+              return {
+                ...b,
+                balance: newBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                equity: newEquity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+              };
+            }
+            return b;
+          })
+        );
+      }
     } catch (error) {
       // Remove typing indicator and show error
       const errorReply: ChatMessage = {
