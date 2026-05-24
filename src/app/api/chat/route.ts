@@ -29,8 +29,12 @@ export async function POST(request: Request) {
     const symbol = detectSymbol(lastUserMessage);
     const explicitSignal = forceSignal || wantsSignal(lastUserMessage);
 
-    // 2. No asset detected — general conversation
-    if (!symbol) {
+    // Check if this is a direct asset query (short, 1-3 word message like "Gold", "EURUSD", "bitcoin")
+    const wordCount = lastUserMessage.trim().split(/\s+/).length;
+    const isDirectQuery = symbol && (wordCount <= 3 || explicitSignal || forceSignal);
+
+    // 2. No asset detected OR conversational mention → general conversation
+    if (!symbol || !isDirectQuery) {
       const apiKey = process.env.NVIDIA_API_KEY;
       const response = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
         method: 'POST',
