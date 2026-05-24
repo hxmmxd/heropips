@@ -185,14 +185,7 @@ Respond ONLY with this JSON (no markdown wrapping, no code fences):
 
     // 6. Parse structured JSON from LLM
     let rawContent = llmData.choices?.[0]?.message?.content || '{}';
-    rawContent = rawContent.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
-
-    let parsed: { text?: string; newsSentiment?: string; ticket?: any } = {};
-    try {
-      parsed = JSON.parse(rawContent);
-    } catch {
-      parsed = { text: rawContent, ticket: null };
-    }
+    const parsed = flexibleJsonParse(rawContent);
 
     // 7. Override ticket with engine-calculated risk params
     if (parsed.ticket && snapshot && explicitSignal) {
@@ -248,4 +241,59 @@ Respond ONLY with this JSON (no markdown wrapping, no code fences):
       { status: 500 }
     );
   }
+}
+
+function flexibleJsonParse(rawStr: string): any {
+  let cleaned = rawStr.trim();
+  cleaned = cleaned.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+
+  // Try standard parse
+  try {
+    return JSON.parse(cleaned);
+  } catch (e) {
+    // Attempt standard repairs
+    try {
+      // 1. Wrap unquoted keys (e.g. newsSentiment: -> "newsSentiment":)
+      let repaired = cleaned.replace(/([{,]\s*)([a-zA-Z0-9_]+)\s*:/g, '$1"$2":');
+      // 2. Normalize quotes
+      repaired = repaired.replace(/'/g, '"');
+      return JSON.parse(repaired);
+    } catch (e2) {
+      console.warn('[Chat API] Repair failed, using regex extraction. Raw:', cleaned);
+    }
+  }
+
+  // Regex extraction fallback
+  const result: any = {};
+  
+  // Extract text
+  const textMatch = cleaned.match(/"text"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+  if (textMatch) {
+    result.text = textMatch[1]
+      .replace(/\\"/g, '"')
+      .replace(/\\n/g, '\n')
+      .replace(/\\r/g, '\r')
+      .replace(/\\t/g, '\t');
+  } else {
+    result.text = cleaned;
+  }
+
+  // Extract newsSentiment
+  const sentimentMatch = cleaned.match(/(?:"newsSentiment"|newsSentiment)\s*:\s*"([^"]+)"/);
+  if (sentimentMatch) {
+    result.newsSentiment = sentimentMatch[1];
+  }
+
+  // Extract ticket
+  const ticketMatch = cleaned.match(/"ticket"\s*:\s*(\{[\s\S]*?\})/);
+  if (ticketMatch) {
+    try {
+      let ticketStr = ticketMatch[1].replace(/([{,]\s*)([a-zA-Z0-9_]+)\s*:/g, '$1"$2":');
+      result.ticket = JSON.parse(ticketStr);
+    } catch {
+      result.ticket = null;
+    }
+  }
+
+  return result;
 }
