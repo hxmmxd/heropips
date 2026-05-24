@@ -23,7 +23,7 @@ export default function ReferralTab({ partners }: ReferralTabProps) {
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto w-full space-y-8">
+    <div className="p-6 lg:p-12 max-w-5xl mx-auto w-full space-y-10">
       {/* Metrics Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="border border-[var(--border)] p-6 rounded-3xl bg-[var(--sidebar-bg)] shadow-sm">

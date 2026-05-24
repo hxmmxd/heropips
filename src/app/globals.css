@@ -154,12 +154,3 @@ body {
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
 }
 
-/* Unifying alignment grid across headers and tabs */
-.max-width-align {
-  max-width: 56rem; /* equivalent to max-w-4xl */
-  margin-left: auto;
-  margin-right: auto;
-  width: 100%;
-}
-
-
