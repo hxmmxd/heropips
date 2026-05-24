@@ -117,6 +117,9 @@ export default function TerminalTab({ messages, onSendMessage }: TerminalTabProp
               onInput={handleTextareaInput}
               onKeyDown={handleKeyDown}
               placeholder="Chat with TradeGPT"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck="false"
               className="flex-1 bg-transparent border-none outline-none py-3 px-2 text-[15px] resize-none max-h-32 no-scrollbar text-[var(--text)] placeholder-[var(--subtext)]/50"
             />
             <div className="flex items-center space-x-1 pb-1">
