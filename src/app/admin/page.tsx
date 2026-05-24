@@ -700,6 +700,43 @@ export default function AdminPage() {
                 </div>
               </div>
 
+              {/* Plan Pricing */}
+              <div className="adm-card">
+                <div className="adm-card-head"><h3>Plan Pricing</h3></div>
+                <div className="adm-card-body">
+                  <div className="adm-pricing-grid">
+                    {[
+                      { key: 'starter', label: 'Starter', icon: <Zap className="adm-pricing-icon adm-pricing-gray" /> },
+                      { key: 'pro', label: 'Pro', icon: <Crown className="adm-pricing-icon adm-pricing-purple" /> },
+                      { key: 'enterprise', label: 'Enterprise', icon: <Rocket className="adm-pricing-icon adm-pricing-amber" /> },
+                    ].map(tier => (
+                      <div key={tier.key} className="adm-pricing-card">
+                        {tier.icon}
+                        <p className="adm-pricing-label">{tier.label}</p>
+                        <div className="adm-pricing-input-wrap">
+                          <span className="adm-pricing-dollar">$</span>
+                          <input
+                            type="number"
+                            className="adm-pricing-input"
+                            value={config.plan_pricing?.[tier.key] ?? ''}
+                            onChange={e => {
+                              const pricing = { ...config.plan_pricing, [tier.key]: Number(e.target.value) };
+                              setConfig({ ...config, plan_pricing: pricing });
+                            }}
+                          />
+                          <span className="adm-pricing-period">/mo</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <button className="adm-pricing-save" onClick={async () => {
+                    await fetch('/api/admin', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ configKey: 'plan_pricing', configValue: config.plan_pricing }) });
+                    setSaveMsg('Pricing saved'); setTimeout(() => setSaveMsg(''), 2000);
+                  }}><Check /> Save Pricing</button>
+                  {saveMsg === 'Pricing saved' && <p className="adm-save-msg" style={{marginTop:8}}>✓ Pricing updated successfully</p>}
+                </div>
+              </div>
+
               {/* Announcements */}
               <div className="adm-card">
                 <div className="adm-card-head"><h3>Announcements ({announcements.length})</h3></div>
