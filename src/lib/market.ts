@@ -1,5 +1,5 @@
-// Market Data Engine — Multi-Indicator Confluence Analysis
-// Fetches real-time prices and technical indicators from Twelve Data API
+import { spawn } from 'child_process';
+import path from 'path';
 
 const BASE_URL = 'https://api.twelvedata.com';
 
@@ -359,6 +359,48 @@ function gradeConfidence(score: number): 'AAA' | 'AA' | 'A' | 'BBB' {
   return 'BBB';
 }
 
+export async function computeIndicatorsWithPython(candles: CandleData[]): Promise<any> {
+  return new Promise((resolve) => {
+    try {
+      const scriptPath = path.join(process.cwd(), 'src/lib/indicators.py');
+      const pythonPath = path.join(process.cwd(), 'venv/bin/python3');
+      
+      const child = spawn(pythonPath, [scriptPath]);
+      
+      let stdout = '';
+      let stderr = '';
+      
+      child.stdout.on('data', (data) => {
+        stdout += data.toString();
+      });
+      
+      child.stderr.on('data', (data) => {
+        stderr += data.toString();
+      });
+      
+      child.on('close', (code) => {
+        if (code !== 0) {
+          console.error('[Indicator Engine] Python script failed with code', code, stderr);
+          resolve(null);
+          return;
+        }
+        try {
+          const parsed = JSON.parse(stdout);
+          resolve(parsed);
+        } catch (err) {
+          console.error('[Indicator Engine] Failed to parse Python output:', err, stdout);
+          resolve(null);
+        }
+      });
+      
+      child.stdin.write(JSON.stringify(candles));
+      child.stdin.end();
+    } catch (error) {
+      console.error('[Indicator Engine] Failed to spawn Python:', error);
+      resolve(null);
+    }
+  });
+}
 
 // ── Main Market Snapshot Assembler ─────────────────────────
 
@@ -366,26 +408,25 @@ export async function getMarketSnapshot(symbol: string): Promise<MarketSnapshot 
   try {
     console.log(`[Market Engine] Fetching snapshot for ${symbol}...`);
 
-    // Fetch price first to validate connectivity
-    const price = await fetchPrice(symbol);
-    if (price === null) {
-      console.error('[Market Engine] Failed to fetch price — aborting snapshot');
+    // Fetch candles (only 1 Twelve Data API call needed, instead of 5!)
+    const candles = await fetchCandles(symbol, '1h', 80);
+    if (candles.length < 50) {
+      console.error('[Market Engine] Not enough candle data — aborting snapshot');
       return null;
     }
+
+    // Precompute indicators server-side using Python indicator engine
+    const results = await computeIndicatorsWithPython(candles);
+    if (!results || results.price === 0) {
+      console.error('[Market Engine] Failed to compute indicators via Python');
+      return null;
+    }
+
+    const { price, rsi, macd, ema50, atr } = results;
     console.log(`[Market Engine] Price: $${price}`);
-
-    // Fetch 4 core indicators (5 total API calls incl. price)
-    // Stays within Twelve Data free tier of 8 credits/min
-    const [rsi, macd, ema50, atr] = await Promise.all([
-      fetchRSI(symbol, '1h'),
-      fetchMACD(symbol, '1h'),
-      fetchEMA(symbol, '50', '1h'),
-      fetchATR(symbol, '1h'),
-    ]);
-
     console.log(`[Market Engine] Indicators — RSI: ${rsi}, MACD: ${macd ? 'ok' : 'null'}, EMA50: ${ema50}, ATR: ${atr}`);
 
-    // Simplified directional bias using available indicators
+    // Directional bias using calculated indicators
     let bullish = 0;
     let bearish = 0;
 
