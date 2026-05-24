@@ -107,12 +107,13 @@ export async function connectBroker(
       
       const account = await metaApiInstance.metatraderAccountApi.createAccount({
         name: name,
-        type: 'cloud-g2',
+        type: 'cloud-g1',
         platform: 'mt5',
         login: login,
         password: password || '',
         server: server || 'DemoServer',
-        magic: 0, // 0 = manual trades (required field)
+        magic: 0,
+        reliability: 'regular',
       });
       
       // Wait for account deployment and connection
@@ -287,7 +288,7 @@ export async function getAllBrokers(): Promise<BrokerNode[]> {
   if (metaApiInstance) {
     try {
       console.log('[Broker Engine] Fetching accounts list from MetaAPI Cloud...');
-      const accounts = await metaApiInstance.metatraderAccountApi.getAccounts();
+      const accounts = await metaApiInstance.metatraderAccountApi.getAccountsWithInfiniteScrollPagination();
       const list: BrokerNode[] = [];
       for (const account of accounts) {
         let details: any = { balance: 0, equity: 0 };
