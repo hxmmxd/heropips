@@ -1,7 +1,8 @@
 'use client';
 
-import React from 'react';
-import { Terminal, Server, Receipt, Network, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Terminal, Server, Receipt, Network, X, LogOut, Settings, ChevronUp } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 
 interface SidebarProps {
   currentTab: string;
@@ -11,6 +12,28 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ currentTab, switchTab, isOpen, onToggle }: SidebarProps) {
+  const [user, setUser] = useState<any>(null);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const supabase = createClient();
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+    };
+    getUser();
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    window.location.href = '/login';
+  };
+
+  const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User';
+  const userEmail = user?.email || '';
+  const avatarUrl = user?.user_metadata?.avatar_url || 
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=10a37f&color=fff&size=80`;
+
   const navItems = [
     { id: 'terminal', label: 'AI Terminal', icon: Terminal },
     { id: 'brokers', label: 'Live Brokers', icon: Server },
@@ -68,20 +91,51 @@ export default function Sidebar({ currentTab, switchTab, isOpen, onToggle }: Sid
           </nav>
 
           {/* User Profile Footer */}
-          <div className="pt-6 border-t border-[var(--border)]">
-            <div className="flex items-center space-x-3 p-3 bg-black/5 dark:bg-white/5 rounded-2xl">
+          <div className="pt-6 border-t border-[var(--border)] relative">
+            {/* Profile popup menu */}
+            {profileMenuOpen && (
+              <>
+                <div className="fixed inset-0 z-[69]" onClick={() => setProfileMenuOpen(false)} />
+                <div className="absolute bottom-full left-3 right-3 mb-2 z-[70] bg-[var(--sidebar-bg)] border border-[var(--border)] rounded-xl shadow-xl overflow-hidden">
+                  <div className="p-3 border-b border-[var(--border)]">
+                    <p className="text-xs font-semibold truncate">{userName}</p>
+                    <p className="text-[10px] text-[var(--subtext)] truncate mt-0.5">{userEmail}</p>
+                  </div>
+                  <button
+                    onClick={() => { switchTab('profile'); setProfileMenuOpen(false); }}
+                    className="w-full flex items-center space-x-3 px-4 py-3 text-sm text-[var(--subtext)] hover:bg-black/5 dark:hover:bg-white/5 transition"
+                  >
+                    <Settings className="w-4 h-4" />
+                    <span>Settings</span>
+                  </button>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center space-x-3 px-4 py-3 text-sm text-red-500 hover:bg-red-500/5 transition"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>Log out</span>
+                  </button>
+                </div>
+              </>
+            )}
+
+            <button
+              onClick={() => setProfileMenuOpen(!profileMenuOpen)}
+              className="w-full flex items-center space-x-3 p-3 bg-black/5 dark:bg-white/5 rounded-2xl hover:bg-black/8 dark:hover:bg-white/8 transition cursor-pointer"
+            >
               <img
-                src="https://ui-avatars.com/api/?name=Admin&background=2563eb&color=fff"
-                alt="Admin Avatar"
-                className="w-8 h-8 rounded-full"
+                src={avatarUrl}
+                alt={`${userName} Avatar`}
+                className="w-8 h-8 rounded-full shrink-0"
               />
-              <div className="overflow-hidden">
-                <p className="text-xs font-semibold truncate">Premium Partner</p>
-                <p className="text-[9px] uppercase font-bold text-blue-500 tracking-widest mt-1">
-                  Institutional
+              <div className="overflow-hidden flex-1 text-left">
+                <p className="text-xs font-semibold truncate">{userName}</p>
+                <p className="text-[9px] uppercase font-bold text-emerald-500 tracking-widest mt-0.5">
+                  Free Plan
                 </p>
               </div>
-            </div>
+              <ChevronUp className={`w-4 h-4 text-[var(--subtext)] shrink-0 transition-transform ${profileMenuOpen ? '' : 'rotate-180'}`} />
+            </button>
           </div>
         </div>
       </aside>

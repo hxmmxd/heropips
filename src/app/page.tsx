@@ -8,6 +8,7 @@ import TerminalTab from '@/components/TerminalTab';
 import BrokersTab from '@/components/BrokersTab';
 import HistoryTab from '@/components/HistoryTab';
 import ReferralTab from '@/components/ReferralTab';
+import ProfileTab from '@/components/ProfileTab';
 import { Broker, ChatMessage, Partner, TradeLog } from '@/types';
 
 export default function Home() {
@@ -320,6 +321,10 @@ export default function Home() {
 
           {currentTab === 'referral' && (
             <ReferralTab partners={partners} />
+          )}
+
+          {currentTab === 'profile' && (
+            <ProfileTab theme={theme} />
           )}
         </div>
       </main>
