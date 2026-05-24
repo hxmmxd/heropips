@@ -157,7 +157,7 @@ export default function Header({
           >
             <Lightbulb
               className={`w-4.5 h-4.5 transition-all duration-300 ${
-                theme === 'light'
+                theme === 'dark'
                   ? 'text-yellow-500 fill-yellow-500/20 drop-shadow-[0_0_8px_rgba(234,179,8,0.5)]'
                   : 'text-[var(--subtext)]'
               }`}
