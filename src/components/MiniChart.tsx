@@ -54,6 +54,9 @@ export default function MiniChart({ symbol, height = 120 }: MiniChartProps) {
       chart = createChart(containerRef.current, {
         width: containerRef.current.clientWidth,
         height: height,
+        watermark: {
+          visible: false,
+        },
         layout: {
           background: { type: ColorType.Solid, color: 'transparent' },
           textColor: '#6E6E73',
