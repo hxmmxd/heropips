@@ -487,9 +487,17 @@ function parseMarkdown(text: string) {
   return lines.map((line, idx) => {
     const cleanLine = line.trim();
     if (cleanLine.startsWith('###')) {
+      const headerText = cleanLine.replace('###', '').trim();
+      const hasRobot = headerText.includes('🤖') || headerText.includes('🤖') || headerText.toLowerCase().includes('agent');
+      const cleanText = headerText.replace(/🤖/g, '').trim();
       return (
-        <h3 key={idx} className="text-[11px] font-bold text-[var(--subtext)] mt-4 mb-2 flex items-center gap-1.5 uppercase tracking-widest">
-          {cleanLine.replace('###', '').trim()}
+        <h3 key={idx} className="text-[10px] font-bold text-[var(--subtext)] mt-4 mb-2.5 flex items-center gap-1.5 uppercase tracking-widest">
+          {hasRobot && (
+            <svg className="w-3.5 h-3.5 text-blue-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V9a2 2 0 00-2-2H7a2 2 0 00-2 2v8a2 2 0 002 2zM9 9h.01M15 9h.01M8 14h8" />
+            </svg>
+          )}
+          <span>{cleanText}</span>
         </h3>
       );
     }
