@@ -28,13 +28,14 @@ export async function GET() {
   }
 
   // Fetch all data
-  const [usersRes, brokersRes, tradesRes, announcementsRes, configRes, auditRes] = await Promise.all([
+  const [usersRes, brokersRes, tradesRes, announcementsRes, configRes, auditRes, riskRes] = await Promise.all([
     supabaseAdmin.from('profiles').select('*').order('created_at', { ascending: false }),
     supabaseAdmin.from('broker_accounts').select('*').order('created_at', { ascending: false }),
-    supabaseAdmin.from('trades').select('*').order('created_at', { ascending: false }).limit(100),
+    supabaseAdmin.from('trades').select('*').order('created_at', { ascending: false }).limit(200),
     supabaseAdmin.from('announcements').select('*').order('created_at', { ascending: false }),
     supabaseAdmin.from('platform_config').select('*'),
     supabaseAdmin.from('audit_log').select('*').order('created_at', { ascending: false }).limit(50),
+    supabaseAdmin.from('risk_rules').select('*').order('created_at', { ascending: true }),
   ]);
 
   const users = usersRes.data || [];
@@ -44,6 +45,45 @@ export async function GET() {
   const config: Record<string, any> = {};
   (configRes.data || []).forEach((c: any) => { config[c.key] = c.value; });
   const auditLog = auditRes.data || [];
+  const riskRules = riskRes.data || [];
+
+  // Compute monthly signup trends (last 6 months)
+  const now = new Date();
+  const signupTrends: { month: string; count: number }[] = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const label = d.toLocaleDateString('en-US', { month: 'short' });
+    const count = users.filter(u => {
+      const created = new Date(u.created_at);
+      return created.getMonth() === d.getMonth() && created.getFullYear() === d.getFullYear();
+    }).length;
+    signupTrends.push({ month: label, count });
+  }
+
+  // Revenue by month (last 6 months)
+  const revenueTrends: { month: string; revenue: number }[] = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const label = d.toLocaleDateString('en-US', { month: 'short' });
+    // Approximate: users who existed by that month
+    const rev = users.filter(u => new Date(u.created_at) <= new Date(d.getFullYear(), d.getMonth() + 1, 0)).reduce((sum, u) => {
+      if (u.plan === 'pro') return sum + 50;
+      if (u.plan === 'enterprise') return sum + 100;
+      return sum;
+    }, 0);
+    revenueTrends.push({ month: label, revenue: rev });
+  }
+
+  // Trade stats
+  const closedTrades = trades.filter(t => t.status === 'closed' || t.close_price);
+  const winningTrades = closedTrades.filter(t => (t.pnl || 0) > 0);
+  const winRate = closedTrades.length > 0 ? (winningTrades.length / closedTrades.length * 100) : 0;
+  const totalPnl = trades.reduce((s, t) => s + (t.pnl || 0), 0);
+
+  // Top symbols
+  const symbolMap: Record<string, number> = {};
+  trades.forEach(t => { if (t.symbol) symbolMap[t.symbol] = (symbolMap[t.symbol] || 0) + 1; });
+  const topSymbols = Object.entries(symbolMap).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([symbol, count]) => ({ symbol, count }));
 
   const stats = {
     totalUsers: users.length,
@@ -55,6 +95,8 @@ export async function GET() {
     totalTrades: trades.length,
     openTrades: trades.filter(t => t.status === 'open').length,
     suspendedUsers: users.filter(u => u.status === 'suspended').length,
+    winRate: Math.round(winRate * 10) / 10,
+    totalPnl: Math.round(totalPnl * 100) / 100,
     revenue: users.reduce((sum, u) => {
       if (u.plan === 'pro') return sum + 50;
       if (u.plan === 'enterprise') return sum + 100;
@@ -62,7 +104,7 @@ export async function GET() {
     }, 0),
   };
 
-  return NextResponse.json({ stats, users, brokers, trades, announcements, config, auditLog });
+  return NextResponse.json({ stats, users, brokers, trades, announcements, config, auditLog, riskRules, signupTrends, revenueTrends, topSymbols });
 }
 
 // Update user plan or admin status
@@ -84,7 +126,14 @@ export async function PATCH(request: Request) {
   }
 
   const body = await request.json();
-  const { userId, plan, is_admin, full_name, email, status, suspended_reason, configKey, configValue, announcement } = body;
+  const { userId, plan, is_admin, full_name, email, status, suspended_reason, configKey, configValue, announcement, riskRule } = body;
+
+  // -- Risk rule update
+  if (riskRule !== undefined) {
+    await supabaseAdmin.from('risk_rules').update({ threshold: riskRule.threshold, is_active: riskRule.is_active }).eq('id', riskRule.id);
+    await supabaseAdmin.from('audit_log').insert({ admin_id: user.id, action: 'risk_rule_updated', target_type: 'risk_rule', target_id: riskRule.id, details: riskRule });
+    return NextResponse.json({ success: true });
+  }
 
   // -- Config update
   if (configKey !== undefined) {

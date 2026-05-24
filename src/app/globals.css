@@ -1656,3 +1656,50 @@ body {
 }
 .adm-pricing-save svg { width: 14px; height: 14px; }
 .adm-pricing-save:hover { opacity: 0.9; }
+
+/* KPI red variant */
+.adm-kpi-red { background: rgba(239,68,68,0.1); color: #ef4444; }
+
+/* Trend Bar Charts */
+.adm-chart-bars { display: flex; align-items: flex-end; gap: 8px; height: 160px; padding-top: 10px; }
+.adm-chart-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; }
+.adm-chart-bar-wrap { flex: 1; width: 100%; display: flex; align-items: flex-end; border-radius: 6px; overflow: hidden; background: rgba(255,255,255,0.03); }
+.adm-chart-bar { width: 100%; border-radius: 6px 6px 0 0; transition: height 0.5s ease; min-height: 3px; }
+.adm-chart-val { font-size: 11px; font-weight: 700; white-space: nowrap; }
+.adm-chart-label { font-size: 10px; color: var(--subtext); }
+
+/* Symbol Leaderboard */
+.adm-symbol-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 16px; border-bottom: 1px solid var(--border);
+}
+.adm-symbol-row:last-child { border-bottom: none; }
+.adm-symbol-rank { font-size: 11px; font-weight: 700; color: var(--subtext); width: 24px; }
+.adm-symbol-name { font-size: 13px; font-weight: 700; width: 80px; letter-spacing: 0.02em; }
+.adm-symbol-bar-wrap { flex: 1; height: 6px; background: rgba(255,255,255,0.04); border-radius: 3px; overflow: hidden; }
+.adm-symbol-bar { height: 100%; background: #10a37f; border-radius: 3px; transition: width 0.4s ease; }
+.adm-symbol-count { font-size: 12px; font-weight: 600; color: var(--subtext); width: 30px; text-align: right; }
+
+/* Risk Rules */
+.adm-risk-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 700px) { .adm-risk-grid { grid-template-columns: 1fr; } }
+.adm-risk-item {
+  padding: 14px; border-radius: 12px;
+  border: 1px solid var(--border); background: rgba(255,255,255,0.02);
+  transition: opacity 0.15s;
+}
+.adm-risk-disabled { opacity: 0.4; }
+.adm-risk-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.adm-risk-name { font-size: 12px; font-weight: 600; }
+.adm-risk-bottom { display: flex; align-items: center; gap: 8px; }
+.adm-risk-type { font-size: 11px; color: var(--subtext); flex-shrink: 0; }
+.adm-risk-input {
+  width: 70px; padding: 5px 8px; border-radius: 6px;
+  border: 1px solid var(--border); background: var(--input-bg);
+  color: var(--text); font-size: 14px; font-weight: 700;
+  text-align: center; outline: none;
+  -moz-appearance: textfield;
+}
+.adm-risk-input::-webkit-outer-spin-button,
+.adm-risk-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+.adm-risk-input:focus { border-color: #10a37f; }

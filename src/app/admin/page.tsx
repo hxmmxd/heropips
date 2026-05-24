@@ -7,7 +7,8 @@ import {
   BarChart3, Eye, Ban, MoreVertical, RefreshCw, Download,
   ArrowUpRight, Globe, Clock, Wifi, WifiOff, Receipt, CheckCircle, XCircle,
   Heart, Cpu, Database, Pencil, Check, X, Mail, User, Settings, Megaphone,
-  FileText, Power, ToggleLeft, ToggleRight, AlertTriangle, Plus, Trash2
+  FileText, Power, ToggleLeft, ToggleRight, AlertTriangle, Plus, Trash2,
+  Target, BarChart2, ShieldAlert
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
@@ -72,6 +73,10 @@ export default function AdminPage() {
   const [suspendDialog, setSuspendDialog] = useState<{userId: string, name: string} | null>(null);
   const [suspendReason, setSuspendReason] = useState('');
   const [newAnnouncement, setNewAnnouncement] = useState({ title: '', message: '', type: 'info' });
+  const [riskRules, setRiskRules] = useState<any[]>([]);
+  const [signupTrends, setSignupTrends] = useState<{month:string;count:number}[]>([]);
+  const [revenueTrends, setRevenueTrends] = useState<{month:string;revenue:number}[]>([]);
+  const [topSymbols, setTopSymbols] = useState<{symbol:string;count:number}[]>([]);
 
   useEffect(() => { loadData(); }, []);
 
@@ -88,6 +93,10 @@ export default function AdminPage() {
       setAnnouncements(data.announcements || []);
       setConfig(data.config || {});
       setAuditLog(data.auditLog || []);
+      setRiskRules(data.riskRules || []);
+      setSignupTrends(data.signupTrends || []);
+      setRevenueTrends(data.revenueTrends || []);
+      setTopSymbols(data.topSymbols || []);
     } catch (err: any) { setError(err.message); }
     finally { setLoading(false); }
   };
@@ -606,13 +615,84 @@ export default function AdminPage() {
 
           {activeSection === 'analytics' && stats && (
             <>
-              {/* Revenue Breakdown */}
+              {/* Trade Performance KPIs */}
+              <div className="adm-kpi-row">
+                <div className="adm-kpi"><div className="adm-kpi-top"><div className="adm-kpi-icon adm-kpi-green"><Target /></div></div><p className="adm-kpi-val">{stats.winRate}%</p><p className="adm-kpi-label">Win Rate</p></div>
+                <div className="adm-kpi"><div className="adm-kpi-top"><div className={`adm-kpi-icon ${stats.totalPnl >= 0 ? 'adm-kpi-green' : 'adm-kpi-red'}`}><TrendingUp /></div></div><p className="adm-kpi-val">${stats.totalPnl}</p><p className="adm-kpi-label">Total P&L</p></div>
+                <div className="adm-kpi"><div className="adm-kpi-top"><div className="adm-kpi-icon adm-kpi-purple"><Heart /></div></div><p className="adm-kpi-val">{stats.totalUsers > 0 ? ((stats.proUsers + stats.enterpriseUsers) / stats.totalUsers * 100).toFixed(1) : 0}%</p><p className="adm-kpi-label">Conversion</p></div>
+                <div className="adm-kpi"><div className="adm-kpi-top"><div className="adm-kpi-icon adm-kpi-amber"><DollarSign /></div></div><p className="adm-kpi-val">${stats.totalUsers > 0 ? (stats.revenue / stats.totalUsers).toFixed(0) : 0}</p><p className="adm-kpi-label">ARPU</p></div>
+              </div>
+
+              {/* Signup & Revenue Trends */}
+              <div className="adm-grid-2">
+                <div className="adm-card">
+                  <div className="adm-card-head"><h3>Signup Trend (6mo)</h3></div>
+                  <div className="adm-card-body">
+                    <div className="adm-chart-bars">
+                      {signupTrends.map((t, i) => {
+                        const max = Math.max(...signupTrends.map(s => s.count), 1);
+                        return (<div key={i} className="adm-chart-col"><div className="adm-chart-bar-wrap"><div className="adm-chart-bar" style={{ height: `${(t.count / max) * 100}%`, background: '#10a37f' }} /></div><span className="adm-chart-val">{t.count}</span><span className="adm-chart-label">{t.month}</span></div>);
+                      })}
+                    </div>
+                  </div>
+                </div>
+                <div className="adm-card">
+                  <div className="adm-card-head"><h3>Revenue Trend (6mo)</h3></div>
+                  <div className="adm-card-body">
+                    <div className="adm-chart-bars">
+                      {revenueTrends.map((t, i) => {
+                        const max = Math.max(...revenueTrends.map(s => s.revenue), 1);
+                        return (<div key={i} className="adm-chart-col"><div className="adm-chart-bar-wrap"><div className="adm-chart-bar" style={{ height: `${(t.revenue / max) * 100}%`, background: '#8b5cf6' }} /></div><span className="adm-chart-val">${t.revenue}</span><span className="adm-chart-label">{t.month}</span></div>);
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Top Symbols & Revenue Split */}
+              <div className="adm-grid-2">
+                <div className="adm-card">
+                  <div className="adm-card-head"><h3>Top Traded Symbols</h3></div>
+                  <div className="adm-card-body adm-card-body-flush">
+                    {topSymbols.length === 0 ? <div className="adm-empty-state" style={{padding:'30px'}}><p>No trade data yet</p></div> : topSymbols.map((s, i) => {
+                      const maxC = Math.max(...topSymbols.map(x => x.count), 1);
+                      return (<div key={i} className="adm-symbol-row"><span className="adm-symbol-rank">#{i + 1}</span><span className="adm-symbol-name">{s.symbol}</span><div className="adm-symbol-bar-wrap"><div className="adm-symbol-bar" style={{ width: `${(s.count / maxC) * 100}%` }} /></div><span className="adm-symbol-count">{s.count}</span></div>);
+                    })}
+                  </div>
+                </div>
+                <div className="adm-card">
+                  <div className="adm-card-head"><h3>Revenue Split</h3></div>
+                  <div className="adm-card-body">
+                    <div className="adm-rev-grid">
+                      <div className="adm-rev-item"><div className="adm-rev-bar-wrap"><div className="adm-rev-bar" style={{ height: `${Math.min((stats.proUsers * 50 / Math.max(stats.revenue, 1)) * 100, 100)}%`, background: '#8b5cf6' }} /></div><p className="adm-rev-val">${stats.proUsers * 50}</p><p className="adm-rev-label">Pro</p></div>
+                      <div className="adm-rev-item"><div className="adm-rev-bar-wrap"><div className="adm-rev-bar" style={{ height: `${Math.min((stats.enterpriseUsers * 100 / Math.max(stats.revenue, 1)) * 100, 100)}%`, background: '#f59e0b' }} /></div><p className="adm-rev-val">${stats.enterpriseUsers * 100}</p><p className="adm-rev-label">Enterprise</p></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Risk Rules */}
               <div className="adm-card">
-                <div className="adm-card-head"><h3>Revenue Breakdown</h3></div>
+                <div className="adm-card-head"><h3><ShieldAlert style={{width:16,height:16,marginRight:6}} />Risk Rules</h3></div>
                 <div className="adm-card-body">
-                  <div className="adm-rev-grid">
-                    <div className="adm-rev-item"><div className="adm-rev-bar-wrap"><div className="adm-rev-bar" style={{ height: `${Math.min((stats.proUsers * 50 / Math.max(stats.revenue, 1)) * 100, 100)}%`, background: '#8b5cf6' }} /></div><p className="adm-rev-val">${stats.proUsers * 50}</p><p className="adm-rev-label">Pro</p></div>
-                    <div className="adm-rev-item"><div className="adm-rev-bar-wrap"><div className="adm-rev-bar" style={{ height: `${Math.min((stats.enterpriseUsers * 100 / Math.max(stats.revenue, 1)) * 100, 100)}%`, background: '#f59e0b' }} /></div><p className="adm-rev-val">${stats.enterpriseUsers * 100}</p><p className="adm-rev-label">Enterprise</p></div>
+                  <div className="adm-risk-grid">
+                    {riskRules.map(r => (
+                      <div key={r.id} className={`adm-risk-item ${!r.is_active ? 'adm-risk-disabled' : ''}`}>
+                        <div className="adm-risk-top"><span className="adm-risk-name">{r.name}</span>
+                          <button className={`adm-toggle ${r.is_active ? 'adm-toggle-on' : ''}`} onClick={async () => {
+                            await fetch('/api/admin', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ riskRule: { id: r.id, threshold: r.threshold, is_active: !r.is_active } }) });
+                            setRiskRules(riskRules.map(x => x.id === r.id ? { ...x, is_active: !r.is_active } : x));
+                          }}>{r.is_active ? <ToggleRight /> : <ToggleLeft />}</button>
+                        </div>
+                        <div className="adm-risk-bottom">
+                          <span className="adm-risk-type">{r.rule_type === 'max_lot' ? 'Max Lots' : 'Daily Loss $'}</span>
+                          <input type="number" className="adm-risk-input" value={r.threshold} onChange={e => setRiskRules(riskRules.map(x => x.id === r.id ? { ...x, threshold: Number(e.target.value) } : x))} onBlur={async () => {
+                            await fetch('/api/admin', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ riskRule: { id: r.id, threshold: r.threshold, is_active: r.is_active } }) });
+                          }} />
+                          {r.plan_tier && <span className={`adm-tag adm-tag-${r.plan_tier}`}>{r.plan_tier.charAt(0).toUpperCase() + r.plan_tier.slice(1)}</span>}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -628,13 +708,6 @@ export default function AdminPage() {
                     <div className="adm-health-item"><div className="adm-health-dot adm-health-green" /><Server className="adm-health-icon" /><div><p className="adm-health-name">Broker Gateway</p><p className="adm-health-status">Operational</p></div></div>
                   </div>
                 </div>
-              </div>
-
-              {/* Conversion & Engagement */}
-              <div className="adm-grid-3">
-                <div className="adm-metric"><Heart className="adm-metric-icon" /><div><p className="adm-metric-val">{stats.totalUsers > 0 ? ((stats.proUsers + stats.enterpriseUsers) / stats.totalUsers * 100).toFixed(1) : 0}%</p><p className="adm-metric-label">Conversion Rate</p></div></div>
-                <div className="adm-metric"><DollarSign className="adm-metric-icon" /><div><p className="adm-metric-val">${stats.totalUsers > 0 ? (stats.revenue / stats.totalUsers).toFixed(0) : 0}</p><p className="adm-metric-label">ARPU</p></div></div>
-                <div className="adm-metric"><Activity className="adm-metric-icon" /><div><p className="adm-metric-val">{stats.totalUsers > 0 ? (stats.totalTrades / stats.totalUsers).toFixed(1) : 0}</p><p className="adm-metric-label">Trades/User</p></div></div>
               </div>
 
               {/* Export */}
