@@ -1,0 +1,134 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #FFFFFF;
+  --sidebar-bg: #F9F9F9;
+  --text: #1D1D1F;
+  --subtext: #6E6E73;
+  --input-bg: #F4F4F4;
+  --border: rgba(0, 0, 0, 0.08);
+  --send-btn: #1D1D1F;
+  --send-icon: #FFFFFF;
+  --accent: #D97757;
+}
+
+:root.dark,
+.dark {
+  --bg: #0D0D0D;
+  --sidebar-bg: #171717;
+  --text: #F5F5F7;
+  --subtext: #A1A1A6;
+  --input-bg: #212121;
+  --border: rgba(255, 255, 255, 0.1);
+  --send-btn: #F5F5F7;
+  --send-icon: #0D0D0D;
+}
+
+@theme inline {
+  --font-sans: var(--font-inter), sans-serif;
+  --font-mono: monospace;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--text);
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  letter-spacing: -0.01em;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Custom styles from mockup */
+.loader {
+  position: relative;
+  height: 40px;
+  width: 6px;
+  color: var(--text);
+  animation: paddles 0.75s ease-out infinite;
+}
+.loader:before {
+  content: "";
+  position: absolute;
+  margin: 0 auto;
+  left: 0;
+  right: 0;
+  top: 15px;
+  width: 12px;
+  height: 12px;
+  background-color: #ADFF2F;
+  border-radius: 50%;
+  animation: ballbounce 0.6s ease-out infinite;
+}
+
+@keyframes paddles {
+  0%, 100% {
+    box-shadow: -25px -10px, 25px 10px;
+  }
+  50% {
+    box-shadow: -25px 8px, 25px -10px;
+  }
+}
+
+@keyframes ballbounce {
+  0%, 100% {
+    transform: translateX(-20px) scale(1, 1.2);
+  }
+  50% {
+    transform: translateX(15px) scale(1, 1.2);
+  }
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  background-color: #22c55e;
+  border-radius: 50%;
+  display: inline-block;
+  position: relative;
+}
+
+.status-dot::after {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-color: #22c55e;
+  border-radius: 50%;
+  animation: pulse-dot 2s infinite;
+}
+
+@keyframes pulse-dot {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(3.5);
+    opacity: 0;
+  }
+}
+
+.modal-glass {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 28px;
+}
+
+.active-nav {
+  background: rgba(0,0,0,0.05);
+  color: #3b82f6 !important;
+}
+.dark .active-nav {
+  background: rgba(255,255,255,0.05);
+  color: #60a5fa !important;
+}
