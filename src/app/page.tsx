@@ -60,6 +60,28 @@ export default function Home() {
     }
   }, [theme]);
 
+  // Dynamic height handling for mobile keyboard resize
+  useEffect(() => {
+    const handleResize = () => {
+      const vv = window.visualViewport;
+      const height = vv ? vv.height : window.innerHeight;
+      document.documentElement.style.setProperty('--app-height', `${height}px`);
+    };
+
+    window.addEventListener('resize', handleResize);
+    window.visualViewport?.addEventListener('resize', handleResize);
+    window.visualViewport?.addEventListener('scroll', handleResize);
+
+    // Initial call
+    handleResize();
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.visualViewport?.removeEventListener('resize', handleResize);
+      window.visualViewport?.removeEventListener('scroll', handleResize);
+    };
+  }, []);
+
   // Handle mobile tab switcher closing sidebar
   const handleSwitchTab = (tabId: string) => {
     setCurrentTab(tabId);
@@ -114,7 +136,10 @@ export default function Home() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden w-full relative">
+    <div 
+      className="flex overflow-hidden w-full relative"
+      style={{ height: 'var(--app-height, 100dvh)' }}
+    >
       {/* Sidebar navigation */}
       <Sidebar
         currentTab={currentTab}
