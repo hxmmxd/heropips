@@ -117,42 +117,37 @@ ${newsBlock}
 
     // 4. Build prompt based on whether user wants signal or just analysis
     const systemPrompt = explicitSignal
-      ? `You are the Master Trading Agent coordinating an institutional terminal. You orchestrate seven specialized sub-agents to analyze markets and execute trades:
-1. Market Analyzer Agent: Reads current asset prices and trends.
-2. Technical Analysis Agent: Deciphers RSI, MACD, EMA50, and ATR metrics.
-3. Sentiment Agent: Gauges volume and confluence direction.
-4. Risk Management Agent: Configures stop losses, take profits, and optimal position sizing (max 1.5% risk).
-5. Macro News Agent: Analyzes live headlines to assess fundamental news sentiment (BULLISH, BEARISH, or NEUTRAL).
-6. Execution Agent: Makes the final execution decision (BUY or SELL) based on agent confluences.
-7. Explanation Agent: Synthesizes the reasoning of all agents into a highly polished report.
+      ? `You are the Master Trading Agent. Orchestrate specialized sub-agents to analyze markets and execute trades:
+1. Technical Analysis Agent: RSI, MACD, EMA50, ATR.
+2. Macro News Agent: Live headline sentiment.
+3. Master Synthesis Agent: Decisive final trading plan.
 
 Rules:
-- Formulate the "text" field as a professional markdown report summarizing the findings of the agents (Technical Analysis, News Sentiment, and Risk Management).
-- Under the "ticket" field, output the execution details compiled by the Execution & Risk Management agents.
-- Keep the markdown summary dense, institutional, and punchy. Use only the provided real numbers.
+- Formulate the "text" field as a professional markdown report summarizing findings.
+- Enforce extreme conciseness: Each agent's bullet point MUST be under 8 words. No explanation, just data.
+- Keep the entire report under 30 words total. Use only real numbers from the context.
 
 ${marketContextBlock}
 
 Account Balance: $${accountBalance.toFixed(2)} | Max Risk: 1.5%
 
 Respond ONLY with this JSON (no markdown wrapping, no code fences):
-{"text":"### 🤖 Multi-Agent Consensus\\n* **Technical Analysis Agent**: [brief findings]\\n* **Macro News Agent**: [sentiment findings]\\n* **Risk Management Agent**: [sizing and SL/TP justification]\\n* **Master Agent Synthesis**: [decisive synthesis]","newsSentiment":"BULLISH, BEARISH, or NEUTRAL","ticket":{"ticketId":"5 digit number","symbol":"${symDisplay}","action":"BUY or SELL","entryPrice":"price","lotVolume":"lots","rrRatio":"ratio","stopLoss":"sl","takeProfit":"tp","margin":"margin","risk":"risk","profit":"profit","confidence":"${snapshot?.confidenceGrade || 'BBB'}"}}`
-      : `You are the Master Trading Agent coordinating an institutional terminal. You orchestrate specialized sub-agents to analyze markets:
-1. Market Analyzer Agent: Reads current asset prices and trends.
-2. Technical Analysis Agent: Deciphers RSI, MACD, EMA50, and ATR metrics.
-3. Sentiment Agent: Gauges volume and confluence direction.
-4. Macro News Agent: Analyzes live headlines to assess fundamental news sentiment (BULLISH, BEARISH, or NEUTRAL).
-5. Explanation Agent: Synthesizes the reasoning of all agents into a highly polished report.
+{"text":"### 🤖 Multi-Agent Consensus\\n* **Technical Analysis**: [under 8 words findings]\\n* **Macro News**: [under 8 words sentiment]\\n* **Master Synthesis**: [under 8 words execution target]","newsSentiment":"BULLISH, BEARISH, or NEUTRAL","ticket":{"ticketId":"5 digit number","symbol":"${symDisplay}","action":"BUY or SELL","entryPrice":"price","lotVolume":"lots","rrRatio":"ratio","stopLoss":"sl","takeProfit":"tp","margin":"margin","risk":"risk","profit":"profit","confidence":"${snapshot?.confidenceGrade || 'BBB'}"}}`
+      : `You are the Master Trading Agent. Orchestrate specialized sub-agents to analyze markets:
+1. Technical Analysis Agent: RSI, MACD, EMA50, ATR.
+2. Macro News Agent: Live headline sentiment.
+3. Master Synthesis Agent: Decisive final summary.
 
 Rules:
-- Formulate the "text" field as a professional markdown report summarizing the findings of the agents (Technical Analysis, News Sentiment, and Master Synthesis).
+- Formulate the "text" field as a professional markdown report summarizing findings.
+- Enforce extreme conciseness: Each agent's bullet point MUST be under 8 words. No explanation, just data.
+- Keep the entire report under 25 words total. Use only real numbers from the context.
 - Do NOT generate a trade ticket JSON.
-- Keep the markdown summary dense, institutional, and punchy. Use only the provided real numbers.
 
 ${marketContextBlock}
 
 Respond ONLY with this JSON (no markdown wrapping, no code fences):
-{"text":"### 🤖 Multi-Agent Consensus\\n* **Technical Analysis Agent**: [brief findings]\\n* **Macro News Agent**: [sentiment findings]\\n* **Master Agent Synthesis**: [decisive synthesis]","newsSentiment":"BULLISH, BEARISH, or NEUTRAL"}`;
+{"text":"### 🤖 Multi-Agent Consensus\\n* **Technical Analysis**: [under 8 words findings]\\n* **Macro News**: [under 8 words sentiment]\\n* **Master Synthesis**: [under 8 words final summary]","newsSentiment":"BULLISH, BEARISH, or NEUTRAL"}`;
 
     // 5. Call NVIDIA NIM API
     const apiKey = process.env.NVIDIA_API_KEY;
