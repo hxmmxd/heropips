@@ -114,7 +114,7 @@ export default function Home() {
   };
 
   return (
-    <div className="flex h-100dvh overflow-hidden w-full relative">
+    <div className="flex h-screen overflow-hidden w-full relative">
       {/* Sidebar navigation */}
       <Sidebar
         currentTab={currentTab}
