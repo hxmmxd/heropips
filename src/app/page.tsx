@@ -9,6 +9,7 @@ import BrokersTab from '@/components/BrokersTab';
 import HistoryTab from '@/components/HistoryTab';
 import ReferralTab from '@/components/ReferralTab';
 import ProfileTab from '@/components/ProfileTab';
+import SubscriptionTab from '@/components/SubscriptionTab';
 import { Broker, ChatMessage, Partner, TradeLog } from '@/types';
 
 export default function Home() {
@@ -324,7 +325,11 @@ export default function Home() {
           )}
 
           {currentTab === 'profile' && (
-            <ProfileTab theme={theme} />
+            <ProfileTab theme={theme} switchTab={setCurrentTab} />
+          )}
+
+          {currentTab === 'subscription' && (
+            <SubscriptionTab onBack={() => setCurrentTab('profile')} />
           )}
         </div>
       </main>

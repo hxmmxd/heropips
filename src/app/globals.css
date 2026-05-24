@@ -802,3 +802,220 @@ body {
 .profile-pw-error {
   color: #f87171;
 }
+
+/* ── Subscription / Pricing Page ─────────────────── */
+.sub-page {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 16px;
+}
+.sub-container {
+  max-width: 960px;
+  margin: 0 auto;
+}
+.sub-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 36px;
+}
+.sub-back {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--sidebar-bg);
+  cursor: pointer;
+  color: var(--subtext);
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.sub-back:hover {
+  background: var(--input-bg);
+}
+.sub-back-icon {
+  width: 18px;
+  height: 18px;
+}
+.sub-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+.sub-subtitle {
+  font-size: 14px;
+  color: var(--subtext);
+  margin: 4px 0 0;
+}
+
+.sub-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+@media (max-width: 768px) {
+  .sub-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+}
+
+.sub-card {
+  position: relative;
+  background: var(--sidebar-bg);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 28px 24px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.sub-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+}
+.sub-card-popular {
+  border-color: rgba(139,92,246,0.4);
+  box-shadow: 0 0 0 1px rgba(139,92,246,0.15);
+}
+.sub-card-active {
+  border-color: rgba(16,163,127,0.4);
+}
+
+.sub-badge {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 14px;
+  border-radius: 20px;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+.sub-card-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.sub-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.sub-icon-svg {
+  width: 20px;
+  height: 20px;
+  color: white;
+}
+.sub-plan-name {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.sub-price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  margin-bottom: 24px;
+}
+.sub-dollar {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--subtext);
+  margin-right: 2px;
+}
+.sub-amount {
+  font-size: 48px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+.sub-period {
+  font-size: 14px;
+  color: var(--subtext);
+  margin-left: 4px;
+}
+
+.sub-btn {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+.sub-btn:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+.sub-btn:disabled {
+  cursor: not-allowed;
+}
+.sub-btn-current {
+  background: var(--input-bg) !important;
+  color: var(--subtext) !important;
+  border: 1px solid var(--border);
+}
+
+.sub-features {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.sub-feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.4;
+}
+.sub-check {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.sub-feature-off {
+  color: var(--subtext);
+  opacity: 0.5;
+}
+.sub-x {
+  font-size: 12px;
+  width: 16px;
+  text-align: center;
+  flex-shrink: 0;
+  color: var(--subtext);
+}
+
+.sub-footer {
+  text-align: center;
+  margin-top: 32px;
+  font-size: 13px;
+  color: var(--subtext);
+  opacity: 0.7;
+}

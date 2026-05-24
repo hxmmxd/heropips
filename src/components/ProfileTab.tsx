@@ -6,9 +6,10 @@ import { createClient } from '@/lib/supabase/client';
 
 interface ProfileTabProps {
   theme: 'light' | 'dark';
+  switchTab?: (tab: string) => void;
 }
 
-export default function ProfileTab({ theme }: ProfileTabProps) {
+export default function ProfileTab({ theme, switchTab }: ProfileTabProps) {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -175,7 +176,7 @@ export default function ProfileTab({ theme }: ProfileTabProps) {
               </div>
             </div>
             {plan === 'free' && (
-              <button className="profile-upgrade-btn">Upgrade</button>
+              <button className="profile-upgrade-btn" onClick={() => switchTab?.('subscription')}>Upgrade</button>
             )}
           </div>
         </div>
