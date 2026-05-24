@@ -135,7 +135,7 @@ export default function Home() {
         />
 
         {/* Tab display contents */}
-        <div id="scroll-area" className="flex-1 overflow-y-auto no-scrollbar relative flex flex-col bg-[var(--bg)]">
+        <div id="scroll-area" className={`flex-1 no-scrollbar relative flex flex-col bg-[var(--bg)] ${currentTab === 'terminal' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
           {currentTab === 'terminal' && (
             <TerminalTab messages={messages} onSendMessage={handleSendMessage} />
           )}
