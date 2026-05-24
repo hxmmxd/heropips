@@ -22,11 +22,15 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, login, password, server } = body;
+    const { login, password, server } = body;
     
-    if (!name || !login) {
-      return NextResponse.json({ error: 'Name and Login ID are required.' }, { status: 400 });
+    if (!server || !login || !password) {
+      return NextResponse.json({ error: 'Server, Login ID, and Password are required.' }, { status: 400 });
     }
+
+    // Auto-derive display name from server (e.g. "ICMarketsSC-Live" → "ICMarketsSC-882910")
+    const derivedName = server.split('-')[0] || server;
+    const name = `${derivedName}-${login}`;
 
     const node = await connectBroker(name, login, password, server);
     return NextResponse.json({ success: true, broker: node });

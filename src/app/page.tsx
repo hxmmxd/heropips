@@ -124,22 +124,26 @@ export default function Home() {
   }, []);
 
   // Add new broker node from pairing modal
-  const handleAddBrokerNode = async (name: string, loginId: string, password?: string, server?: string) => {
+  const handleAddBrokerNode = async (server: string, loginId: string, password: string) => {
+    // Auto-derive display name from server (e.g. "ICMarketsSC-Live" → "ICMarketsSC")
+    const derivedName = server.split('-')[0] || server;
+    const displayName = `${derivedName}-${loginId}`;
+
     const connectingBroker: Broker = {
-      name,
+      name: displayName,
       balance: 'Connecting...',
       pnl: '0.00',
       equity: 'Connecting...',
       acc: loginId,
     };
     setBrokers((prev) => [...prev, connectingBroker]);
-    setActiveBrokerName(name);
+    setActiveBrokerName(displayName);
 
     try {
       const res = await fetch('/api/broker', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, login: loginId, password, server }),
+        body: JSON.stringify({ login: loginId, password, server }),
       });
       const data = await res.json();
       if (data.success && data.broker) {
@@ -317,7 +321,7 @@ export default function Home() {
       <ModalNode
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
-        onAddNode={handleAddBrokerNode}
+        onConnect={handleAddBrokerNode}
       />
     </div>
   );

@@ -1,19 +1,18 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X } from 'lucide-react';
+import { X, ShieldCheck } from 'lucide-react';
 
 interface ModalNodeProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddNode: (name: string, loginId: string, password?: string, server?: string) => void;
+  onConnect: (server: string, login: string, password: string) => void;
 }
 
-export default function ModalNode({ isOpen, onClose, onAddNode }: ModalNodeProps) {
-  const [brokerName, setBrokerName] = useState('');
+export default function ModalNode({ isOpen, onClose, onConnect }: ModalNodeProps) {
+  const [serverName, setServerName] = useState('');
   const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
-  const [serverName, setServerName] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -49,15 +48,14 @@ export default function ModalNode({ isOpen, onClose, onAddNode }: ModalNodeProps
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!brokerName.trim() || !loginId.trim()) return;
+    if (!serverName.trim() || !loginId.trim() || !password.trim()) return;
 
-    onAddNode(brokerName.trim(), loginId.trim(), password.trim(), serverName.trim());
+    onConnect(serverName.trim(), loginId.trim(), password.trim());
 
     // Reset fields
-    setBrokerName('');
+    setServerName('');
     setLoginId('');
     setPassword('');
-    setServerName('');
     setShowSuggestions(false);
     onClose();
   };
@@ -73,9 +71,12 @@ export default function ModalNode({ isOpen, onClose, onAddNode }: ModalNodeProps
       >
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--subtext)]">
-            Initialize MT5 Node
-          </span>
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-blue-500" />
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--subtext)]">
+              Initialize MT5 Node
+            </span>
+          </div>
           <button onClick={onClose} className="text-[var(--subtext)] hover:opacity-80 transition">
             <X className="w-4 h-4" />
           </button>
@@ -83,27 +84,14 @@ export default function ModalNode({ isOpen, onClose, onAddNode }: ModalNodeProps
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="text"
-            placeholder="Broker Display Name"
-            value={brokerName}
-            onChange={(e) => setBrokerName(e.target.value)}
-            className="w-full bg-[var(--input-bg)] border-none p-4 rounded-xl outline-none text-sm font-medium text-[var(--text)] placeholder-[var(--subtext)]/60"
-            required
-          />
-          <input
-            type="text"
-            placeholder="MT5 Login ID"
-            value={loginId}
-            onChange={(e) => setLoginId(e.target.value)}
-            className="w-full bg-[var(--input-bg)] border-none p-4 rounded-xl outline-none text-sm font-mono text-[var(--text)] placeholder-[var(--subtext)]/60"
-            required
-          />
-          
+          {/* 1. Broker Server */}
           <div className="relative">
+            <label className="text-[9px] uppercase tracking-widest text-[var(--subtext)] font-bold mb-1.5 block">
+              Broker Server
+            </label>
             <input
               type="text"
-              placeholder="MT5 Server (e.g. ICMarketsSC-Demo)"
+              placeholder="e.g. ICMarketsSC-Live"
               value={serverName}
               onChange={(e) => {
                 setServerName(e.target.value);
@@ -147,20 +135,47 @@ export default function ModalNode({ isOpen, onClose, onAddNode }: ModalNodeProps
             )}
           </div>
 
-          <input
-            type="password"
-            placeholder="Master Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full bg-[var(--input-bg)] border-none p-4 rounded-xl outline-none text-sm font-mono text-[var(--text)] placeholder-[var(--subtext)]/60"
-            required
-          />
+          {/* 2. MT5 User ID */}
+          <div>
+            <label className="text-[9px] uppercase tracking-widest text-[var(--subtext)] font-bold mb-1.5 block">
+              MT5 User ID
+            </label>
+            <input
+              type="text"
+              placeholder="e.g. 882910"
+              value={loginId}
+              onChange={(e) => setLoginId(e.target.value)}
+              className="w-full bg-[var(--input-bg)] border-none p-4 rounded-xl outline-none text-sm font-mono text-[var(--text)] placeholder-[var(--subtext)]/60"
+              required
+              inputMode="numeric"
+            />
+          </div>
+
+          {/* 3. Password */}
+          <div>
+            <label className="text-[9px] uppercase tracking-widest text-[var(--subtext)] font-bold mb-1.5 block">
+              Password
+            </label>
+            <input
+              type="password"
+              placeholder="MT5 Master Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full bg-[var(--input-bg)] border-none p-4 rounded-xl outline-none text-sm font-mono text-[var(--text)] placeholder-[var(--subtext)]/60"
+              required
+            />
+          </div>
+
           <button
             type="submit"
             className="w-full bg-[var(--text)] text-[var(--bg)] py-4 rounded-2xl font-bold uppercase text-[10px] tracking-widest mt-2 active:scale-95 hover:opacity-90 transition"
           >
-            Link Account
+            Connect Account
           </button>
+
+          <p className="text-[9px] text-[var(--subtext)]/60 text-center leading-relaxed">
+            Credentials are encrypted end-to-end and never stored locally.
+          </p>
         </form>
       </div>
     </div>
