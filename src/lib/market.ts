@@ -1,5 +1,4 @@
-import { spawn } from 'child_process';
-import path from 'path';
+import { computeIndicators } from './indicators';
 
 const BASE_URL = 'https://api.twelvedata.com';
 
@@ -359,48 +358,6 @@ function gradeConfidence(score: number): 'AAA' | 'AA' | 'A' | 'BBB' {
   return 'BBB';
 }
 
-export async function computeIndicatorsWithPython(candles: CandleData[]): Promise<any> {
-  return new Promise((resolve) => {
-    try {
-      const scriptPath = path.join(process.cwd(), 'src/lib/indicators.py');
-      const pythonPath = path.join(process.cwd(), 'venv/bin/python3');
-      
-      const child = spawn(pythonPath, [scriptPath]);
-      
-      let stdout = '';
-      let stderr = '';
-      
-      child.stdout.on('data', (data) => {
-        stdout += data.toString();
-      });
-      
-      child.stderr.on('data', (data) => {
-        stderr += data.toString();
-      });
-      
-      child.on('close', (code) => {
-        if (code !== 0) {
-          console.error('[Indicator Engine] Python script failed with code', code, stderr);
-          resolve(null);
-          return;
-        }
-        try {
-          const parsed = JSON.parse(stdout);
-          resolve(parsed);
-        } catch (err) {
-          console.error('[Indicator Engine] Failed to parse Python output:', err, stdout);
-          resolve(null);
-        }
-      });
-      
-      child.stdin.write(JSON.stringify(candles));
-      child.stdin.end();
-    } catch (error) {
-      console.error('[Indicator Engine] Failed to spawn Python:', error);
-      resolve(null);
-    }
-  });
-}
 
 // ── Main Market Snapshot Assembler ─────────────────────────
 
@@ -415,10 +372,10 @@ export async function getMarketSnapshot(symbol: string): Promise<MarketSnapshot 
       return null;
     }
 
-    // Precompute indicators server-side using Python indicator engine
-    const results = await computeIndicatorsWithPython(candles);
+    // Compute indicators using TypeScript engine (works on Vercel)
+    const results = computeIndicators(candles);
     if (!results || results.price === 0) {
-      console.error('[Market Engine] Failed to compute indicators via Python');
+      console.error('[Market Engine] Failed to compute indicators');
       return null;
     }
 
@@ -453,7 +410,11 @@ export async function getMarketSnapshot(symbol: string): Promise<MarketSnapshot 
       symbol,
       displaySymbol: displaySymbol(symbol),
       price,
-      indicators: { rsi, macd, ema20: null, ema50, ema200: null, bbands: null, atr, stoch: null },
+      indicators: {
+        rsi,
+        macd: macd ? { macd: macd.value, signal: macd.signal, histogram: macd.histogram } : null,
+        ema20: null, ema50, ema200: null, bbands: null, atr, stoch: null
+      },
       htfBias: direction === 'BUY' ? 'bullish' : 'bearish',
       confluenceScore: score,
       confluenceDirection: direction,

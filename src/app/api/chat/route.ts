@@ -130,10 +130,12 @@ You MUST respond in this JSON format only: {"text":"your response"}`
       return NextResponse.json({ text: parsedText, ticket: null });
     }
 
-    // 3. Asset detected — fetch live market data and news headlines
+    // 3. Asset detected — fetch live market data and news headlines (parallel)
     const symDisplay = displaySymbol(symbol);
-    const snapshot = await getMarketSnapshot(symbol);
-    const news = await fetchNewsHeadlines(5);
+    const [snapshot, news] = await Promise.all([
+      getMarketSnapshot(symbol),
+      fetchNewsHeadlines(5),
+    ]);
 
     const newsBlock = news.length > 0
       ? `\nRECENT MARKET HEADLINES:\n${news.map((h, i) => `${i + 1}. ${h}`).join('\n')}\n`
