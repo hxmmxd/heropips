@@ -38,15 +38,15 @@ export function displaySymbol(apiSymbol: string): string {
   return apiSymbol.replace('/', '');
 }
 
-// Detect which asset the user is asking about
-export function detectSymbol(userMessage: string): string {
+// Detect which asset the user is asking about (returns null if none detected)
+export function detectSymbol(userMessage: string): string | null {
   const lower = userMessage.toLowerCase();
   for (const [keyword, symbol] of Object.entries(SYMBOL_MAP)) {
     if (lower.includes(keyword)) {
       return symbol;
     }
   }
-  return 'XAU/USD'; // Default to Gold
+  return null; // No specific asset mentioned
 }
 
 // Contract specifications per instrument
