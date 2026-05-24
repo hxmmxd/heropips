@@ -71,6 +71,19 @@ function CoinIcon({ symbol }: { symbol: string }) {
   );
 }
 
+// Default watchlist assets
+const WATCHLIST_ASSETS = [
+  { symbol: 'Gold', label: 'XAUUSD', icon: '🥇' },
+  { symbol: 'Bitcoin', label: 'BTCUSD', icon: '₿' },
+  { symbol: 'Ethereum', label: 'ETHUSD', icon: '⟠' },
+  { symbol: 'EURUSD', label: 'EURUSD', icon: '€' },
+  { symbol: 'GBPUSD', label: 'GBPUSD', icon: '£' },
+  { symbol: 'NAS100', label: 'NAS100', icon: '📈' },
+  { symbol: 'US30', label: 'US30', icon: '📊' },
+  { symbol: 'Oil', label: 'OIL', icon: '🛢' },
+  { symbol: 'SPY', label: 'SP500', icon: '🇺🇸' },
+];
+
 export default function TerminalTab({ messages, onSendMessage, onGenerateSignal }: TerminalTabProps) {
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -111,6 +124,23 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal 
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
+      {/* Watchlist Strip */}
+      <div className="shrink-0 border-b border-[var(--border)] bg-[var(--bg)]">
+        <div className="flex items-center gap-2 px-4 py-2.5 overflow-x-auto no-scrollbar">
+          <span className="text-[9px] font-bold text-[var(--subtext)] uppercase tracking-widest shrink-0 mr-1">Watch</span>
+          {WATCHLIST_ASSETS.map((asset) => (
+            <button
+              key={asset.symbol}
+              onClick={() => onSendMessage(asset.symbol)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[var(--border)] bg-[var(--sidebar-bg)] hover:border-blue-500/40 hover:bg-blue-500/5 active:scale-95 transition-all shrink-0 group"
+            >
+              <span className="text-sm">{asset.icon}</span>
+              <span className="text-[11px] font-semibold text-[var(--text)] group-hover:text-blue-400 transition-colors">{asset.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Scrollable Chat Feed */}
       <div className="flex-1 overflow-y-auto no-scrollbar p-4 lg:p-8">
         {messages.length === 0 ? (
