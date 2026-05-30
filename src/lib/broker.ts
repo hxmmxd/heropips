@@ -256,6 +256,37 @@ export async function executeBrokerOrder(
   return { orderId: newPosition.id, status: 'success', fillPrice: entryPrice };
 }
 
+export async function disconnectBroker(brokerId: string, userId?: string): Promise<boolean> {
+  // MetaAPI live mode — undeploy the account
+  if (getMetaApi()) {
+    try {
+      const account = await getMetaApi().metatraderAccountApi.getAccount(brokerId);
+      if (account) {
+        await account.undeploy();
+        await account.remove();
+        console.log(`[Broker Engine] Removed MetaAPI account ${brokerId}`);
+        return true;
+      }
+    } catch (err) {
+      console.error('[Broker Engine] Failed to remove live account:', err);
+    }
+  }
+
+  // Simulator mode — remove from local DB
+  const list = readDb();
+  const filtered = list.filter(b => {
+    if (b.id !== brokerId) return true;
+    // Security: only allow removing own brokers
+    if (userId && b.userId && b.userId !== userId) return true;
+    return false;
+  });
+
+  if (filtered.length === list.length) return false; // not found
+  writeDb(filtered);
+  console.log(`[Broker Engine] Disconnected simulator broker ${brokerId}`);
+  return true;
+}
+
 export function getAllSimulatedBrokers(): BrokerNode[] {
   return readDb();
 }

@@ -1,15 +1,33 @@
 'use client';
 
-import React from 'react';
-import { Server, Plus } from 'lucide-react';
+import React, { useState } from 'react';
+import { Server, Plus, Unplug, Loader2 } from 'lucide-react';
 import { Broker } from '../types';
 
 interface BrokersTabProps {
   brokers: Broker[];
   onOpenModal: () => void;
+  onDisconnect: (acc: string) => Promise<void>;
 }
 
-export default function BrokersTab({ brokers, onOpenModal }: BrokersTabProps) {
+export default function BrokersTab({ brokers, onOpenModal, onDisconnect }: BrokersTabProps) {
+  const [disconnecting, setDisconnecting] = useState<string | null>(null);
+  const [confirmId, setConfirmId] = useState<string | null>(null);
+
+  const handleDisconnect = async (acc: string) => {
+    if (confirmId !== acc) {
+      setConfirmId(acc);
+      return;
+    }
+    setDisconnecting(acc);
+    try {
+      await onDisconnect(acc);
+    } finally {
+      setDisconnecting(null);
+      setConfirmId(null);
+    }
+  };
+
   return (
     <div className="p-6 max-w-4xl mx-auto w-full space-y-8">
       <h2 className="text-lg font-medium text-[var(--subtext)] px-2">
@@ -19,7 +37,7 @@ export default function BrokersTab({ brokers, onOpenModal }: BrokersTabProps) {
         {brokers.map((b) => (
           <div
             key={b.acc}
-            className="border border-[var(--border)] p-6 rounded-[1.5rem] bg-[var(--sidebar-bg)] flex flex-col space-y-4 hover:border-blue-500/30 transition duration-200"
+            className="border border-[var(--border)] p-6 rounded-[1.5rem] bg-[var(--sidebar-bg)] flex flex-col space-y-4 hover:border-blue-500/30 transition duration-200 group"
           >
             <div className="flex justify-between items-start">
               <div className="flex items-center space-x-3.5">
@@ -33,13 +51,15 @@ export default function BrokersTab({ brokers, onOpenModal }: BrokersTabProps) {
                   </p>
                 </div>
               </div>
-              {b.balance === 'Connecting...' ? (
-                <div className="w-3.5 h-3.5 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin shrink-0" />
-              ) : (
-                <span className="text-[9px] font-bold text-green-500 bg-green-500/10 px-2.5 py-1 rounded-full uppercase tracking-wider shrink-0">
-                  Active Node
-                </span>
-              )}
+              <div className="flex items-center gap-2">
+                {b.balance === 'Connecting...' ? (
+                  <div className="w-3.5 h-3.5 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin shrink-0" />
+                ) : (
+                  <span className="text-[9px] font-bold text-green-500 bg-green-500/10 px-2.5 py-1 rounded-full uppercase tracking-wider shrink-0">
+                    Active Node
+                  </span>
+                )}
+              </div>
             </div>
 
             {b.balance !== 'Connecting...' && (
@@ -58,6 +78,24 @@ export default function BrokersTab({ brokers, onOpenModal }: BrokersTabProps) {
                     {b.pnl}
                   </span>
                 </div>
+              </div>
+            )}
+
+            {/* Disconnect Button */}
+            {b.balance !== 'Connecting...' && (
+              <div
+                className="bm-disconnect-btn"
+                role="button"
+                tabIndex={0}
+                onClick={() => handleDisconnect(b.acc)}
+              >
+                {disconnecting === b.acc ? (
+                  <><Loader2 className="bm-spin" /> Disconnecting...</>
+                ) : confirmId === b.acc ? (
+                  <><Unplug /> Confirm Disconnect?</>
+                ) : (
+                  <><Unplug /> Disconnect</>
+                )}
               </div>
             )}
           </div>

@@ -174,6 +174,30 @@ export default function Home() {
     }
   };
 
+  // Disconnect a broker node
+  const handleDisconnectBroker = async (acc: string) => {
+    try {
+      const res = await fetch('/api/broker', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brokerId: acc }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setBrokers((prev) => prev.filter((b) => b.acc !== acc));
+        // If disconnected broker was active, switch to first remaining
+        if (activeBrokerName?.includes(acc)) {
+          const remaining = brokers.filter((b) => b.acc !== acc);
+          setActiveBrokerName(remaining[0]?.name || '');
+        }
+      } else {
+        alert('Disconnect failed: ' + (data.error || 'Unknown error'));
+      }
+    } catch (err: any) {
+      alert('Disconnect failed: ' + err.message);
+    }
+  };
+
   // Handle sending messages via live API
   const handleSendMessage = async (text: string, forceSignal?: boolean) => {
     const newUserMessage: ChatMessage = {
@@ -313,7 +337,7 @@ export default function Home() {
           )}
 
           {currentTab === 'brokers' && (
-            <BrokersTab brokers={brokers} onOpenModal={() => setModalOpen(true)} />
+            <BrokersTab brokers={brokers} onOpenModal={() => setModalOpen(true)} onDisconnect={handleDisconnectBroker} />
           )}
 
           {currentTab === 'history' && (

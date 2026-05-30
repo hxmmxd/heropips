@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { connectBroker, getAllBrokers, searchBrokerServers } from '@/lib/broker';
+import { connectBroker, disconnectBroker, getAllBrokers, searchBrokerServers } from '@/lib/broker';
 import { createClient } from '@/lib/supabase/server';
 
 export async function GET(request: Request) {
@@ -49,6 +49,30 @@ export async function POST(request: Request) {
 
     const node = await connectBroker(name, login, password, server, user.id);
     return NextResponse.json({ success: true, broker: node });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { brokerId } = await request.json();
+    if (!brokerId) {
+      return NextResponse.json({ error: 'brokerId is required' }, { status: 400 });
+    }
+
+    const success = await disconnectBroker(brokerId, user.id);
+    if (success) {
+      return NextResponse.json({ success: true });
+    } else {
+      return NextResponse.json({ error: 'Broker not found' }, { status: 404 });
+    }
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
