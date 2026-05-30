@@ -2,13 +2,20 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { createClient as createServerClient } from '@/lib/supabase/server';
 
-// Admin API — uses service role to bypass RLS
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Admin API — uses service role to bypass RLS (lazy init to avoid build-time crash)
+let _supabaseAdmin: any = null;
+function getSupabaseAdmin() {
+  if (!_supabaseAdmin) {
+    _supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+  }
+  return _supabaseAdmin;
+}
 
 export async function GET() {
+  const supabaseAdmin = getSupabaseAdmin();
   // Verify calling user is admin
   const supabase = createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -23,7 +30,7 @@ export async function GET() {
     .eq('id', user.id)
     .single();
 
-  if (!profile?.is_admin) {
+  if (!(profile as any)?.is_admin) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
@@ -39,14 +46,14 @@ export async function GET() {
     supabaseAdmin.from('broker_providers').select('*').order('created_at', { ascending: true }),
   ]);
 
-  const users = usersRes.data || [];
-  const brokers = brokersRes.data || [];
-  const trades = tradesRes.data || [];
-  const announcements = announcementsRes.data || [];
+  const users: any[] = usersRes.data || [];
+  const brokers: any[] = brokersRes.data || [];
+  const trades: any[] = tradesRes.data || [];
+  const announcements: any[] = announcementsRes.data || [];
   const config: Record<string, any> = {};
-  (configRes.data || []).forEach((c: any) => { config[c.key] = c.value; });
-  const auditLog = auditRes.data || [];
-  const riskRules = riskRes.data || [];
+  ((configRes.data || []) as any[]).forEach((c: any) => { config[c.key] = c.value; });
+  const auditLog: any[] = auditRes.data || [];
+  const riskRules: any[] = riskRes.data || [];
   // Mask API keys for providers before sending to frontend
   const brokerProviders = (providersRes.data || []).map((p: any) => ({
     ...p,
@@ -116,6 +123,7 @@ export async function GET() {
 
 // Update user plan or admin status
 export async function PATCH(request: Request) {
+  const supabaseAdmin = getSupabaseAdmin();
   const supabase = createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
@@ -128,7 +136,7 @@ export async function PATCH(request: Request) {
     .eq('id', user.id)
     .single();
 
-  if (!profile?.is_admin) {
+  if (!(profile as any)?.is_admin) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
