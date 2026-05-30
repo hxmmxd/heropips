@@ -19,11 +19,8 @@ export default function Home() {
   const [modalOpen, setModalOpen] = useState(false);
 
   // Initial Brokers Data
-  const [brokers, setBrokers] = useState<Broker[]>([
-    { name: 'Vantage-Real-01', balance: '12,450.00', pnl: '+240.12', equity: '12,690.12', acc: '882910' },
-    { name: 'IC-Markets-Pro', balance: '5,200.50', pnl: '-120.00', equity: '5,080.50', acc: '110922' },
-  ]);
-  const [activeBrokerName, setActiveBrokerName] = useState('Vantage-Real-01');
+  const [brokers, setBrokers] = useState<Broker[]>([]);
+  const [activeBrokerName, setActiveBrokerName] = useState('');
 
   // Find currently active broker data
   const defaultBroker: Broker = { name: 'No Broker', balance: '0.00', pnl: '0.00', equity: '0.00', acc: 'none' };
