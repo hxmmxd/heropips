@@ -262,6 +262,10 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-top: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
 }
 
 /* ── Day Sections ─────────────────────────────────────────── */
@@ -305,6 +309,9 @@
   color: var(--wl-text-faint);
   margin-left: auto;
   font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
 /* Block */
