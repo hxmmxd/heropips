@@ -200,6 +200,13 @@ const CalendarIcon = () => (
 /* ── Page Component ──────────────────────────────────────────────── */
 export default function WorkLogPage() {
   const [activeDay, setActiveDay] = useState(worklog[0].date);
+  const [dark, setDark] = useState(false);
+
+  // Load saved theme
+  useEffect(() => {
+    const saved = localStorage.getItem('wl-theme');
+    if (saved === 'dark') setDark(true);
+  }, []);
 
   useEffect(() => {
     const container = document.querySelector('.cl-page');
@@ -223,9 +230,15 @@ export default function WorkLogPage() {
   };
 
   const totalItems = worklog.reduce((sum, day) => sum + day.blocks.reduce((s, b) => s + b.items.length, 0), 0);
+  const toggleTheme = () => {
+    setDark(prev => {
+      localStorage.setItem('wl-theme', !prev ? 'dark' : 'light');
+      return !prev;
+    });
+  };
 
   return (
-    <div className="cl-page">
+    <div className={`cl-page ${dark ? 'cl-dark' : ''}`}>
       {/* Mobile Header */}
       <div className="cl-mobile-header">
         <a href="/">← Dashboard</a>
@@ -240,6 +253,13 @@ export default function WorkLogPage() {
             <div className="cl-sidebar-logo-icon">T</div>
             TradeGPT
           </a>
+          <button className="cl-theme-toggle" onClick={toggleTheme} title={dark ? 'Switch to light' : 'Switch to dark'}>
+            {dark ? (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            ) : (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            )}
+          </button>
         </div>
 
         <nav className="cl-sidebar-nav">
@@ -314,7 +334,7 @@ export default function WorkLogPage() {
                 return (
                   <div key={bi} className="cl-block">
                     <div className="cl-block-header">
-                      <span className="cl-block-tag" style={{ background: tag.bg, color: tag.color }}>
+                      <span className="cl-block-tag" data-tag={block.tag} style={{ background: tag.bg, color: tag.color }}>
                         {tag.label}
                       </span>
                     </div>
