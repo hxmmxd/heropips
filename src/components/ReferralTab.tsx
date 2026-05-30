@@ -161,9 +161,12 @@ export default function ReferralTab({ partners = mockNetwork }: ReferralTabProps
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [withdrawAmt, setWithdrawAmt]   = useState('');
   const [withdrawMethod, setWithdrawMethod] = useState<'crypto'|'bank'|'paypal'>('crypto');
+  const [withdrawCoin, setWithdrawCoin]     = useState('USDT (TRC-20)');
   const [withdrawAddr, setWithdrawAddr]   = useState('');
   const [withdrawStep, setWithdrawStep]   = useState<'form'|'confirm'|'success'>('form');
   const [withdrawing, setWithdrawing]     = useState(false);
+  const [withdrawError, setWithdrawError] = useState<string|null>(null);
+  const [withdrawResult, setWithdrawResult] = useState<{withdrawalId?:string;nowpaymentsId?:string}|null>(null);
 
   // Wallet state (mock — would come from Supabase)
   const wallet = {
@@ -505,7 +508,7 @@ export default function ReferralTab({ partners = mockNetwork }: ReferralTabProps
                   <p className="ref2-wd-label">Payment Method</p>
                   <div className="ref2-wd-methods">
                     {([
-                      { id:'crypto', icon:'₿', label:'Crypto',  sub:'USDT / BTC / ETH' },
+                      { id:'crypto', icon:'₿', label:'Crypto',  sub:'via NOWPayments' },
                       { id:'bank',   icon:'🏦', label:'Bank',    sub:'Wire transfer' },
                       { id:'paypal', icon:'🅿', label:'PayPal',  sub:'Instant payout' },
                     ] as const).map(m => (
@@ -518,12 +521,28 @@ export default function ReferralTab({ partners = mockNetwork }: ReferralTabProps
                       </button>
                     ))}
                   </div>
+                  {/* Crypto coin picker */}
+                  {withdrawMethod === 'crypto' && (
+                    <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:10 }}>
+                      {['USDT (TRC-20)','USDT (ERC-20)','BTC','ETH','BNB','USDC'].map(coin => (
+                        <button key={coin}
+                          onClick={() => setWithdrawCoin(coin)}
+                          style={{
+                            padding:'5px 12px', borderRadius:20, fontSize:11, fontWeight:700,
+                            border:'1px solid', cursor:'pointer', fontFamily:'inherit',
+                            background: withdrawCoin === coin ? '#6366f1' : 'transparent',
+                            borderColor: withdrawCoin === coin ? '#6366f1' : 'var(--border)',
+                            color: withdrawCoin === coin ? '#fff' : 'var(--subtext)',
+                          }}>{coin}</button>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Address / details */}
                 <div>
                   <p className="ref2-wd-label">
-                    {withdrawMethod === 'crypto' ? 'Wallet Address (USDT TRC-20)' :
+                    {withdrawMethod === 'crypto' ? `${withdrawCoin} Wallet Address` :
                      withdrawMethod === 'bank'   ? 'IBAN / Account Number' :
                                                    'PayPal Email'}
                   </p>
@@ -578,18 +597,42 @@ export default function ReferralTab({ partners = mockNetwork }: ReferralTabProps
                   </div>
                 </div>
                 <div style={{ display:'flex', gap:10 }}>
-                  <button className="ref2-btn-secondary" style={{ flex:1 }} onClick={() => setWithdrawStep('form')}>
+                  <button className="ref2-btn-secondary" style={{ flex:1 }} onClick={() => { setWithdrawStep('form'); setWithdrawError(null); }}>
                     ← Edit
                   </button>
                   <button className="ref2-btn-primary" style={{ flex:2 }}
                     disabled={withdrawing}
-                    onClick={() => {
+                    onClick={async () => {
                       setWithdrawing(true);
-                      setTimeout(() => { setWithdrawing(false); setWithdrawStep('success'); }, 1800);
+                      setWithdrawError(null);
+                      try {
+                        const res = await fetch('/api/withdrawals', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            action: 'withdraw',
+                            amount: Number(withdrawAmt),
+                            currency: withdrawMethod === 'crypto' ? withdrawCoin : withdrawMethod,
+                            address: withdrawAddr,
+                          }),
+                        });
+                        const data = await res.json();
+                        if (!res.ok || data.error) throw new Error(data.error || 'Withdrawal failed');
+                        setWithdrawResult({ withdrawalId: data.withdrawalId, nowpaymentsId: data.nowpaymentsId });
+                        setWithdrawStep('success');
+                      } catch (e: any) {
+                        setWithdrawError(e.message);
+                      }
+                      setWithdrawing(false);
                     }}>
                     {withdrawing ? '⏳ Processing…' : 'Confirm Withdrawal'}
                   </button>
                 </div>
+                {withdrawError && (
+                  <div style={{ background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.3)', borderRadius:10, padding:'10px 14px', marginTop:4 }}>
+                    <p style={{ color:'#ef4444', fontSize:12, fontWeight:700, margin:0 }}>❌ {withdrawError}</p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -598,11 +641,16 @@ export default function ReferralTab({ partners = mockNetwork }: ReferralTabProps
                 <div className="ref2-wd-success-icon">✓</div>
                 <p className="ref2-wd-success-title">Withdrawal Submitted!</p>
                 <p className="ref2-wd-success-sub">
-                  ${Number(withdrawAmt).toFixed(2)} is being processed.<br />
+                  ${Number(withdrawAmt).toFixed(2)} is being processed via NOWPayments.<br />
                   You'll receive it within 1–3 business days.
                 </p>
+                {withdrawResult?.withdrawalId && (
+                  <p style={{ fontSize:11, color:'var(--subtext)', fontFamily:'monospace', margin:0 }}>
+                    Ref: {withdrawResult.withdrawalId}
+                  </p>
+                )}
                 <button className="ref2-btn-primary ref2-modal-copy"
-                  onClick={() => { setWithdrawOpen(false); setWithdrawStep('form'); setWithdrawAmt(''); setWithdrawAddr(''); }}>
+                  onClick={() => { setWithdrawOpen(false); setWithdrawStep('form'); setWithdrawAmt(''); setWithdrawAddr(''); setWithdrawError(null); setWithdrawResult(null); }}>
                   Done
                 </button>
               </div>

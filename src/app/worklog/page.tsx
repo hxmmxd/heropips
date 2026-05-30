@@ -37,7 +37,7 @@ const worklog: WorkDay[] = [
   {
     date: 'May 30, 2026',
     dayLabel: 'Friday',
-    commitCount: 34,
+    commitCount: 40,
     blocks: [
       { tag: 'major', time: '09:15 AM',
         title: 'Smart Money Concepts Scanner',
@@ -161,6 +161,18 @@ const worklog: WorkDay[] = [
           { icon: '✅', title: 'Step 2 — Confirm', description: 'Summary card: Amount, Method, Destination, You Receive (after fee). Edit back + animated Confirm button with Processing spinner.', files: ['ReferralTab.tsx'] },
           { icon: '🎉', title: 'Step 3 — Success', description: 'Green checkmark circle, success title, processing time note, Done button resets the full flow.', files: ['ReferralTab.tsx'] },
           { icon: '📱', title: 'Mobile Layout', description: 'Wallet card stacks vertically on mobile. Withdraw button becomes full-width. Modal is full-screen bottom sheet on small devices.', files: ['globals.css'] },
+        ]
+      },
+      { tag: 'major', time: '11:50 PM',
+        title: 'NOWPayments Gateway — Full Integration',
+        summary: 'Integrated NOWPayments for crypto withdrawal processing: API client library, withdrawal API route, IPN webhook, admin configuration panel, and live frontend wiring.',
+        items: [
+          { icon: '⚙️', title: 'NOWPayments API Client (lib/nowpayments.ts)', description: 'Full typed client: testConnection, createPayout (JWT Bearer), getPayoutStatus, getAvailableCurrencies, estimateAmount. Supports sandbox/live toggle via env var.', files: ['lib/nowpayments.ts'] },
+          { icon: '🔌', title: 'Withdrawals API Route (/api/withdrawals)', description: '5 actions: withdraw (creates payout via NOWPayments, deducts wallet balance, records in DB), test_gateway, get_currencies, estimate, check_status. Rollback on failure.', files: ['app/api/withdrawals/route.ts'] },
+          { icon: '📡', title: 'IPN Webhook (/api/webhooks/nowpayments)', description: 'Verifies HMAC-SHA512 signature against IPN secret. Maps NOWPayments status (waiting/confirming/finished/failed) to internal DB status. Auto-refunds balance on failure/expiry.', files: ['app/api/webhooks/nowpayments/route.ts'] },
+          { icon: '₿', title: 'Admin → Settings → Payments Tab', description: 'Full NOWPayments config panel: API Key, JWT Token, IPN Secret fields. Sandbox/Live toggle. Enabled coin chips (USDT TRC/ERC, BTC, ETH, BNB, USDC, LTC, DOGE). Webhook URL copy. Test Connection button with live result banner.', files: ['app/admin/page.tsx'] },
+          { icon: '🔘', title: 'Coin Selector in Withdrawal Modal', description: 'When Crypto method is selected, shows coin pills: USDT (TRC-20), USDT (ERC-20), BTC, ETH, BNB, USDC. Selected coin updates address label dynamically.', files: ['components/ReferralTab.tsx'] },
+          { icon: '🚨', title: 'Error Handling & Recovery', description: 'Confirm step shows red error banner on API failure. Edit button resets error. Success step shows NOWPayments reference ID. Done button resets full flow.', files: ['components/ReferralTab.tsx'] },
         ]
       },
     ]

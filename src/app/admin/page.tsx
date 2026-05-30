@@ -78,7 +78,7 @@ export default function AdminPage() {
   const [newAnnouncement, setNewAnnouncement] = useState({ title: '', message: '', type: 'info' });
   const [riskRules, setRiskRules] = useState<any[]>([]);
   const [signupTrends, setSignupTrends] = useState<{month:string;count:number}[]>([]);
-  const [settingsSubPage, setSettingsSubPage] = useState<'main'|'referral'|'pricing'|'announcements'>('main');
+  const [settingsSubPage, setSettingsSubPage] = useState<'main'|'referral'|'pricing'|'announcements'|'payments'>('main');
   const [referralConfig, setReferralConfig] = useState({
     enabled: true,
     levels: [
@@ -100,6 +100,14 @@ export default function AdminPage() {
     payoutDay: 1,
   });
   const [refSaved, setRefSaved] = useState(false);
+  const [npApiKey, setNpApiKey]             = useState('');
+  const [npJwtToken, setNpJwtToken]         = useState('');
+  const [npIpnSecret, setNpIpnSecret]       = useState('');
+  const [npSandbox, setNpSandbox]           = useState(false);
+  const [npTestResult, setNpTestResult]     = useState<{ok:boolean;message:string}|null>(null);
+  const [npTesting, setNpTesting]           = useState(false);
+  const [npSaved, setNpSaved]               = useState(false);
+  const [npCoins, setNpCoins]               = useState(['USDT (TRC-20)','USDT (ERC-20)','BTC','ETH','BNB','USDC']);
   const [revenueTrends, setRevenueTrends] = useState<{month:string;revenue:number}[]>([]);
   const [topSymbols, setTopSymbols] = useState<{symbol:string;count:number}[]>([]);
   const [brokerProviders, setBrokerProviders] = useState<any[]>([]);
@@ -830,6 +838,7 @@ export default function AdminPage() {
                     { id:'referral',    label:'Referral',     icon:'🎁' },
                     { id:'pricing',     label:'Pricing',      icon:'💳' },
                     { id:'announcements',label:'Announce',    icon:'📢' },
+                    { id:'payments',       label:'Payments',     icon:'₿' },
                   ].map(tab => (
                     <button key={tab.id}
                       onClick={() => setSettingsSubPage(tab.id as any)}
@@ -1121,6 +1130,153 @@ export default function AdminPage() {
                         ))}
                       </div>
                     )}
+                  </div>
+                </div>
+              )}
+
+              {/* ── Payments (NOWPayments) Tab ── */}
+              {settingsSubPage === 'payments' && (
+                <div className="adm-card adm-card-full">
+                  <div className="adm-card-head" style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                    <div>
+                      <h3 style={{ display:'flex', alignItems:'center', gap:10 }}>
+                        <span style={{ fontSize:22 }}>₿</span> NOWPayments Gateway
+                      </h3>
+                      <p style={{ fontSize:12, color:'var(--adm-text-muted)', marginTop:4 }}>
+                        Processes referral crypto withdrawals · <a href="https://nowpayments.io" target="_blank" rel="noreferrer" style={{ color:'#6366f1' }}>nowpayments.io</a>
+                      </p>
+                    </div>
+                    <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                      <span style={{ fontSize:11, fontWeight:700, color: npSandbox ? '#f59e0b' : '#10b981' }}>
+                        {npSandbox ? '🧪 Sandbox' : '🟢 Live'}
+                      </span>
+                      <div className={`adm-switch ${!npSandbox ? 'adm-switch-on' : ''}`} role="button" tabIndex={0}
+                        onClick={() => setNpSandbox(!npSandbox)} title="Toggle Sandbox/Live">
+                        <span className="adm-switch-track"><span className="adm-switch-thumb" /></span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="adm-card-body" style={{ display:'flex', flexDirection:'column', gap:24 }}>
+
+                    {/* Test result banner */}
+                    {npTestResult && (
+                      <div style={{
+                        padding:'12px 16px', borderRadius:10, border:'1px solid',
+                        borderColor: npTestResult.ok ? '#10b98144' : '#ef444444',
+                        background: npTestResult.ok ? 'rgba(16,185,129,0.06)' : 'rgba(239,68,68,0.06)',
+                        display:'flex', alignItems:'center', gap:10,
+                      }}>
+                        <span style={{ fontSize:18 }}>{npTestResult.ok ? '✅' : '❌'}</span>
+                        <div>
+                          <p style={{ fontSize:13, fontWeight:700, color: npTestResult.ok ? '#10b981' : '#ef4444', margin:0 }}>
+                            {npTestResult.ok ? 'Connection Successful' : 'Connection Failed'}
+                          </p>
+                          <p style={{ fontSize:11, color:'var(--adm-text-muted)', margin:0 }}>{npTestResult.message}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* API Credentials */}
+                    <div>
+                      <p style={{ fontSize:13, fontWeight:700, marginBottom:16, color:'var(--adm-text)' }}>API Credentials</p>
+                      <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+                        {[
+                          { label:'API Key', hint:'From NOWPayments Dashboard → Profile → API Key', key:'apiKey', value: npApiKey, setter: setNpApiKey, type:'password' },
+                          { label:'JWT Token', hint:'For payout/withdrawal API calls', key:'jwt', value: npJwtToken, setter: setNpJwtToken, type:'password' },
+                          { label:'IPN Secret', hint:'For verifying webhook signatures', key:'ipn', value: npIpnSecret, setter: setNpIpnSecret, type:'password' },
+                        ].map(f => (
+                          <div key={f.key}>
+                            <p style={{ fontSize:10, fontWeight:700, color:'var(--adm-text-muted)', textTransform:'uppercase', letterSpacing:'0.6px', marginBottom:6 }}>{f.label}</p>
+                            <p style={{ fontSize:10, color:'var(--adm-text-muted)', marginBottom:6 }}>{f.hint}</p>
+                            <div style={{ position:'relative' }}>
+                              <input
+                                type={f.type}
+                                placeholder={'••••••••••••••••'}
+                                style={{ width:'100%', background:'var(--adm-bg)', border:'1.5px solid var(--adm-border)', borderRadius:10, padding:'10px 14px', fontSize:13, fontWeight:600, color:'var(--adm-text)', fontFamily:'monospace', boxSizing:'border-box', outline:'none' }}
+                                value={f.value}
+                                onChange={e => f.setter(e.target.value)}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Supported Coins */}
+                    <div>
+                      <p style={{ fontSize:13, fontWeight:700, marginBottom:12, color:'var(--adm-text)' }}>Enabled Withdrawal Coins</p>
+                      <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
+                        {['USDT (TRC-20)','USDT (ERC-20)','BTC','ETH','BNB','USDC','LTC','DOGE'].map(coin => {
+                          const enabled = npCoins.includes(coin);
+                          return (
+                            <button key={coin}
+                              onClick={() => setNpCoins(enabled ? npCoins.filter(c=>c!==coin) : [...npCoins, coin])}
+                              style={{
+                                padding:'6px 14px', borderRadius:20, fontSize:12, fontWeight:700,
+                                border:'1px solid', cursor:'pointer', fontFamily:'inherit',
+                                background: enabled ? '#6366f1' : 'transparent',
+                                borderColor: enabled ? '#6366f1' : 'var(--adm-border)',
+                                color: enabled ? '#fff' : 'var(--adm-text-muted)',
+                                transition:'all 0.15s',
+                              }}>
+                              {coin}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Webhook URL info */}
+                    <div style={{ background:'var(--adm-bg-secondary)', border:'1px solid var(--adm-border)', borderRadius:12, padding:'16px' }}>
+                      <p style={{ fontSize:11, fontWeight:700, color:'var(--adm-text-muted)', textTransform:'uppercase', letterSpacing:'0.6px', marginBottom:8 }}>IPN Webhook URL (set in NOWPayments)</p>
+                      <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                        <code style={{ flex:1, fontSize:12, color:'#6366f1', background:'var(--adm-bg)', padding:'8px 12px', borderRadius:8, border:'1px solid var(--adm-border)', overflow:'auto' }}>
+                          {typeof window !== 'undefined' ? window.location.origin : 'https://yourdomain.com'}/api/webhooks/nowpayments
+                        </code>
+                        <button onClick={() => navigator.clipboard.writeText(window.location.origin + '/api/webhooks/nowpayments')}
+                          style={{ background:'none', border:'1px solid var(--adm-border)', borderRadius:8, padding:'8px 12px', fontSize:12, cursor:'pointer', color:'var(--adm-text-muted)', fontFamily:'inherit' }}>
+                          ⎘ Copy
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div style={{ display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
+                      <button
+                        onClick={async () => {
+                          setNpTesting(true); setNpTestResult(null);
+                          try {
+                            const r = await fetch('/api/withdrawals', {
+                              method:'POST', headers:{'Content-Type':'application/json'},
+                              body: JSON.stringify({ action:'test_gateway', apiKey: npApiKey || undefined }),
+                            });
+                            const d = await r.json();
+                            setNpTestResult(d);
+                          } catch(e:any) {
+                            setNpTestResult({ ok:false, message: e.message });
+                          }
+                          setNpTesting(false);
+                        }}
+                        disabled={npTesting}
+                        style={{ background:'var(--adm-bg-secondary)', border:'1px solid var(--adm-border)', color:'var(--adm-text)', borderRadius:10, padding:'10px 20px', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'inherit', display:'flex', alignItems:'center', gap:8 }}>
+                        {npTesting ? '⏳ Testing…' : '🔌 Test Connection'}
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          // Save to platform_config via admin PATCH
+                          const cfg = { api_key: npApiKey, jwt_token: npJwtToken, ipn_secret: npIpnSecret, sandbox: npSandbox, enabled_coins: npCoins };
+                          fetch('/api/admin', { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ configKey:'nowpayments_config', configValue: cfg }) });
+                          setNpSaved(true); setTimeout(()=>setNpSaved(false), 2500);
+                        }}
+                        style={{ background:'linear-gradient(135deg,#f7931a,#f59e0b)', color:'#fff', border:'none', borderRadius:10, padding:'10px 24px', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'inherit', boxShadow:'0 4px 12px rgba(247,147,26,0.3)' }}>
+                        Save Gateway Config
+                      </button>
+
+                      {npSaved && <span style={{ fontSize:12, color:'#10b981', fontWeight:700 }}>✓ Configuration saved</span>}
+                    </div>
+
                   </div>
                 </div>
               )}
