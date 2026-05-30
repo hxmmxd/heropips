@@ -615,6 +615,21 @@
   font-weight: 500;
 }
 
+.cl-block-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--wl-text-faint);
+  background: var(--wl-bg-tertiary);
+  border: 1px solid var(--wl-border-light);
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
 /* Items */
 .cl-items {
   display: flex;

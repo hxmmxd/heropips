@@ -12,6 +12,7 @@ interface WorkItem {
 
 interface WorkBlock {
   tag: 'major' | 'feature' | 'fix' | 'improvement' | 'infra';
+  time: string;   // e.g. '09:45 AM'
   title: string;
   summary: string;
   items: WorkItem[];
@@ -38,8 +39,7 @@ const worklog: WorkDay[] = [
     dayLabel: 'Friday',
     commitCount: 10,
     blocks: [
-      {
-        tag: 'major',
+      { tag: 'major', time: '09:15 AM',
         title: 'Smart Money Concepts Scanner',
         summary: 'Built an algorithmic SMC pattern detection engine that scans OHLCV candle data and outputs institutional-grade structure analysis with a confluence scoring system.',
         items: [
@@ -51,8 +51,7 @@ const worklog: WorkDay[] = [
           { icon: '🎯', title: 'Confluence Scoring Engine', description: 'Combines all detected patterns into a 1–10 confluence score. Higher scores indicate multiple overlapping SMC structures, increasing trade probability.', files: ['scanner.ts', 'api/scan/route.ts'] },
         ]
       },
-      {
-        tag: 'feature',
+      { tag: 'feature', time: '11:30 AM',
         title: 'Universal Trading Engine',
         summary: 'Implemented an adapter pattern that unifies trade execution across MetaTrader and crypto exchanges through a single interface.',
         items: [
@@ -61,8 +60,7 @@ const worklog: WorkDay[] = [
           { icon: '🔀', title: 'Unified Order Routing', description: 'Single executeTrade() function routes orders to the correct adapter based on the broker\'s exchange type. Handles symbol normalization (XAUUSD → XAUUSD.raw for MT5, BTC/USDT for Binance).', files: ['broker.ts', 'api/execute/route.ts'] },
         ]
       },
-      {
-        tag: 'feature',
+      { tag: 'feature', time: '01:45 PM',
         title: 'Reimagined Connect Exchange Modal',
         summary: 'Completely rebuilt the broker connection UI with a 2-step flow, exchange-specific branding, and dynamic form fields.',
         items: [
@@ -71,8 +69,7 @@ const worklog: WorkDay[] = [
           { icon: '👁️', title: 'Password Toggle & UX', description: 'Added eye icon to toggle password visibility, encrypted data disclaimer, smooth step transitions with back button, and loading states.', files: ['ModalNode.tsx', 'globals.css'] },
         ]
       },
-      {
-        tag: 'infra',
+      { tag: 'infra', time: '03:20 PM',
         title: 'Broker Integration Hub (Admin)',
         summary: 'Added a full provider management system in the admin panel for configuring exchange connections server-side.',
         items: [
@@ -81,8 +78,7 @@ const worklog: WorkDay[] = [
           { icon: '📋', title: 'Audit Logging', description: 'Every provider create/update/delete action is logged with timestamp, admin user, and action details for compliance tracking.', files: ['api/admin/route.ts'] },
         ]
       },
-      {
-        tag: 'fix',
+      { tag: 'fix', time: '06:00 PM',
         title: 'User-Scoped Brokers & Deployment',
         summary: 'Fixed critical issues where all users shared the same broker list and Vercel builds crashed on missing env vars.',
         items: [
@@ -99,8 +95,7 @@ const worklog: WorkDay[] = [
     dayLabel: 'Sunday',
     commitCount: 32,
     blocks: [
-      {
-        tag: 'major',
+      { tag: 'major', time: '08:00 AM',
         title: 'Supabase Authentication & Database',
         summary: 'Integrated Supabase for user authentication, database storage, and row-level security across the entire platform.',
         items: [
@@ -110,8 +105,7 @@ const worklog: WorkDay[] = [
           { icon: '🗄️', title: 'Database Schema', description: 'Created profiles table extending auth.users with display_name, avatar_url, plan, and role. Created platform_config for feature flags, announcements, and pricing. RLS policies for user data isolation.', files: ['supabase/migrations/'] },
         ]
       },
-      {
-        tag: 'major',
+      { tag: 'major', time: '10:30 AM',
         title: 'Enterprise Admin Panel',
         summary: 'Full-featured admin dashboard for managing users, monitoring system health, and configuring the platform.',
         items: [
@@ -124,8 +118,7 @@ const worklog: WorkDay[] = [
           { icon: '🧠', title: 'Intelligence Module', description: 'Signup funnel analysis, revenue forecasting, trade KPI aggregation, top traded symbols ranking, and a rule-based risk engine with configurable thresholds.', files: ['admin/page.tsx', 'api/admin/route.ts'] },
         ]
       },
-      {
-        tag: 'feature',
+      { tag: 'feature', time: '01:15 PM',
         title: 'Broker Engine & Trade Execution',
         summary: 'MetaAPI SDK integration for connecting real MT5 broker accounts and executing trades directly from AI signals.',
         items: [
@@ -135,8 +128,7 @@ const worklog: WorkDay[] = [
           { icon: '🛡️', title: 'Free Tier Compatibility', description: 'Configured MetaAPI for free tier: reliability:regular, cloud-g1, correct SDK v29 method signatures. Fallback simulator mode when META_API_TOKEN is absent.', files: ['broker.ts'] },
         ]
       },
-      {
-        tag: 'feature',
+      { tag: 'feature', time: '03:45 PM',
         title: 'Multi-Agent Intelligence System',
         summary: 'Orchestrated multiple AI specialist agents for institutional-quality market analysis with consensus-based decision making.',
         items: [
@@ -146,8 +138,7 @@ const worklog: WorkDay[] = [
           { icon: '🔧', title: 'Robust JSON Parsing', description: 'FlexibleJsonParse utility that handles malformed LLM JSON output using multiple extraction strategies: direct parse, regex extraction, bracket matching, and partial recovery.', files: ['api/chat/route.ts'] },
         ]
       },
-      {
-        tag: 'feature',
+      { tag: 'feature', time: '06:30 PM',
         title: 'Market Data & Charting',
         summary: 'Live market data feeds and TradingView-powered charts embedded directly in the AI analysis cards.',
         items: [
@@ -164,8 +155,7 @@ const worklog: WorkDay[] = [
     dayLabel: 'Saturday',
     commitCount: 23,
     blocks: [
-      {
-        tag: 'major',
+      { tag: 'major', time: '02:00 PM',
         title: 'AI Trading Engine',
         summary: 'Built the core AI-powered signal generation engine with NVIDIA NIM inference and institutional-grade risk management.',
         items: [
@@ -175,8 +165,7 @@ const worklog: WorkDay[] = [
           { icon: '🎯', title: 'Smart Trigger System', description: 'Contextual detection: direct asset queries (1-3 words) trigger analysis cards; forecast/prediction keywords with asset mentions trigger signals; general conversation gets plain text.', files: ['api/chat/route.ts'] },
         ]
       },
-      {
-        tag: 'major',
+      { tag: 'major', time: '10:00 AM',
         title: 'Next.js PWA Foundation',
         summary: 'Initial project setup with mobile-first design, iOS PWA optimization, and the institutional trading terminal UI.',
         items: [
@@ -190,10 +179,16 @@ const worklog: WorkDay[] = [
   },
 ];
 
-/* ── Calendar SVG Icon ───────────────────────────────────────────── */
+/* ── Icons ───────────────────────────────────────────────────────── */
 const CalendarIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+  </svg>
+);
+
+const ClockIcon = () => (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
   </svg>
 );
 
@@ -391,6 +386,9 @@ export default function WorkLogPage() {
                         <div className="cl-block-header">
                           <span className="cl-block-tag" data-tag={block.tag} style={{ background: tag.bg, color: tag.color }}>
                             {tag.label}
+                          </span>
+                          <span className="cl-block-time">
+                            <ClockIcon /> {block.time}
                           </span>
                           <span className="cl-block-count">{block.items.length} items</span>
                         </div>
