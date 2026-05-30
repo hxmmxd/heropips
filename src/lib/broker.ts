@@ -3,15 +3,16 @@ import MetaApi from 'metaapi.cloud-sdk/node';
 const token = process.env.META_API_TOKEN || '';
 let metaApiInstance: any = null;
 
-if (token) {
-  try {
-    metaApiInstance = new MetaApi(token);
-    console.log('[Broker Engine] MetaAPI SDK initialized successfully.');
-  } catch (error) {
-    console.error('[Broker Engine] Failed to initialize MetaAPI SDK:', error);
+function getMetaApi() {
+  if (!metaApiInstance && token) {
+    try {
+      metaApiInstance = new MetaApi(token);
+      console.log('[Broker Engine] MetaAPI SDK initialized successfully.');
+    } catch (error) {
+      console.error('[Broker Engine] Failed to initialize MetaAPI SDK:', error);
+    }
   }
-} else {
-  console.warn('[Broker Engine] META_API_TOKEN is empty. Running in simulator mode.');
+  return metaApiInstance;
 }
 
 export interface BrokerNode {
