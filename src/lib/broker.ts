@@ -292,57 +292,8 @@ export function getAllSimulatedBrokers(): BrokerNode[] {
 }
 
 export async function getAllBrokers(userId?: string): Promise<BrokerNode[]> {
-  if (getMetaApi()) {
-    try {
-      console.log('[Broker Engine] Fetching accounts list from MetaAPI Cloud...');
-      const accounts = await getMetaApi().metatraderAccountApi.getAccountsWithInfiniteScrollPagination();
-      const list: BrokerNode[] = [];
-      for (const account of accounts) {
-        let details: any = { balance: 0, equity: 0 };
-        let positions: any[] = [];
-        let status: 'connected' | 'disconnected' | 'connecting' | 'error' = 'disconnected';
-        
-        if (account.state === 'DEPLOYED') {
-          status = 'connected';
-          try {
-            const connection = account.getRPCConnection();
-            await connection.connect();
-            await connection.waitSynchronized();
-            details = await connection.getAccountInformation();
-            positions = await connection.getPositions();
-          } catch (err) {
-            console.warn(`[Broker Engine] Failed to fetch live details for account ${account.id}:`, err);
-            status = 'connecting';
-          }
-        }
-        
-        list.push({
-          id: account.id,
-          name: account.name,
-          login: account.login,
-          server: account.server,
-          status,
-          balance: details.balance || 0,
-          equity: details.equity || 0,
-          pnl: (details.equity || 0) - (details.balance || 0),
-          positions: positions.map((p: any) => ({
-            id: p.id,
-            symbol: p.symbol,
-            type: p.type,
-            volume: p.volume,
-            openPrice: p.openPrice,
-            currentPrice: p.currentPrice,
-            profit: p.profit
-          }))
-        });
-      }
-      return list;
-    } catch (err) {
-      console.error('[Broker Engine] Failed to get live accounts:', err);
-    }
-  }
-
-  // Fallback Simulator Mode — filter by userId
+  // Always use local DB for user-scoped listing
+  // MetaAPI is used for connect/execute, not for listing
   const all = readDb();
   if (userId) {
     return all.filter(b => b.userId === userId);
