@@ -37,7 +37,7 @@ const worklog: WorkDay[] = [
   {
     date: 'May 30, 2026',
     dayLabel: 'Friday',
-    commitCount: 24,
+    commitCount: 27,
     blocks: [
       { tag: 'major', time: '09:15 AM',
         title: 'Smart Money Concepts Scanner',
@@ -125,6 +125,17 @@ const worklog: WorkDay[] = [
           { icon: '⚙️', title: 'Admin Referral Settings Panel', description: 'Full referral config sub-page in admin Settings: editable commission and rebate per level, milestone reward editor, global settings (min withdrawal, cookie days, payout day). Toggle to enable/disable the program.', files: ['admin/page.tsx'] },
           { icon: '🏆', title: 'Milestone Editor (Admin)', description: '5 milestone tiers configurable from admin: change required referral count and reward amount for each tier (1/5/10/25/50 referrals = $25–$2,000).', files: ['admin/page.tsx'] },
           { icon: '💾', title: 'Save & Persist', description: 'Save button sends PATCH to /api/admin with referral_config key. Shows ✓ Saved successfully confirmation for 2.5 seconds.', files: ['admin/page.tsx'] },
+        ]
+      },
+      { tag: 'major', time: '10:15 PM',
+        title: 'Admin Settings Page — Complete Rebuild',
+        summary: 'Completely reimagined the admin settings page with a clean 4-tab sub-navigation (Platform / Referral / Pricing / Announcements) replacing the broken single-scrolling layout.',
+        items: [
+          { icon: '🗂️', title: 'Settings Sub-Nav', description: '4-tab horizontal navigation inside settings: Platform Controls, Referral Program, Plan Pricing, and Announcements. Active tab shows indigo underline indicator.', files: ['admin/page.tsx'] },
+          { icon: '⚡', title: 'Platform Tab', description: '4 toggle controls with icons: Maintenance Mode, AI Kill Switch, Allow Registrations, Demo Mode. Each patches the corresponding config key via /api/admin PATCH.', files: ['admin/page.tsx'] },
+          { icon: '🎁', title: 'Referral Tab', description: 'Dedicated full referral config page: L1-L5 commission & rebate table, milestone rewards grid, global settings (withdrawal/cookie/payout). Save + Reset to Defaults buttons.', files: ['admin/page.tsx'] },
+          { icon: '💳', title: 'Pricing Tab', description: 'Premium card layout for Starter/Pro/Enterprise pricing. Color-coded per tier with inline number inputs. Saves via /api/admin PATCH.', files: ['admin/page.tsx'] },
+          { icon: '📢', title: 'Announcements Tab', description: 'Post new announcements with title, message, and type (Info/Warning/Success). Lists active announcements with one-click dismiss. Empty state handled.', files: ['admin/page.tsx'] },
         ]
       },
     ]

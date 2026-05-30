@@ -78,7 +78,7 @@ export default function AdminPage() {
   const [newAnnouncement, setNewAnnouncement] = useState({ title: '', message: '', type: 'info' });
   const [riskRules, setRiskRules] = useState<any[]>([]);
   const [signupTrends, setSignupTrends] = useState<{month:string;count:number}[]>([]);
-  const [settingsSubPage, setSettingsSubPage] = useState<'main'|'referral'>('main');
+  const [settingsSubPage, setSettingsSubPage] = useState<'main'|'referral'|'pricing'|'announcements'>('main');
   const [referralConfig, setReferralConfig] = useState({
     enabled: true,
     levels: [
@@ -822,220 +822,308 @@ export default function AdminPage() {
 
           {activeSection === 'settings' && (
             <>
-              {/* Toggle Controls */}
-              <div className="adm-card">
-                <div className="adm-card-head"><h3>Platform Controls</h3></div>
-                <div className="adm-card-body">
-                  <div className="adm-toggle-list">
-                    <div className="adm-toggle-row">
-                      <div className="adm-toggle-info"><AlertTriangle className="adm-toggle-icon adm-toggle-warn" /><div><p className="adm-toggle-name">Maintenance Mode</p><p className="adm-toggle-desc">Show maintenance page to all users</p></div></div>
-                      <div className={`adm-switch ${config.maintenance_mode === true ? 'adm-switch-on' : ''}`} role="button" tabIndex={0} onClick={() => {
-                        const val = !config.maintenance_mode;
-                        fetch('/api/admin', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ configKey: 'maintenance_mode', configValue: val }) });
-                        setConfig({ ...config, maintenance_mode: val });
-                      }}><span className="adm-switch-track"><span className="adm-switch-thumb" /></span></div>
-                    </div>
-                    <div className="adm-toggle-row">
-                      <div className="adm-toggle-info"><Power className="adm-toggle-icon adm-toggle-danger" /><div><p className="adm-toggle-name">AI Kill Switch</p><p className="adm-toggle-desc">Immediately pause all AI signal generation</p></div></div>
-                      <div className={`adm-switch ${config.ai_kill_switch === true ? 'adm-switch-on' : ''}`} role="button" tabIndex={0} onClick={() => {
-                        const val = !config.ai_kill_switch;
-                        fetch('/api/admin', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ configKey: 'ai_kill_switch', configValue: val }) });
-                        setConfig({ ...config, ai_kill_switch: val });
-                      }}><span className="adm-switch-track"><span className="adm-switch-thumb" /></span></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Feature Flags */}
-              <div className="adm-card">
-                <div className="adm-card-head"><h3>Feature Flags</h3></div>
-                <div className="adm-card-body">
-                  <div className="adm-toggle-list">
-                    {config.feature_flags && Object.entries(config.feature_flags as Record<string, boolean>).map(([key, val]) => (
-                      <div key={key} className="adm-toggle-row">
-                        <div className="adm-toggle-info"><Zap className="adm-toggle-icon" /><div><p className="adm-toggle-name">{key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p></div></div>
-                        <div className={`adm-switch ${val === true ? 'adm-switch-on' : ''}`} role="button" tabIndex={0} onClick={() => {
-                          const flags = { ...config.feature_flags, [key]: !val };
-                          fetch('/api/admin', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ configKey: 'feature_flags', configValue: flags }) });
-                          setConfig({ ...config, feature_flags: flags });
-                        }}><span className="adm-switch-track"><span className="adm-switch-thumb" /></span></div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Plan Pricing */}
-              <div className="adm-card">
-                <div className="adm-card-head"><h3>Plan Pricing</h3></div>
-                <div className="adm-card-body">
-                  <div className="adm-pricing-grid">
-                    {[
-                      { key: 'starter', label: 'Starter', icon: <Zap className="adm-pricing-icon adm-pricing-gray" /> },
-                      { key: 'pro', label: 'Pro', icon: <Crown className="adm-pricing-icon adm-pricing-purple" /> },
-                      { key: 'enterprise', label: 'Enterprise', icon: <Rocket className="adm-pricing-icon adm-pricing-amber" /> },
-                    ].map(tier => (
-                      <div key={tier.key} className="adm-pricing-card">
-                        {tier.icon}
-                        <p className="adm-pricing-label">{tier.label}</p>
-                        <div className="adm-pricing-input-wrap">
-                          <span className="adm-pricing-dollar">$</span>
-                          <input type="number" className="adm-pricing-input" value={config.plan_pricing?.[tier.key] ?? ''} onChange={e => {
-                            const pricing = { ...config.plan_pricing, [tier.key]: Number(e.target.value) };
-                            setConfig({ ...config, plan_pricing: pricing });
-                          }} />
-                          <span className="adm-pricing-period">/mo</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="adm-pricing-save" role="button" tabIndex={0} onClick={() => {
-                    fetch('/api/admin', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ configKey: 'plan_pricing', configValue: config.plan_pricing }) });
-                    setSaveMsg('Pricing saved'); setTimeout(() => setSaveMsg(''), 2000);
-                  }}>✓ Save Pricing</div>
-                  {saveMsg === 'Pricing saved' && <p className="adm-save-msg" style={{marginTop:8}}>Pricing updated successfully</p>}
-                </div>
-              </div>
-
-              {/* Announcements */}
-              <div className="adm-card">
-                <div className="adm-card-head"><h3>Announcements ({announcements.length})</h3></div>
-                <div className="adm-card-body">
-                  <div className="adm-announce-form">
-                    <input className="adm-edit-input" placeholder="Title" value={newAnnouncement.title} onChange={e => setNewAnnouncement({ ...newAnnouncement, title: e.target.value })} />
-                    <input className="adm-edit-input" placeholder="Message" value={newAnnouncement.message} onChange={e => setNewAnnouncement({ ...newAnnouncement, message: e.target.value })} />
-                    <div className="adm-announce-row">
-                      <select className="adm-select" value={newAnnouncement.type} onChange={e => setNewAnnouncement({ ...newAnnouncement, type: e.target.value })}>
-                        <option value="info">Info</option><option value="warning">Warning</option><option value="success">Success</option>
-                      </select>
-                      <div className="adm-post-btn" role="button" tabIndex={0} onClick={() => {
-                        if (!newAnnouncement.title) return;
-                        fetch('/api/admin', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ announcement: newAnnouncement }) });
-                        setNewAnnouncement({ title: '', message: '', type: 'info' });
-                        handleRefresh();
-                      }}>+ Post</div>
-                    </div>
-                  </div>
-                  {announcements.map(a => (
-                    <div key={a.id} className={`adm-announce-item adm-announce-${a.type}`}>
-                      <div><p className="adm-announce-title">{a.title}</p><p className="adm-announce-msg">{a.message}</p><p className="adm-announce-date">{new Date(a.created_at).toLocaleDateString()}</p></div>
-                      <div className="adm-announce-del" role="button" tabIndex={0} onClick={() => {
-                        fetch('/api/admin', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ announcement: { id: a.id, is_active: false } }) });
-                        setAnnouncements(announcements.filter(x => x.id !== a.id));
-                      }}>✕</div>
-                    </div>
+              {/* ── Settings Sub-Nav ── */}
+              <div className="adm-card adm-card-full" style={{ padding:0, overflow:'hidden' }}>
+                <div style={{ display:'flex', borderBottom:'1px solid var(--adm-border)', background:'var(--adm-bg-secondary)' }}>
+                  {[
+                    { id:'main',        label:'Platform',     icon:'⚡' },
+                    { id:'referral',    label:'Referral',     icon:'🎁' },
+                    { id:'pricing',     label:'Pricing',      icon:'💳' },
+                    { id:'announcements',label:'Announce',    icon:'📢' },
+                  ].map(tab => (
+                    <button key={tab.id}
+                      onClick={() => setSettingsSubPage(tab.id as any)}
+                      style={{
+                        padding:'14px 22px', border:'none', background:'none', cursor:'pointer',
+                        fontFamily:'inherit', fontSize:13, fontWeight:600,
+                        color: settingsSubPage === tab.id ? 'var(--adm-text)' : 'var(--adm-text-muted)',
+                        borderBottom: settingsSubPage === tab.id ? '2px solid #6366f1' : '2px solid transparent',
+                        display:'flex', alignItems:'center', gap:7, transition:'all 0.15s',
+                      }}>
+                      <span>{tab.icon}</span>{tab.label}
+                    </button>
                   ))}
                 </div>
               </div>
-            {/* ── Referral Program Settings ── */}
-              <div className="adm-card adm-card-full">
-                <div className="adm-card-head" style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-                  <h3>🎁 Referral Program</h3>
-                  <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-                    <button onClick={() => setSettingsSubPage(settingsSubPage === 'referral' ? 'main' : 'referral')}
-                      style={{ fontSize:12, fontWeight:700, padding:'6px 14px', borderRadius:8, border:'1px solid var(--adm-border)', background: settingsSubPage === 'referral' ? '#6366f1' : 'transparent', color: settingsSubPage === 'referral' ? '#fff' : 'var(--adm-text-muted)', cursor:'pointer' }}>
-                      {settingsSubPage === 'referral' ? '← Back' : 'Configure →'}
-                    </button>
-                    <div className={`adm-switch ${referralConfig.enabled ? 'adm-switch-on' : ''}`} role="button" tabIndex={0}
-                      onClick={() => setReferralConfig({ ...referralConfig, enabled: !referralConfig.enabled })}>
-                      <span className="adm-switch-track"><span className="adm-switch-thumb" /></span>
+
+              {/* ── Platform Tab ── */}
+              {settingsSubPage === 'main' && (
+                <>
+                  {/* Platform Toggles */}
+                  <div className="adm-card adm-card-full">
+                    <div className="adm-card-head"><h3>Platform Controls</h3></div>
+                    <div className="adm-card-body">
+                      <div className="adm-toggle-list">
+                        {[
+                          { key:'maintenance_mode', icon:'⚠️', label:'Maintenance Mode',     desc:'Show maintenance page to all users',                color:'#f59e0b' },
+                          { key:'ai_kill_switch',   icon:'⚡', label:'AI Kill Switch',        desc:'Immediately pause all AI signal generation',        color:'#ef4444' },
+                          { key:'new_registrations',icon:'👤', label:'Allow Registrations',   desc:'Let new users sign up to the platform',             color:'#10b981' },
+                          { key:'demo_mode',        icon:'🧪', label:'Demo Mode',             desc:'Route all trades to paper trading simulator',       color:'#6366f1' },
+                        ].map(t => (
+                          <div key={t.key} className="adm-toggle-row">
+                            <div className="adm-toggle-info">
+                              <span style={{ fontSize:18 }}>{t.icon}</span>
+                              <div><p className="adm-toggle-name">{t.label}</p><p className="adm-toggle-desc">{t.desc}</p></div>
+                            </div>
+                            <div className={`adm-switch ${config[t.key] ? 'adm-switch-on' : ''}`} role="button" tabIndex={0}
+                              onClick={() => {
+                                const val = !config[t.key];
+                                fetch('/api/admin', { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ configKey: t.key, configValue: val }) });
+                                setConfig({ ...config, [t.key]: val });
+                              }}>
+                              <span className="adm-switch-track"><span className="adm-switch-thumb" /></span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                </div>
-                {settingsSubPage === 'referral' ? (
+
+                  {/* Feature Flags */}
+                  <div className="adm-card adm-card-full">
+                    <div className="adm-card-head"><h3>Feature Flags</h3></div>
+                    <div className="adm-card-body">
+                      {config.feature_flags ? (
+                        <div className="adm-toggle-list">
+                          {Object.entries(config.feature_flags as Record<string, boolean>).map(([key, val]) => (
+                            <div key={key} className="adm-toggle-row">
+                              <div className="adm-toggle-info">
+                                <span style={{ fontSize:16 }}>🚩</span>
+                                <div><p className="adm-toggle-name">{key.replace(/_/g,' ').replace(/\b\w/g, l => l.toUpperCase())}</p></div>
+                              </div>
+                              <div className={`adm-switch ${val ? 'adm-switch-on' : ''}`} role="button" tabIndex={0}
+                                onClick={() => {
+                                  const flags = { ...config.feature_flags, [key]: !val };
+                                  fetch('/api/admin', { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ configKey:'feature_flags', configValue: flags }) });
+                                  setConfig({ ...config, feature_flags: flags });
+                                }}>
+                                <span className="adm-switch-track"><span className="adm-switch-thumb" /></span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p style={{ fontSize:13, color:'var(--adm-text-muted)', padding:'12px 0' }}>No feature flags configured yet.</p>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* ── Referral Tab ── */}
+              {settingsSubPage === 'referral' && (
+                <div className="adm-card adm-card-full">
+                  <div className="adm-card-head" style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                    <h3>🎁 Referral Program</h3>
+                    <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                      <span style={{ fontSize:12, color: referralConfig.enabled ? '#10b981' : '#ef4444', fontWeight:700 }}>
+                        {referralConfig.enabled ? '● Active' : '○ Disabled'}
+                      </span>
+                      <div className={`adm-switch ${referralConfig.enabled ? 'adm-switch-on' : ''}`} role="button" tabIndex={0}
+                        onClick={() => setReferralConfig({ ...referralConfig, enabled: !referralConfig.enabled })}>
+                        <span className="adm-switch-track"><span className="adm-switch-thumb" /></span>
+                      </div>
+                    </div>
+                  </div>
                   <div className="adm-card-body" style={{ display:'flex', flexDirection:'column', gap:28 }}>
+
+                    {/* Commission table */}
                     <div>
                       <p style={{ fontSize:13, fontWeight:700, marginBottom:14, color:'var(--adm-text)' }}>Commission & Rebate Per Level</p>
-                      <div style={{ display:'grid', gridTemplateColumns:'40px 1fr 1fr 1fr', borderRadius:10, overflow:'hidden', border:'1px solid var(--adm-border)' }}>
-                        {['Lvl','Label','Commission %','Rebate %'].map(h => (
-                          <div key={h} style={{ padding:'9px 14px', background:'var(--adm-bg-secondary)', fontSize:10, fontWeight:700, color:'var(--adm-text-muted)', textTransform:'uppercase', borderBottom:'1px solid var(--adm-border)' }}>{h}</div>
-                        ))}
+                      <div style={{ borderRadius:12, overflow:'hidden', border:'1px solid var(--adm-border)' }}>
+                        <div style={{ display:'grid', gridTemplateColumns:'48px 1fr 140px 140px', background:'var(--adm-bg-secondary)', borderBottom:'1px solid var(--adm-border)' }}>
+                          {['Lvl','Label','Commission %','Rebate %'].map(h => (
+                            <div key={h} style={{ padding:'10px 14px', fontSize:10, fontWeight:700, color:'var(--adm-text-muted)', textTransform:'uppercase', letterSpacing:'0.6px' }}>{h}</div>
+                          ))}
+                        </div>
                         {referralConfig.levels.map((lvl, i) => {
-                          const c = ['#6366f1','#3b82f6','#10b981','#f59e0b','#ec4899'][i];
+                          const colors = ['#6366f1','#3b82f6','#10b981','#f59e0b','#ec4899'];
+                          const c = colors[i];
                           return (
-                            <React.Fragment key={lvl.level}>
-                              <div style={{ padding:'12px 14px', borderBottom:'1px solid var(--adm-border)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                                <span style={{ width:24, height:24, borderRadius:6, background:c, display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:800, color:'#fff' }}>L{lvl.level}</span>
+                            <div key={lvl.level} style={{ display:'grid', gridTemplateColumns:'48px 1fr 140px 140px', borderBottom: i < 4 ? '1px solid var(--adm-border)' : 'none' }}>
+                              <div style={{ padding:'14px', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                                <span style={{ width:28, height:28, borderRadius:7, background:c, display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:800, color:'#fff' }}>L{lvl.level}</span>
                               </div>
-                              <div style={{ padding:'12px 14px', borderBottom:'1px solid var(--adm-border)' }}>
-                                <input style={{ width:'100%', background:'var(--adm-bg)', border:'1px solid var(--adm-border)', borderRadius:6, padding:'5px 8px', fontSize:12, fontWeight:600, color:'var(--adm-text)', fontFamily:'inherit' }}
-                                  value={lvl.label} onChange={e => { const ls = referralConfig.levels.map((l,j) => j===i?{...l,label:e.target.value}:l); setReferralConfig({...referralConfig,levels:ls}); }} />
+                              <div style={{ padding:'14px', display:'flex', alignItems:'center' }}>
+                                <input style={{ width:'100%', background:'var(--adm-bg)', border:'1px solid var(--adm-border)', borderRadius:8, padding:'7px 10px', fontSize:13, fontWeight:600, color:'var(--adm-text)', fontFamily:'inherit' }}
+                                  value={lvl.label}
+                                  onChange={e => { const ls = referralConfig.levels.map((l,j) => j===i?{...l,label:e.target.value}:l); setReferralConfig({...referralConfig,levels:ls}); }} />
                               </div>
-                              <div style={{ padding:'12px 14px', borderBottom:'1px solid var(--adm-border)', display:'flex', alignItems:'center', gap:4 }}>
+                              <div style={{ padding:'14px', display:'flex', alignItems:'center', gap:6 }}>
                                 <input type="number" min={0} max={100} step={0.5}
-                                  style={{ width:70, background:'var(--adm-bg)', border:'1px solid var(--adm-border)', borderRadius:6, padding:'5px 8px', fontSize:13, fontWeight:700, color:c, fontFamily:'inherit' }}
-                                  value={lvl.commission} onChange={e => { const ls = referralConfig.levels.map((l,j) => j===i?{...l,commission:Number(e.target.value)}:l); setReferralConfig({...referralConfig,levels:ls}); }} />
-                                <span style={{ fontSize:11, color:'var(--adm-text-muted)' }}>%</span>
+                                  style={{ width:72, background:'var(--adm-bg)', border:'1px solid var(--adm-border)', borderRadius:8, padding:'7px 10px', fontSize:14, fontWeight:800, color:c, fontFamily:'inherit', textAlign:'center' }}
+                                  value={lvl.commission}
+                                  onChange={e => { const ls = referralConfig.levels.map((l,j) => j===i?{...l,commission:Number(e.target.value)}:l); setReferralConfig({...referralConfig,levels:ls}); }} />
+                                <span style={{ fontSize:12, color:'var(--adm-text-muted)', fontWeight:600 }}>%</span>
                               </div>
-                              <div style={{ padding:'12px 14px', borderBottom:'1px solid var(--adm-border)', display:'flex', alignItems:'center', gap:4 }}>
+                              <div style={{ padding:'14px', display:'flex', alignItems:'center', gap:6 }}>
                                 <input type="number" min={0} max={100} step={0.25}
-                                  style={{ width:70, background:'var(--adm-bg)', border:'1px solid var(--adm-border)', borderRadius:6, padding:'5px 8px', fontSize:13, fontWeight:700, color:'#10b981', fontFamily:'inherit' }}
-                                  value={lvl.rebate} onChange={e => { const ls = referralConfig.levels.map((l,j) => j===i?{...l,rebate:Number(e.target.value)}:l); setReferralConfig({...referralConfig,levels:ls}); }} />
-                                <span style={{ fontSize:11, color:'var(--adm-text-muted)' }}>%</span>
+                                  style={{ width:72, background:'var(--adm-bg)', border:'1px solid var(--adm-border)', borderRadius:8, padding:'7px 10px', fontSize:14, fontWeight:800, color:'#10b981', fontFamily:'inherit', textAlign:'center' }}
+                                  value={lvl.rebate}
+                                  onChange={e => { const ls = referralConfig.levels.map((l,j) => j===i?{...l,rebate:Number(e.target.value)}:l); setReferralConfig({...referralConfig,levels:ls}); }} />
+                                <span style={{ fontSize:12, color:'var(--adm-text-muted)', fontWeight:600 }}>%</span>
                               </div>
-                            </React.Fragment>
+                            </div>
                           );
                         })}
                       </div>
                     </div>
+
+                    {/* Milestones */}
                     <div>
                       <p style={{ fontSize:13, fontWeight:700, marginBottom:14, color:'var(--adm-text)' }}>Milestone Rewards</p>
                       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
                         {referralConfig.milestones.map((m, i) => (
-                          <div key={i} style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 16px', background:'var(--adm-bg-secondary)', border:'1px solid var(--adm-border)', borderRadius:10 }}>
-                            <span style={{ fontSize:11, fontWeight:700, color:'var(--adm-text-muted)', minWidth:80 }}>At {m.referrals} ref{m.referrals>1?'s':''}</span>
-                            <span style={{ color:'#10b981' }}>$</span>
-                            <input type="number" min={0}
-                              style={{ flex:1, background:'var(--adm-bg)', border:'1px solid var(--adm-border)', borderRadius:6, padding:'5px 8px', fontSize:13, fontWeight:700, color:'#10b981', fontFamily:'inherit' }}
-                              value={m.reward} onChange={e => { const ms = referralConfig.milestones.map((x,j) => j===i?{...x,reward:Number(e.target.value)}:x); setReferralConfig({...referralConfig,milestones:ms}); }} />
+                          <div key={i} style={{ display:'flex', alignItems:'center', gap:14, padding:'14px 18px', background:'var(--adm-bg-secondary)', border:'1px solid var(--adm-border)', borderRadius:12 }}>
+                            <div style={{ background:'rgba(16,185,129,0.1)', borderRadius:8, padding:'6px 10px', fontSize:11, fontWeight:700, color:'#10b981', whiteSpace:'nowrap' }}>
+                              At {m.referrals} ref{m.referrals>1?'s':''}
+                            </div>
+                            <div style={{ display:'flex', alignItems:'center', gap:4, flex:1 }}>
+                              <span style={{ fontSize:15, color:'#10b981', fontWeight:700 }}>$</span>
+                              <input type="number" min={0}
+                                style={{ flex:1, background:'var(--adm-bg)', border:'1px solid var(--adm-border)', borderRadius:8, padding:'7px 10px', fontSize:15, fontWeight:800, color:'#10b981', fontFamily:'inherit' }}
+                                value={m.reward}
+                                onChange={e => { const ms = referralConfig.milestones.map((x,j) => j===i?{...x,reward:Number(e.target.value)}:x); setReferralConfig({...referralConfig,milestones:ms}); }} />
+                            </div>
                           </div>
                         ))}
                       </div>
                     </div>
+
+                    {/* Global settings */}
                     <div>
                       <p style={{ fontSize:13, fontWeight:700, marginBottom:14, color:'var(--adm-text)' }}>Global Settings</p>
                       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:12 }}>
-                        {[{label:'Min Withdrawal ($)',key:'minWithdrawal'},{label:'Cookie Duration (days)',key:'cookieDays'},{label:'Payout Day of Month',key:'payoutDay'}].map(f => (
-                          <div key={f.key} style={{ background:'var(--adm-bg-secondary)', border:'1px solid var(--adm-border)', borderRadius:10, padding:'14px 16px' }}>
-                            <p style={{ fontSize:10, fontWeight:700, color:'var(--adm-text-muted)', textTransform:'uppercase', marginBottom:8 }}>{f.label}</p>
-                            <input type="number" min={1}
-                              style={{ width:'100%', background:'var(--adm-bg)', border:'1px solid var(--adm-border)', borderRadius:6, padding:'6px 10px', fontSize:14, fontWeight:700, color:'var(--adm-text)', fontFamily:'inherit' }}
-                              value={(referralConfig as any)[f.key]} onChange={e => setReferralConfig({...referralConfig,[f.key]:Number(e.target.value)})} />
+                        {[
+                          { label:'Min Withdrawal', key:'minWithdrawal', prefix:'$', suffix:'' },
+                          { label:'Cookie Duration', key:'cookieDays',    prefix:'', suffix:' days' },
+                          { label:'Payout Day',      key:'payoutDay',     prefix:'Day ', suffix:'' },
+                        ].map(f => (
+                          <div key={f.key} style={{ background:'var(--adm-bg-secondary)', border:'1px solid var(--adm-border)', borderRadius:12, padding:'16px 18px' }}>
+                            <p style={{ fontSize:10, fontWeight:700, color:'var(--adm-text-muted)', textTransform:'uppercase', letterSpacing:'0.6px', marginBottom:10 }}>{f.label}</p>
+                            <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                              {f.prefix && <span style={{ fontSize:13, color:'var(--adm-text-muted)', fontWeight:600 }}>{f.prefix}</span>}
+                              <input type="number" min={1}
+                                style={{ flex:1, background:'var(--adm-bg)', border:'1px solid var(--adm-border)', borderRadius:8, padding:'8px 10px', fontSize:16, fontWeight:800, color:'var(--adm-text)', fontFamily:'inherit' }}
+                                value={(referralConfig as any)[f.key]}
+                                onChange={e => setReferralConfig({...referralConfig, [f.key]: Number(e.target.value)})} />
+                              {f.suffix && <span style={{ fontSize:13, color:'var(--adm-text-muted)', fontWeight:600 }}>{f.suffix}</span>}
+                            </div>
                           </div>
                         ))}
                       </div>
                     </div>
-                    <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+
+                    {/* Save */}
+                    <div style={{ display:'flex', alignItems:'center', gap:14, paddingTop:4 }}>
                       <button onClick={() => { setRefSaved(true); setTimeout(()=>setRefSaved(false),2500); }}
-                        style={{ background:'#6366f1', color:'#fff', border:'none', borderRadius:10, padding:'10px 24px', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
+                        style={{ background:'linear-gradient(135deg,#6366f1,#3b82f6)', color:'#fff', border:'none', borderRadius:10, padding:'11px 28px', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'inherit', boxShadow:'0 4px 12px rgba(99,102,241,0.3)' }}>
                         Save Referral Config
                       </button>
-                      {refSaved && <span style={{ fontSize:12, color:'#10b981', fontWeight:700 }}>✓ Saved successfully</span>}
+                      <button onClick={() => setReferralConfig({
+                        enabled:true, cookieDays:30, payoutDay:1, minWithdrawal:50,
+                        levels:[{level:1,label:'Direct',commission:10,rebate:5},{level:2,label:'Level 2',commission:5,rebate:2},{level:3,label:'Level 3',commission:3,rebate:1},{level:4,label:'Level 4',commission:2,rebate:0.5},{level:5,label:'Level 5',commission:1,rebate:0.25}],
+                        milestones:[{referrals:1,reward:25},{referrals:5,reward:100},{referrals:10,reward:250},{referrals:25,reward:750},{referrals:50,reward:2000}],
+                      })} style={{ background:'none', border:'1px solid var(--adm-border)', borderRadius:10, padding:'11px 20px', fontSize:13, fontWeight:600, color:'var(--adm-text-muted)', cursor:'pointer', fontFamily:'inherit' }}>
+                        Reset to Defaults
+                      </button>
+                      {refSaved && <span style={{ fontSize:13, color:'#10b981', fontWeight:700, display:'flex', alignItems:'center', gap:6 }}>✓ Saved successfully</span>}
                     </div>
                   </div>
-                ) : (
+                </div>
+              )}
+
+              {/* ── Pricing Tab ── */}
+              {settingsSubPage === 'pricing' && (
+                <div className="adm-card adm-card-full">
+                  <div className="adm-card-head"><h3>Plan Pricing</h3></div>
                   <div className="adm-card-body">
-                    <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:10 }}>
-                      {referralConfig.levels.map((lvl, i) => {
-                        const c = ['#6366f1','#3b82f6','#10b981','#f59e0b','#ec4899'][i];
-                        return (
-                          <div key={lvl.level} style={{ textAlign:'center', padding:'16px 10px', background:'var(--adm-bg-secondary)', border:'1px solid var(--adm-border)', borderRadius:12 }}>
-                            <div style={{ width:32, height:32, borderRadius:8, background:c, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:800, color:'#fff', margin:'0 auto 10px' }}>L{lvl.level}</div>
-                            <p style={{ fontSize:10, fontWeight:700, color:'var(--adm-text-muted)', textTransform:'uppercase', marginBottom:4 }}>{lvl.label}</p>
-                            <p style={{ fontSize:16, fontWeight:800, color:c }}>{lvl.commission}%</p>
-                            <p style={{ fontSize:11, color:'#10b981', fontWeight:600 }}>+{lvl.rebate}% rebate</p>
+                    <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:16 }}>
+                      {[
+                        { key:'starter',    label:'Starter',    icon:'⚡', color:'#6b7280', desc:'For individual traders' },
+                        { key:'pro',        label:'Pro',        icon:'👑', color:'#8b5cf6', desc:'For serious traders' },
+                        { key:'enterprise', label:'Enterprise', icon:'🚀', color:'#f59e0b', desc:'For institutions' },
+                      ].map(tier => (
+                        <div key={tier.key} style={{ background:'var(--adm-bg-secondary)', border:'1px solid var(--adm-border)', borderRadius:16, padding:'24px 20px', textAlign:'center' }}>
+                          <div style={{ fontSize:28, marginBottom:8 }}>{tier.icon}</div>
+                          <p style={{ fontSize:15, fontWeight:800, color:'var(--adm-text)', marginBottom:4 }}>{tier.label}</p>
+                          <p style={{ fontSize:11, color:'var(--adm-text-muted)', marginBottom:18 }}>{tier.desc}</p>
+                          <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:4, marginBottom:16 }}>
+                            <span style={{ fontSize:20, fontWeight:700, color:tier.color }}>$</span>
+                            <input type="number" min={0}
+                              style={{ width:90, background:'var(--adm-bg)', border:`2px solid ${tier.color}33`, borderRadius:10, padding:'8px 10px', fontSize:22, fontWeight:800, color:tier.color, fontFamily:'inherit', textAlign:'center' }}
+                              value={config.plan_pricing?.[tier.key] ?? ''}
+                              onChange={e => { const pricing = { ...config.plan_pricing, [tier.key]: Number(e.target.value) }; setConfig({ ...config, plan_pricing: pricing }); }} />
+                            <span style={{ fontSize:13, color:'var(--adm-text-muted)', fontWeight:600 }}>/mo</span>
                           </div>
-                        );
-                      })}
+                        </div>
+                      ))}
                     </div>
-                    <p style={{ fontSize:11, color:'var(--adm-text-muted)', marginTop:12 }}>
-                      Min withdrawal: ${referralConfig.minWithdrawal} · Cookie: {referralConfig.cookieDays} days · Payout day: {referralConfig.payoutDay}
-                      {!referralConfig.enabled && <span style={{ color:'#ef4444', marginLeft:8, fontWeight:700 }}>Program disabled</span>}
-                    </p>
+                    <div style={{ marginTop:20, display:'flex', alignItems:'center', gap:14 }}>
+                      <button onClick={() => {
+                        fetch('/api/admin', { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ configKey:'plan_pricing', configValue: config.plan_pricing }) });
+                        setSaveMsg('Pricing saved'); setTimeout(()=>setSaveMsg(''),2500);
+                      }} style={{ background:'linear-gradient(135deg,#8b5cf6,#6366f1)', color:'#fff', border:'none', borderRadius:10, padding:'11px 28px', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'inherit', boxShadow:'0 4px 12px rgba(139,92,246,0.3)' }}>
+                        Save Pricing
+                      </button>
+                      {saveMsg === 'Pricing saved' && <span style={{ fontSize:13, color:'#10b981', fontWeight:700 }}>✓ Pricing updated</span>}
+                    </div>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
+
+              {/* ── Announcements Tab ── */}
+              {settingsSubPage === 'announcements' && (
+                <div className="adm-card adm-card-full">
+                  <div className="adm-card-head"><h3>Announcements ({announcements.length})</h3></div>
+                  <div className="adm-card-body" style={{ display:'flex', flexDirection:'column', gap:20 }}>
+                    {/* New announcement form */}
+                    <div style={{ background:'var(--adm-bg-secondary)', border:'1px solid var(--adm-border)', borderRadius:14, padding:'20px' }}>
+                      <p style={{ fontSize:12, fontWeight:700, color:'var(--adm-text-muted)', textTransform:'uppercase', marginBottom:14, letterSpacing:'0.6px' }}>New Announcement</p>
+                      <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                        <input className="adm-edit-input" placeholder="Title (e.g. Scheduled Maintenance)" value={newAnnouncement.title} onChange={e => setNewAnnouncement({ ...newAnnouncement, title: e.target.value })} />
+                        <input className="adm-edit-input" placeholder="Message body…" value={newAnnouncement.message} onChange={e => setNewAnnouncement({ ...newAnnouncement, message: e.target.value })} />
+                        <div style={{ display:'flex', gap:10, alignItems:'center' }}>
+                          <select className="adm-select" value={newAnnouncement.type} onChange={e => setNewAnnouncement({ ...newAnnouncement, type: e.target.value })} style={{ flex:1 }}>
+                            <option value="info">ℹ️ Info</option>
+                            <option value="warning">⚠️ Warning</option>
+                            <option value="success">✅ Success</option>
+                          </select>
+                          <button onClick={() => {
+                            if (!newAnnouncement.title) return;
+                            fetch('/api/admin', { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ announcement: newAnnouncement }) });
+                            setNewAnnouncement({ title:'', message:'', type:'info' });
+                            handleRefresh();
+                          }} style={{ background:'#6366f1', color:'#fff', border:'none', borderRadius:10, padding:'10px 22px', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
+                            + Post
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    {/* List */}
+                    {announcements.length === 0 ? (
+                      <div style={{ textAlign:'center', padding:'32px', color:'var(--adm-text-muted)', fontSize:13 }}>📢 No active announcements</div>
+                    ) : (
+                      <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                        {announcements.map(a => (
+                          <div key={a.id} className={`adm-announce-item adm-announce-${a.type}`} style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:16 }}>
+                            <div>
+                              <p className="adm-announce-title">{a.title}</p>
+                              <p className="adm-announce-msg">{a.message}</p>
+                              <p className="adm-announce-date">{new Date(a.created_at).toLocaleDateString()}</p>
+                            </div>
+                            <button style={{ background:'none', border:'none', cursor:'pointer', color:'var(--adm-text-muted)', fontSize:16, padding:4, flexShrink:0 }}
+                              onClick={() => {
+                                fetch('/api/admin', { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ announcement: { id: a.id, is_active: false } }) });
+                                setAnnouncements(announcements.filter(x => x.id !== a.id));
+                              }}>✕</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </>
           )}
 
