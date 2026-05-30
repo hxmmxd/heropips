@@ -37,7 +37,7 @@ const worklog: WorkDay[] = [
   {
     date: 'May 30, 2026',
     dayLabel: 'Friday',
-    commitCount: 10,
+    commitCount: 16,
     blocks: [
       { tag: 'major', time: '09:15 AM',
         title: 'Smart Money Concepts Scanner',
@@ -86,6 +86,20 @@ const worklog: WorkDay[] = [
           { icon: '🗑️', title: 'Broker Disconnect Feature', description: 'Added hover-reveal "Disconnect" button on broker cards with a 2-click confirm pattern (first click shows "Confirm Disconnect?", second click executes). DELETE /api/broker removes the account from the user\'s list.', files: ['BrokersTab.tsx', 'api/broker/route.ts', 'broker.ts'] },
           { icon: '☁️', title: 'Vercel Build Fixes', description: 'Moved supabaseAdmin to lazy-initialized getSupabaseAdmin() function. Added fallback placeholder values for NEXT_PUBLIC_SUPABASE_URL and ANON_KEY during build phase. Moved MetaAPI SDK to lazy getMetaApi() to prevent native module loading at build time.', files: ['server.ts', 'client.ts', 'middleware.ts', 'broker.ts'] },
           { icon: '🧹', title: 'Removed Hardcoded Demo Data', description: 'Deleted the 2 pre-seeded demo broker accounts (Vantage-Real-01, IC-Markets-Pro) from both the simulator DB seed and the React useState initial value.', files: ['broker.ts', 'page.tsx'] },
+        ]
+      },
+      { tag: 'feature', time: '08:30 PM',
+        title: 'Internal Work Log Page',
+        summary: 'Built and progressively enhanced a GitBook-style internal work log at /worklog for the engineering team to track daily progress, features, and timestamps.',
+        items: [
+          { icon: '📋', title: 'GitBook-Style Layout', description: 'Fixed sidebar with scroll-spy navigation, day-by-day timeline sections, and a premium light-theme design using CSS custom properties. Sidebar highlights the active day as you scroll.', files: ['worklog/page.tsx', 'worklog/changelog.css'] },
+          { icon: '🌗', title: 'Light / Dark Mode Toggle', description: 'Sun/Moon icon toggle in sidebar header with full CSS variable theming across all elements. Theme preference persisted in localStorage across sessions.', files: ['worklog/page.tsx', 'worklog/changelog.css'] },
+          { icon: '🔍', title: 'Search & Filter', description: 'Sidebar search bar filters blocks and items by title in real-time. Filter pills (All / Major / Feature / Fix / Infra) hide non-matching day sections entirely.', files: ['worklog/page.tsx'] },
+          { icon: '⚡', title: 'Sprint Progress Bar', description: 'Animated gradient progress bar in the sidebar showing current sprint completion (78%). Built with CSS custom property transitions.', files: ['worklog/changelog.css'] },
+          { icon: '🃏', title: 'Card-Style Blocks', description: 'Each work block is a raised card with a colored left stripe per tag type (purple=Major, blue=Feature, amber=Fix, violet=Infra). Hover lifts the card with a shadow transition.', files: ['worklog/page.tsx', 'worklog/changelog.css'] },
+          { icon: '🕐', title: 'Timestamps', description: 'Every block now shows a clock icon badge with the time it was built (e.g. 09:15 AM). Displayed between the tag pill and item count using a subtle pill design.', files: ['worklog/page.tsx', 'worklog/changelog.css'] },
+          { icon: '🐙', title: 'GitHub Icons & Commit Counts', description: 'GitHub SVG icon next to commit counts in 3 places: stats card, sidebar nav per-day badge, and day header meta pill. Commit count shown for each day in the sidebar.', files: ['worklog/page.tsx'] },
+          { icon: '🔒', title: 'Auth-Protected Route', description: 'Removed /worklog from the public middleware exclusion list. Now requires a valid Supabase session — only logged-in team members can access it.', files: ['middleware.ts'] },
         ]
       },
     ]
