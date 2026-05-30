@@ -37,7 +37,7 @@ const worklog: WorkDay[] = [
   {
     date: 'May 30, 2026',
     dayLabel: 'Friday',
-    commitCount: 16,
+    commitCount: 19,
     blocks: [
       { tag: 'major', time: '09:15 AM',
         title: 'Smart Money Concepts Scanner',
@@ -100,6 +100,19 @@ const worklog: WorkDay[] = [
           { icon: '🕐', title: 'Timestamps', description: 'Every block now shows a clock icon badge with the time it was built (e.g. 09:15 AM). Displayed between the tag pill and item count using a subtle pill design.', files: ['worklog/page.tsx', 'worklog/changelog.css'] },
           { icon: '🐙', title: 'GitHub Icons & Commit Counts', description: 'GitHub SVG icon next to commit counts in 3 places: stats card, sidebar nav per-day badge, and day header meta pill. Commit count shown for each day in the sidebar.', files: ['worklog/page.tsx'] },
           { icon: '🔒', title: 'Auth-Protected Route', description: 'Removed /worklog from the public middleware exclusion list. Now requires a valid Supabase session — only logged-in team members can access it.', files: ['middleware.ts'] },
+        ]
+      },
+      { tag: 'feature', time: '09:00 PM',
+        title: 'Referral Hub — User Dashboard',
+        summary: 'Built a premium Referral Hub tab in the user dashboard with hero section, stats cards, invite link, milestone tracker, expandable partner list, and how-it-works guide.',
+        items: [
+          { icon: '🎁', title: 'Hero Section', description: 'Gradient glow hero with badge, title, and subtitle explaining the rebate program.', files: ['ReferralTab.tsx'] },
+          { icon: '📊', title: 'Stats Cards', description: '4 metric cards: Total Rebates ($4,820), Commissions ($1,240), Active Partners, and Network Volume ($1.2M). Hover lift animation.', files: ['ReferralTab.tsx', 'globals.css'] },
+          { icon: '🔗', title: 'Invite Card & Copy Buttons', description: 'Invite link card with code pill (TGPT-U82910), one-click copy link button, and separate copy-code button with ✓ confirmation on copy.', files: ['ReferralTab.tsx'] },
+          { icon: '📈', title: 'Milestone Progress Bar', description: 'Animated gradient progress bar with thumb showing progress toward 10-referral milestone ($250 reward). Labels at 0, 5, and 10.', files: ['ReferralTab.tsx', 'globals.css'] },
+          { icon: '👥', title: 'Partners Tab', description: 'Expandable accordion cards per partner: avatar initials, name, join date, trade count, status badge, rebate earned. Detail grid shows portfolio/rebate/commission/trades.', files: ['ReferralTab.tsx'] },
+          { icon: '🏆', title: 'Milestones Tab', description: '5 milestone tiers (1→50 referrals) with rewards up to $2,000. Reached milestones show green check; locked ones are dimmed.', files: ['ReferralTab.tsx'] },
+          { icon: '🛡️', title: 'Type Safety', description: 'Extended Partner interface with joined and trades fields. Updated types/index.ts and page.tsx partners state.', files: ['types/index.ts', 'page.tsx'] },
         ]
       },
     ]

@@ -45,10 +45,11 @@ export default function Home() {
 
   // Partners data
   const [partners, setPartners] = useState<Partner[]>([
-    { name: 'Alpha_Quant', portfolio: '42,481.68', rebate: '622.01', commission: '124.40', status: 'Active' },
-    { name: 'Retail_King', portfolio: '12,400.00', rebate: '88.20', commission: '17.60', status: 'Active' },
-    { name: 'Scalp_Hunter', portfolio: '89,120.50', rebate: '142.10', commission: '28.42', status: 'Active' },
-    { name: 'Institutional_Void', portfolio: '540,200.00', rebate: '1,240.00', commission: '248.00', status: 'Active' },
+    { name: 'Alpha_Quant',        portfolio: '42,481', rebate: '622',   commission: '124', status: 'Active',   joined: 'May 12', trades: 84  },
+    { name: 'Retail_King',        portfolio: '12,400', rebate: '88',    commission: '17',  status: 'Active',   joined: 'May 18', trades: 31  },
+    { name: 'Scalp_Hunter',       portfolio: '89,120', rebate: '1,142', commission: '228', status: 'Active',   joined: 'Apr 29', trades: 210 },
+    { name: 'Institutional_Void', portfolio: '540,200',rebate: '4,240', commission: '848', status: 'Active',   joined: 'Apr 10', trades: 612 },
+    { name: 'FX_Nomad',           portfolio: '8,800',  rebate: '44',    commission: '8',   status: 'Inactive', joined: 'May 25', trades: 12  },
   ]);
 
   // Synchronize HTML dark mode selector

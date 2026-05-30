@@ -1,159 +1,229 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Link as LinkIcon, ChevronDown } from 'lucide-react';
-import { Partner } from '../types';
 
-interface ReferralTabProps {
-  partners: Partner[];
+interface Partner {
+  name: string;
+  portfolio: string;
+  rebate: string;
+  commission: string;
+  status: string;
+  joined: string;
+  trades: number;
 }
 
-export default function ReferralTab({ partners }: ReferralTabProps) {
-  const [openPartnerIndex, setOpenPartnerIndex] = useState<number | null>(null);
-  const [copied, setCopied] = useState(false);
+interface ReferralTabProps {
+  partners?: Partner[];
+}
 
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText('tradegpt.ai/r/u82910');
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+const mockPartners: Partner[] = [
+  { name: 'Alpha_Quant',        portfolio: '42,481',  rebate: '622',   commission: '124', status: 'Active',   joined: 'May 12',  trades: 84 },
+  { name: 'Retail_King',        portfolio: '12,400',  rebate: '88',    commission: '17',  status: 'Active',   joined: 'May 18',  trades: 31 },
+  { name: 'Scalp_Hunter',       portfolio: '89,120',  rebate: '1,142', commission: '228', status: 'Active',   joined: 'Apr 29',  trades: 210 },
+  { name: 'Institutional_Void', portfolio: '540,200', rebate: '4,240', commission: '848', status: 'Active',   joined: 'Apr 10',  trades: 612 },
+  { name: 'FX_Nomad',           portfolio: '8,800',   rebate: '44',    commission: '8',   status: 'Inactive', joined: 'May 25',  trades: 12 },
+];
+
+const milestones = [
+  { label: '1st Referral',   reward: '$25',    reached: true  },
+  { label: '5 Referrals',    reward: '$100',   reached: true  },
+  { label: '10 Referrals',   reward: '$250',   reached: false },
+  { label: '25 Referrals',   reward: '$750',   reached: false },
+  { label: '50 Referrals',   reward: '$2,000', reached: false },
+];
+
+const REFERRAL_CODE = 'TGPT-U82910';
+const REFERRAL_LINK = 'tradegpt.ai/r/u82910';
+
+export default function ReferralTab({ partners = mockPartners }: ReferralTabProps) {
+  const [copied, setCopied] = useState<'code' | 'link' | null>(null);
+  const [activeTab, setActiveTab] = useState<'partners' | 'milestones'>('partners');
+  const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
+
+  const copy = (text: string, type: 'code' | 'link') => {
+    navigator.clipboard.writeText(text);
+    setCopied(type);
+    setTimeout(() => setCopied(null), 2000);
   };
 
-  const togglePartner = (index: number) => {
-    setOpenPartnerIndex(openPartnerIndex === index ? null : index);
-  };
+  const totalRebate = 4820;
+  const totalCommission = 1240;
+  const activeCount = partners.filter(p => p.status === 'Active').length;
+  const networkPortfolio = '1.2M';
+  const progressToNext = (partners.length / 10) * 100; // toward 10-referral milestone
 
   return (
-    <div className="p-6 lg:p-12 max-w-5xl mx-auto w-full space-y-10">
-      {/* Metrics Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="border border-[var(--border)] p-6 rounded-3xl bg-[var(--sidebar-bg)] shadow-sm">
-          <p className="text-[9px] font-bold text-[var(--subtext)] uppercase mb-2 leading-none">
-            Total Rebate
-          </p>
-          <p className="text-2xl font-bold text-green-500 font-mono leading-none mt-1">
-            $4,820.50
-          </p>
-        </div>
-        <div className="border border-[var(--border)] p-6 rounded-3xl bg-[var(--sidebar-bg)] shadow-sm">
-          <p className="text-[9px] font-bold text-[var(--subtext)] uppercase mb-2 leading-none">
-            Commission
-          </p>
-          <p className="text-2xl font-bold font-mono leading-none mt-1">
-            $1,240.20
-          </p>
-        </div>
-        <div className="border border-[var(--border)] p-6 rounded-3xl bg-[var(--sidebar-bg)] shadow-sm">
-          <p className="text-[9px] font-bold text-[var(--subtext)] uppercase mb-2 leading-none">
-            Active Partners
-          </p>
-          <p className="text-2xl font-bold font-mono leading-none mt-1">
-            142
-          </p>
-        </div>
-        <div className="border border-[var(--border)] p-6 rounded-3xl bg-[var(--sidebar-bg)] shadow-sm">
-          <p className="text-[9px] font-bold text-[var(--subtext)] uppercase mb-2 leading-none">
-            Network Portfolio
-          </p>
-          <p className="text-2xl font-bold text-blue-500 font-mono leading-none mt-1">
-            $1.2M
-          </p>
+    <div className="referral-root">
+
+      {/* ── HERO ── */}
+      <div className="ref-hero">
+        <div className="ref-hero-glow" />
+        <div className="ref-hero-content">
+          <div className="ref-hero-badge">🎁 Referral Hub</div>
+          <h1 className="ref-hero-title">Earn While Your Network Trades</h1>
+          <p className="ref-hero-sub">Share your link. Earn rebates on every trade your referrals make — forever.</p>
         </div>
       </div>
 
-      {/* Invite Link Card */}
-      <div className="border border-blue-500/10 p-5 rounded-3xl flex flex-col md:flex-row justify-between items-center bg-blue-500/5 gap-4">
-        <div className="flex items-center space-x-4">
-          <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/20 shrink-0">
-            <LinkIcon className="w-4 h-4" />
-          </div>
+      {/* ── STATS ROW ── */}
+      <div className="ref-stats">
+        <div className="ref-stat">
+          <span className="ref-stat-label">Total Rebates</span>
+          <span className="ref-stat-value green">${totalRebate.toLocaleString()}</span>
+          <span className="ref-stat-sub">↑ 12.4% this month</span>
+        </div>
+        <div className="ref-stat">
+          <span className="ref-stat-label">Commissions</span>
+          <span className="ref-stat-value">${totalCommission.toLocaleString()}</span>
+          <span className="ref-stat-sub">↑ 8.1% this month</span>
+        </div>
+        <div className="ref-stat">
+          <span className="ref-stat-label">Active Partners</span>
+          <span className="ref-stat-value blue">{activeCount}</span>
+          <span className="ref-stat-sub">{partners.length} total referred</span>
+        </div>
+        <div className="ref-stat">
+          <span className="ref-stat-label">Network Volume</span>
+          <span className="ref-stat-value purple">${networkPortfolio}</span>
+          <span className="ref-stat-sub">Combined portfolio</span>
+        </div>
+      </div>
+
+      {/* ── INVITE CARD ── */}
+      <div className="ref-invite-card">
+        <div className="ref-invite-left">
+          <div className="ref-invite-icon">🔗</div>
           <div>
-            <p className="text-[10px] font-bold text-blue-500 uppercase leading-none mb-1">
-              Institutional Invite Link
-            </p>
-            <code className="text-xs font-bold font-mono">tradegpt.ai/r/u82910</code>
+            <p className="ref-invite-eyebrow">Your Referral Link</p>
+            <code className="ref-invite-url">{REFERRAL_LINK}</code>
           </div>
         </div>
-        <button
-          onClick={handleCopyLink}
-          className="w-full md:w-auto bg-[var(--text)] text-[var(--bg)] px-8 py-2.5 rounded-2xl text-[10px] font-bold uppercase active:scale-95 transition-all hover:opacity-90"
-        >
-          {copied ? 'Copied' : 'Copy'}
-        </button>
+        <div className="ref-invite-actions">
+          <div className="ref-code-pill">
+            <span className="ref-code-label">CODE</span>
+            <code className="ref-code-val">{REFERRAL_CODE}</code>
+            <button className="ref-copy-btn" onClick={() => copy(REFERRAL_CODE, 'code')}>
+              {copied === 'code' ? '✓' : '⎘'}
+            </button>
+          </div>
+          <button className="ref-copy-link-btn" onClick={() => copy(REFERRAL_LINK, 'link')}>
+            {copied === 'link' ? '✓ Copied!' : 'Copy Link'}
+          </button>
+        </div>
       </div>
 
-      {/* Partners Accordion */}
-      <div className="space-y-3 pb-10">
-        {partners.map((p, idx) => {
-          const isOpen = openPartnerIndex === idx;
-          return (
-            <div
-              key={p.name}
-              className="border border-[var(--border)] rounded-2xl overflow-hidden bg-[var(--bg)] shadow-sm"
-            >
-              <button
-                onClick={() => togglePartner(idx)}
-                className="w-full p-5 flex flex-col hover:bg-[var(--sidebar-bg)] transition duration-200"
-              >
-                <div className="flex items-center justify-between w-full">
-                  <div className="flex items-center space-x-4 text-left">
-                    <img
-                      src={`https://ui-avatars.com/api/?name=${p.name}&background=random&color=fff`}
-                      alt={p.name}
-                      className="w-7 h-7 rounded-lg"
-                    />
-                    <div>
-                      <p className="text-sm font-bold">{p.name}</p>
-                      <p className="text-[9px] text-blue-500 font-bold uppercase tracking-widest leading-none mt-1">
-                        Verified
-                      </p>
-                    </div>
+      {/* ── MILESTONE PROGRESS ── */}
+      <div className="ref-milestone-bar-card">
+        <div className="ref-milestone-bar-top">
+          <span className="ref-milestone-bar-label">Progress to next milestone</span>
+          <span className="ref-milestone-bar-sub">{partners.length} / 10 referrals</span>
+        </div>
+        <div className="ref-progress-track">
+          <div className="ref-progress-fill" style={{ width: `${Math.min(progressToNext, 100)}%` }} />
+          <div className="ref-progress-thumb" style={{ left: `${Math.min(progressToNext, 100)}%` }} />
+        </div>
+        <div className="ref-progress-labels">
+          <span>0</span><span>5</span><span>10 🎯 $250</span>
+        </div>
+      </div>
+
+      {/* ── TABS ── */}
+      <div className="ref-tabs-header">
+        <button
+          className={`ref-tab-btn ${activeTab === 'partners' ? 'ref-tab-btn--active' : ''}`}
+          onClick={() => setActiveTab('partners')}
+        >👥 Partners ({partners.length})</button>
+        <button
+          className={`ref-tab-btn ${activeTab === 'milestones' ? 'ref-tab-btn--active' : ''}`}
+          onClick={() => setActiveTab('milestones')}
+        >🏆 Milestones</button>
+      </div>
+
+      {/* ── PARTNERS LIST ── */}
+      {activeTab === 'partners' && (
+        <div className="ref-partners">
+          {partners.map((p, idx) => {
+            const isOpen = expandedIdx === idx;
+            const initials = p.name.slice(0, 2).toUpperCase();
+            return (
+              <div key={p.name} className={`ref-partner-card ${isOpen ? 'ref-partner-card--open' : ''}`}>
+                <button className="ref-partner-row" onClick={() => setExpandedIdx(isOpen ? null : idx)}>
+                  <div className="ref-partner-avatar">{initials}</div>
+                  <div className="ref-partner-info">
+                    <span className="ref-partner-name">{p.name}</span>
+                    <span className="ref-partner-joined">Joined {p.joined} · {p.trades} trades</span>
                   </div>
-                  <div className="flex items-center space-x-6">
-                    <span className="text-[10px] font-bold text-green-500 uppercase">
+                  <div className="ref-partner-right">
+                    <span className={`ref-partner-status ${p.status === 'Active' ? 'ref-status--active' : 'ref-status--inactive'}`}>
                       {p.status}
                     </span>
-                    <ChevronDown
-                      className={`w-3.5 h-3.5 text-[var(--subtext)] transition-transform duration-300 ${
-                        isOpen ? 'rotate-180' : 'rotate-0'
-                      }`}
-                    />
+                    <span className="ref-partner-rebate">+${p.rebate}</span>
+                    <span className="ref-chevron">{isOpen ? '▲' : '▼'}</span>
                   </div>
-                </div>
-              </button>
+                </button>
+                {isOpen && (
+                  <div className="ref-partner-detail">
+                    <div className="ref-detail-grid">
+                      <div className="ref-detail-item">
+                        <span className="ref-detail-label">Portfolio</span>
+                        <span className="ref-detail-value">${p.portfolio}</span>
+                      </div>
+                      <div className="ref-detail-item">
+                        <span className="ref-detail-label">Rebate Earned</span>
+                        <span className="ref-detail-value green">+${p.rebate}</span>
+                      </div>
+                      <div className="ref-detail-item">
+                        <span className="ref-detail-label">Commission</span>
+                        <span className="ref-detail-value blue">${p.commission}</span>
+                      </div>
+                      <div className="ref-detail-item">
+                        <span className="ref-detail-label">Total Trades</span>
+                        <span className="ref-detail-value">{p.trades}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
-              {/* Accordion Expand Area */}
-              {isOpen && (
-                <div className="px-5 pb-5 animate-in fade-in slide-in-from-top-1 duration-200">
-                  <div className="pt-4 border-t border-[var(--border)] grid grid-cols-3 gap-4">
-                    <div>
-                      <p className="text-[9px] font-bold text-[var(--subtext)] uppercase mb-1">
-                        Portfolio
-                      </p>
-                      <p className="text-sm font-bold font-mono">${p.portfolio}</p>
-                    </div>
-                    <div>
-                      <p className="text-[9px] font-bold text-[var(--subtext)] uppercase mb-1">
-                        Rebate
-                      </p>
-                      <p className="text-sm font-bold font-mono text-green-500">
-                        +${p.rebate}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[9px] font-bold text-[var(--subtext)] uppercase mb-1">
-                        Commission
-                      </p>
-                      <p className="text-sm font-bold font-mono text-blue-500">
-                        ${p.commission}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
+      {/* ── MILESTONES ── */}
+      {activeTab === 'milestones' && (
+        <div className="ref-milestones">
+          {milestones.map((m, i) => (
+            <div key={i} className={`ref-milestone ${m.reached ? 'ref-milestone--reached' : ''}`}>
+              <div className="ref-milestone-check">{m.reached ? '✓' : i + 1}</div>
+              <div className="ref-milestone-info">
+                <span className="ref-milestone-title">{m.label}</span>
+                <span className="ref-milestone-sub">{m.reached ? 'Unlocked' : 'Locked'}</span>
+              </div>
+              <div className="ref-milestone-reward">{m.reward}</div>
             </div>
-          );
-        })}
+          ))}
+        </div>
+      )}
+
+      {/* ── HOW IT WORKS ── */}
+      <div className="ref-how">
+        <p className="ref-how-title">How it works</p>
+        <div className="ref-how-steps">
+          {[
+            { icon: '🔗', label: 'Share your link',    sub: 'Send to traders you know' },
+            { icon: '📋', label: 'They sign up',        sub: 'Partner creates an account' },
+            { icon: '💹', label: 'They trade',          sub: 'Any market, any broker' },
+            { icon: '💰', label: 'You earn',            sub: 'Rebate on every trade' },
+          ].map((s, i) => (
+            <div key={i} className="ref-how-step">
+              <div className="ref-how-icon">{s.icon}</div>
+              <span className="ref-how-label">{s.label}</span>
+              <span className="ref-how-sub">{s.sub}</span>
+            </div>
+          ))}
+        </div>
       </div>
+
     </div>
   );
 }

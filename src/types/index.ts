@@ -50,6 +50,8 @@ export interface Partner {
   rebate: string;
   commission: string;
   status: string;
+  joined: string;
+  trades: number;
 }
 
 export interface TradeLog {
