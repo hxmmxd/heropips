@@ -8,7 +8,7 @@ import {
   ArrowUpRight, Globe, Clock, Wifi, WifiOff, Receipt, CheckCircle, XCircle,
   Heart, Cpu, Database, Pencil, Check, X, Mail, User, Settings, Megaphone,
   FileText, Power, ToggleLeft, ToggleRight, AlertTriangle, Plus, Trash2,
-  Target, BarChart2, ShieldAlert
+  Target, BarChart2, ShieldAlert, Plug, TestTube, Loader2, Key, Link2
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
@@ -22,6 +22,9 @@ interface AdminStats {
   totalTrades: number;
   openTrades: number;
   revenue: number;
+  winRate: number;
+  totalPnl: number;
+  suspendedUsers: number;
 }
 
 interface UserRow {
@@ -77,6 +80,10 @@ export default function AdminPage() {
   const [signupTrends, setSignupTrends] = useState<{month:string;count:number}[]>([]);
   const [revenueTrends, setRevenueTrends] = useState<{month:string;revenue:number}[]>([]);
   const [topSymbols, setTopSymbols] = useState<{symbol:string;count:number}[]>([]);
+  const [brokerProviders, setBrokerProviders] = useState<any[]>([]);
+  const [showAddProvider, setShowAddProvider] = useState(false);
+  const [newProvider, setNewProvider] = useState({ name: '', type: 'metatrader', api_key: '', api_secret: '', base_url: '' });
+  const [testingProvider, setTestingProvider] = useState<string | null>(null);
 
   useEffect(() => { loadData(); }, []);
 
@@ -97,6 +104,7 @@ export default function AdminPage() {
       setSignupTrends(data.signupTrends || []);
       setRevenueTrends(data.revenueTrends || []);
       setTopSymbols(data.topSymbols || []);
+      setBrokerProviders(data.brokerProviders || []);
     } catch (err: any) { setError(err.message); }
     finally { setLoading(false); }
   };
@@ -554,30 +562,81 @@ export default function AdminPage() {
           )}
 
           {activeSection === 'brokers' && (
-            <div className="adm-card adm-card-full">
-              <div className="adm-card-head">
-                <h3>Broker Accounts ({brokers.length})</h3>
+            <>
+              {/* Broker Providers Hub */}
+              <div className="adm-card">
+                <div className="adm-card-head">
+                  <h3><Plug style={{width:16,height:16,marginRight:6}} />Broker Providers ({brokerProviders.length})</h3>
+                  <div className="adm-post-btn" role="button" tabIndex={0} onClick={() => setShowAddProvider(true)}>+ Add Provider</div>
+                </div>
+                <div className="adm-card-body">
+                  {brokerProviders.length === 0 ? (
+                    <div className="adm-empty-state"><Plug className="adm-empty-icon" /><p>No broker providers configured</p><p style={{fontSize:12,color:'var(--subtext)'}}>Add a provider to enable user broker connections</p></div>
+                  ) : (
+                    <div className="adm-provider-grid">
+                      {brokerProviders.map(p => (
+                        <div key={p.id} className="adm-provider-card">
+                          <div className="adm-provider-top">
+                            <div className={`adm-provider-status adm-provider-${p.status}`}>
+                              {p.status === 'active' ? <CheckCircle /> : p.status === 'error' ? <XCircle /> : <Clock />}
+                            </div>
+                            <div className="adm-provider-actions">
+                              <div className="adm-provider-act" role="button" tabIndex={0} onClick={async () => {
+                                setTestingProvider(p.id);
+                                const res = await fetch('/api/admin', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ brokerProvider: { action: 'test', data: { id: p.id } } }) });
+                                const result = await res.json();
+                                setBrokerProviders(brokerProviders.map(x => x.id === p.id ? { ...x, status: result.status || 'error', error_message: result.error || null } : x));
+                                setTestingProvider(null);
+                              }}>{testingProvider === p.id ? <Loader2 className="adm-spin" /> : <TestTube />}</div>
+                              <div className="adm-provider-act adm-provider-del" role="button" tabIndex={0} onClick={async () => {
+                                if (!confirm(`Delete provider "${p.name}"?`)) return;
+                                await fetch('/api/admin', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ brokerProvider: { action: 'delete', data: { id: p.id, name: p.name } } }) });
+                                setBrokerProviders(brokerProviders.filter(x => x.id !== p.id));
+                              }}><Trash2 /></div>
+                            </div>
+                          </div>
+                          <h4 className="adm-provider-name">{p.name}</h4>
+                          <span className={`adm-tag adm-tag-${p.type}`}>{p.type === 'metatrader' ? 'MetaTrader' : p.type === 'ctrader' ? 'cTrader' : 'Custom REST'}</span>
+                          <div className="adm-provider-meta">
+                            <div className="adm-provider-kv"><Key /><span>{p.api_key || 'No key'}</span></div>
+                            {p.base_url && <div className="adm-provider-kv"><Link2 /><span>{p.base_url}</span></div>}
+                          </div>
+                          {p.error_message && <p className="adm-provider-error">{p.error_message}</p>}
+                          <div className="adm-provider-footer">
+                            <span>{p.connected_accounts || 0} accounts</span>
+                            <span className={`adm-provider-badge adm-provider-${p.status}`}>{p.status}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-              {brokers.length === 0 ? (
-                <div className="adm-empty-state"><Server className="adm-empty-icon" /><p>No broker accounts connected yet</p></div>
-              ) : (
-                <div className="adm-table-wrap"><table className="adm-table"><thead><tr>
-                  <th>Broker</th><th>Account ID</th><th>Server</th><th>Status</th><th>Connected</th>
-                </tr></thead><tbody>
-                  {brokers.map(b => (
-                    <tr key={b.id}>
-                      <td><span className="adm-broker-name">{b.broker_name || 'MT5'}</span></td>
-                      <td className="adm-mono">{b.account_id}</td>
-                      <td className="adm-date-cell">{b.server || '—'}</td>
-                      <td><span className={`adm-status ${b.status === 'connected' ? 'adm-status-on' : 'adm-status-off'}`}>
-                        {b.status === 'connected' ? <><Wifi /> Connected</> : <><WifiOff /> Offline</>}
-                      </span></td>
-                      <td className="adm-date-cell">{b.created_at ? new Date(b.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}</td>
-                    </tr>
-                  ))}
-                </tbody></table></div>
-              )}
-            </div>
+
+              {/* Connected Accounts Table */}
+              <div className="adm-card adm-card-full">
+                <div className="adm-card-head"><h3>Connected Accounts ({brokers.length})</h3></div>
+                {brokers.length === 0 ? (
+                  <div className="adm-empty-state"><Server className="adm-empty-icon" /><p>No broker accounts connected yet</p></div>
+                ) : (
+                  <div className="adm-table-wrap"><table className="adm-table"><thead><tr>
+                    <th>Broker</th><th>Account ID</th><th>Server</th><th>Status</th><th>Connected</th>
+                  </tr></thead><tbody>
+                    {brokers.map(b => (
+                      <tr key={b.id}>
+                        <td><span className="adm-broker-name">{b.broker_name || 'MT5'}</span></td>
+                        <td className="adm-mono">{b.account_id}</td>
+                        <td className="adm-date-cell">{b.server || '—'}</td>
+                        <td><span className={`adm-status ${b.status === 'connected' ? 'adm-status-on' : 'adm-status-off'}`}>
+                          {b.status === 'connected' ? <><Wifi /> Connected</> : <><WifiOff /> Offline</>}
+                        </span></td>
+                        <td className="adm-date-cell">{b.created_at ? new Date(b.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody></table></div>
+                )}
+              </div>
+            </>
           )}
 
           {activeSection === 'trades' && (
@@ -736,19 +795,19 @@ export default function AdminPage() {
                   <div className="adm-toggle-list">
                     <div className="adm-toggle-row">
                       <div className="adm-toggle-info"><AlertTriangle className="adm-toggle-icon adm-toggle-warn" /><div><p className="adm-toggle-name">Maintenance Mode</p><p className="adm-toggle-desc">Show maintenance page to all users</p></div></div>
-                      <button className={`adm-toggle ${config.maintenance_mode ? 'adm-toggle-on' : ''}`} onClick={async () => {
+                      <div className={`adm-switch ${config.maintenance_mode === true ? 'adm-switch-on' : ''}`} role="button" tabIndex={0} onClick={() => {
                         const val = !config.maintenance_mode;
-                        await fetch('/api/admin', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ configKey: 'maintenance_mode', configValue: val }) });
+                        fetch('/api/admin', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ configKey: 'maintenance_mode', configValue: val }) });
                         setConfig({ ...config, maintenance_mode: val });
-                      }}>{config.maintenance_mode ? <ToggleRight /> : <ToggleLeft />}</button>
+                      }}><span className="adm-switch-track"><span className="adm-switch-thumb" /></span></div>
                     </div>
                     <div className="adm-toggle-row">
                       <div className="adm-toggle-info"><Power className="adm-toggle-icon adm-toggle-danger" /><div><p className="adm-toggle-name">AI Kill Switch</p><p className="adm-toggle-desc">Immediately pause all AI signal generation</p></div></div>
-                      <button className={`adm-toggle ${config.ai_kill_switch ? 'adm-toggle-on' : ''}`} onClick={async () => {
+                      <div className={`adm-switch ${config.ai_kill_switch === true ? 'adm-switch-on' : ''}`} role="button" tabIndex={0} onClick={() => {
                         const val = !config.ai_kill_switch;
-                        await fetch('/api/admin', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ configKey: 'ai_kill_switch', configValue: val }) });
+                        fetch('/api/admin', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ configKey: 'ai_kill_switch', configValue: val }) });
                         setConfig({ ...config, ai_kill_switch: val });
-                      }}>{config.ai_kill_switch ? <ToggleRight /> : <ToggleLeft />}</button>
+                      }}><span className="adm-switch-track"><span className="adm-switch-thumb" /></span></div>
                     </div>
                   </div>
                 </div>
@@ -762,11 +821,11 @@ export default function AdminPage() {
                     {config.feature_flags && Object.entries(config.feature_flags as Record<string, boolean>).map(([key, val]) => (
                       <div key={key} className="adm-toggle-row">
                         <div className="adm-toggle-info"><Zap className="adm-toggle-icon" /><div><p className="adm-toggle-name">{key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p></div></div>
-                        <button className={`adm-toggle ${val ? 'adm-toggle-on' : ''}`} onClick={async () => {
+                        <div className={`adm-switch ${val === true ? 'adm-switch-on' : ''}`} role="button" tabIndex={0} onClick={() => {
                           const flags = { ...config.feature_flags, [key]: !val };
-                          await fetch('/api/admin', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ configKey: 'feature_flags', configValue: flags }) });
+                          fetch('/api/admin', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ configKey: 'feature_flags', configValue: flags }) });
                           setConfig({ ...config, feature_flags: flags });
-                        }}>{val ? <ToggleRight /> : <ToggleLeft />}</button>
+                        }}><span className="adm-switch-track"><span className="adm-switch-thumb" /></span></div>
                       </div>
                     ))}
                   </div>
@@ -788,25 +847,20 @@ export default function AdminPage() {
                         <p className="adm-pricing-label">{tier.label}</p>
                         <div className="adm-pricing-input-wrap">
                           <span className="adm-pricing-dollar">$</span>
-                          <input
-                            type="number"
-                            className="adm-pricing-input"
-                            value={config.plan_pricing?.[tier.key] ?? ''}
-                            onChange={e => {
-                              const pricing = { ...config.plan_pricing, [tier.key]: Number(e.target.value) };
-                              setConfig({ ...config, plan_pricing: pricing });
-                            }}
-                          />
+                          <input type="number" className="adm-pricing-input" value={config.plan_pricing?.[tier.key] ?? ''} onChange={e => {
+                            const pricing = { ...config.plan_pricing, [tier.key]: Number(e.target.value) };
+                            setConfig({ ...config, plan_pricing: pricing });
+                          }} />
                           <span className="adm-pricing-period">/mo</span>
                         </div>
                       </div>
                     ))}
                   </div>
-                  <button className="adm-pricing-save" onClick={async () => {
-                    await fetch('/api/admin', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ configKey: 'plan_pricing', configValue: config.plan_pricing }) });
+                  <div className="adm-pricing-save" role="button" tabIndex={0} onClick={() => {
+                    fetch('/api/admin', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ configKey: 'plan_pricing', configValue: config.plan_pricing }) });
                     setSaveMsg('Pricing saved'); setTimeout(() => setSaveMsg(''), 2000);
-                  }}><Check /> Save Pricing</button>
-                  {saveMsg === 'Pricing saved' && <p className="adm-save-msg" style={{marginTop:8}}>✓ Pricing updated successfully</p>}
+                  }}>✓ Save Pricing</div>
+                  {saveMsg === 'Pricing saved' && <p className="adm-save-msg" style={{marginTop:8}}>Pricing updated successfully</p>}
                 </div>
               </div>
 
@@ -821,21 +875,21 @@ export default function AdminPage() {
                       <select className="adm-select" value={newAnnouncement.type} onChange={e => setNewAnnouncement({ ...newAnnouncement, type: e.target.value })}>
                         <option value="info">Info</option><option value="warning">Warning</option><option value="success">Success</option>
                       </select>
-                      <button className="adm-edit-save" onClick={async () => {
+                      <div className="adm-post-btn" role="button" tabIndex={0} onClick={() => {
                         if (!newAnnouncement.title) return;
-                        await fetch('/api/admin', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ announcement: newAnnouncement }) });
+                        fetch('/api/admin', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ announcement: newAnnouncement }) });
                         setNewAnnouncement({ title: '', message: '', type: 'info' });
                         handleRefresh();
-                      }}><Plus /> Post</button>
+                      }}>+ Post</div>
                     </div>
                   </div>
                   {announcements.map(a => (
                     <div key={a.id} className={`adm-announce-item adm-announce-${a.type}`}>
                       <div><p className="adm-announce-title">{a.title}</p><p className="adm-announce-msg">{a.message}</p><p className="adm-announce-date">{new Date(a.created_at).toLocaleDateString()}</p></div>
-                      <button className="adm-announce-del" onClick={async () => {
-                        await fetch('/api/admin', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ announcement: { id: a.id, is_active: false } }) });
+                      <div className="adm-announce-del" role="button" tabIndex={0} onClick={() => {
+                        fetch('/api/admin', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ announcement: { id: a.id, is_active: false } }) });
                         setAnnouncements(announcements.filter(x => x.id !== a.id));
-                      }}><Trash2 /></button>
+                      }}>✕</div>
                     </div>
                   ))}
                 </div>
@@ -879,6 +933,38 @@ export default function AdminPage() {
                   setUsers(users.map(u => u.id === suspendDialog.userId ? { ...u, status: 'suspended' } as any : u));
                   setSuspendDialog(null); setSuspendReason('');
                 }}><Ban /> Suspend</button>
+              </div>
+            </div>
+          </>)}
+
+          {/* Add Provider Dialog */}
+          {showAddProvider && (<>
+            <div className="adm-drawer-overlay" onClick={() => setShowAddProvider(false)} />
+            <div className="adm-suspend-dialog" style={{width:'480px'}}>
+              <h3>Add Broker Provider</h3>
+              <p>Configure a new broker API connection for your platform.</p>
+              <input className="adm-edit-input" placeholder="Provider Name (e.g. MetaAPI Production)" value={newProvider.name} onChange={e => setNewProvider({ ...newProvider, name: e.target.value })} />
+              <select className="adm-select" style={{width:'100%',marginBottom:8}} value={newProvider.type} onChange={e => setNewProvider({ ...newProvider, type: e.target.value })}>
+                <option value="metatrader">MetaTrader (MetaAPI)</option>
+                <option value="ctrader">cTrader (Open API)</option>
+                <option value="custom">Custom REST API</option>
+              </select>
+              <input className="adm-edit-input" type="password" placeholder="API Key / Token" value={newProvider.api_key} onChange={e => setNewProvider({ ...newProvider, api_key: e.target.value })} />
+              {newProvider.type !== 'metatrader' && (
+                <>
+                  <input className="adm-edit-input" type="password" placeholder="API Secret (optional)" value={newProvider.api_secret} onChange={e => setNewProvider({ ...newProvider, api_secret: e.target.value })} />
+                  <input className="adm-edit-input" placeholder="Base URL (e.g. https://api.broker.com)" value={newProvider.base_url} onChange={e => setNewProvider({ ...newProvider, base_url: e.target.value })} />
+                </>
+              )}
+              <div className="adm-edit-buttons" style={{marginTop:8}}>
+                <div className="adm-edit-cancel" role="button" tabIndex={0} onClick={() => setShowAddProvider(false)}>Cancel</div>
+                <div className="adm-post-btn" role="button" tabIndex={0} onClick={async () => {
+                  if (!newProvider.name || !newProvider.api_key) return;
+                  await fetch('/api/admin', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ brokerProvider: { action: 'create', data: newProvider } }) });
+                  setShowAddProvider(false);
+                  setNewProvider({ name: '', type: 'metatrader', api_key: '', api_secret: '', base_url: '' });
+                  handleRefresh();
+                }}>+ Create Provider</div>
               </div>
             </div>
           </>)}

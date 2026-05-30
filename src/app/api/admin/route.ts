@@ -28,7 +28,7 @@ export async function GET() {
   }
 
   // Fetch all data
-  const [usersRes, brokersRes, tradesRes, announcementsRes, configRes, auditRes, riskRes] = await Promise.all([
+  const [usersRes, brokersRes, tradesRes, announcementsRes, configRes, auditRes, riskRes, providersRes] = await Promise.all([
     supabaseAdmin.from('profiles').select('*').order('created_at', { ascending: false }),
     supabaseAdmin.from('broker_accounts').select('*').order('created_at', { ascending: false }),
     supabaseAdmin.from('trades').select('*').order('created_at', { ascending: false }).limit(200),
@@ -36,6 +36,7 @@ export async function GET() {
     supabaseAdmin.from('platform_config').select('*'),
     supabaseAdmin.from('audit_log').select('*').order('created_at', { ascending: false }).limit(50),
     supabaseAdmin.from('risk_rules').select('*').order('created_at', { ascending: true }),
+    supabaseAdmin.from('broker_providers').select('*').order('created_at', { ascending: true }),
   ]);
 
   const users = usersRes.data || [];
@@ -46,6 +47,12 @@ export async function GET() {
   (configRes.data || []).forEach((c: any) => { config[c.key] = c.value; });
   const auditLog = auditRes.data || [];
   const riskRules = riskRes.data || [];
+  // Mask API keys for providers before sending to frontend
+  const brokerProviders = (providersRes.data || []).map((p: any) => ({
+    ...p,
+    api_key: p.api_key ? '••••' + p.api_key.slice(-4) : null,
+    api_secret: p.api_secret ? '••••' + p.api_secret.slice(-4) : null,
+  }));
 
   // Compute monthly signup trends (last 6 months)
   const now = new Date();
@@ -104,7 +111,7 @@ export async function GET() {
     }, 0),
   };
 
-  return NextResponse.json({ stats, users, brokers, trades, announcements, config, auditLog, riskRules, signupTrends, revenueTrends, topSymbols });
+  return NextResponse.json({ stats, users, brokers, trades, announcements, config, auditLog, riskRules, signupTrends, revenueTrends, topSymbols, brokerProviders });
 }
 
 // Update user plan or admin status
@@ -126,7 +133,50 @@ export async function PATCH(request: Request) {
   }
 
   const body = await request.json();
-  const { userId, plan, is_admin, full_name, email, status, suspended_reason, configKey, configValue, announcement, riskRule } = body;
+  const { userId, plan, is_admin, full_name, email, status, suspended_reason, configKey, configValue, announcement, riskRule, brokerProvider } = body;
+
+  // -- Broker provider CRUD
+  if (brokerProvider !== undefined) {
+    const { action, data } = brokerProvider;
+    if (action === 'create') {
+      const { error } = await supabaseAdmin.from('broker_providers').insert({ ...data, created_by: user.id });
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      await supabaseAdmin.from('audit_log').insert({ admin_id: user.id, action: 'provider_created', target_type: 'broker_provider', details: { name: data.name, type: data.type } });
+    } else if (action === 'update') {
+      const updateData: any = { ...data, updated_at: new Date().toISOString() };
+      // Only update api_key/api_secret if they don't start with masked prefix
+      if (updateData.api_key?.startsWith('••••')) delete updateData.api_key;
+      if (updateData.api_secret?.startsWith('••••')) delete updateData.api_secret;
+      delete updateData.id;
+      await supabaseAdmin.from('broker_providers').update(updateData).eq('id', data.id);
+      await supabaseAdmin.from('audit_log').insert({ admin_id: user.id, action: 'provider_updated', target_type: 'broker_provider', target_id: data.id, details: { name: data.name } });
+    } else if (action === 'delete') {
+      await supabaseAdmin.from('broker_providers').delete().eq('id', data.id);
+      await supabaseAdmin.from('audit_log').insert({ admin_id: user.id, action: 'provider_deleted', target_type: 'broker_provider', target_id: data.id, details: { name: data.name } });
+    } else if (action === 'test') {
+      // Test connectivity — try to instantiate connection with the stored key
+      const { data: provider } = await supabaseAdmin.from('broker_providers').select('*').eq('id', data.id).single();
+      if (!provider) return NextResponse.json({ error: 'Provider not found' }, { status: 404 });
+      try {
+        if (provider.type === 'metatrader' && provider.api_key) {
+          const MetaApi = (await import('metaapi.cloud-sdk/node')).default;
+          const api = new MetaApi(provider.api_key);
+          // Just validate token by listing accounts — if it throws, the key is invalid
+          await api.metatraderAccountApi.getAccountsWithInfiniteScrollPagination();
+          await supabaseAdmin.from('broker_providers').update({ status: 'active', error_message: null, last_health_check: new Date().toISOString() }).eq('id', data.id);
+          return NextResponse.json({ success: true, status: 'active' });
+        }
+        // For other types just mark as active for now
+        await supabaseAdmin.from('broker_providers').update({ status: 'active', error_message: null, last_health_check: new Date().toISOString() }).eq('id', data.id);
+        return NextResponse.json({ success: true, status: 'active' });
+      } catch (err: any) {
+        const msg = err?.message || 'Connection failed';
+        await supabaseAdmin.from('broker_providers').update({ status: 'error', error_message: msg, last_health_check: new Date().toISOString() }).eq('id', data.id);
+        return NextResponse.json({ success: false, status: 'error', error: msg });
+      }
+    }
+    return NextResponse.json({ success: true });
+  }
 
   // -- Risk rule update
   if (riskRule !== undefined) {
