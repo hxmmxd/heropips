@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 /* ── Changelog Data ─────────────────────────────────────────────── */
 interface ChangelogEntry {
@@ -24,7 +24,7 @@ const changelog: ChangelogEntry[] = [
       { icon: '🔌', title: 'Reimagined Connect Exchange Modal', description: 'Premium 2-step flow with pill-based exchange selection (MT5, MT4, cTrader, Binance, Bybit), brand-colored UI, and dynamic credential forms.' },
       { icon: '⚡', title: 'Universal Trading Engine', description: 'Adapter pattern supporting MetaTrader + Binance/Bybit/OKX crypto exchanges with HMAC signing and unified order routing.' },
       { icon: '🏗️', title: 'Broker Integration Hub', description: 'Provider CRUD with test connection, Add Provider modal with dynamic fields per exchange type, and full audit logging.' },
-      { icon: '👤', title: 'User-Scoped Broker Accounts', description: 'Each user now only sees their own connected brokers. New users start with an empty list — no more shared demo data.' },
+      { icon: '👤', title: 'User-Scoped Broker Accounts', description: 'Each user now only sees their own connected brokers. New users start with an empty list.' },
       { icon: '🗑️', title: 'Broker Disconnect', description: 'Hover-reveal disconnect button on broker cards with 2-click confirm pattern and animated loading state.' },
       { icon: '☁️', title: 'Vercel Deployment Fixes', description: 'Lazy-initialized Supabase admin client + safe env var fallbacks across all server files to prevent build-time crashes.' },
     ]
@@ -38,12 +38,12 @@ const changelog: ChangelogEntry[] = [
     items: [
       { icon: '🔐', title: 'Authentication System', description: 'Login/signup with Supabase Auth, middleware route guards, OAuth callback, and a premium glassmorphic login UI.' },
       { icon: '👤', title: 'User Profile & Settings', description: 'Avatar upload, change password, real auth data in sidebar, popup menu, and dedicated Settings page.' },
-      { icon: '💎', title: 'Subscription Plans', description: '3-tier pricing (Free/Pro/Enterprise) with feature comparison cards and plan upgrade flow.' },
+      { icon: '💎', title: 'Subscription Plans', description: '3-tier pricing (Free / Pro / Enterprise) with feature comparison cards and plan upgrade flow.' },
       { icon: '👨‍💼', title: 'Admin Dashboard', description: 'KPI cards, plan distribution chart, sortable user table with filters, bulk actions, pagination, and CSV export.' },
       { icon: '📊', title: 'Admin Analytics', description: 'Brokers/Trades/Analytics tabs, system health monitoring, revenue chart, and trade activity feeds.' },
       { icon: '✏️', title: 'Inline User Editing', description: 'Edit name, email, and plan directly in the user table with live save to Supabase Auth + Database.' },
       { icon: '⚙️', title: 'Platform Configuration', description: 'Feature flags, announcements system, audit log, user suspension, and plan pricing editor.' },
-      { icon: '📈', title: 'Intelligence Engine', description: 'Signup/revenue trends, trade KPIs, top traded symbols, and configurable risk rules engine with DB schema.' },
+      { icon: '📈', title: 'Intelligence Engine', description: 'Signup/revenue trends, trade KPIs, top traded symbols, and configurable risk rules engine.' },
     ]
   },
   {
@@ -56,7 +56,7 @@ const changelog: ChangelogEntry[] = [
       { icon: '🏦', title: 'MetaAPI Broker Engine', description: 'Live MT5 broker connection via MetaAPI Cloud SDK with account creation, RPC connections, and real-time account info.' },
       { icon: '✅', title: 'Trade Execution', description: 'Confirm Execution button on trade cards sends live orders to the selected broker account via /api/execute.' },
       { icon: '🎤', title: 'Voice Input', description: 'Web Speech-to-Text (SpeechRecognition API) for speak-to-type voice commands in the AI terminal.' },
-      { icon: '🔄', title: 'NVIDIA API Rotation', description: 'Round-robin key rotation across multiple NVIDIA API keys for load distribution and rate limit avoidance.' },
+      { icon: '🔄', title: 'NVIDIA API Rotation', description: 'Round-robin key rotation across multiple NVIDIA API keys for load distribution.' },
       { icon: '🛡️', title: 'TypeScript Migration', description: 'Replaced Python indicator engine with pure TypeScript for full Vercel compatibility.' },
     ]
   },
@@ -67,9 +67,9 @@ const changelog: ChangelogEntry[] = [
     summary: 'Master Trading Agent with multi-agent orchestration, consensus rendering, and advanced markdown parsing.',
     tag: 'feature',
     items: [
-      { icon: '🤖', title: 'Master Trading Agent', description: 'Multi-agent orchestration prompt with Technical Analyst, Fundamental Analyst, Sentiment Analyst, and Risk Manager.' },
+      { icon: '🤖', title: 'Master Trading Agent', description: 'Multi-agent orchestration with Technical Analyst, Fundamental Analyst, Sentiment Analyst, and Risk Manager.' },
       { icon: '📰', title: 'Live News Ticker', description: 'RSS financial headlines with infinite marquee animation, hover-to-pause, and news sentiment analysis.' },
-      { icon: '🎯', title: 'Consensus Rendering', description: 'Ultra-short, punchy agent bullet points (under 8 words) with auto-bold titles and SVG icons.' },
+      { icon: '🎯', title: 'Consensus Rendering', description: 'Ultra-short, punchy agent bullet points with auto-bold titles and SVG icons.' },
       { icon: '🔧', title: 'Fault-Tolerant Parsing', description: 'FlexibleJsonParse with regex extractor fallback for reliable JSON parsing from LLM output.' },
     ]
   },
@@ -81,7 +81,7 @@ const changelog: ChangelogEntry[] = [
     tag: 'feature',
     items: [
       { icon: '📊', title: 'Mini Candlestick Charts', description: 'TradingView lightweight-charts v5 embedded in analysis cards with proper Unix timestamp handling.' },
-      { icon: '🪙', title: 'Asset Watchlist', description: '9 asset pills with authentic SVG brand logos (Bitcoin, Ethereum, Gold, EUR, GBP, etc.) for instant analysis.' },
+      { icon: '🪙', title: 'Asset Watchlist', description: '9 asset pills with authentic SVG brand logos for instant analysis.' },
       { icon: '📈', title: 'Rich Analysis Cards', description: 'Coin icons, indicator tables, confluence strength bars, and embedded Generate Signal button.' },
       { icon: '🌐', title: 'Twelve Data Integration', description: 'Live market feed optimized for free tier (5 API calls), ETF symbol mapping for indices.' },
     ]
@@ -95,8 +95,8 @@ const changelog: ChangelogEntry[] = [
     items: [
       { icon: '🧠', title: 'Signal Engine', description: 'Multi-indicator confluence analysis with ATR-based risk management for institutional-grade trade signals.' },
       { icon: '⚡', title: 'NVIDIA NIM API', description: 'Llama 3.1 8B inference for fast, reliable AI responses with streaming support.' },
-      { icon: '🃏', title: 'Trade Cards', description: 'Proper contract specs per instrument, realistic stop-loss distances, correct lot sizing, and SVG instrument icons.' },
-      { icon: '🎯', title: 'Smart Triggers', description: 'Trade cards only on direct asset queries or Generate Signal button; general chat responds conversationally.' },
+      { icon: '🃏', title: 'Trade Cards', description: 'Proper contract specs per instrument, realistic stop-loss distances, correct lot sizing, and SVG icons.' },
+      { icon: '🎯', title: 'Smart Triggers', description: 'Trade cards only on direct asset queries or button click; general chat responds conversationally.' },
     ]
   },
   {
@@ -106,115 +106,136 @@ const changelog: ChangelogEntry[] = [
     summary: 'Initial Next.js PWA with AI chat terminal, mobile-first design, and iOS optimization.',
     tag: 'major',
     items: [
-      { icon: '🚀', title: 'Next.js PWA', description: 'Mobile-first Progressive Web App with standalone mode and dynamic viewport scaling for iOS.' },
-      { icon: '💬', title: 'AI Chat Terminal', description: 'Dark-themed institutional trading terminal with chat API routes and cipher decode loading animation.' },
-      { icon: '🎨', title: 'Theme System', description: 'Light/dark mode toggle with interactive Lightbulb icon and synthesized click sound effects.' },
-      { icon: '📱', title: 'iOS Optimizations', description: 'Fixed focus scroll shifting, disabled autocomplete/autocorrect, keyboard accessory bar cleanup.' },
+      { icon: '🚀', title: 'Next.js PWA', description: 'Mobile-first Progressive Web App with standalone mode and dynamic viewport scaling.' },
+      { icon: '💬', title: 'AI Chat Terminal', description: 'Dark-themed institutional trading terminal with chat API routes and cipher decode animation.' },
+      { icon: '🎨', title: 'Theme System', description: 'Light/dark mode toggle with interactive Lightbulb icon and synthesized click sounds.' },
+      { icon: '📱', title: 'iOS Optimizations', description: 'Fixed focus scroll shifting, disabled autocomplete/autocorrect, keyboard cleanup.' },
     ]
   }
 ];
 
-/* ── Tag Colors ──────────────────────────────────────────────────── */
 const tagStyles: Record<string, { bg: string; color: string; label: string }> = {
-  major:       { bg: 'rgba(139, 92, 246, 0.12)', color: '#a78bfa', label: 'Major Release' },
-  feature:     { bg: 'rgba(59, 130, 246, 0.12)',  color: '#60a5fa', label: 'Feature' },
-  fix:         { bg: 'rgba(251, 191, 36, 0.12)',  color: '#fbbf24', label: 'Fix' },
-  improvement: { bg: 'rgba(52, 211, 153, 0.12)',  color: '#34d399', label: 'Improvement' },
+  major:       { bg: 'rgba(139,92,246,0.1)', color: '#a78bfa', label: 'Major Release' },
+  feature:     { bg: 'rgba(59,130,246,0.1)',  color: '#60a5fa', label: 'Feature' },
+  fix:         { bg: 'rgba(251,191,36,0.1)',  color: '#fbbf24', label: 'Fix' },
+  improvement: { bg: 'rgba(52,211,153,0.1)',  color: '#34d399', label: 'Improvement' },
 };
 
-/* ── Stats ───────────────────────────────────────────────────────── */
-const stats = [
-  { label: 'Total Commits', value: '65' },
-  { label: 'Lines Written', value: '19.7K' },
-  { label: 'API Endpoints', value: '7' },
-  { label: 'Integrations', value: '4' },
-];
-
-/* ── Page Component ──────────────────────────────────────────────── */
+/* ── Page ────────────────────────────────────────────────────────── */
 export default function ChangelogPage() {
-  const [expandedIdx, setExpandedIdx] = useState<number | null>(0);
+  const [activeVersion, setActiveVersion] = useState(changelog[0].version);
+
+  // Track scroll position to highlight active nav item
+  useEffect(() => {
+    const container = document.querySelector('.cl-page');
+    if (!container) return;
+    const handleScroll = () => {
+      for (const entry of changelog) {
+        const el = document.getElementById(`v${entry.version}`);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          if (rect.top <= 200) setActiveVersion(entry.version);
+        }
+      }
+    };
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollTo = (version: string) => {
+    const el = document.getElementById(`v${version}`);
+    el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   return (
     <div className="cl-page">
-      {/* Header */}
-      <header className="cl-header">
-        <a href="/" className="cl-back">← Back to Dashboard</a>
-        <div className="cl-badge">CHANGELOG</div>
-        <h1 className="cl-title">What&apos;s New in TradeGPT</h1>
-        <p className="cl-subtitle">
-          Every feature, fix, and improvement — shipped and documented.
-        </p>
-
-        {/* Stats Row */}
-        <div className="cl-stats">
-          {stats.map((s) => (
-            <div key={s.label} className="cl-stat">
-              <span className="cl-stat-value">{s.value}</span>
-              <span className="cl-stat-label">{s.label}</span>
-            </div>
-          ))}
-        </div>
-      </header>
-
-      {/* Timeline */}
-      <div className="cl-timeline">
-        {changelog.map((entry, idx) => {
-          const tag = tagStyles[entry.tag];
-          const isOpen = expandedIdx === idx;
-
-          return (
-            <div key={entry.version} className={`cl-entry ${isOpen ? 'cl-entry--open' : ''}`}>
-              {/* Timeline dot + line */}
-              <div className="cl-timeline-track">
-                <div className="cl-dot" style={{ borderColor: tag.color, boxShadow: `0 0 12px ${tag.color}40` }} />
-                {idx < changelog.length - 1 && <div className="cl-line" />}
-              </div>
-
-              {/* Content */}
-              <div className="cl-content">
-                {/* Header bar */}
-                <button
-                  className="cl-entry-header"
-                  onClick={() => setExpandedIdx(isOpen ? null : idx)}
-                >
-                  <div className="cl-entry-meta">
-                    <span className="cl-version">v{entry.version}</span>
-                    <span className="cl-tag" style={{ background: tag.bg, color: tag.color }}>
-                      {tag.label}
-                    </span>
-                    <span className="cl-date">{entry.date}</span>
-                  </div>
-                  <h3 className="cl-entry-title">{entry.title}</h3>
-                  <p className="cl-entry-summary">{entry.summary}</p>
-                  <span className={`cl-chevron ${isOpen ? 'cl-chevron--open' : ''}`}>
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  </span>
-                </button>
-
-                {/* Expandable items */}
-                <div className={`cl-items-wrapper ${isOpen ? 'cl-items-wrapper--open' : ''}`}>
-                  <div className="cl-items">
-                    {entry.items.map((item, i) => (
-                      <div key={i} className="cl-item" style={{ animationDelay: `${i * 50}ms` }}>
-                        <span className="cl-item-icon">{item.icon}</span>
-                        <div>
-                          <span className="cl-item-title">{item.title}</span>
-                          <p className="cl-item-desc">{item.description}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        })}
+      {/* Mobile Header */}
+      <div className="cl-mobile-header">
+        <a href="/">← Dashboard</a>
+        <span>Changelog</span>
+        <span style={{ width: 70 }} />
       </div>
 
-      {/* Footer */}
-      <footer className="cl-footer">
-        <p>Built with 🧠 by the TradeGPT team</p>
-      </footer>
+      {/* Sidebar */}
+      <aside className="cl-sidebar">
+        <div className="cl-sidebar-header">
+          <a href="/" className="cl-sidebar-logo">
+            <div className="cl-sidebar-logo-icon">T</div>
+            TradeGPT
+          </a>
+        </div>
+
+        <nav className="cl-sidebar-nav">
+          <div className="cl-nav-label">Releases</div>
+          {changelog.map((entry) => (
+            <a
+              key={entry.version}
+              className={`cl-nav-item ${activeVersion === entry.version ? 'cl-nav-item--active' : ''}`}
+              onClick={() => scrollTo(entry.version)}
+            >
+              <span className="cl-nav-dot" />
+              <span>v{entry.version} — {entry.title}</span>
+            </a>
+          ))}
+        </nav>
+
+        <div className="cl-sidebar-back">
+          <a href="/">← Back to Dashboard</a>
+        </div>
+      </aside>
+
+      {/* Main */}
+      <main className="cl-main">
+        {/* Hero */}
+        <div className="cl-hero">
+          <div className="cl-hero-badge">CHANGELOG</div>
+          <h1>What&apos;s New in TradeGPT</h1>
+          <p>Every feature, fix, and improvement — shipped and documented.</p>
+          <div className="cl-stats-row">
+            <div className="cl-stat-pill"><strong>65</strong> <span>commits</span></div>
+            <div className="cl-stat-pill"><strong>19.7K</strong> <span>lines written</span></div>
+            <div className="cl-stat-pill"><strong>7</strong> <span>API endpoints</span></div>
+            <div className="cl-stat-pill"><strong>4</strong> <span>integrations</span></div>
+          </div>
+        </div>
+
+        {/* Releases */}
+        <div className="cl-releases">
+          {changelog.map((entry) => {
+            const tag = tagStyles[entry.tag];
+            return (
+              <div key={entry.version} id={`v${entry.version}`} className="cl-release">
+                <div className="cl-release-header">
+                  <span className="cl-release-version">v{entry.version}</span>
+                  <span className="cl-release-tag" style={{ background: tag.bg, color: tag.color }}>
+                    {tag.label}
+                  </span>
+                  <span className="cl-release-date">{entry.date}</span>
+                </div>
+                <h2 className="cl-release-title">{entry.title}</h2>
+                <p className="cl-release-desc">{entry.summary}</p>
+
+                <div className="cl-item-list">
+                  {entry.items.map((item, i) => (
+                    <div key={i} className="cl-item">
+                      <span className="cl-item-icon">{item.icon}</span>
+                      <div className="cl-item-body">
+                        <span className="cl-item-title">{item.title}</span>
+                        <p className="cl-item-desc">{item.description}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Footer */}
+        <footer className="cl-footer">
+          <p>Built with 🧠 by the TradeGPT team</p>
+        </footer>
+      </main>
     </div>
   );
 }
