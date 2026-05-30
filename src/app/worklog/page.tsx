@@ -2,139 +2,214 @@
 
 import React, { useEffect, useState } from 'react';
 
-/* ── Work Log Data ──────────────────────────────────────────────── */
-interface ChangelogEntry {
-  version: string;
-  date: string;
+/* ── Work Log Data — Organized by Day ───────────────────────────── */
+interface WorkItem {
+  icon: string;
   title: string;
-  summary: string;
-  tag: 'major' | 'feature' | 'fix' | 'improvement';
-  items: { icon: string; title: string; description: string }[];
+  description: string;
+  files?: string[];
 }
 
-const changelog: ChangelogEntry[] = [
-  {
-    version: '1.6.0',
-    date: 'May 30, 2026',
-    title: 'Smart Money Scanner & Exchange Hub',
-    summary: 'Intelligent SMC pattern detection engine, reimagined multi-exchange connection modal, and user-scoped broker management.',
-    tag: 'major',
-    items: [
-      { icon: '🧠', title: 'Smart Money Concepts Scanner', description: 'Algorithmic detection for Break of Structure (BOS), Change of Character (ChoCH), Fair Value Gaps, Order Blocks, Liquidity Sweeps, and Equal Highs/Lows with a 1–10 confluence scoring engine.' },
-      { icon: '🔌', title: 'Reimagined Connect Exchange Modal', description: 'Premium 2-step flow with pill-based exchange selection (MT5, MT4, cTrader, Binance, Bybit), brand-colored UI, and dynamic credential forms.' },
-      { icon: '⚡', title: 'Universal Trading Engine', description: 'Adapter pattern supporting MetaTrader + Binance/Bybit/OKX crypto exchanges with HMAC signing and unified order routing.' },
-      { icon: '🏗️', title: 'Broker Integration Hub', description: 'Provider CRUD with test connection, Add Provider modal with dynamic fields per exchange type, and full audit logging.' },
-      { icon: '👤', title: 'User-Scoped Broker Accounts', description: 'Each user now only sees their own connected brokers. New users start with an empty list.' },
-      { icon: '🗑️', title: 'Broker Disconnect', description: 'Hover-reveal disconnect button on broker cards with 2-click confirm pattern and animated loading state.' },
-      { icon: '☁️', title: 'Vercel Deployment Fixes', description: 'Lazy-initialized Supabase admin client + safe env var fallbacks across all server files to prevent build-time crashes.' },
-    ]
-  },
-  {
-    version: '1.5.0',
-    date: 'May 25, 2026',
-    title: 'Enterprise Admin Panel & Auth',
-    summary: 'Full Supabase authentication, subscription management, enterprise admin dashboard with analytics, and platform configuration.',
-    tag: 'major',
-    items: [
-      { icon: '🔐', title: 'Authentication System', description: 'Login/signup with Supabase Auth, middleware route guards, OAuth callback, and a premium glassmorphic login UI.' },
-      { icon: '👤', title: 'User Profile & Settings', description: 'Avatar upload, change password, real auth data in sidebar, popup menu, and dedicated Settings page.' },
-      { icon: '💎', title: 'Subscription Plans', description: '3-tier pricing (Free / Pro / Enterprise) with feature comparison cards and plan upgrade flow.' },
-      { icon: '👨‍💼', title: 'Admin Dashboard', description: 'KPI cards, plan distribution chart, sortable user table with filters, bulk actions, pagination, and CSV export.' },
-      { icon: '📊', title: 'Admin Analytics', description: 'Brokers/Trades/Analytics tabs, system health monitoring, revenue chart, and trade activity feeds.' },
-      { icon: '✏️', title: 'Inline User Editing', description: 'Edit name, email, and plan directly in the user table with live save to Supabase Auth + Database.' },
-      { icon: '⚙️', title: 'Platform Configuration', description: 'Feature flags, announcements system, audit log, user suspension, and plan pricing editor.' },
-      { icon: '📈', title: 'Intelligence Engine', description: 'Signup/revenue trends, trade KPIs, top traded symbols, and configurable risk rules engine.' },
-    ]
-  },
-  {
-    version: '1.4.0',
-    date: 'May 25, 2026',
-    title: 'Broker Engine & Trade Execution',
-    summary: 'MetaAPI SDK integration for live MT5 trading, manual trade execution from AI signals, and voice input.',
-    tag: 'feature',
-    items: [
-      { icon: '🏦', title: 'MetaAPI Broker Engine', description: 'Live MT5 broker connection via MetaAPI Cloud SDK with account creation, RPC connections, and real-time account info.' },
-      { icon: '✅', title: 'Trade Execution', description: 'Confirm Execution button on trade cards sends live orders to the selected broker account via /api/execute.' },
-      { icon: '🎤', title: 'Voice Input', description: 'Web Speech-to-Text (SpeechRecognition API) for speak-to-type voice commands in the AI terminal.' },
-      { icon: '🔄', title: 'NVIDIA API Rotation', description: 'Round-robin key rotation across multiple NVIDIA API keys for load distribution.' },
-      { icon: '🛡️', title: 'TypeScript Migration', description: 'Replaced Python indicator engine with pure TypeScript for full Vercel compatibility.' },
-    ]
-  },
-  {
-    version: '1.3.0',
-    date: 'May 25, 2026',
-    title: 'Multi-Agent Intelligence',
-    summary: 'Master Trading Agent with multi-agent orchestration, consensus rendering, and advanced markdown parsing.',
-    tag: 'feature',
-    items: [
-      { icon: '🤖', title: 'Master Trading Agent', description: 'Multi-agent orchestration with Technical Analyst, Fundamental Analyst, Sentiment Analyst, and Risk Manager.' },
-      { icon: '📰', title: 'Live News Ticker', description: 'RSS financial headlines with infinite marquee animation, hover-to-pause, and news sentiment analysis.' },
-      { icon: '🎯', title: 'Consensus Rendering', description: 'Ultra-short, punchy agent bullet points with auto-bold titles and SVG icons.' },
-      { icon: '🔧', title: 'Fault-Tolerant Parsing', description: 'FlexibleJsonParse with regex extractor fallback for reliable JSON parsing from LLM output.' },
-    ]
-  },
-  {
-    version: '1.2.0',
-    date: 'May 24, 2026',
-    title: 'Market Data & Charting',
-    summary: 'TradingView charts, asset watchlist, rich analysis cards with live market data integration.',
-    tag: 'feature',
-    items: [
-      { icon: '📊', title: 'Mini Candlestick Charts', description: 'TradingView lightweight-charts v5 embedded in analysis cards with proper Unix timestamp handling.' },
-      { icon: '🪙', title: 'Asset Watchlist', description: '9 asset pills with authentic SVG brand logos for instant analysis.' },
-      { icon: '📈', title: 'Rich Analysis Cards', description: 'Coin icons, indicator tables, confluence strength bars, and embedded Generate Signal button.' },
-      { icon: '🌐', title: 'Twelve Data Integration', description: 'Live market feed optimized for free tier (5 API calls), ETF symbol mapping for indices.' },
-    ]
-  },
-  {
-    version: '1.1.0',
-    date: 'May 24, 2026',
-    title: 'AI Trading Engine',
-    summary: 'Institutional-grade signal engine with NVIDIA NIM inference, trade cards, and smart trigger system.',
-    tag: 'feature',
-    items: [
-      { icon: '🧠', title: 'Signal Engine', description: 'Multi-indicator confluence analysis with ATR-based risk management for institutional-grade trade signals.' },
-      { icon: '⚡', title: 'NVIDIA NIM API', description: 'Llama 3.1 8B inference for fast, reliable AI responses with streaming support.' },
-      { icon: '🃏', title: 'Trade Cards', description: 'Proper contract specs per instrument, realistic stop-loss distances, correct lot sizing, and SVG icons.' },
-      { icon: '🎯', title: 'Smart Triggers', description: 'Trade cards only on direct asset queries or button click; general chat responds conversationally.' },
-    ]
-  },
-  {
-    version: '1.0.0',
-    date: 'May 24, 2026',
-    title: 'Foundation',
-    summary: 'Initial Next.js PWA with AI chat terminal, mobile-first design, and iOS optimization.',
-    tag: 'major',
-    items: [
-      { icon: '🚀', title: 'Next.js PWA', description: 'Mobile-first Progressive Web App with standalone mode and dynamic viewport scaling.' },
-      { icon: '💬', title: 'AI Chat Terminal', description: 'Dark-themed institutional trading terminal with chat API routes and cipher decode animation.' },
-      { icon: '🎨', title: 'Theme System', description: 'Light/dark mode toggle with interactive Lightbulb icon and synthesized click sounds.' },
-      { icon: '📱', title: 'iOS Optimizations', description: 'Fixed focus scroll shifting, disabled autocomplete/autocorrect, keyboard cleanup.' },
-    ]
-  }
-];
+interface WorkBlock {
+  tag: 'major' | 'feature' | 'fix' | 'improvement' | 'infra';
+  title: string;
+  summary: string;
+  items: WorkItem[];
+}
+
+interface WorkDay {
+  date: string;
+  dayLabel: string;
+  commitCount: number;
+  blocks: WorkBlock[];
+}
 
 const tagStyles: Record<string, { bg: string; color: string; label: string }> = {
-  major:       { bg: 'rgba(139,92,246,0.1)', color: '#a78bfa', label: 'Major Release' },
-  feature:     { bg: 'rgba(59,130,246,0.1)',  color: '#60a5fa', label: 'Feature' },
-  fix:         { bg: 'rgba(251,191,36,0.1)',  color: '#fbbf24', label: 'Fix' },
-  improvement: { bg: 'rgba(52,211,153,0.1)',  color: '#34d399', label: 'Improvement' },
+  major:       { bg: '#eef2ff', color: '#4f46e5', label: 'Major' },
+  feature:     { bg: '#eff6ff', color: '#2563eb', label: 'Feature' },
+  fix:         { bg: '#fefce8', color: '#ca8a04', label: 'Bug Fix' },
+  improvement: { bg: '#ecfdf5', color: '#059669', label: 'Improvement' },
+  infra:       { bg: '#fdf4ff', color: '#9333ea', label: 'Infrastructure' },
 };
 
-/* ── Page ────────────────────────────────────────────────────────── */
-export default function WorkLogPage() {
-  const [activeVersion, setActiveVersion] = useState(changelog[0].version);
+const worklog: WorkDay[] = [
+  {
+    date: 'May 30, 2026',
+    dayLabel: 'Friday',
+    commitCount: 10,
+    blocks: [
+      {
+        tag: 'major',
+        title: 'Smart Money Concepts Scanner',
+        summary: 'Built an algorithmic SMC pattern detection engine that scans OHLCV candle data and outputs institutional-grade structure analysis with a confluence scoring system.',
+        items: [
+          { icon: '📐', title: 'Break of Structure (BOS) Detection', description: 'Identifies when price breaks a recent swing high or low, signaling continuation of the prevailing trend. Tracks both bullish and bearish BOS events with exact candle timestamps.', files: ['scanner.ts'] },
+          { icon: '🔄', title: 'Change of Character (ChoCH)', description: 'Detects when price breaks structure against the trend, signaling a potential reversal. Differentiates between bullish-to-bearish and bearish-to-bullish transitions.', files: ['scanner.ts'] },
+          { icon: '📊', title: 'Fair Value Gap (FVG) Detection', description: 'Scans for 3-candle imbalance zones where the wick of candle 1 doesn\'t overlap with candle 3, creating an unfilled price gap. Filters by minimum size threshold.', files: ['scanner.ts'] },
+          { icon: '🧱', title: 'Order Block Identification', description: 'Finds the last opposite-colored candle before a BOS event — institutional entry zones where large orders were placed.', files: ['scanner.ts'] },
+          { icon: '💧', title: 'Liquidity Sweep Detection', description: 'Identifies equal highs/lows (liquidity pools) and detects when price sweeps past them before reversing — a classic smart money trap pattern.', files: ['scanner.ts'] },
+          { icon: '🎯', title: 'Confluence Scoring Engine', description: 'Combines all detected patterns into a 1–10 confluence score. Higher scores indicate multiple overlapping SMC structures, increasing trade probability.', files: ['scanner.ts', 'api/scan/route.ts'] },
+        ]
+      },
+      {
+        tag: 'feature',
+        title: 'Universal Trading Engine',
+        summary: 'Implemented an adapter pattern that unifies trade execution across MetaTrader and crypto exchanges through a single interface.',
+        items: [
+          { icon: '⚡', title: 'Adapter Architecture', description: 'Created a base TradingAdapter interface with implementations for MetaTrader (via MetaAPI) and crypto exchanges (Binance, Bybit, OKX). Each adapter handles authentication, order submission, and position management differently but exposes the same API.', files: ['broker.ts'] },
+          { icon: '🔐', title: 'HMAC Request Signing', description: 'Crypto exchange adapters generate HMAC-SHA256 signatures for authenticated API requests, following each exchange\'s specific signing algorithm with timestamp-based nonces.', files: ['broker.ts'] },
+          { icon: '🔀', title: 'Unified Order Routing', description: 'Single executeTrade() function routes orders to the correct adapter based on the broker\'s exchange type. Handles symbol normalization (XAUUSD → XAUUSD.raw for MT5, BTC/USDT for Binance).', files: ['broker.ts', 'api/execute/route.ts'] },
+        ]
+      },
+      {
+        tag: 'feature',
+        title: 'Reimagined Connect Exchange Modal',
+        summary: 'Completely rebuilt the broker connection UI with a 2-step flow, exchange-specific branding, and dynamic form fields.',
+        items: [
+          { icon: '🎨', title: 'Exchange Selection Pills', description: 'Step 1 presents branded pill buttons for MT5, MT4, cTrader, Binance, and Bybit — each with its brand color (blue, indigo, purple, amber, orange). Selected state shows a gradient border with glow effect.', files: ['ModalNode.tsx'] },
+          { icon: '📝', title: 'Dynamic Credential Forms', description: 'Step 2 renders different form fields based on exchange type: Forex exchanges show Server/Login ID/Password; crypto exchanges show API Key/Secret Key/Passphrase.', files: ['ModalNode.tsx'] },
+          { icon: '👁️', title: 'Password Toggle & UX', description: 'Added eye icon to toggle password visibility, encrypted data disclaimer, smooth step transitions with back button, and loading states.', files: ['ModalNode.tsx', 'globals.css'] },
+        ]
+      },
+      {
+        tag: 'infra',
+        title: 'Broker Integration Hub (Admin)',
+        summary: 'Added a full provider management system in the admin panel for configuring exchange connections server-side.',
+        items: [
+          { icon: '🗄️', title: 'Provider CRUD', description: 'Admins can add, edit, and delete broker providers. Each provider stores exchange type, API credentials, rate limits, and connection status.', files: ['admin/page.tsx', 'api/admin/route.ts'] },
+          { icon: '🔌', title: 'Test Connection', description: 'One-click health check button that validates API credentials against the exchange and reports connection status with latency metrics.', files: ['admin/page.tsx'] },
+          { icon: '📋', title: 'Audit Logging', description: 'Every provider create/update/delete action is logged with timestamp, admin user, and action details for compliance tracking.', files: ['api/admin/route.ts'] },
+        ]
+      },
+      {
+        tag: 'fix',
+        title: 'User-Scoped Brokers & Deployment',
+        summary: 'Fixed critical issues where all users shared the same broker list and Vercel builds crashed on missing env vars.',
+        items: [
+          { icon: '👤', title: 'User-Scoped Broker Accounts', description: 'Added userId field to BrokerNode. GET /api/broker now authenticates the user and filters results to only their connected accounts. New users start with an empty broker list instead of seeing demo data.', files: ['broker.ts', 'api/broker/route.ts', 'page.tsx'] },
+          { icon: '🗑️', title: 'Broker Disconnect Feature', description: 'Added hover-reveal "Disconnect" button on broker cards with a 2-click confirm pattern (first click shows "Confirm Disconnect?", second click executes). DELETE /api/broker removes the account from the user\'s list.', files: ['BrokersTab.tsx', 'api/broker/route.ts', 'broker.ts'] },
+          { icon: '☁️', title: 'Vercel Build Fixes', description: 'Moved supabaseAdmin to lazy-initialized getSupabaseAdmin() function. Added fallback placeholder values for NEXT_PUBLIC_SUPABASE_URL and ANON_KEY during build phase. Moved MetaAPI SDK to lazy getMetaApi() to prevent native module loading at build time.', files: ['server.ts', 'client.ts', 'middleware.ts', 'broker.ts'] },
+          { icon: '🧹', title: 'Removed Hardcoded Demo Data', description: 'Deleted the 2 pre-seeded demo broker accounts (Vantage-Real-01, IC-Markets-Pro) from both the simulator DB seed and the React useState initial value.', files: ['broker.ts', 'page.tsx'] },
+        ]
+      },
+    ]
+  },
+  {
+    date: 'May 25, 2026',
+    dayLabel: 'Sunday',
+    commitCount: 32,
+    blocks: [
+      {
+        tag: 'major',
+        title: 'Supabase Authentication & Database',
+        summary: 'Integrated Supabase for user authentication, database storage, and row-level security across the entire platform.',
+        items: [
+          { icon: '🔐', title: 'Auth Flow Implementation', description: 'Built login/signup page with email+password and OAuth support. Added middleware route guards that redirect unauthenticated users to /login. Implemented /auth/callback for OAuth handshake completion.', files: ['login/page.tsx', 'middleware.ts', 'auth/callback/route.ts'] },
+          { icon: '👤', title: 'User Profile System', description: 'Sidebar shows real user data (name, email, avatar) from Supabase Auth. Profile popup menu with settings link and logout. Dedicated Settings page with avatar upload and change password form.', files: ['page.tsx', 'ProfileTab.tsx'] },
+          { icon: '💎', title: 'Subscription Management', description: 'Three-tier plan system (Free/Pro/Enterprise) with feature comparison cards, pricing display, and plan upgrade flow. Plan data stored in Supabase profiles table.', files: ['SubscriptionTab.tsx'] },
+          { icon: '🗄️', title: 'Database Schema', description: 'Created profiles table extending auth.users with display_name, avatar_url, plan, and role. Created platform_config for feature flags, announcements, and pricing. RLS policies for user data isolation.', files: ['supabase/migrations/'] },
+        ]
+      },
+      {
+        tag: 'major',
+        title: 'Enterprise Admin Panel',
+        summary: 'Full-featured admin dashboard for managing users, monitoring system health, and configuring the platform.',
+        items: [
+          { icon: '📊', title: 'KPI Dashboard', description: 'Real-time stats cards showing total users, active subscribers, revenue, and churn rate. Plan distribution donut chart. Signup/revenue trend lines with 30-day history.', files: ['admin/page.tsx'] },
+          { icon: '👥', title: 'User Management', description: 'Sortable, filterable user table with search. Bulk actions (suspend, change plan, export). Pagination with 25/50/100 per page. User detail drawer with full profile, activity log, and inline editing.', files: ['admin/page.tsx', 'api/admin/route.ts'] },
+          { icon: '✏️', title: 'Inline Editing', description: 'Admins can edit user name, email, and plan directly in the table row. Changes save to both Supabase Auth (email) and the profiles table (name, plan) simultaneously.', files: ['admin/page.tsx', 'api/admin/route.ts'] },
+          { icon: '📈', title: 'Analytics Tabs', description: 'Brokers tab: connected accounts, trade volume, error rates. Trades tab: recent executions with P&L. Analytics: top traded symbols, win rates, risk exposure. All with CSV export.', files: ['admin/page.tsx'] },
+          { icon: '⚙️', title: 'Platform Settings', description: 'Feature toggles (maintenance mode, registration, demo accounts). Announcements with rich text and scheduling. Audit log with searchable, filterable entries.', files: ['admin/page.tsx', 'api/admin/route.ts'] },
+          { icon: '💰', title: 'Plan Pricing Editor', description: 'Live editor for each plan\'s price, features, and limits. Changes save to platform_config table and take effect immediately.', files: ['admin/page.tsx'] },
+          { icon: '🧠', title: 'Intelligence Module', description: 'Signup funnel analysis, revenue forecasting, trade KPI aggregation, top traded symbols ranking, and a rule-based risk engine with configurable thresholds.', files: ['admin/page.tsx', 'api/admin/route.ts'] },
+        ]
+      },
+      {
+        tag: 'feature',
+        title: 'Broker Engine & Trade Execution',
+        summary: 'MetaAPI SDK integration for connecting real MT5 broker accounts and executing trades directly from AI signals.',
+        items: [
+          { icon: '🏦', title: 'MetaAPI Cloud SDK', description: 'Integrated MetaAPI v29 SDK for connecting to MT5 broker servers. Handles account provisioning (createAccount), RPC connection lifecycle, and real-time account info fetching.', files: ['broker.ts'] },
+          { icon: '✅', title: 'Manual Trade Execution', description: 'When user clicks "Confirm Execution" on a trade card, the system sends a market order to the selected broker via MetaAPI RPC. Supports BUY/SELL with volume, SL, and TP.', files: ['api/execute/route.ts', 'page.tsx'] },
+          { icon: '🔍', title: 'Server Search', description: 'Auto-complete broker server search using MetaAPI\'s server registry. User types "Vantage" and gets a dropdown of matching servers.', files: ['broker.ts', 'ModalNode.tsx'] },
+          { icon: '🛡️', title: 'Free Tier Compatibility', description: 'Configured MetaAPI for free tier: reliability:regular, cloud-g1, correct SDK v29 method signatures. Fallback simulator mode when META_API_TOKEN is absent.', files: ['broker.ts'] },
+        ]
+      },
+      {
+        tag: 'feature',
+        title: 'Multi-Agent Intelligence System',
+        summary: 'Orchestrated multiple AI specialist agents for institutional-quality market analysis with consensus-based decision making.',
+        items: [
+          { icon: '🤖', title: 'Master Trading Agent', description: 'Orchestration layer that dispatches analysis to 4 specialist agents: Technical Analyst (chart patterns, indicators), Fundamental Analyst (news, economic data), Sentiment Analyst (market positioning), and Risk Manager (position sizing, exposure).', files: ['api/chat/route.ts'] },
+          { icon: '📰', title: 'Live News Integration', description: 'RSS feed integration for real-time financial headlines. Infinite marquee animation with hover-to-pause. News sentiment scoring feeds into the AI analysis pipeline.', files: ['page.tsx', 'api/news/route.ts'] },
+          { icon: '🎤', title: 'Voice Input', description: 'Web Speech API (SpeechRecognition) for speak-to-type. User taps the mic, speaks an asset name or question, and it gets transcribed into the chat input.', files: ['page.tsx'] },
+          { icon: '🔧', title: 'Robust JSON Parsing', description: 'FlexibleJsonParse utility that handles malformed LLM JSON output using multiple extraction strategies: direct parse, regex extraction, bracket matching, and partial recovery.', files: ['api/chat/route.ts'] },
+        ]
+      },
+      {
+        tag: 'feature',
+        title: 'Market Data & Charting',
+        summary: 'Live market data feeds and TradingView-powered charts embedded directly in the AI analysis cards.',
+        items: [
+          { icon: '📊', title: 'TradingView Charts', description: 'Integrated lightweight-charts v5 for mini candlestick charts inside analysis cards. Proper Unix timestamp conversion, ResizeObserver cleanup, and watermark removal.', files: ['MiniChart.tsx'] },
+          { icon: '🪙', title: 'Asset Watchlist', description: 'Horizontal strip with 9 asset pills (XAUUSD, BTCUSD, EURUSD, etc.) with authentic SVG brand logos. Tapping an asset triggers an instant AI analysis.', files: ['page.tsx'] },
+          { icon: '📈', title: 'Rich Analysis Cards', description: 'Structured cards showing coin icon, current price, indicator table (RSI, MACD, EMA), confluence strength bar, and embedded "Generate Signal" button.', files: ['page.tsx', 'api/chat/route.ts'] },
+          { icon: '🌐', title: 'Twelve Data API', description: 'Live market feed with free-tier optimization (5 calls). ETF symbol mapping: NAS100→QQQ, US30→DIA, Oil→USO. Parallel fetch for candles + indicators.', files: ['api/candles/route.ts'] },
+        ]
+      },
+    ]
+  },
+  {
+    date: 'May 24, 2026',
+    dayLabel: 'Saturday',
+    commitCount: 23,
+    blocks: [
+      {
+        tag: 'major',
+        title: 'AI Trading Engine',
+        summary: 'Built the core AI-powered signal generation engine with NVIDIA NIM inference and institutional-grade risk management.',
+        items: [
+          { icon: '🧠', title: 'Signal Generation Engine', description: 'Multi-indicator confluence analysis combining RSI, MACD, EMA crossovers, Bollinger Bands, and volume profile. Generates BUY/SELL/HOLD signals with confidence scores and reasoning.', files: ['api/chat/route.ts'] },
+          { icon: '⚡', title: 'NVIDIA NIM Integration', description: 'Llama 3.1 8B inference via NVIDIA NIM API for fast, reliable AI responses. Streaming support for real-time chat. Round-robin key rotation for load distribution.', files: ['api/chat/route.ts'] },
+          { icon: '🃏', title: 'Trade Signal Cards', description: 'Visual trade cards with entry price, stop loss, take profit, lot size, and risk/reward ratio. Contract specs per instrument (pip value, margin, leverage).', files: ['page.tsx'] },
+          { icon: '🎯', title: 'Smart Trigger System', description: 'Contextual detection: direct asset queries (1-3 words) trigger analysis cards; forecast/prediction keywords with asset mentions trigger signals; general conversation gets plain text.', files: ['api/chat/route.ts'] },
+        ]
+      },
+      {
+        tag: 'major',
+        title: 'Next.js PWA Foundation',
+        summary: 'Initial project setup with mobile-first design, iOS PWA optimization, and the institutional trading terminal UI.',
+        items: [
+          { icon: '🚀', title: 'Project Bootstrap', description: 'Next.js 14 app with App Router, TypeScript, CSS modules. PWA manifest for standalone home screen installation. Dynamic VisualViewport API height scaling.', files: ['layout.tsx', 'manifest.json'] },
+          { icon: '💬', title: 'AI Chat Terminal', description: 'Dark-themed institutional trading terminal with message history, streaming responses, cipher decode loading animation, and auto-scroll behavior.', files: ['page.tsx', 'globals.css'] },
+          { icon: '🎨', title: 'Theme System', description: 'Light/dark mode toggle with CSS custom properties. Interactive Lightbulb icon with AudioContext synthesized click sound on toggle.', files: ['page.tsx', 'globals.css'] },
+          { icon: '📱', title: 'iOS PWA Fixes', description: 'Fixed focus scroll layout shifting by locking html/body with position:fixed. Disabled autocomplete, autocorrect, and spellcheck to clean the keyboard accessory bar.', files: ['globals.css', 'page.tsx'] },
+        ]
+      },
+    ]
+  },
+];
 
-  // Track scroll position to highlight active nav item
+/* ── Calendar SVG Icon ───────────────────────────────────────────── */
+const CalendarIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+  </svg>
+);
+
+/* ── Page Component ──────────────────────────────────────────────── */
+export default function WorkLogPage() {
+  const [activeDay, setActiveDay] = useState(worklog[0].date);
+
   useEffect(() => {
     const container = document.querySelector('.cl-page');
     if (!container) return;
     const handleScroll = () => {
-      for (const entry of changelog) {
-        const el = document.getElementById(`v${entry.version}`);
+      for (const day of worklog) {
+        const el = document.getElementById(`day-${day.date.replace(/\s|,/g, '-')}`);
         if (el) {
           const rect = el.getBoundingClientRect();
-          if (rect.top <= 200) setActiveVersion(entry.version);
+          if (rect.top <= 200) setActiveDay(day.date);
         }
       }
     };
@@ -142,10 +217,12 @@ export default function WorkLogPage() {
     return () => container.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const scrollTo = (version: string) => {
-    const el = document.getElementById(`v${version}`);
+  const scrollTo = (date: string) => {
+    const el = document.getElementById(`day-${date.replace(/\s|,/g, '-')}`);
     el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
+
+  const totalItems = worklog.reduce((sum, day) => sum + day.blocks.reduce((s, b) => s + b.items.length, 0), 0);
 
   return (
     <div className="cl-page">
@@ -166,17 +243,26 @@ export default function WorkLogPage() {
         </div>
 
         <nav className="cl-sidebar-nav">
-          <div className="cl-nav-label">Updates</div>
-          {changelog.map((entry) => (
-            <a
-              key={entry.version}
-              className={`cl-nav-item ${activeVersion === entry.version ? 'cl-nav-item--active' : ''}`}
-              onClick={() => scrollTo(entry.version)}
-            >
-              <span className="cl-nav-dot" />
-              <span>v{entry.version} — {entry.title}</span>
-            </a>
-          ))}
+          <div className="cl-nav-section">
+            <div className="cl-nav-label">Timeline</div>
+            {worklog.map((day) => (
+              <a
+                key={day.date}
+                className={`cl-nav-item ${activeDay === day.date ? 'cl-nav-item--active' : ''}`}
+                onClick={() => scrollTo(day.date)}
+              >
+                <span className="cl-nav-dot" />
+                <span>{day.dayLabel}, {day.date}</span>
+              </a>
+            ))}
+          </div>
+
+          <div className="cl-nav-section">
+            <div className="cl-nav-label">Quick Stats</div>
+            <div className="cl-nav-item" style={{ cursor: 'default', color: '#9ca3af', fontSize: 12 }}>
+              {worklog.reduce((s, d) => s + d.commitCount, 0)} commits · {totalItems} features
+            </div>
+          </div>
         </nav>
 
         <div className="cl-sidebar-back">
@@ -186,54 +272,84 @@ export default function WorkLogPage() {
 
       {/* Main */}
       <main className="cl-main">
-        {/* Hero */}
         <div className="cl-hero">
-          <div className="cl-hero-badge">WORK LOG</div>
+          <div className="cl-hero-badge">📋 INTERNAL WORK LOG</div>
           <h1>Development Updates</h1>
-          <p>Internal team log — daily progress, features shipped, and milestones.</p>
-          <div className="cl-stats-row">
-            <div className="cl-stat-pill"><strong>65</strong> <span>commits</span></div>
-            <div className="cl-stat-pill"><strong>19.7K</strong> <span>lines written</span></div>
-            <div className="cl-stat-pill"><strong>7</strong> <span>API endpoints</span></div>
-            <div className="cl-stat-pill"><strong>4</strong> <span>integrations</span></div>
+          <p className="cl-hero-sub">
+            Daily progress tracker for the engineering team. Every feature, fix, and infrastructure change — documented with file references.
+          </p>
+
+          <div className="cl-stats-grid">
+            <div className="cl-stat-card">
+              <span className="cl-stat-value">65</span>
+              <span className="cl-stat-label">Commits</span>
+            </div>
+            <div className="cl-stat-card">
+              <span className="cl-stat-value">19.7K</span>
+              <span className="cl-stat-label">Lines Added</span>
+            </div>
+            <div className="cl-stat-card">
+              <span className="cl-stat-value">{totalItems}</span>
+              <span className="cl-stat-label">Features</span>
+            </div>
+            <div className="cl-stat-card">
+              <span className="cl-stat-value">{worklog.length}</span>
+              <span className="cl-stat-label">Working Days</span>
+            </div>
           </div>
         </div>
 
-        {/* Releases */}
-        <div className="cl-releases">
-          {changelog.map((entry) => {
-            const tag = tagStyles[entry.tag];
-            return (
-              <div key={entry.version} id={`v${entry.version}`} className="cl-release">
-                <div className="cl-release-header">
-                  <span className="cl-release-version">v{entry.version}</span>
-                  <span className="cl-release-tag" style={{ background: tag.bg, color: tag.color }}>
-                    {tag.label}
-                  </span>
-                  <span className="cl-release-date">{entry.date}</span>
-                </div>
-                <h2 className="cl-release-title">{entry.title}</h2>
-                <p className="cl-release-desc">{entry.summary}</p>
-
-                <div className="cl-item-list">
-                  {entry.items.map((item, i) => (
-                    <div key={i} className="cl-item">
-                      <span className="cl-item-icon">{item.icon}</span>
-                      <div className="cl-item-body">
-                        <span className="cl-item-title">{item.title}</span>
-                        <p className="cl-item-desc">{item.description}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+        {/* Day Sections */}
+        <div className="cl-days">
+          {worklog.map((day) => (
+            <div key={day.date} id={`day-${day.date.replace(/\s|,/g, '-')}`} className="cl-day">
+              <div className="cl-day-header">
+                <div className="cl-day-icon"><CalendarIcon /></div>
+                <span className="cl-day-date">{day.dayLabel}, {day.date}</span>
+                <span className="cl-day-meta">{day.commitCount} commits</span>
               </div>
-            );
-          })}
+
+              {day.blocks.map((block, bi) => {
+                const tag = tagStyles[block.tag];
+                return (
+                  <div key={bi} className="cl-block">
+                    <div className="cl-block-header">
+                      <span className="cl-block-tag" style={{ background: tag.bg, color: tag.color }}>
+                        {tag.label}
+                      </span>
+                    </div>
+                    <div className="cl-block-title">{block.title}</div>
+                    <p className="cl-block-desc">{block.summary}</p>
+
+                    <div className="cl-items">
+                      {block.items.map((item, ii) => (
+                        <div key={ii} className="cl-item">
+                          <span className="cl-item-icon">{item.icon}</span>
+                          <div className="cl-item-body">
+                            <span className="cl-item-title">{item.title}</span>
+                            <p className="cl-item-desc">{item.description}</p>
+                            {item.files && (
+                              <div className="cl-item-files">
+                                {item.files.map((f) => (
+                                  <span key={f} className="cl-file-chip">{f}</span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
         </div>
 
-        {/* Footer */}
         <footer className="cl-footer">
-          <p>Internal use only — TradeGPT Engineering</p>
+          <div className="cl-footer-inner">
+            <p>Internal use only — TradeGPT Engineering Team</p>
+          </div>
         </footer>
       </main>
     </div>
