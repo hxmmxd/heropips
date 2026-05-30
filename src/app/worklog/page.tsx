@@ -203,12 +203,21 @@ const GitHubIcon = ({ size = 14 }: { size?: number }) => (
   </svg>
 );
 
+const tagStripeColor: Record<string, string> = {
+  major:       'linear-gradient(180deg,#6366f1,#818cf8)',
+  feature:     'linear-gradient(180deg,#3b82f6,#60a5fa)',
+  fix:         'linear-gradient(180deg,#f59e0b,#fbbf24)',
+  improvement: 'linear-gradient(180deg,#10b981,#34d399)',
+  infra:       'linear-gradient(180deg,#8b5cf6,#c084fc)',
+};
+
 /* ── Page Component ──────────────────────────────────────────────── */
 export default function WorkLogPage() {
   const [activeDay, setActiveDay] = useState(worklog[0].date);
   const [dark, setDark] = useState(false);
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState('all');
 
-  // Load saved theme
   useEffect(() => {
     const saved = localStorage.getItem('wl-theme');
     if (saved === 'dark') setDark(true);
@@ -243,13 +252,17 @@ export default function WorkLogPage() {
     });
   };
 
+  const totalCommits = worklog.reduce((s, d) => s + d.commitCount, 0);
+
   return (
     <div className={`cl-page ${dark ? 'cl-dark' : ''}`}>
       {/* Mobile Header */}
       <div className="cl-mobile-header">
         <a href="/">← Dashboard</a>
         <span>Work Log</span>
-        <span style={{ width: 70 }} />
+        <button className="cl-theme-toggle" onClick={toggleTheme} style={{ border: 'none' }}>
+          {dark ? '☀️' : '🌙'}
+        </button>
       </div>
 
       {/* Sidebar */}
@@ -259,13 +272,32 @@ export default function WorkLogPage() {
             <div className="cl-sidebar-logo-icon">T</div>
             TradeGPT
           </a>
-          <button className="cl-theme-toggle" onClick={toggleTheme} title={dark ? 'Switch to light' : 'Switch to dark'}>
+          <button className="cl-theme-toggle" onClick={toggleTheme} title={dark ? 'Light mode' : 'Dark mode'}>
             {dark ? (
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
             ) : (
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
             )}
           </button>
+        </div>
+
+        {/* Search */}
+        <div className="cl-search">
+          <div className="cl-search-wrap">
+            <svg className="cl-search-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input
+              className="cl-search-input"
+              placeholder="Search features..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* Sprint progress */}
+        <div className="cl-sprint">
+          <div className="cl-sprint-label">Sprint Progress <span>78%</span></div>
+          <div className="cl-sprint-bar"><div className="cl-sprint-fill" style={{ width: '78%' }} /></div>
         </div>
 
         <nav className="cl-sidebar-nav">
@@ -279,15 +311,9 @@ export default function WorkLogPage() {
               >
                 <span className="cl-nav-dot" />
                 <span>{day.dayLabel}, {day.date}</span>
+                <span className="cl-nav-commit-badge"><GitHubIcon size={9} />{day.commitCount}</span>
               </a>
             ))}
-          </div>
-
-          <div className="cl-nav-section">
-            <div className="cl-nav-label">Quick Stats</div>
-            <div className="cl-nav-item" style={{ cursor: 'default', color: '#9ca3af', fontSize: 12 }}>
-              <GitHubIcon size={12} /> {worklog.reduce((s, d) => s + d.commitCount, 0)} commits · {totalItems} features
-            </div>
           </div>
         </nav>
 
@@ -305,20 +331,33 @@ export default function WorkLogPage() {
             Daily progress tracker for the engineering team. Every feature, fix, and infrastructure change — documented with file references.
           </p>
 
+          {/* Filter pills */}
+          <div className="cl-filter-bar">
+            {['all','major','feature','fix','infra'].map(f => (
+              <button key={f} className={`cl-filter-btn ${filter===f?'cl-filter-btn--active':''}`} onClick={()=>setFilter(f)}>
+                {f === 'all' ? '⬡ All' : f === 'major' ? '🚀 Major' : f === 'feature' ? '✨ Feature' : f === 'fix' ? '🔧 Fix' : '⚙️ Infra'}
+              </button>
+            ))}
+          </div>
+
           <div className="cl-stats-grid">
             <div className="cl-stat-card">
-              <span className="cl-stat-value">65</span>
+              <div className="cl-stat-icon" style={{ background: 'rgba(91,92,246,0.08)' }}>🔀</div>
+              <span className="cl-stat-value">{totalCommits}</span>
               <span className="cl-stat-label"><GitHubIcon size={11} /> Commits</span>
             </div>
             <div className="cl-stat-card">
+              <div className="cl-stat-icon" style={{ background: 'rgba(16,185,129,0.08)' }}>📝</div>
               <span className="cl-stat-value">19.7K</span>
               <span className="cl-stat-label">Lines Added</span>
             </div>
             <div className="cl-stat-card">
+              <div className="cl-stat-icon" style={{ background: 'rgba(59,130,246,0.08)' }}>⚡</div>
               <span className="cl-stat-value">{totalItems}</span>
-              <span className="cl-stat-label">Features</span>
+              <span className="cl-stat-label">Features Built</span>
             </div>
             <div className="cl-stat-card">
+              <div className="cl-stat-icon" style={{ background: 'rgba(245,158,11,0.08)' }}>📅</div>
               <span className="cl-stat-value">{worklog.length}</span>
               <span className="cl-stat-label">Working Days</span>
             </div>
@@ -327,54 +366,71 @@ export default function WorkLogPage() {
 
         {/* Day Sections */}
         <div className="cl-days">
-          {worklog.map((day) => (
-            <div key={day.date} id={`day-${day.date.replace(/\s|,/g, '-')}`} className="cl-day">
-              <div className="cl-day-header">
-                <div className="cl-day-icon"><CalendarIcon /></div>
-                <span className="cl-day-date">{day.dayLabel}, {day.date}</span>
-                <span className="cl-day-meta"><GitHubIcon /> {day.commitCount} commits</span>
-              </div>
-
-              {day.blocks.map((block, bi) => {
-                const tag = tagStyles[block.tag];
-                return (
-                  <div key={bi} className="cl-block">
-                    <div className="cl-block-header">
-                      <span className="cl-block-tag" data-tag={block.tag} style={{ background: tag.bg, color: tag.color }}>
-                        {tag.label}
-                      </span>
-                    </div>
-                    <div className="cl-block-title">{block.title}</div>
-                    <p className="cl-block-desc">{block.summary}</p>
-
-                    <div className="cl-items">
-                      {block.items.map((item, ii) => (
-                        <div key={ii} className="cl-item">
-                          <span className="cl-item-icon">{item.icon}</span>
-                          <div className="cl-item-body">
-                            <span className="cl-item-title">{item.title}</span>
-                            <p className="cl-item-desc">{item.description}</p>
-                            {item.files && (
-                              <div className="cl-item-files">
-                                {item.files.map((f) => (
-                                  <span key={f} className="cl-file-chip">{f}</span>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+          {worklog.map((day) => {
+            const filteredBlocks = day.blocks.filter(b =>
+              (filter === 'all' || b.tag === filter) &&
+              (search === '' || b.title.toLowerCase().includes(search.toLowerCase()) || b.items.some(i => i.title.toLowerCase().includes(search.toLowerCase())))
+            );
+            if (filteredBlocks.length === 0) return null;
+            return (
+              <div key={day.date} id={`day-${day.date.replace(/\s|,/g, '-')}`} className="cl-day">
+                <div className="cl-day-header">
+                  <div className="cl-day-pill">
+                    <div className="cl-day-icon"><CalendarIcon /></div>
+                    <span className="cl-day-date">{day.dayLabel}, {day.date}</span>
                   </div>
-                );
-              })}
-            </div>
-          ))}
+                  <span className="cl-day-meta"><GitHubIcon /> {day.commitCount} commits</span>
+                </div>
+
+                {filteredBlocks.map((block, bi) => {
+                  const tag = tagStyles[block.tag];
+                  return (
+                    <div key={bi} className="cl-block">
+                      <div className="cl-block-stripe" style={{ background: tagStripeColor[block.tag] }} />
+                      <div className="cl-block-inner">
+                        <div className="cl-block-header">
+                          <span className="cl-block-tag" data-tag={block.tag} style={{ background: tag.bg, color: tag.color }}>
+                            {tag.label}
+                          </span>
+                          <span className="cl-block-count">{block.items.length} items</span>
+                        </div>
+                        <div className="cl-block-title">{block.title}</div>
+                        <p className="cl-block-desc">{block.summary}</p>
+
+                        <div className="cl-items">
+                          {block.items.map((item, ii) => (
+                            <div key={ii} className="cl-item">
+                              <span className="cl-item-icon">{item.icon}</span>
+                              <div className="cl-item-body">
+                                <span className="cl-item-title">{item.title}</span>
+                                <p className="cl-item-desc">{item.description}</p>
+                                {item.files && (
+                                  <div className="cl-item-files">
+                                    {item.files.map((f) => (
+                                      <span key={f} className="cl-file-chip">{f}</span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
         </div>
 
         <footer className="cl-footer">
           <div className="cl-footer-inner">
             <p>Internal use only — TradeGPT Engineering Team</p>
+            <div className="cl-footer-links">
+              <a href="https://github.com/hxmmxd/tradinggtp" target="_blank">GitHub ↗</a>
+              <a href="/admin">Admin ↗</a>
+            </div>
           </div>
         </footer>
       </main>
