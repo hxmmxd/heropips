@@ -37,7 +37,7 @@ const worklog: WorkDay[] = [
   {
     date: 'May 30, 2026',
     dayLabel: 'Friday',
-    commitCount: 31,
+    commitCount: 34,
     blocks: [
       { tag: 'major', time: '09:15 AM',
         title: 'Smart Money Concepts Scanner',
@@ -149,6 +149,18 @@ const worklog: WorkDay[] = [
           { icon: '📱', title: 'Mobile-First Responsive', description: 'Full breakpoint system: 2-col stats on tablet, stacked link actions on mobile, hidden status badges on small screens, 2x2 how-it-works grid on mobile, tab scroll strip.', files: ['globals.css'] },
           { icon: '🔔', title: 'Share Modal / Bottom Sheet', description: 'On browsers without Web Share API, a slide-up modal shows the referral URL with copy button. Backdrop blur overlay, animation, close on backdrop tap.', files: ['ReferralTab.tsx', 'globals.css'] },
           { icon: '📈', title: 'Commission Rates Tab Redesign', description: 'Rate rows with visual progress bar representing commission percentage, two stat columns (commission + rebate), hover slide effect.', files: ['ReferralTab.tsx', 'globals.css'] },
+        ]
+      },
+      { tag: 'feature', time: '11:25 PM',
+        title: 'Referral Wallet — Balance & Withdrawal',
+        summary: 'Added a premium referral wallet card with balance display, pending/lifetime earnings, and a full 3-step withdrawal modal supporting Crypto, Bank, and PayPal payouts.',
+        items: [
+          { icon: '💼', title: 'Wallet Balance Card', description: 'Dark gradient card (indigo-slate) with radial glow showing available balance ($4,820.50), pending earnings pill ($312 amber), lifetime earnings pill ($6,060 green), and next auto-payout date.', files: ['ReferralTab.tsx', 'globals.css'] },
+          { icon: '⬆️', title: 'Withdraw Button', description: 'Green gradient Withdraw CTA. Disabled state when balance < minimum withdrawal. Minimum shown below button.', files: ['ReferralTab.tsx'] },
+          { icon: '🪙', title: 'Step 1 — Amount & Method', description: 'Quick amount chips ($100/$250/$500/$1000/Max). Big dollar input. 3-method picker: Crypto (USDT/BTC/ETH), Bank (Wire), PayPal (Instant). Address/IBAN/email field adapts per method. Fee row shows network cost.', files: ['ReferralTab.tsx', 'globals.css'] },
+          { icon: '✅', title: 'Step 2 — Confirm', description: 'Summary card: Amount, Method, Destination, You Receive (after fee). Edit back + animated Confirm button with Processing spinner.', files: ['ReferralTab.tsx'] },
+          { icon: '🎉', title: 'Step 3 — Success', description: 'Green checkmark circle, success title, processing time note, Done button resets the full flow.', files: ['ReferralTab.tsx'] },
+          { icon: '📱', title: 'Mobile Layout', description: 'Wallet card stacks vertically on mobile. Withdraw button becomes full-width. Modal is full-screen bottom sheet on small devices.', files: ['globals.css'] },
         ]
       },
     ]

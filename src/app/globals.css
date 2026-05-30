@@ -2440,3 +2440,166 @@ body {
 
   .ref2-modal-overlay { padding: 10px; align-items: flex-end; }
 }
+
+/* ── Referral Wallet Card ──────────────────────────────── */
+.ref2-wallet {
+  margin: 0 40px 20px;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+  border: 1px solid rgba(99,102,241,0.3);
+  border-radius: 20px;
+  padding: 28px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  color: #fff;
+}
+.dark .ref2-wallet {
+  background: linear-gradient(135deg, #0a0a1a 0%, #1a1740 50%, #0a0a1a 100%);
+}
+.ref2-wallet-glow {
+  position: absolute;
+  top: -60px; left: -40px;
+  width: 280px; height: 280px;
+  background: radial-gradient(circle, rgba(99,102,241,0.18) 0%, transparent 65%);
+  pointer-events: none;
+}
+.ref2-wallet-left  { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 8px; }
+.ref2-wallet-right { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; flex-shrink: 0; }
+
+.ref2-wallet-eyebrow { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: rgba(255,255,255,0.5); }
+
+.ref2-wallet-balance { display: flex; align-items: baseline; gap: 4px; line-height: 1; }
+.ref2-wallet-currency { font-size: 22px; font-weight: 700; color: #10b981; margin-top: 2px; }
+.ref2-wallet-amount   { font-size: 44px; font-weight: 900; color: #fff; font-variant-numeric: tabular-nums; letter-spacing: -0.04em; }
+
+.ref2-wallet-meta { display: flex; gap: 8px; flex-wrap: wrap; }
+.ref2-wallet-pill {
+  font-size: 11px; font-weight: 700; padding: 4px 11px; border-radius: 100px;
+}
+.ref2-wallet-pending  { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.25); }
+.ref2-wallet-lifetime { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.25); }
+
+.ref2-wallet-payout { font-size: 11px; color: rgba(255,255,255,0.45); margin: 0; }
+.ref2-wallet-payout strong { color: rgba(255,255,255,0.75); }
+
+.ref2-withdraw-btn {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #fff; border: none; border-radius: 14px;
+  padding: 14px 28px; font-size: 15px; font-weight: 800;
+  cursor: pointer; font-family: inherit;
+  box-shadow: 0 6px 20px rgba(16,185,129,0.4);
+  transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+  white-space: nowrap;
+}
+.ref2-withdraw-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(16,185,129,0.5); }
+.ref2-withdraw-btn:active:not(:disabled){ transform: translateY(0); }
+.ref2-withdraw-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.ref2-wallet-min { font-size: 10px; color: rgba(255,255,255,0.4); font-weight: 600; text-align: center; }
+
+/* ── Withdrawal Modal ──────────────────────────────────── */
+.ref2-modal--wide { max-width: 520px; }
+.ref2-modal-subtitle { font-size: 12px; color: var(--subtext); display: block; margin-top: 2px; }
+
+/* Labels */
+.ref2-wd-label {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.7px; color: var(--subtext); margin-bottom: 10px;
+}
+
+/* Quick chips */
+.ref2-wd-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.ref2-wd-chip {
+  padding: 6px 14px; border-radius: 10px; font-size: 13px; font-weight: 700;
+  border: 1px solid var(--border); background: var(--bg); color: var(--text);
+  cursor: pointer; font-family: inherit; transition: all 0.12s;
+}
+.ref2-wd-chip:hover { border-color: #10b981; color: #10b981; }
+.ref2-wd-chip--active { background: #10b981; border-color: #10b981; color: #fff; }
+
+/* Amount input */
+.ref2-wd-input-wrap {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg); border: 1.5px solid var(--border);
+  border-radius: 12px; padding: 0 16px; transition: border-color 0.15s;
+}
+.ref2-wd-input-wrap:focus-within { border-color: #10b981; }
+.ref2-wd-prefix { font-size: 20px; font-weight: 700; color: #10b981; }
+.ref2-wd-input {
+  flex: 1; border: none; background: none; outline: none;
+  font-size: 26px; font-weight: 900; color: var(--text);
+  font-family: inherit; padding: 14px 0; font-variant-numeric: tabular-nums;
+}
+
+/* Payment methods */
+.ref2-wd-methods { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
+.ref2-wd-method {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 14px 10px; border-radius: 12px; border: 1.5px solid var(--border);
+  background: var(--bg); cursor: pointer; font-family: inherit;
+  transition: all 0.15s;
+}
+.ref2-wd-method:hover { border-color: #6366f1; }
+.ref2-wd-method--active { border-color: #6366f1; background: rgba(99,102,241,0.06); }
+.ref2-wd-method-icon  { font-size: 22px; }
+.ref2-wd-method-label { font-size: 13px; font-weight: 700; color: var(--text); }
+.ref2-wd-method-sub   { font-size: 10px; color: var(--subtext); }
+
+/* Address input */
+.ref2-wd-addr {
+  width: 100%; background: var(--bg); border: 1.5px solid var(--border);
+  border-radius: 12px; padding: 12px 14px; font-size: 13px; font-weight: 600;
+  color: var(--text); font-family: monospace; outline: none; box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+.ref2-wd-addr:focus { border-color: #6366f1; }
+
+/* Fee row */
+.ref2-wd-fee {
+  display: flex; justify-content: space-between;
+  font-size: 12px; font-weight: 600; color: var(--subtext);
+  background: var(--sidebar-bg); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 14px;
+}
+
+/* Confirm summary */
+.ref2-wd-summary {
+  background: var(--sidebar-bg); border: 1px solid var(--border);
+  border-radius: 14px; overflow: hidden; margin-bottom: 16px;
+}
+.ref2-wd-summary-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 13px 18px; font-size: 13px; border-bottom: 1px solid var(--border);
+}
+.ref2-wd-summary-row:last-child { border-bottom: none; }
+.ref2-wd-summary-row span { color: var(--subtext); font-weight: 600; }
+.ref2-wd-summary-row strong { font-weight: 700; color: var(--text); }
+.ref2-wd-summary-total { background: rgba(16,185,129,0.04); }
+.ref2-wd-addr-preview {
+  font-family: monospace; font-size: 12px;
+  max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* Success state */
+.ref2-wd-success { text-align: center; gap: 16px; }
+.ref2-wd-success-icon {
+  width: 60px; height: 60px; border-radius: 50%; background: #10b981;
+  color: #fff; font-size: 26px; font-weight: 900;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto; box-shadow: 0 6px 20px rgba(16,185,129,0.35);
+}
+.ref2-wd-success-title { font-size: 20px; font-weight: 800; color: var(--text); margin: 0; }
+.ref2-wd-success-sub   { font-size: 13px; color: var(--subtext); line-height: 1.6; margin: 0; }
+
+/* Mobile wallet */
+@media (max-width: 640px) {
+  .ref2-wallet { margin: 0 20px 16px; flex-direction: column; align-items: flex-start; padding: 22px 20px; gap: 18px; }
+  .ref2-wallet-amount { font-size: 36px; }
+  .ref2-wallet-right { width: 100%; }
+  .ref2-withdraw-btn { width: 100%; }
+  .ref2-wd-methods { grid-template-columns: repeat(3,1fr); }
+  .ref2-modal--wide { max-width: 100%; }
+}

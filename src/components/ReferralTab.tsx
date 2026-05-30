@@ -158,6 +158,21 @@ export default function ReferralTab({ partners = mockNetwork }: ReferralTabProps
   const [copied, setCopied]   = useState<'code' | 'link' | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('network');
   const [shareOpen, setShareOpen] = useState(false);
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [withdrawAmt, setWithdrawAmt]   = useState('');
+  const [withdrawMethod, setWithdrawMethod] = useState<'crypto'|'bank'|'paypal'>('crypto');
+  const [withdrawAddr, setWithdrawAddr]   = useState('');
+  const [withdrawStep, setWithdrawStep]   = useState<'form'|'confirm'|'success'>('form');
+  const [withdrawing, setWithdrawing]     = useState(false);
+
+  // Wallet state (mock — would come from Supabase)
+  const wallet = {
+    available: 4820.50,
+    pending:   312.00,
+    lifetime:  6060.70,
+    minWithdrawal: 50,
+    nextPayout: 'Jun 1, 2026',
+  };
 
   const { total, byLevel } = countAll(partners);
   const progressPct = Math.min((total / 10) * 100, 100);
@@ -234,6 +249,30 @@ export default function ReferralTab({ partners = mockNetwork }: ReferralTabProps
             </div>
           </div>
         ))}
+      </div>
+
+      {/* ── WALLET BALANCE CARD ── */}
+      <div className="ref2-wallet">
+        <div className="ref2-wallet-left">
+          <div className="ref2-wallet-glow" />
+          <span className="ref2-wallet-eyebrow">💼 Referral Wallet</span>
+          <div className="ref2-wallet-balance">
+            <span className="ref2-wallet-currency">$</span>
+            <span className="ref2-wallet-amount">{wallet.available.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+          </div>
+          <div className="ref2-wallet-meta">
+            <span className="ref2-wallet-pill ref2-wallet-pending">⏳ ${wallet.pending.toFixed(2)} pending</span>
+            <span className="ref2-wallet-pill ref2-wallet-lifetime">🏆 ${wallet.lifetime.toLocaleString()} lifetime</span>
+          </div>
+          <p className="ref2-wallet-payout">Next auto-payout: <strong>{wallet.nextPayout}</strong></p>
+        </div>
+        <div className="ref2-wallet-right">
+          <button className="ref2-withdraw-btn" onClick={() => { setWithdrawOpen(true); setWithdrawStep('form'); }}
+            disabled={wallet.available < wallet.minWithdrawal}>
+            ↑ Withdraw
+          </button>
+          <p className="ref2-wallet-min">Min ${wallet.minWithdrawal}</p>
+        </div>
       </div>
 
       {/* ── REFERRAL LINK CARD ── */}
@@ -418,6 +457,156 @@ export default function ReferralTab({ partners = mockNetwork }: ReferralTabProps
                 {copied === 'link' ? '✓ Copied!' : '⎘ Copy to clipboard'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── WITHDRAWAL MODAL ── */}
+      {withdrawOpen && (
+        <div className="ref2-modal-overlay" onClick={() => { setWithdrawOpen(false); setWithdrawStep('form'); }}>
+          <div className="ref2-modal ref2-modal--wide" onClick={e => e.stopPropagation()}>
+            <div className="ref2-modal-header">
+              <div>
+                <span className="ref2-modal-title">Withdraw Earnings</span>
+                <span className="ref2-modal-subtitle">Available: <strong style={{ color:'#10b981' }}>${wallet.available.toFixed(2)}</strong></span>
+              </div>
+              <button className="ref2-modal-close" onClick={() => { setWithdrawOpen(false); setWithdrawStep('form'); }}>✕</button>
+            </div>
+
+            {withdrawStep === 'form' && (
+              <div className="ref2-modal-body">
+                {/* Quick amount chips */}
+                <div>
+                  <p className="ref2-wd-label">Amount</p>
+                  <div className="ref2-wd-chips">
+                    {[100, 250, 500, 1000].filter(v => v <= wallet.available).map(v => (
+                      <button key={v} className={`ref2-wd-chip ${withdrawAmt === String(v) ? 'ref2-wd-chip--active' : ''}`}
+                        onClick={() => setWithdrawAmt(String(v))}>${v}</button>
+                    ))}
+                    <button className={`ref2-wd-chip ${withdrawAmt === String(Math.floor(wallet.available)) ? 'ref2-wd-chip--active' : ''}`}
+                      onClick={() => setWithdrawAmt(String(Math.floor(wallet.available)))}>Max</button>
+                  </div>
+                  <div className="ref2-wd-input-wrap">
+                    <span className="ref2-wd-prefix">$</span>
+                    <input
+                      className="ref2-wd-input"
+                      type="number"
+                      min={wallet.minWithdrawal}
+                      max={wallet.available}
+                      placeholder={`Min $${wallet.minWithdrawal}`}
+                      value={withdrawAmt}
+                      onChange={e => setWithdrawAmt(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {/* Method */}
+                <div>
+                  <p className="ref2-wd-label">Payment Method</p>
+                  <div className="ref2-wd-methods">
+                    {([
+                      { id:'crypto', icon:'₿', label:'Crypto',  sub:'USDT / BTC / ETH' },
+                      { id:'bank',   icon:'🏦', label:'Bank',    sub:'Wire transfer' },
+                      { id:'paypal', icon:'🅿', label:'PayPal',  sub:'Instant payout' },
+                    ] as const).map(m => (
+                      <button key={m.id}
+                        className={`ref2-wd-method ${withdrawMethod === m.id ? 'ref2-wd-method--active' : ''}`}
+                        onClick={() => setWithdrawMethod(m.id)}>
+                        <span className="ref2-wd-method-icon">{m.icon}</span>
+                        <span className="ref2-wd-method-label">{m.label}</span>
+                        <span className="ref2-wd-method-sub">{m.sub}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Address / details */}
+                <div>
+                  <p className="ref2-wd-label">
+                    {withdrawMethod === 'crypto' ? 'Wallet Address (USDT TRC-20)' :
+                     withdrawMethod === 'bank'   ? 'IBAN / Account Number' :
+                                                   'PayPal Email'}
+                  </p>
+                  <input
+                    className="ref2-wd-addr"
+                    type={withdrawMethod === 'paypal' ? 'email' : 'text'}
+                    placeholder={
+                      withdrawMethod === 'crypto' ? 'T...' :
+                      withdrawMethod === 'bank'   ? 'GB29 NWBK...' :
+                                                    'you@email.com'
+                    }
+                    value={withdrawAddr}
+                    onChange={e => setWithdrawAddr(e.target.value)}
+                  />
+                </div>
+
+                {/* Fee note */}
+                <div className="ref2-wd-fee">
+                  <span>Network fee</span>
+                  <span>{withdrawMethod === 'crypto' ? '$2.00' : withdrawMethod === 'bank' ? '$5.00' : 'Free'}</span>
+                </div>
+
+                <button
+                  className="ref2-btn-primary ref2-modal-copy"
+                  disabled={!withdrawAmt || Number(withdrawAmt) < wallet.minWithdrawal || !withdrawAddr}
+                  onClick={() => setWithdrawStep('confirm')}>
+                  Review Withdrawal
+                </button>
+              </div>
+            )}
+
+            {withdrawStep === 'confirm' && (
+              <div className="ref2-modal-body">
+                <div className="ref2-wd-summary">
+                  <div className="ref2-wd-summary-row">
+                    <span>Amount</span>
+                    <strong style={{ color:'#10b981' }}>${Number(withdrawAmt).toFixed(2)}</strong>
+                  </div>
+                  <div className="ref2-wd-summary-row">
+                    <span>Method</span>
+                    <strong>{withdrawMethod.charAt(0).toUpperCase() + withdrawMethod.slice(1)}</strong>
+                  </div>
+                  <div className="ref2-wd-summary-row">
+                    <span>Destination</span>
+                    <strong className="ref2-wd-addr-preview">{withdrawAddr}</strong>
+                  </div>
+                  <div className="ref2-wd-summary-row ref2-wd-summary-total">
+                    <span>You receive</span>
+                    <strong style={{ color:'#10b981', fontSize:18 }}>
+                      ${(Number(withdrawAmt) - (withdrawMethod === 'crypto' ? 2 : withdrawMethod === 'bank' ? 5 : 0)).toFixed(2)}
+                    </strong>
+                  </div>
+                </div>
+                <div style={{ display:'flex', gap:10 }}>
+                  <button className="ref2-btn-secondary" style={{ flex:1 }} onClick={() => setWithdrawStep('form')}>
+                    ← Edit
+                  </button>
+                  <button className="ref2-btn-primary" style={{ flex:2 }}
+                    disabled={withdrawing}
+                    onClick={() => {
+                      setWithdrawing(true);
+                      setTimeout(() => { setWithdrawing(false); setWithdrawStep('success'); }, 1800);
+                    }}>
+                    {withdrawing ? '⏳ Processing…' : 'Confirm Withdrawal'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {withdrawStep === 'success' && (
+              <div className="ref2-modal-body ref2-wd-success">
+                <div className="ref2-wd-success-icon">✓</div>
+                <p className="ref2-wd-success-title">Withdrawal Submitted!</p>
+                <p className="ref2-wd-success-sub">
+                  ${Number(withdrawAmt).toFixed(2)} is being processed.<br />
+                  You'll receive it within 1–3 business days.
+                </p>
+                <button className="ref2-btn-primary ref2-modal-copy"
+                  onClick={() => { setWithdrawOpen(false); setWithdrawStep('form'); setWithdrawAmt(''); setWithdrawAddr(''); }}>
+                  Done
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
