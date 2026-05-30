@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, ShieldCheck } from 'lucide-react';
+import { X, ShieldCheck, TrendingUp, BarChart3, Coins, Server, Eye, EyeOff, Loader2, ChevronRight, Zap } from 'lucide-react';
 
 interface ModalNodeProps {
   isOpen: boolean;
@@ -9,17 +9,44 @@ interface ModalNodeProps {
   onConnect: (server: string, login: string, password: string) => void;
 }
 
+type ExchangeType = 'mt5' | 'mt4' | 'ctrader' | 'binance' | 'bybit';
+
+interface ExchangeOption {
+  id: ExchangeType;
+  name: string;
+  icon: React.ReactNode;
+  category: 'forex' | 'crypto';
+  color: string;
+  description: string;
+}
+
+const exchanges: ExchangeOption[] = [
+  { id: 'mt5', name: 'MetaTrader 5', icon: <TrendingUp />, category: 'forex', color: '#3b82f6', description: 'Forex, Gold, Indices' },
+  { id: 'mt4', name: 'MetaTrader 4', icon: <BarChart3 />, category: 'forex', color: '#6366f1', description: 'Forex, CFDs' },
+  { id: 'ctrader', name: 'cTrader', icon: <Zap />, category: 'forex', color: '#a855f7', description: 'Forex, Metals' },
+  { id: 'binance', name: 'Binance', icon: <Coins />, category: 'crypto', color: '#f59e0b', description: 'Crypto Spot & Futures' },
+  { id: 'bybit', name: 'Bybit', icon: <Coins />, category: 'crypto', color: '#f97316', description: 'Crypto Derivatives' },
+];
+
 export default function ModalNode({ isOpen, onClose, onConnect }: ModalNodeProps) {
+  const [step, setStep] = useState<1 | 2>(1);
+  const [selected, setSelected] = useState<ExchangeType>('mt5');
   const [serverName, setServerName] = useState('');
   const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [isSimulation, setIsSimulation] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+
+  const activeExchange = exchanges.find(e => e.id === selected)!;
+  const isCrypto = activeExchange.category === 'crypto';
 
   React.useEffect(() => {
     if (!isOpen) return;
+    if (isCrypto) return;
 
     const fetchSuggestions = async () => {
       setLoading(true);
@@ -30,153 +57,205 @@ export default function ModalNode({ isOpen, onClose, onConnect }: ModalNodeProps
           setSuggestions(data.servers);
           setIsSimulation(!!data.isSimulation);
         }
-      } catch (err) {
-        console.error('Failed to fetch server suggestions:', err);
-      } finally {
-        setLoading(false);
-      }
+      } catch { /* silent */ }
+      finally { setLoading(false); }
     };
 
-    const delayDebounceFn = setTimeout(() => {
-      fetchSuggestions();
-    }, 250);
+    const delay = setTimeout(fetchSuggestions, 250);
+    return () => clearTimeout(delay);
+  }, [serverName, isOpen, isCrypto]);
 
-    return () => clearTimeout(delayDebounceFn);
-  }, [serverName, isOpen]);
-
-  if (!isOpen) return null;
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!serverName.trim() || !loginId.trim() || !password.trim()) return;
-
-    onConnect(serverName.trim(), loginId.trim(), password.trim());
-
-    // Reset fields
+  const handleReset = () => {
+    setStep(1);
     setServerName('');
     setLoginId('');
     setPassword('');
+    setShowPassword(false);
     setShowSuggestions(false);
-    onClose();
+    setConnecting(false);
   };
 
+  const handleClose = () => { handleReset(); onClose(); };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isCrypto) {
+      if (!loginId.trim() || !password.trim()) return;
+    } else {
+      if (!serverName.trim() || !loginId.trim() || !password.trim()) return;
+    }
+    setConnecting(true);
+    onConnect(isCrypto ? selected : serverName.trim(), loginId.trim(), password.trim());
+    setTimeout(() => { handleReset(); onClose(); }, 300);
+  };
+
+  if (!isOpen) return null;
+
   return (
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/50 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <div
-        className="modal-glass w-full max-w-sm p-8 shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-blue-500" />
-            <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--subtext)]">
-              Initialize MT5 Node
-            </span>
-          </div>
-          <button onClick={onClose} className="text-[var(--subtext)] hover:opacity-80 transition">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
+    <div className="bm-overlay" onClick={handleClose}>
+      <div className="bm-container" onClick={e => e.stopPropagation()}>
+        {/* Close */}
+        <div className="bm-close" role="button" tabIndex={0} onClick={handleClose}><X /></div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* 1. Broker Server */}
-          <div className="relative">
-            <label className="text-[9px] uppercase tracking-widest text-[var(--subtext)] font-bold mb-1.5 block">
-              Broker Server
-            </label>
-            <input
-              type="text"
-              placeholder="e.g. ICMarketsSC-Live"
-              value={serverName}
-              onChange={(e) => {
-                setServerName(e.target.value);
-                setShowSuggestions(true);
-              }}
-              onFocus={() => setShowSuggestions(true)}
-              onBlur={() => {
-                setTimeout(() => setShowSuggestions(false), 200);
-              }}
-              className="w-full bg-[var(--input-bg)] border-none p-4 rounded-xl outline-none text-sm font-mono text-[var(--text)] placeholder-[var(--subtext)]/60"
-              required
-              autoComplete="off"
-            />
-            {showSuggestions && (suggestions.length > 0 || loading) && (
-              <div className="absolute left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-[var(--sidebar-bg)] border border-[var(--border)] rounded-xl z-50 shadow-lg modal-glass divide-y divide-[var(--border)]/30">
-                {loading && (
-                  <div className="p-3 text-[10px] text-[var(--subtext)] font-mono flex items-center justify-between">
-                    <span>Searching MT5 servers registry...</span>
-                    <div className="w-3 h-3 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
-                  </div>
-                )}
-                {!loading && suggestions.map((srv) => (
-                  <button
-                    key={srv}
-                    type="button"
-                    onClick={() => {
-                      setServerName(srv);
-                      setShowSuggestions(false);
-                    }}
-                    className="w-full text-left p-3 text-xs font-mono text-[var(--text)] hover:bg-blue-500/10 hover:text-blue-400 transition"
+        {/* Step 1: Exchange Selection */}
+        {step === 1 && (
+          <div className="bm-step bm-step-in">
+            <div className="bm-header">
+              <ShieldCheck className="bm-header-icon" />
+              <h2>Connect Exchange</h2>
+              <p>Choose your trading platform to get started</p>
+            </div>
+
+            {/* Category: Forex */}
+            <div className="bm-category">
+              <span className="bm-category-label"><TrendingUp /> Forex · Metals · Indices</span>
+              <div className="bm-pills">
+                {exchanges.filter(e => e.category === 'forex').map(ex => (
+                  <div
+                    key={ex.id}
+                    className={`bm-pill ${selected === ex.id ? 'bm-pill-active' : ''}`}
+                    style={{ '--pill-color': ex.color } as React.CSSProperties}
+                    role="button" tabIndex={0}
+                    onClick={() => setSelected(ex.id)}
                   >
-                    {srv}
-                  </button>
-                ))}
-                {isSimulation && !loading && (
-                  <div className="p-3 text-[9px] text-[var(--subtext)]/80 font-sans bg-yellow-500/5 leading-relaxed">
-                    💡 Showing simulator suggestions. Add your <code className="text-yellow-400 font-mono text-[8px] bg-yellow-500/10 px-1 py-0.5 rounded">META_API_TOKEN</code> in <code className="text-yellow-400 font-mono text-[8px] bg-yellow-500/10 px-1 py-0.5 rounded">.env.local</code> to search MT5 registry live.
+                    <div className="bm-pill-icon">{ex.icon}</div>
+                    <div className="bm-pill-info">
+                      <span className="bm-pill-name">{ex.name}</span>
+                      <span className="bm-pill-desc">{ex.description}</span>
+                    </div>
+                    {selected === ex.id && <div className="bm-pill-check">✓</div>}
                   </div>
-                )}
+                ))}
               </div>
-            )}
+            </div>
+
+            {/* Category: Crypto */}
+            <div className="bm-category">
+              <span className="bm-category-label"><Coins /> Crypto Exchanges</span>
+              <div className="bm-pills">
+                {exchanges.filter(e => e.category === 'crypto').map(ex => (
+                  <div
+                    key={ex.id}
+                    className={`bm-pill ${selected === ex.id ? 'bm-pill-active' : ''}`}
+                    style={{ '--pill-color': ex.color } as React.CSSProperties}
+                    role="button" tabIndex={0}
+                    onClick={() => setSelected(ex.id)}
+                  >
+                    <div className="bm-pill-icon">{ex.icon}</div>
+                    <div className="bm-pill-info">
+                      <span className="bm-pill-name">{ex.name}</span>
+                      <span className="bm-pill-desc">{ex.description}</span>
+                    </div>
+                    {selected === ex.id && <div className="bm-pill-check">✓</div>}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bm-pill-continue" role="button" tabIndex={0} onClick={() => setStep(2)}>
+              Continue with {activeExchange.name} <ChevronRight />
+            </div>
           </div>
+        )}
 
-          {/* 2. MT5 User ID */}
-          <div>
-            <label className="text-[9px] uppercase tracking-widest text-[var(--subtext)] font-bold mb-1.5 block">
-              MT5 User ID
-            </label>
-            <input
-              type="text"
-              placeholder="e.g. 882910"
-              value={loginId}
-              onChange={(e) => setLoginId(e.target.value)}
-              className="w-full bg-[var(--input-bg)] border-none p-4 rounded-xl outline-none text-sm font-mono text-[var(--text)] placeholder-[var(--subtext)]/60"
-              required
-              inputMode="numeric"
-            />
+        {/* Step 2: Credentials */}
+        {step === 2 && (
+          <div className="bm-step bm-step-in">
+            <div className="bm-header">
+              <div className="bm-selected-badge" style={{ background: activeExchange.color + '18', color: activeExchange.color }}>
+                {activeExchange.icon} {activeExchange.name}
+              </div>
+              <h2>{isCrypto ? 'Enter API Credentials' : 'Enter Account Details'}</h2>
+              <p>{isCrypto ? 'Use a read/trade-only API key — never enable withdrawals' : 'Your credentials are encrypted end-to-end'}</p>
+            </div>
+
+            <form onSubmit={handleSubmit} className="bm-form">
+              {/* Broker Server (forex only) */}
+              {!isCrypto && (
+                <div className="bm-field">
+                  <label><Server className="bm-field-icon" /> Broker Server</label>
+                  <div className="bm-input-wrap">
+                    <input
+                      type="text"
+                      placeholder={selected === 'ctrader' ? 'e.g. demo.ctrader.com' : 'e.g. ICMarketsSC-Live'}
+                      value={serverName}
+                      onChange={e => { setServerName(e.target.value); setShowSuggestions(true); }}
+                      onFocus={() => setShowSuggestions(true)}
+                      onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                      required autoComplete="off"
+                    />
+                  </div>
+                  {showSuggestions && (suggestions.length > 0 || loading) && (
+                    <div className="bm-suggestions">
+                      {loading && (
+                        <div className="bm-suggest-loading">
+                          <span>Searching servers...</span>
+                          <Loader2 className="bm-spin" />
+                        </div>
+                      )}
+                      {!loading && suggestions.map(srv => (
+                        <div key={srv} className="bm-suggest-item" role="button" tabIndex={0}
+                          onClick={() => { setServerName(srv); setShowSuggestions(false); }}>
+                          <Server /> {srv}
+                        </div>
+                      ))}
+                      {isSimulation && !loading && (
+                        <div className="bm-suggest-note">💡 Showing simulated results</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Login / API Key */}
+              <div className="bm-field">
+                <label>{isCrypto ? '🔑 API Key' : `👤 ${selected === 'ctrader' ? 'cTrader ID' : 'Account Login'}`}</label>
+                <div className="bm-input-wrap">
+                  <input
+                    type="text"
+                    placeholder={isCrypto ? 'Paste your API key' : 'e.g. 5050880841'}
+                    value={loginId}
+                    onChange={e => setLoginId(e.target.value)}
+                    required
+                    inputMode={isCrypto ? undefined : 'numeric'}
+                    autoComplete="off"
+                  />
+                </div>
+              </div>
+
+              {/* Password / API Secret */}
+              <div className="bm-field">
+                <label>{isCrypto ? '🔐 API Secret' : '🔒 Password'}</label>
+                <div className="bm-input-wrap bm-input-pass">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder={isCrypto ? 'Paste your API secret' : 'Master or Investor password'}
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    required
+                  />
+                  <div className="bm-pass-toggle" role="button" tabIndex={0}
+                    onClick={() => setShowPassword(!showPassword)}>
+                    {showPassword ? <EyeOff /> : <Eye />}
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="bm-actions">
+                <div className="bm-back" role="button" tabIndex={0} onClick={() => setStep(1)}>← Back</div>
+                <button type="submit" className="bm-connect" disabled={connecting}
+                  style={{ background: activeExchange.color }}>
+                  {connecting ? <><Loader2 className="bm-spin" /> Connecting...</> : <>Connect {activeExchange.name}</>}
+                </button>
+              </div>
+
+              <p className="bm-disclaimer">
+                <ShieldCheck /> Encrypted end-to-end · Never stored locally
+              </p>
+            </form>
           </div>
-
-          {/* 3. Password */}
-          <div>
-            <label className="text-[9px] uppercase tracking-widest text-[var(--subtext)] font-bold mb-1.5 block">
-              Password
-            </label>
-            <input
-              type="password"
-              placeholder="MT5 Master Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-[var(--input-bg)] border-none p-4 rounded-xl outline-none text-sm font-mono text-[var(--text)] placeholder-[var(--subtext)]/60"
-              required
-            />
-          </div>
-
-          <button
-            type="submit"
-            className="w-full bg-[var(--text)] text-[var(--bg)] py-4 rounded-2xl font-bold uppercase text-[10px] tracking-widest mt-2 active:scale-95 hover:opacity-90 transition"
-          >
-            Connect Account
-          </button>
-
-          <p className="text-[9px] text-[var(--subtext)]/60 text-center leading-relaxed">
-            Credentials are encrypted end-to-end and never stored locally.
-          </p>
-        </form>
+        )}
       </div>
     </div>
   );

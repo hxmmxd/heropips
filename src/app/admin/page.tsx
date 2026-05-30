@@ -589,9 +589,19 @@ export default function AdminPage() {
                                 setTestingProvider(null);
                               }}>{testingProvider === p.id ? <Loader2 className="adm-spin" /> : <TestTube />}</div>
                               <div className="adm-provider-act adm-provider-del" role="button" tabIndex={0} onClick={async () => {
-                                if (!confirm(`Delete provider "${p.name}"?`)) return;
-                                await fetch('/api/admin', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ brokerProvider: { action: 'delete', data: { id: p.id, name: p.name } } }) });
-                                setBrokerProviders(brokerProviders.filter(x => x.id !== p.id));
+                                const yes = window.confirm(`Delete provider "${p.name}"?`);
+                                if (!yes) return;
+                                try {
+                                  const res = await fetch('/api/admin', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ brokerProvider: { action: 'delete', data: { id: p.id, name: p.name } } }) });
+                                  const result = await res.json();
+                                  if (result.success) {
+                                    setBrokerProviders(prev => prev.filter(x => x.id !== p.id));
+                                  } else {
+                                    alert('Delete failed: ' + (result.error || 'Unknown error'));
+                                  }
+                                } catch (err: any) {
+                                  alert('Delete failed: ' + err.message);
+                                }
                               }}><Trash2 /></div>
                             </div>
                           </div>
