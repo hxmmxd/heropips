@@ -473,36 +473,29 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
                         <TradeTicket
                           ticket={msg.ticket}
                           onConfirm={async () => {
-                            try {
-                              const res = await fetch('/api/execute', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                  brokerId: activeBrokerId,
-                                  symbol: msg.ticket!.apiSymbol || msg.ticket!.symbol,
-                                  action: msg.ticket!.action,
-                                  volume: msg.ticket!.lotVolume,
-                                  entryPrice: msg.ticket!.entryPrice,
-                                  stopLoss: msg.ticket!.stopLoss,
-                                  takeProfit: msg.ticket!.takeProfit,
-                                }),
-                              });
-                              const data = await res.json();
-                              if (data.success) {
-                                onTradeExecuted?.({
-                                  orderId: data.orderId,
-                                  ticket: msg.ticket,
-                                });
-                                alert(`✅ Trade executed successfully!\nOrder ID: ${data.orderId}`);
-                              } else {
-                                alert(`❌ Execution failed: ${data.error}`);
-                              }
-                            } catch (err: any) {
-                              alert(`❌ Execution error: ${err.message}`);
+                            const res = await fetch('/api/execute', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                brokerId: activeBrokerId,
+                                symbol: msg.ticket!.apiSymbol || msg.ticket!.symbol,
+                                action: msg.ticket!.action,
+                                volume: msg.ticket!.lotVolume,
+                                entryPrice: msg.ticket!.entryPrice,
+                                stopLoss: msg.ticket!.stopLoss,
+                                takeProfit: msg.ticket!.takeProfit,
+                              }),
+                            });
+                            const data = await res.json();
+                            if (data.success) {
+                              onTradeExecuted?.({ orderId: data.orderId, ticket: msg.ticket });
+                              return { orderId: data.orderId, fillPrice: data.fillPrice };
                             }
+                            throw new Error(data.error || 'Execution failed');
                           }}
                         />
                       )}
+
                     </div>
                   </div>
                 );

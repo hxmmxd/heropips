@@ -1,7 +1,15 @@
 /**
- * POST /api/withdrawals  — Initiate a referral earnings withdrawal via NOWPayments
- * POST /api/withdrawals/status — Check status of a withdrawal
- * POST /api/withdrawals/test-gateway — Admin: test NOWPayments connectivity
+ * POST /api/withdrawals
+ *
+ * Flow:
+ *   1. User raises a withdrawal request  → action: 'withdraw'     → status: 'pending'
+ *   2. Admin approves it                 → action: 'approve'      → NOWPayments payout created
+ *   3. Admin rejects it                  → action: 'reject'       → balance refunded
+ *   4. Admin tests gateway               → action: 'test_gateway'
+ *   5. User checks status                → action: 'check_status'
+ *
+ * Users can only withdraw in crypto (primarily USDT).
+ * NOWPayments is never called on user request — only when admin approves.
  */
 
 import { NextResponse } from 'next/server';
@@ -10,8 +18,6 @@ import { createClient } from '@supabase/supabase-js';
 import {
   createPayout,
   testConnection,
-  getAvailableCurrencies,
-  estimateAmount,
   getPayoutStatus,
   type CreatePayoutInput,
 } from '@/lib/nowpayments';
@@ -27,7 +33,7 @@ function getSupabaseAdmin() {
   return _supabaseAdmin;
 }
 
-// ── Currency map: user-facing → NOWPayments code ─────────
+// ── Currency map: user-facing label → NOWPayments ticker ──
 const CURRENCY_MAP: Record<string, string> = {
   'USDT (TRC-20)': 'usdttrc20',
   'USDT (ERC-20)': 'usdterc20',
@@ -35,7 +41,15 @@ const CURRENCY_MAP: Record<string, string> = {
   'ETH':           'eth',
   'BNB':           'bnbbsc',
   'USDC':          'usdc',
+  'LTC':           'ltc',
+  'DOGE':          'doge',
 };
+
+// ── Helpers ───────────────────────────────────────────────
+async function isAdmin(supabaseAdmin: any, userId: string): Promise<boolean> {
+  const { data } = await supabaseAdmin.from('profiles').select('is_admin').eq('id', userId).single();
+  return !!data?.is_admin;
+}
 
 export async function POST(request: Request) {
   const supabase = createServerClient();
@@ -47,42 +61,207 @@ export async function POST(request: Request) {
   const body = await request.json();
   const { action } = body;
 
-  // ── Test gateway (admin only) ───────────────────────────
-  if (action === 'test_gateway') {
-    const { data: profile } = await supabaseAdmin.from('profiles').select('is_admin').eq('id', user.id).single();
-    if (!profile?.is_admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  //  1. USER: Raise a withdrawal request (pending review)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  if (action === 'withdraw' || !action) {
+    const { amount, currency, address } = body;
 
-    const apiKey = body.apiKey || process.env.NOWPAYMENTS_API_KEY;
-    const result = await testConnection(apiKey);
-    return NextResponse.json(result);
+    if (!amount || !currency || !address) {
+      return NextResponse.json({ error: 'Missing amount, currency, or address' }, { status: 400 });
+    }
+
+    if (amount < 50) {
+      return NextResponse.json({ error: 'Minimum withdrawal is $50' }, { status: 400 });
+    }
+
+    // Validate currency
+    const nowCurrency = CURRENCY_MAP[currency];
+    if (!nowCurrency) {
+      return NextResponse.json({ error: `Unsupported currency: ${currency}` }, { status: 400 });
+    }
+
+    // Check wallet balance
+    const { data: wallet } = await supabaseAdmin
+      .from('referral_wallets')
+      .select('available_balance')
+      .eq('user_id', user.id)
+      .single();
+
+    const available = wallet?.available_balance ?? 0;
+    if (available < amount) {
+      return NextResponse.json({ error: 'Insufficient balance' }, { status: 400 });
+    }
+
+    // Deduct balance immediately (held until approved/rejected)
+    await supabaseAdmin
+      .from('referral_wallets')
+      .update({
+        available_balance: available - amount,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', user.id);
+
+    // Create withdrawal request — just a DB record, NO NOWPayments call
+    const { data: record, error: insertErr } = await supabaseAdmin
+      .from('referral_withdrawals')
+      .insert({
+        user_id: user.id,
+        amount_usd: amount,
+        currency,
+        nowpayments_currency: nowCurrency,
+        address,
+        status: 'pending',          // awaiting admin review
+        created_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (insertErr) {
+      // Refund on insert failure
+      await supabaseAdmin
+        .from('referral_wallets')
+        .update({ available_balance: available, updated_at: new Date().toISOString() })
+        .eq('user_id', user.id);
+      return NextResponse.json({ error: insertErr.message }, { status: 500 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      withdrawalId: record.id,
+      status: 'pending',
+      message: 'Withdrawal request submitted. It will be reviewed by admin.',
+    });
   }
 
-  // ── Fetch available currencies (admin only) ─────────────
-  if (action === 'get_currencies') {
-    const { data: profile } = await supabaseAdmin.from('profiles').select('is_admin').eq('id', user.id).single();
-    if (!profile?.is_admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  //  2. ADMIN: Approve a withdrawal → trigger NOWPayments payout
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  if (action === 'approve') {
+    if (!await isAdmin(supabaseAdmin, user.id)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
+    const { withdrawalId } = body;
+    if (!withdrawalId) return NextResponse.json({ error: 'Missing withdrawalId' }, { status: 400 });
+
+    // Fetch the pending withdrawal
+    const { data: record } = await supabaseAdmin
+      .from('referral_withdrawals')
+      .select('*')
+      .eq('id', withdrawalId)
+      .single();
+
+    if (!record) return NextResponse.json({ error: 'Withdrawal not found' }, { status: 404 });
+    if (record.status !== 'pending') {
+      return NextResponse.json({ error: `Cannot approve — current status is "${record.status}"` }, { status: 400 });
+    }
+
+    // Mark as approved/processing
+    await supabaseAdmin
+      .from('referral_withdrawals')
+      .update({ status: 'approved', approved_by: user.id, updated_at: new Date().toISOString() })
+      .eq('id', withdrawalId);
+
+    // Now call NOWPayments to create the actual payout
     try {
-      const currencies = await getAvailableCurrencies();
-      return NextResponse.json({ currencies });
-    } catch (e: any) {
-      return NextResponse.json({ error: e.message }, { status: 500 });
+      const payoutInput: CreatePayoutInput = {
+        address: record.address,
+        currency: record.nowpayments_currency,
+        amount: record.amount_usd,
+        ipn_callback_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/nowpayments`,
+      };
+
+      const payout = await createPayout(payoutInput);
+
+      // Update record with NOWPayments IDs
+      await supabaseAdmin
+        .from('referral_withdrawals')
+        .update({
+          nowpayments_id: payout.id,
+          batch_withdrawal_id: payout.batch_withdrawal_id,
+          status: 'processing',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', withdrawalId);
+
+      return NextResponse.json({
+        success: true,
+        withdrawalId,
+        nowpaymentsId: payout.id,
+        batchWithdrawalId: payout.batch_withdrawal_id,
+        status: 'processing',
+      });
+    } catch (err: any) {
+      // Mark failed but keep balance deducted (admin should investigate)
+      await supabaseAdmin
+        .from('referral_withdrawals')
+        .update({ status: 'failed', error_message: err.message, updated_at: new Date().toISOString() })
+        .eq('id', withdrawalId);
+
+      return NextResponse.json({
+        error: `NOWPayments payout failed: ${err.message}`,
+        withdrawalId,
+      }, { status: 500 });
     }
   }
 
-  // ── Estimate exchange amount ────────────────────────────
-  if (action === 'estimate') {
-    const { amount, currency } = body;
-    const nowCode = CURRENCY_MAP[currency] || currency.toLowerCase();
-    try {
-      const est = await estimateAmount(amount, 'usd', nowCode);
-      return NextResponse.json(est);
-    } catch (e: any) {
-      return NextResponse.json({ error: e.message }, { status: 500 });
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  //  3. ADMIN: Reject a withdrawal → refund user balance
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  if (action === 'reject') {
+    if (!await isAdmin(supabaseAdmin, user.id)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
+
+    const { withdrawalId, reason } = body;
+    if (!withdrawalId) return NextResponse.json({ error: 'Missing withdrawalId' }, { status: 400 });
+
+    const { data: record } = await supabaseAdmin
+      .from('referral_withdrawals')
+      .select('*')
+      .eq('id', withdrawalId)
+      .single();
+
+    if (!record) return NextResponse.json({ error: 'Withdrawal not found' }, { status: 404 });
+    if (record.status !== 'pending') {
+      return NextResponse.json({ error: `Cannot reject — current status is "${record.status}"` }, { status: 400 });
+    }
+
+    // Refund balance
+    const { data: wallet } = await supabaseAdmin
+      .from('referral_wallets')
+      .select('available_balance')
+      .eq('user_id', record.user_id)
+      .single();
+
+    if (wallet) {
+      await supabaseAdmin
+        .from('referral_wallets')
+        .update({
+          available_balance: (wallet.available_balance || 0) + record.amount_usd,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', record.user_id);
+    }
+
+    // Update withdrawal status
+    await supabaseAdmin
+      .from('referral_withdrawals')
+      .update({
+        status: 'rejected',
+        rejected_by: user.id,
+        error_message: reason || 'Rejected by admin',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', withdrawalId);
+
+    return NextResponse.json({ success: true, status: 'rejected' });
   }
 
-  // ── Check withdrawal status ─────────────────────────────
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  //  4. USER: Check withdrawal status
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   if (action === 'check_status') {
     const { withdrawalId } = body;
     if (!withdrawalId) return NextResponse.json({ error: 'Missing withdrawalId' }, { status: 400 });
@@ -97,122 +276,52 @@ export async function POST(request: Request) {
 
     if (!record) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-    if (record.nowpayments_id) {
+    // If we have a NOWPayments ID, fetch live status
+    if (record.nowpayments_id && ['processing', 'approved'].includes(record.status)) {
       try {
-        const status = await getPayoutStatus(record.nowpayments_id);
-        // Update DB status
+        const payoutStatus = await getPayoutStatus(record.nowpayments_id);
         await supabaseAdmin
           .from('referral_withdrawals')
-          .update({ status: status.status?.toLowerCase(), updated_at: new Date().toISOString() })
+          .update({ status: payoutStatus.status?.toLowerCase(), updated_at: new Date().toISOString() })
           .eq('id', withdrawalId);
-        return NextResponse.json({ status: status.status, outcome: status.outcome });
-      } catch (e: any) {
-        return NextResponse.json({ error: e.message }, { status: 500 });
+        return NextResponse.json({ status: payoutStatus.status });
+      } catch {
+        // fallthrough to return DB status
       }
     }
 
     return NextResponse.json({ status: record.status });
   }
 
-  // ── Create withdrawal ───────────────────────────────────
-  if (action === 'withdraw' || !action) {
-    const { amount, currency, address } = body;
-
-    if (!amount || !currency || !address) {
-      return NextResponse.json({ error: 'Missing amount, currency, or address' }, { status: 400 });
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  //  5. ADMIN: Test gateway connectivity
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  if (action === 'test_gateway') {
+    if (!await isAdmin(supabaseAdmin, user.id)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    if (amount < 50) {
-      return NextResponse.json({ error: 'Minimum withdrawal is $50' }, { status: 400 });
+    const apiKey = body.apiKey || process.env.NOWPAYMENTS_API_KEY;
+    const result = await testConnection(apiKey);
+    return NextResponse.json(result);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  //  6. ADMIN: List pending withdrawals
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  if (action === 'list_pending') {
+    if (!await isAdmin(supabaseAdmin, user.id)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // Fetch user's referral wallet balance from DB
-    const { data: wallet } = await supabaseAdmin
-      .from('referral_wallets')
-      .select('available_balance')
-      .eq('user_id', user.id)
-      .single();
-
-    const available = wallet?.available_balance ?? 0;
-    if (available < amount) {
-      return NextResponse.json({ error: 'Insufficient balance' }, { status: 400 });
-    }
-
-    // Map currency to NOWPayments code
-    const nowCurrency = CURRENCY_MAP[currency] || currency.toLowerCase().replace(/[^a-z0-9]/g, '');
-
-    // Create record in pending state first
-    const { data: record, error: insertErr } = await supabaseAdmin
+    const { data: withdrawals } = await supabaseAdmin
       .from('referral_withdrawals')
-      .insert({
-        user_id: user.id,
-        amount_usd: amount,
-        currency,
-        nowpayments_currency: nowCurrency,
-        address,
-        status: 'pending',
-        created_at: new Date().toISOString(),
-      })
-      .select()
-      .single();
+      .select('*, profiles:user_id(email, full_name)')
+      .in('status', ['pending'])
+      .order('created_at', { ascending: false })
+      .limit(50);
 
-    if (insertErr) return NextResponse.json({ error: insertErr.message }, { status: 500 });
-
-    // Deduct from wallet balance
-    await supabaseAdmin
-      .from('referral_wallets')
-      .update({
-        available_balance: available - amount,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('user_id', user.id);
-
-    // Call NOWPayments
-    try {
-      const payoutInput: CreatePayoutInput = {
-        address,
-        currency: nowCurrency,
-        amount,
-        ipn_callback_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/nowpayments`,
-        extra_id: record.id,
-      };
-
-      const payout = await createPayout(payoutInput);
-
-      // Update record with NOWPayments ID
-      await supabaseAdmin
-        .from('referral_withdrawals')
-        .update({
-          nowpayments_id: payout.id || payout.payment_id,
-          status: 'processing',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', record.id);
-
-      return NextResponse.json({
-        success: true,
-        withdrawalId: record.id,
-        nowpaymentsId: payout.id,
-        status: 'processing',
-        payAddress: payout.pay_address,
-      });
-    } catch (err: any) {
-      // Refund wallet balance on NOWPayments failure
-      await supabaseAdmin
-        .from('referral_wallets')
-        .update({
-          available_balance: available,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('user_id', user.id);
-
-      await supabaseAdmin
-        .from('referral_withdrawals')
-        .update({ status: 'failed', error_message: err.message, updated_at: new Date().toISOString() })
-        .eq('id', record.id);
-
-      return NextResponse.json({ error: err.message }, { status: 500 });
-    }
+    return NextResponse.json({ withdrawals: withdrawals || [] });
   }
 
   return NextResponse.json({ error: 'Unknown action' }, { status: 400 });

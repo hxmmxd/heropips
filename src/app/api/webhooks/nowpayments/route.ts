@@ -3,12 +3,18 @@
  * Receives Instant Payment Notifications (IPN) from NOWPayments
  * and updates withdrawal status in Supabase.
  *
- * Docs: https://documenter.getpostman.com/view/7907941/2s93JtP3F6#ipn
+ * Docs: https://documenter.getpostman.com/view/7907941/2s93JusNJt
+ *
+ * We handle TWO IPN shapes:
+ *   - Payout/Withdrawal IPN: { id, batch_withdrawal_id, status, currency, amount, address, ... }
+ *   - Payment IPN: { payment_id, payment_status, pay_address, ... }
+ *
+ * Since we only use payouts (user withdrawals), the payout shape is primary.
  */
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import crypto from 'crypto';
+import { getActiveConfig, verifyIpnSignature } from '@/lib/nowpayments';
 
 let _supabaseAdmin: any = null;
 function getSupabaseAdmin() {
@@ -21,25 +27,35 @@ function getSupabaseAdmin() {
   return _supabaseAdmin;
 }
 
-function verifyIpnSignature(body: string, signature: string, secret: string): boolean {
-  const hmac = crypto.createHmac('sha512', secret);
-  hmac.update(body);
-  return hmac.digest('hex') === signature;
-}
+// Map NOWPayments payout statuses → our internal statuses
+const PAYOUT_STATUS_MAP: Record<string, string> = {
+  creating:   'processing',
+  waiting:    'processing',
+  processing: 'processing',
+  sending:    'processing',
+  finished:   'completed',
+  failed:     'failed',
+  rejected:   'rejected',
+};
+
+// Map NOWPayments payment statuses (for backward compat)
+const PAYMENT_STATUS_MAP: Record<string, string> = {
+  waiting:        'pending',
+  confirming:     'processing',
+  confirmed:      'processing',
+  sending:        'processing',
+  partially_paid: 'partial',
+  finished:       'completed',
+  failed:         'failed',
+  refunded:       'refunded',
+  expired:        'expired',
+};
 
 export async function POST(request: Request) {
   const supabaseAdmin = getSupabaseAdmin();
   const rawBody = await request.text();
 
-  // Verify signature if IPN secret is configured
-  const ipnSecret = process.env.NOWPAYMENTS_IPN_SECRET;
-  if (ipnSecret) {
-    const sig = request.headers.get('x-nowpayments-sig') || '';
-    if (!verifyIpnSignature(rawBody, sig, ipnSecret)) {
-      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
-    }
-  }
-
+  // Parse body first — IPN signature requires sorted JSON keys, not raw body
   let payload: any;
   try {
     payload = JSON.parse(rawBody);
@@ -47,55 +63,106 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const {
-    payment_id,
-    payment_status,
-    outcome,
-    actually_paid,
-    outcome_amount,
-    outcome_currency,
-  } = payload;
+  // Verify signature per docs: sort keys → JSON.stringify → HMAC-SHA512
+  const nowConfig = await getActiveConfig();
+  const ipnSecret = nowConfig.ipn_secret || process.env.NOWPAYMENTS_IPN_SECRET;
+  if (ipnSecret) {
+    const sig = request.headers.get('x-nowpayments-sig') || '';
+    if (!verifyIpnSignature(payload, sig, ipnSecret)) {
+      console.warn('NOWPayments IPN: signature mismatch');
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+    }
+  }
 
-  // Map NOWPayments status to our internal status
-  const statusMap: Record<string, string> = {
-    waiting:        'pending',
-    confirming:     'processing',
-    confirmed:      'processing',
-    sending:        'processing',
-    partially_paid: 'partial',
-    finished:       'completed',
-    failed:         'failed',
-    refunded:       'refunded',
-    expired:        'expired',
-  };
+  // ── Detect IPN type: Payout or Payment ──────────────────
+  const isPayout = !!payload.batch_withdrawal_id || (payload.status && !payload.payment_status);
 
-  const internalStatus = statusMap[payment_status?.toLowerCase()] || payment_status?.toLowerCase() || 'unknown';
+  if (isPayout) {
+    // Payout IPN: { id, batch_withdrawal_id, status, currency, amount, address, hash, ... }
+    const payoutId = String(payload.id);
+    const batchId  = String(payload.batch_withdrawal_id || '');
+    const status   = (payload.status || '').toLowerCase();
+    const internalStatus = PAYOUT_STATUS_MAP[status] || status || 'unknown';
 
-  // Find the withdrawal record
-  const { data: record } = await supabaseAdmin
-    .from('referral_withdrawals')
-    .select('*')
-    .eq('nowpayments_id', String(payment_id))
-    .single();
+    // Find withdrawal by payout ID or batch ID
+    let record: any = null;
+    const { data: byPayout } = await supabaseAdmin
+      .from('referral_withdrawals')
+      .select('*')
+      .eq('nowpayments_id', payoutId)
+      .single();
+    record = byPayout;
 
-  if (!record) {
-    // Not our record — silently acknowledge
+    if (!record && batchId) {
+      const { data: byBatch } = await supabaseAdmin
+        .from('referral_withdrawals')
+        .select('*')
+        .eq('batch_withdrawal_id', batchId)
+        .single();
+      record = byBatch;
+    }
+
+    if (!record) {
+      // Not our record — silently acknowledge
+      return NextResponse.json({ received: true });
+    }
+
+    // Update withdrawal record
+    await supabaseAdmin
+      .from('referral_withdrawals')
+      .update({
+        status: internalStatus,
+        tx_hash: payload.hash || record.tx_hash,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', record.id);
+
+    // If payout failed or rejected, refund user's balance
+    if (internalStatus === 'failed' || internalStatus === 'rejected') {
+      const { data: wallet } = await supabaseAdmin
+        .from('referral_wallets')
+        .select('available_balance')
+        .eq('user_id', record.user_id)
+        .single();
+
+      if (wallet) {
+        await supabaseAdmin
+          .from('referral_wallets')
+          .update({
+            available_balance: (wallet.available_balance || 0) + record.amount_usd,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('user_id', record.user_id);
+      }
+    }
+
     return NextResponse.json({ received: true });
   }
 
-  // Update status
+  // ── Payment IPN (backward compat, unlikely in payout-only flow) ──
+  const paymentId     = payload.payment_id;
+  const paymentStatus = (payload.payment_status || '').toLowerCase();
+  const internalStatus = PAYMENT_STATUS_MAP[paymentStatus] || paymentStatus || 'unknown';
+
+  const { data: record } = await supabaseAdmin
+    .from('referral_withdrawals')
+    .select('*')
+    .eq('nowpayments_id', String(paymentId))
+    .single();
+
+  if (!record) {
+    return NextResponse.json({ received: true });
+  }
+
   await supabaseAdmin
     .from('referral_withdrawals')
     .update({
       status: internalStatus,
-      outcome_amount: outcome?.amount || outcome_amount || actually_paid,
-      outcome_currency: outcome?.currency || outcome_currency,
-      outcome_hash: outcome?.hash,
       updated_at: new Date().toISOString(),
     })
     .eq('id', record.id);
 
-  // If payment failed, refund balance
+  // Refund balance on failure
   if (internalStatus === 'failed' || internalStatus === 'expired') {
     const { data: wallet } = await supabaseAdmin
       .from('referral_wallets')

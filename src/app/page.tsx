@@ -114,7 +114,7 @@ export default function Home() {
             balance: b.balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
             pnl: (b.pnl >= 0 ? '+' : '') + b.pnl.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
             equity: b.equity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-            acc: b.login,
+            acc: b.id || b.login,  // prefer MetaAPI UUID for trade execution
           })));
         }
       } catch (err) {

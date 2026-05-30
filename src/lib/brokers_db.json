@@ -1,1 +1,15 @@
-[]
+[
+  {
+    "id": "49232017-bd40-4ca7-96b1-e34a5406d59e",
+    "userId": "dded1522-9719-4672-b24a-52827ba4a9fb",
+    "name": "MetaQuotes-5050880841",
+    "login": "5050880841",
+    "server": "MetaQuotes-Demo",
+    "platform": "mt5",
+    "status": "connected",
+    "balance": 100000,
+    "equity": 100000,
+    "pnl": 0,
+    "positions": []
+  }
+]

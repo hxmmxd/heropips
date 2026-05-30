@@ -37,7 +37,7 @@ interface UserRow {
   created_at: string;
 }
 
-interface BrokerRow { id: string; user_id: string; broker_name: string; account_id: string; server: string; status: string; created_at: string; }
+interface BrokerRow { id: string; user_id: string; broker_name: string; mt5_login: string; account_id?: string; server: string; metaapi_id?: string; status: string; balance: number; equity: number; pnl: number; is_active: boolean; created_at: string; }
 interface TradeRow { id: string; user_id: string; symbol: string; type: string; volume: number; open_price: number; close_price: number; pnl: number; status: string; created_at: string; }
 
 type SortKey = 'full_name' | 'email' | 'plan' | 'created_at';
@@ -101,7 +101,10 @@ export default function AdminPage() {
   });
   const [refSaved, setRefSaved] = useState(false);
   const [npApiKey, setNpApiKey]             = useState('');
-  const [npJwtToken, setNpJwtToken]         = useState('');
+  const [npEmail, setNpEmail]               = useState('');
+  const [npPassword, setNpPassword]         = useState('');
+  const [npTotpSecret, setNpTotpSecret]     = useState('');
+  const [npJwtToken, setNpJwtToken]         = useState(''); // legacy — no longer saved
   const [npIpnSecret, setNpIpnSecret]       = useState('');
   const [npSandbox, setNpSandbox]           = useState(false);
   const [npTestResult, setNpTestResult]     = useState<{ok:boolean;message:string}|null>(null);
@@ -135,6 +138,20 @@ export default function AdminPage() {
       setRevenueTrends(data.revenueTrends || []);
       setTopSymbols(data.topSymbols || []);
       setBrokerProviders(data.brokerProviders || []);
+
+      // Populate NOWPayments setting states from loaded config
+      if (data.config && data.config.nowpayments_config) {
+        const npc = data.config.nowpayments_config;
+        setNpApiKey(npc.api_key || '');
+        setNpEmail(npc.email || '');
+        setNpPassword(npc.password || '');
+        setNpTotpSecret(npc.totp_secret || '');
+        setNpIpnSecret(npc.ipn_secret || '');
+        setNpSandbox(npc.sandbox ?? false);
+        if (Array.isArray(npc.enabled_coins)) {
+          setNpCoins(npc.enabled_coins);
+        }
+      }
     } catch (err: any) { setError(err.message); }
     finally { setLoading(false); }
   };
@@ -662,13 +679,14 @@ export default function AdminPage() {
                   <div className="adm-empty-state"><Server className="adm-empty-icon" /><p>No broker accounts connected yet</p></div>
                 ) : (
                   <div className="adm-table-wrap"><table className="adm-table"><thead><tr>
-                    <th>Broker</th><th>Account ID</th><th>Server</th><th>Status</th><th>Connected</th>
+                    <th>Broker</th><th>Login</th><th>Server</th><th>Balance</th><th>Status</th><th>Connected</th>
                   </tr></thead><tbody>
                     {brokers.map(b => (
                       <tr key={b.id}>
                         <td><span className="adm-broker-name">{b.broker_name || 'MT5'}</span></td>
-                        <td className="adm-mono">{b.account_id}</td>
+                        <td className="adm-mono">{b.mt5_login || b.account_id || '—'}</td>
                         <td className="adm-date-cell">{b.server || '—'}</td>
+                        <td className="adm-mono">${(b.balance || 0).toLocaleString()}</td>
                         <td><span className={`adm-status ${b.status === 'connected' ? 'adm-status-on' : 'adm-status-off'}`}>
                           {b.status === 'connected' ? <><Wifi /> Connected</> : <><WifiOff /> Offline</>}
                         </span></td>
@@ -832,22 +850,26 @@ export default function AdminPage() {
             <>
               {/* ── Settings Sub-Nav ── */}
               <div className="adm-card adm-card-full" style={{ padding:0, overflow:'hidden' }}>
-                <div style={{ display:'flex', borderBottom:'1px solid var(--adm-border)', background:'var(--adm-bg-secondary)' }}>
+                <div style={{ display:'flex', borderBottom:'1px solid var(--border)', background:'var(--sidebar-bg)' }}>
                   {[
-                    { id:'main',        label:'Platform',     icon:'⚡' },
-                    { id:'referral',    label:'Referral',     icon:'🎁' },
-                    { id:'pricing',     label:'Pricing',      icon:'💳' },
-                    { id:'announcements',label:'Announce',    icon:'📢' },
-                    { id:'payments',       label:'Payments',     icon:'₿' },
+                    { id:'main',         label:'Platform',  icon:'⚡' },
+                    { id:'referral',     label:'Referral',  icon:'🎁' },
+                    { id:'pricing',      label:'Pricing',   icon:'💳' },
+                    { id:'announcements',label:'Announce',  icon:'📢' },
+                    { id:'payments',     label:'Payments',  icon:'₿' },
                   ].map(tab => (
                     <button key={tab.id}
-                      onClick={() => setSettingsSubPage(tab.id as any)}
+                      onClick={() => {
+                        setSettingsSubPage(tab.id as any);
+                        document.querySelector('.adm-main')?.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
                       style={{
-                        padding:'14px 22px', border:'none', background:'none', cursor:'pointer',
+                        padding:'14px 20px', border:'none', background:'none', cursor:'pointer',
                         fontFamily:'inherit', fontSize:13, fontWeight:600,
-                        color: settingsSubPage === tab.id ? 'var(--adm-text)' : 'var(--adm-text-muted)',
+                        color: settingsSubPage === tab.id ? 'var(--text)' : 'var(--subtext)',
                         borderBottom: settingsSubPage === tab.id ? '2px solid #6366f1' : '2px solid transparent',
                         display:'flex', alignItems:'center', gap:7, transition:'all 0.15s',
+                        whiteSpace:'nowrap',
                       }}>
                       <span>{tab.icon}</span>{tab.label}
                     </button>
@@ -1136,294 +1158,209 @@ export default function AdminPage() {
 
               {/* ── Payments (NOWPayments) Tab ── */}
               {settingsSubPage === 'payments' && (
-                <>
-                  {/* Gateway Status Banner */}
-                  <div className="adm-card adm-card-full" style={{ padding:0, overflow:'hidden' }}>
-                    <div style={{
-                      background: npSandbox
-                        ? 'linear-gradient(135deg, #78350f 0%, #451a03 100%)'
-                        : 'linear-gradient(135deg, #064e3b 0%, #022c22 100%)',
-                      padding:'22px 24px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:16,
-                    }}>
-                      <div style={{ display:'flex', alignItems:'center', gap:16 }}>
-                        <div style={{ width:48, height:48, borderRadius:14, background:'rgba(255,255,255,0.1)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, flexShrink:0, backdropFilter:'blur(4px)' }}>₿</div>
+                <div className="gw-root">
+
+                  {/* ── Hero Header ── */}
+                  <div className={`gw-hero ${npSandbox ? 'gw-hero-sandbox' : 'gw-hero-prod'}`}>
+                    <div className="gw-hero-left">
+                      <div className="gw-hero-logo">₿</div>
+                      <div>
+                        <p className="gw-hero-title">NOWPayments Gateway</p>
+                        <p className="gw-hero-sub">
+                          Crypto withdrawal infrastructure ·{' '}
+                          <a href="https://nowpayments.io" target="_blank" rel="noreferrer">nowpayments.io</a>
+                        </p>
+                      </div>
+                    </div>
+                    <div className="gw-hero-right">
+                      <div className="gw-mode-badge">
+                        <div className={`gw-mode-dot ${npSandbox ? 'gw-mode-dot-sandbox' : 'gw-mode-dot-live'}`} />
                         <div>
-                          <p style={{ fontSize:16, fontWeight:800, color:'#fff', margin:0 }}>NOWPayments Gateway</p>
-                          <p style={{ fontSize:12, color:'rgba(255,255,255,0.6)', margin:'2px 0 0' }}>
-                            Crypto withdrawal processing · <a href="https://nowpayments.io" target="_blank" rel="noreferrer" style={{ color:'rgba(255,255,255,0.8)', textDecoration:'underline' }}>nowpayments.io</a>
-                          </p>
+                          <p className="gw-mode-text">{npSandbox ? 'Sandbox' : 'Production'}</p>
+                          <p className="gw-mode-sub">{npSandbox ? 'Test mode active' : 'Live transactions'}</p>
                         </div>
                       </div>
-                      <div style={{ display:'flex', alignItems:'center', gap:12, flexShrink:0 }}>
-                        <div style={{ textAlign:'right' }}>
-                          <p style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'1px', color:'rgba(255,255,255,0.5)', margin:0 }}>Environment</p>
-                          <p style={{ fontSize:14, fontWeight:800, color: npSandbox ? '#fbbf24' : '#34d399', margin:'2px 0 0' }}>
-                            {npSandbox ? '🧪 Sandbox' : '🟢 Production'}
-                          </p>
-                        </div>
-                        <div className={`adm-switch ${!npSandbox ? 'adm-switch-on' : ''}`} role="button" tabIndex={0}
-                          onClick={() => setNpSandbox(!npSandbox)} title="Toggle Sandbox/Live">
-                          <span className="adm-switch-track"><span className="adm-switch-thumb" /></span>
+                      <div className="gw-env-toggle" role="button" tabIndex={0} onClick={() => setNpSandbox(!npSandbox)}>
+                        <span className="gw-env-label">{npSandbox ? 'SANDBOX' : 'LIVE'}</span>
+                        <div className={`gw-toggle-pill ${npSandbox ? 'gw-toggle-pill-sandbox' : 'gw-toggle-pill-live'}`}>
+                          <div className={`gw-toggle-thumb ${npSandbox ? 'gw-toggle-thumb-sandbox' : 'gw-toggle-thumb-live'}`} />
                         </div>
                       </div>
-                    </div>
-
-                    {/* Test Result Banner */}
-                    {npTestResult && (
-                      <div style={{
-                        padding:'14px 24px', borderTop:'1px solid',
-                        borderColor: npTestResult.ok ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)',
-                        background: npTestResult.ok ? 'rgba(16,185,129,0.04)' : 'rgba(239,68,68,0.04)',
-                        display:'flex', alignItems:'center', gap:12,
-                      }}>
-                        <div style={{
-                          width:32, height:32, borderRadius:50, flexShrink:0,
-                          background: npTestResult.ok ? '#10b981' : '#ef4444',
-                          display:'flex', alignItems:'center', justifyContent:'center',
-                          fontSize:14, color:'#fff', fontWeight:800,
-                        }}>{npTestResult.ok ? '✓' : '✕'}</div>
-                        <div style={{ flex:1 }}>
-                          <p style={{ fontSize:13, fontWeight:700, color: npTestResult.ok ? '#10b981' : '#ef4444', margin:0 }}>
-                            {npTestResult.ok ? 'Gateway Connected Successfully' : 'Connection Failed'}
-                          </p>
-                          <p style={{ fontSize:11, color:'var(--adm-text-muted)', margin:'2px 0 0' }}>{npTestResult.message}</p>
-                        </div>
-                        <button onClick={() => setNpTestResult(null)}
-                          style={{ background:'none', border:'none', color:'var(--adm-text-muted)', cursor:'pointer', fontSize:14, padding:4 }}>✕</button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* API Credentials */}
-                  <div className="adm-card adm-card-full">
-                    <div className="adm-card-head">
-                      <h3 style={{ display:'flex', alignItems:'center', gap:8 }}>
-                        <span style={{ fontSize:16 }}>🔑</span> API Credentials
-                      </h3>
-                    </div>
-                    <div className="adm-card-body" style={{ display:'flex', flexDirection:'column', gap:16 }}>
-                      {[
-                        { label:'API Key', key:'apiKey', hint:'Dashboard → Settings → API Keys', value: npApiKey, setter: setNpApiKey, icon:'🗝️' },
-                        { label:'JWT / Payout Token', key:'jwt', hint:'Required for payout/withdrawal API calls', value: npJwtToken, setter: setNpJwtToken, icon:'🎟️' },
-                        { label:'IPN Secret', key:'ipn', hint:'For verifying webhook signatures (HMAC-SHA512)', value: npIpnSecret, setter: setNpIpnSecret, icon:'🛡️' },
-                      ].map(f => (
-                        <div key={f.key} style={{ background:'var(--adm-bg-secondary)', border:'1px solid var(--adm-border)', borderRadius:14, padding:'16px 18px' }}>
-                          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
-                            <span style={{ fontSize:14 }}>{f.icon}</span>
-                            <p style={{ fontSize:12, fontWeight:700, color:'var(--adm-text)', margin:0 }}>{f.label}</p>
-                          </div>
-                          <p style={{ fontSize:10, color:'var(--adm-text-muted)', margin:'0 0 10px', lineHeight:1.4 }}>{f.hint}</p>
-                          <div style={{ position:'relative', display:'flex', alignItems:'center', gap:8 }}>
-                            <input
-                              type="password"
-                              placeholder={'••••••••••••••••••••••••'}
-                              style={{ flex:1, background:'var(--adm-bg)', border:'1.5px solid var(--adm-border)', borderRadius:10, padding:'11px 14px', fontSize:13, fontWeight:600, color:'var(--adm-text)', fontFamily:'monospace', boxSizing:'border-box', outline:'none', transition:'border-color 0.15s' }}
-                              value={f.value}
-                              onChange={e => f.setter(e.target.value)}
-                              onFocus={e => { e.target.style.borderColor = '#6366f1'; }}
-                              onBlur={e => { e.target.style.borderColor = ''; }}
-                            />
-                            {f.value && (
-                              <span style={{ fontSize:10, fontWeight:700, color:'#10b981', padding:'3px 8px', borderRadius:6, background:'rgba(16,185,129,0.1)', flexShrink:0 }}>SET</span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
                     </div>
                   </div>
 
-                  {/* Enabled Coins + Webhook */}
-                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
-
-                    {/* Coins */}
-                    <div className="adm-card" style={{ margin:0 }}>
-                      <div className="adm-card-head">
-                        <h3 style={{ display:'flex', alignItems:'center', gap:8 }}>
-                          <span style={{ fontSize:16 }}>🪙</span> Withdrawal Coins
-                        </h3>
+                  {/* Test Result */}
+                  {npTestResult && (
+                    <div className={`gw-result ${npTestResult.ok ? 'gw-result-ok' : 'gw-result-fail'}`}>
+                      <span className="gw-result-icon">{npTestResult.ok ? '✓' : '✕'}</span>
+                      <div style={{ flex: 1 }}>
+                        <p className="gw-result-title">{npTestResult.ok ? 'Gateway Connected Successfully' : 'Connection Failed'}</p>
+                        <p className="gw-result-msg">{npTestResult.message}</p>
                       </div>
-                      <div className="adm-card-body">
-                        <p style={{ fontSize:11, color:'var(--adm-text-muted)', margin:'0 0 14px' }}>Select which coins users can withdraw to. Toggle to enable/disable.</p>
-                        <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                          {[
-                            { coin:'USDT (TRC-20)', slug:'usdt', net:'Tron TRC-20' },
-                            { coin:'USDT (ERC-20)', slug:'usdt', net:'Ethereum ERC-20' },
-                            { coin:'BTC',           slug:'btc',  net:'Bitcoin' },
-                            { coin:'ETH',           slug:'eth',  net:'Ethereum' },
-                            { coin:'BNB',           slug:'bnb',  net:'BNB Smart Chain' },
-                            { coin:'USDC',          slug:'usdc', net:'Multi-chain' },
-                            { coin:'LTC',           slug:'ltc',  net:'Litecoin' },
-                            { coin:'DOGE',          slug:'doge', net:'Dogecoin' },
-                          ].map(c => {
-                            const on = npCoins.includes(c.coin);
-                            const iconUrl = `https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/${c.slug}.png`;
-                            return (
-                              <div key={c.coin} style={{
-                                display:'flex', alignItems:'center', gap:10, padding:'8px 12px',
-                                borderRadius:10, background: on ? 'rgba(99,102,241,0.05)' : 'transparent',
-                                border:'1px solid', borderColor: on ? 'rgba(99,102,241,0.2)' : 'var(--adm-border)',
-                                cursor:'pointer', transition:'all 0.15s',
-                              }} onClick={() => setNpCoins(on ? npCoins.filter(x=>x!==c.coin) : [...npCoins, c.coin])}>
-                                <img src={iconUrl} alt={c.coin} width={28} height={28} style={{ borderRadius:50, flexShrink:0, background:'#fff' }} />
-                                <div style={{ flex:1 }}>
-                                  <p style={{ fontSize:12, fontWeight:700, color:'var(--adm-text)', margin:0 }}>{c.coin}</p>
-                                  <p style={{ fontSize:9, color:'var(--adm-text-muted)', margin:0 }}>{c.net}</p>
-                                </div>
-                                <div className={`adm-switch ${on ? 'adm-switch-on' : ''}`} role="button" tabIndex={0}>
-                                  <span className="adm-switch-track"><span className="adm-switch-thumb" /></span>
-                                </div>
+                      <button className="gw-result-close" onClick={() => setNpTestResult(null)}>✕</button>
+                    </div>
+                  )}
+
+                  {/* ── Body: Left config + Right status ── */}
+                  <div className="gw-body">
+
+                    {/* LEFT: Credentials + Coins */}
+                    <div className="gw-left">
+
+                      {/* API Credentials */}
+                      <div>
+                        <p className="gw-sec-label">API Credentials</p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                          {([
+                            { label: 'API Key', key: 'apiKey', hint: 'From NOWPayments Dashboard → Settings → API Keys', value: npApiKey, setter: setNpApiKey, icon: '🗝' },
+                            { label: 'Dashboard Email', key: 'email', hint: 'Email you use to log in to nowpayments.io (needed for JWT auth)', value: npEmail, setter: setNpEmail, icon: '✉️' },
+                            { label: 'Dashboard Password', key: 'password', hint: 'Password for nowpayments.io (JWT is fetched fresh on each payout — expires in 5 min)', value: npPassword, setter: setNpPassword, icon: '🔑' },
+                            { label: 'TOTP Secret (2FA)', key: 'totp', hint: 'base32 TOTP secret from Dashboard → Account Settings → Two-step auth (enables automated payout verification)', value: npTotpSecret, setter: setNpTotpSecret, icon: '📲' },
+                            { label: 'IPN Secret', key: 'ipn', hint: 'From NOWPayments Dashboard → Payment Settings → IPN Secret Key (for HMAC-SHA512 webhook verification)', value: npIpnSecret, setter: setNpIpnSecret, icon: '🛡' },
+                          ] as const).map(f => (
+                            <div key={f.key} className="gw-field">
+                              <div className="gw-field-head">
+                                <span className="gw-field-name"><span>{f.icon}</span>{f.label}</span>
+                                <span className={f.value ? 'gw-field-badge-set' : 'gw-field-badge-unset'}>
+                                  {f.value ? 'SET' : 'NOT SET'}
+                                </span>
                               </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Webhook + Info */}
-                    <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
-
-                      {/* Webhook */}
-                      <div className="adm-card" style={{ margin:0 }}>
-                        <div className="adm-card-head">
-                          <h3 style={{ display:'flex', alignItems:'center', gap:8 }}>
-                            <span style={{ fontSize:16 }}>📡</span> IPN Webhook
-                          </h3>
-                        </div>
-                        <div className="adm-card-body">
-                          <p style={{ fontSize:11, color:'var(--adm-text-muted)', margin:'0 0 12px', lineHeight:1.5 }}>
-                            Set this URL in your NOWPayments dashboard under <strong>IPN Settings</strong>. It receives real-time payment status updates.
-                          </p>
-                          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                            <code style={{ flex:1, fontSize:11, color:'#6366f1', background:'var(--adm-bg)', padding:'10px 12px', borderRadius:10, border:'1px solid var(--adm-border)', overflow:'auto', wordBreak:'break-all', lineHeight:1.5 }}>
-                              {typeof window !== 'undefined' ? window.location.origin : 'https://yourdomain.com'}/api/webhooks/nowpayments
-                            </code>
-                            <button onClick={() => navigator.clipboard.writeText(window.location.origin + '/api/webhooks/nowpayments')}
-                              style={{ background:'var(--adm-bg)', border:'1px solid var(--adm-border)', borderRadius:10, padding:'10px 14px', fontSize:11, cursor:'pointer', color:'var(--adm-text-muted)', fontFamily:'inherit', fontWeight:700, flexShrink:0, transition:'border-color 0.15s' }}>
-                              ⎘ Copy
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Quick Stats */}
-                      <div className="adm-card" style={{ margin:0 }}>
-                        <div className="adm-card-head">
-                          <h3 style={{ display:'flex', alignItems:'center', gap:8 }}>
-                            <span style={{ fontSize:16 }}>📊</span> Gateway Stats
-                          </h3>
-                        </div>
-                        <div className="adm-card-body" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
-                          {[
-                            { label:'Coins Enabled', value: npCoins.length, color:'#6366f1' },
-                            { label:'Mode', value: npSandbox ? 'Sandbox' : 'Live', color: npSandbox ? '#f59e0b' : '#10b981' },
-                            { label:'API Key', value: npApiKey ? 'Set ✓' : 'Not set', color: npApiKey ? '#10b981' : '#ef4444' },
-                            { label:'IPN Secret', value: npIpnSecret ? 'Set ✓' : 'Not set', color: npIpnSecret ? '#10b981' : '#ef4444' },
-                          ].map((s,i) => (
-                            <div key={i} style={{ background:'var(--adm-bg-secondary)', border:'1px solid var(--adm-border)', borderRadius:10, padding:'12px 14px', textAlign:'center' }}>
-                              <p style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.8px', color:'var(--adm-text-muted)', margin:'0 0 4px' }}>{s.label}</p>
-                              <p style={{ fontSize:15, fontWeight:800, color:s.color, margin:0 }}>{s.value}</p>
+                              <div className="gw-input-wrap">
+                                <input
+                                  id={`gw-input-${f.key}`}
+                                  type="password"
+                                  placeholder="Enter value…"
+                                  className={`gw-input ${f.value ? 'gw-input-set' : ''}`}
+                                  value={f.value}
+                                  onChange={e => (f.setter as any)(e.target.value)}
+                                  autoComplete="new-password"
+                                />
+                              </div>
+                              <p style={{ fontSize: 10, color: 'var(--subtext)', margin: 0 }}>{f.hint}</p>
                             </div>
                           ))}
                         </div>
                       </div>
+
+                      {/* Payout Flow Info */}
+                      <div>
+                        <p className="gw-sec-label">Payout Flow</p>
+                        <div style={{ padding: '14px 16px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--input-bg)', lineHeight: 1.7, fontSize: 12, color: 'var(--subtext)' }}>
+                          <p style={{ margin: '0 0 8px', fontWeight: 700, color: 'var(--text)', fontSize: 13 }}>How withdrawals work</p>
+                          <p style={{ margin: '0 0 4px' }}>1. User raises a withdrawal request (USDT, crypto only)</p>
+                          <p style={{ margin: '0 0 4px' }}>2. Request appears in your Admin dashboard as <strong style={{ color: '#f59e0b' }}>Pending</strong></p>
+                          <p style={{ margin: '0 0 4px' }}>3. You review &amp; approve → NOWPayments creates the payout</p>
+                          <p style={{ margin: '0 0 4px' }}>4. NOWPayments sends IPN → status auto-updates to <strong style={{ color: '#10b981' }}>Completed</strong></p>
+                          <p style={{ margin: '8px 0 0', fontSize: 10, opacity: 0.6 }}>Rejected requests automatically refund the user&apos;s balance.</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* RIGHT: Status + Webhook + Checklist */}
+                    <div className="gw-right">
+
+                      {/* KPI Status */}
+                      <div>
+                        <p className="gw-sec-label">Gateway Status</p>
+                        <div className="gw-kpis">
+                          {[
+                            { label: 'Environment', value: npSandbox ? 'Sandbox' : 'Live', color: npSandbox ? '#f59e0b' : '#10b981' },
+                            { label: 'API Key', value: npApiKey ? '● Set' : '○ Missing', color: npApiKey ? '#10b981' : '#ef4444' },
+                            { label: 'Auth (JWT)', value: (npEmail && npPassword) ? '● Set' : '○ Missing', color: (npEmail && npPassword) ? '#10b981' : '#ef4444' },
+                            { label: '2FA Auto', value: npTotpSecret ? '● Active' : '○ Manual', color: npTotpSecret ? '#10b981' : '#f59e0b' },
+                          ].map((s, i) => (
+                            <div key={i} className="gw-kpi">
+                              <p className="gw-kpi-label">{s.label}</p>
+                              <p className="gw-kpi-val" style={{ color: s.color }}>{s.value}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="gw-divider" />
+
+                      {/* IPN Webhook */}
+                      <div>
+                        <p className="gw-sec-label">IPN Webhook URL</p>
+                        <p style={{ fontSize: 11, color: 'var(--subtext)', margin: '0 0 8px', lineHeight: 1.5 }}>
+                          Register this in your <strong>NOWPayments → IPN Settings</strong> to receive real-time payout status callbacks.
+                        </p>
+                        <div className="gw-webhook-box">
+                          <span className="gw-webhook-url">
+                            {typeof window !== 'undefined' ? window.location.origin : 'https://yourdomain.com'}/api/webhooks/nowpayments
+                          </span>
+                          <button className="gw-webhook-copy"
+                            onClick={() => navigator.clipboard.writeText(window.location.origin + '/api/webhooks/nowpayments')}>
+                            ⎘ Copy
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="gw-divider" />
 
                       {/* Setup Checklist */}
-                      <div className="adm-card" style={{ margin:0 }}>
-                        <div className="adm-card-head">
-                          <h3 style={{ display:'flex', alignItems:'center', gap:8 }}>
-                            <span style={{ fontSize:16 }}>✅</span> Setup Checklist
-                          </h3>
-                        </div>
-                        <div className="adm-card-body" style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                      <div>
+                        <p className="gw-sec-label">Setup Checklist</p>
+                        <div className="gw-checks">
                           {[
-                            { label:'API Key configured', done: !!npApiKey },
-                            { label:'JWT Token configured', done: !!npJwtToken },
-                            { label:'IPN Secret configured', done: !!npIpnSecret },
-                            { label:'Webhook URL set in NOWPayments', done: false },
-                            { label:'At least 1 coin enabled', done: npCoins.length > 0 },
-                            { label:'Connection tested', done: npTestResult?.ok === true },
-                          ].map((c,i) => (
-                            <div key={i} style={{ display:'flex', alignItems:'center', gap:8, fontSize:12 }}>
-                              <span style={{ width:18, height:18, borderRadius:50, display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:800,
-                                background: c.done ? '#10b981' : 'var(--adm-border)', color: c.done ? '#fff' : 'var(--adm-text-muted)' }}>
-                                {c.done ? '✓' : i+1}
-                              </span>
-                              <span style={{ color: c.done ? 'var(--adm-text)' : 'var(--adm-text-muted)', fontWeight: c.done ? 600 : 400,
-                                textDecoration: c.done ? 'line-through' : 'none' }}>{c.label}</span>
+                            { label: 'API Key configured', done: !!npApiKey },
+                            { label: 'Dashboard email set', done: !!npEmail },
+                            { label: 'Dashboard password set', done: !!npPassword },
+                            { label: 'IPN Secret set', done: !!npIpnSecret },
+                            { label: '2FA auto-verify (TOTP)', done: !!npTotpSecret },
+                            { label: 'IPN webhook URL registered', done: false },
+                            { label: 'API connection tested', done: npTestResult?.ok === true },
+                          ].map((c, i) => (
+                            <div key={i} className="gw-check">
+                              <div className={`gw-check-icon ${c.done ? 'gw-check-icon-done' : 'gw-check-icon-todo'}`}>
+                                {c.done ? '✓' : i + 1}
+                              </div>
+                              <span className={c.done ? 'gw-check-text-done' : 'gw-check-text'}>{c.label}</span>
                             </div>
                           ))}
                         </div>
                       </div>
-
                     </div>
                   </div>
 
-                  {/* Actions Bar */}
-                  <div className="adm-card adm-card-full" style={{ padding:0, overflow:'hidden' }}>
-                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'16px 22px', borderTop:'1px solid var(--adm-border)' }}>
-                      <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
-                        <button
-                          onClick={async () => {
-                            setNpTesting(true); setNpTestResult(null);
-                            try {
-                              const r = await fetch('/api/withdrawals', {
-                                method:'POST', headers:{'Content-Type':'application/json'},
-                                body: JSON.stringify({ action:'test_gateway', apiKey: npApiKey || undefined }),
-                              });
-                              const d = await r.json();
-                              setNpTestResult(d);
-                            } catch(e) {
-                              setNpTestResult({ ok:false, message: (e as Error).message });
-                            }
-                            setNpTesting(false);
-                          }}
-                          disabled={npTesting || !npApiKey}
-                          style={{
-                            display:'flex', alignItems:'center', gap:8,
-                            background:'var(--adm-bg-secondary)', border:'1px solid var(--adm-border)', color:'var(--adm-text)',
-                            borderRadius:12, padding:'11px 20px', fontSize:13, fontWeight:700,
-                            cursor: npTesting || !npApiKey ? 'not-allowed' : 'pointer',
-                            fontFamily:'inherit', opacity: !npApiKey ? 0.5 : 1, transition:'all 0.15s',
-                          }}>
-                          {npTesting ? (
-                            <><span style={{ display:'inline-block', animation:'spin 1s linear infinite', fontSize:14 }}>⏳</span> Testing…</>
-                          ) : '🔌 Test Connection'}
-                        </button>
-
-                        <button
-                          onClick={() => {
-                            const cfg = { api_key: npApiKey, jwt_token: npJwtToken, ipn_secret: npIpnSecret, sandbox: npSandbox, enabled_coins: npCoins };
-                            fetch('/api/admin', { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ configKey:'nowpayments_config', configValue: cfg }) });
-                            setNpSaved(true); setTimeout(()=>setNpSaved(false), 2500);
-                          }}
-                          style={{
-                            background:'linear-gradient(135deg,#f7931a,#f59e0b)', color:'#fff', border:'none',
-                            borderRadius:12, padding:'11px 26px', fontSize:13, fontWeight:700,
-                            cursor:'pointer', fontFamily:'inherit',
-                            boxShadow:'0 4px 14px rgba(247,147,26,0.35)',
-                            transition:'all 0.15s',
-                          }}>
-                          💾 Save Configuration
-                        </button>
-
-                        {npSaved && (
-                          <span style={{ fontSize:13, color:'#10b981', fontWeight:700, display:'flex', alignItems:'center', gap:6 }}>
-                            ✓ Configuration saved
-                          </span>
-                        )}
-                      </div>
-
-                      <a href="https://account.nowpayments.io" target="_blank" rel="noreferrer"
-                        style={{ fontSize:12, color:'#6366f1', fontWeight:600, textDecoration:'none', display:'flex', alignItems:'center', gap:4, flexShrink:0 }}>
-                        Open NOWPayments Dashboard ↗
-                      </a>
+                  {/* ── Footer Action Bar ── */}
+                  <div className="gw-footer">
+                    <div className="gw-footer-left">
+                      <button id="gw-test-btn" className="gw-btn-test"
+                        disabled={npTesting || !npApiKey}
+                        onClick={async () => {
+                          setNpTesting(true); setNpTestResult(null);
+                          try {
+                            const r = await fetch('/api/withdrawals', {
+                              method: 'POST', headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ action: 'test_gateway', apiKey: npApiKey || undefined }),
+                            });
+                            setNpTestResult(await r.json());
+                          } catch (e) {
+                            setNpTestResult({ ok: false, message: (e as Error).message });
+                          }
+                          setNpTesting(false);
+                        }}>
+                        {npTesting ? <><span className="gw-spin">◌</span> Testing…</> : <>🔌 Test Connection</>}
+                      </button>
+                      <button id="gw-save-btn" className="gw-btn-save"
+                        onClick={() => {
+                          const cfg = { api_key: npApiKey, email: npEmail, password: npPassword, totp_secret: npTotpSecret, ipn_secret: npIpnSecret, sandbox: npSandbox, enabled_coins: npCoins };
+                          fetch('/api/admin', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ configKey: 'nowpayments_config', configValue: cfg }) });
+                          setNpSaved(true); setTimeout(() => setNpSaved(false), 2500);
+                        }}>
+                        💾 Save Configuration
+                      </button>
+                      {npSaved && <span className="gw-saved-toast">✓ Saved!</span>}
                     </div>
+                    <a href="https://account.nowpayments.io" target="_blank" rel="noreferrer" className="gw-dash-link">
+                      Open NOWPayments ↗
+                    </a>
                   </div>
-                </>
+                </div>
               )}
             </>
           )}
-
           {activeSection === 'audit' && (
             <div className="adm-card adm-card-full">
               <div className="adm-card-head"><h3>Audit Trail ({auditLog.length})</h3></div>
