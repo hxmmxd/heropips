@@ -154,21 +154,29 @@ export async function PATCH(request: Request) {
       await supabaseAdmin.from('broker_providers').delete().eq('id', data.id);
       await supabaseAdmin.from('audit_log').insert({ admin_id: user.id, action: 'provider_deleted', target_type: 'broker_provider', target_id: data.id, details: { name: data.name } });
     } else if (action === 'test') {
-      // Test connectivity — try to instantiate connection with the stored key
+      // Test connectivity using the appropriate adapter
       const { data: provider } = await supabaseAdmin.from('broker_providers').select('*').eq('id', data.id).single();
       if (!provider) return NextResponse.json({ error: 'Provider not found' }, { status: 404 });
       try {
-        if (provider.type === 'metatrader' && provider.api_key) {
-          const MetaApi = (await import('metaapi.cloud-sdk/node')).default;
-          const api = new MetaApi(provider.api_key);
-          // Just validate token by listing accounts — if it throws, the key is invalid
-          await api.metatraderAccountApi.getAccountsWithInfiniteScrollPagination();
+        let testResult: { success: boolean; error?: string } = { success: false, error: 'Unknown provider type' };
+
+        if (provider.type === 'metatrader') {
+          const { metatraderAdapter } = await import('@/lib/adapters/metatrader');
+          testResult = await metatraderAdapter.testConnection(provider.api_key);
+        } else if (['binance', 'bybit', 'okx'].includes(provider.type)) {
+          const { cryptoAdapter } = await import('@/lib/adapters/crypto');
+          testResult = await cryptoAdapter.testConnection(provider.api_key, provider.api_secret, provider.base_url);
+        } else {
+          // cTrader or custom — just mark active
+          testResult = { success: true };
+        }
+
+        if (testResult.success) {
           await supabaseAdmin.from('broker_providers').update({ status: 'active', error_message: null, last_health_check: new Date().toISOString() }).eq('id', data.id);
           return NextResponse.json({ success: true, status: 'active' });
+        } else {
+          throw new Error(testResult.error || 'Connection failed');
         }
-        // For other types just mark as active for now
-        await supabaseAdmin.from('broker_providers').update({ status: 'active', error_message: null, last_health_check: new Date().toISOString() }).eq('id', data.id);
-        return NextResponse.json({ success: true, status: 'active' });
       } catch (err: any) {
         const msg = err?.message || 'Connection failed';
         await supabaseAdmin.from('broker_providers').update({ status: 'error', error_message: msg, last_health_check: new Date().toISOString() }).eq('id', data.id);

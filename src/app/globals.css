@@ -1777,6 +1777,9 @@ body {
 .adm-tag-metatrader { background: rgba(59,130,246,0.12); color: #3b82f6; }
 .adm-tag-ctrader { background: rgba(168,85,247,0.12); color: #a855f7; }
 .adm-tag-custom { background: rgba(245,158,11,0.12); color: #f59e0b; }
+.adm-tag-binance { background: rgba(243,186,47,0.12); color: #c99a2e; }
+.adm-tag-bybit { background: rgba(249,115,22,0.12); color: #f97316; }
+.adm-tag-okx { background: rgba(99,102,241,0.12); color: #6366f1; }
 
 /* Loading spinner */
 @keyframes adm-spin { to { transform: rotate(360deg); } }

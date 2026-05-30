@@ -596,7 +596,9 @@ export default function AdminPage() {
                             </div>
                           </div>
                           <h4 className="adm-provider-name">{p.name}</h4>
-                          <span className={`adm-tag adm-tag-${p.type}`}>{p.type === 'metatrader' ? 'MetaTrader' : p.type === 'ctrader' ? 'cTrader' : 'Custom REST'}</span>
+                          <span className={`adm-tag adm-tag-${p.type}`}>{
+                            ({ metatrader: 'MetaTrader', ctrader: 'cTrader', binance: 'Binance', bybit: 'Bybit', okx: 'OKX', custom: 'Custom REST' } as Record<string,string>)[p.type] || p.type
+                          }</span>
                           <div className="adm-provider-meta">
                             <div className="adm-provider-kv"><Key /><span>{p.api_key || 'No key'}</span></div>
                             {p.base_url && <div className="adm-provider-kv"><Link2 /><span>{p.base_url}</span></div>}
@@ -944,17 +946,33 @@ export default function AdminPage() {
               <h3>Add Broker Provider</h3>
               <p>Configure a new broker API connection for your platform.</p>
               <input className="adm-edit-input" placeholder="Provider Name (e.g. MetaAPI Production)" value={newProvider.name} onChange={e => setNewProvider({ ...newProvider, name: e.target.value })} />
-              <select className="adm-select" style={{width:'100%',marginBottom:8}} value={newProvider.type} onChange={e => setNewProvider({ ...newProvider, type: e.target.value })}>
-                <option value="metatrader">MetaTrader (MetaAPI)</option>
-                <option value="ctrader">cTrader (Open API)</option>
-                <option value="custom">Custom REST API</option>
+              <select className="adm-select" style={{width:'100%',marginBottom:8}} value={newProvider.type} onChange={e => {
+                const t = e.target.value;
+                const urls: Record<string,string> = { binance: 'https://api.binance.com', bybit: 'https://api.bybit.com', okx: 'https://www.okx.com' };
+                setNewProvider({ ...newProvider, type: t, base_url: urls[t] || '' });
+              }}>
+                <optgroup label="Forex / Metals / Indices">
+                  <option value="metatrader">MetaTrader (MetaAPI)</option>
+                  <option value="ctrader">cTrader (Open API)</option>
+                </optgroup>
+                <optgroup label="Crypto Exchanges">
+                  <option value="binance">Binance</option>
+                  <option value="bybit">Bybit</option>
+                  <option value="okx">OKX</option>
+                </optgroup>
+                <optgroup label="Other">
+                  <option value="custom">Custom REST API</option>
+                </optgroup>
               </select>
-              <input className="adm-edit-input" type="password" placeholder="API Key / Token" value={newProvider.api_key} onChange={e => setNewProvider({ ...newProvider, api_key: e.target.value })} />
+              <input className="adm-edit-input" type="password" placeholder={newProvider.type === 'metatrader' ? 'MetaAPI Token' : 'API Key'} value={newProvider.api_key} onChange={e => setNewProvider({ ...newProvider, api_key: e.target.value })} />
               {newProvider.type !== 'metatrader' && (
-                <>
-                  <input className="adm-edit-input" type="password" placeholder="API Secret (optional)" value={newProvider.api_secret} onChange={e => setNewProvider({ ...newProvider, api_secret: e.target.value })} />
-                  <input className="adm-edit-input" placeholder="Base URL (e.g. https://api.broker.com)" value={newProvider.base_url} onChange={e => setNewProvider({ ...newProvider, base_url: e.target.value })} />
-                </>
+                <input className="adm-edit-input" type="password" placeholder="API Secret" value={newProvider.api_secret} onChange={e => setNewProvider({ ...newProvider, api_secret: e.target.value })} />
+              )}
+              {['ctrader', 'custom'].includes(newProvider.type) && (
+                <input className="adm-edit-input" placeholder="Base URL (e.g. https://api.broker.com)" value={newProvider.base_url} onChange={e => setNewProvider({ ...newProvider, base_url: e.target.value })} />
+              )}
+              {['binance', 'bybit', 'okx'].includes(newProvider.type) && (
+                <p style={{fontSize:11,color:'var(--subtext)',margin:'0 0 4px'}}>🔗 Endpoint: {newProvider.base_url || 'auto-configured'}</p>
               )}
               <div className="adm-edit-buttons" style={{marginTop:8}}>
                 <div className="adm-edit-cancel" role="button" tabIndex={0} onClick={() => setShowAddProvider(false)}>Cancel</div>
