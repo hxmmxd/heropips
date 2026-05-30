@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { connectBroker, getAllBrokers, searchBrokerServers } from '@/lib/broker';
+import { createClient } from '@/lib/supabase/server';
 
 export async function GET(request: Request) {
   try {
@@ -12,7 +13,14 @@ export async function GET(request: Request) {
       return NextResponse.json({ servers, isSimulation });
     }
 
-    const list = await getAllBrokers();
+    // Get current user — only return their brokers
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ brokers: [] });
+    }
+
+    const list = await getAllBrokers(user.id);
     return NextResponse.json({ brokers: list });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -21,6 +29,13 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    // Get current user
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { login, password, server } = body;
     
@@ -32,7 +47,7 @@ export async function POST(request: Request) {
     const derivedName = server.split('-')[0] || server;
     const name = `${derivedName}-${login}`;
 
-    const node = await connectBroker(name, login, password, server);
+    const node = await connectBroker(name, login, password, server, user.id);
     return NextResponse.json({ success: true, broker: node });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

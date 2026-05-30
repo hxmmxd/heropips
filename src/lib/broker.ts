@@ -17,6 +17,7 @@ function getMetaApi() {
 
 export interface BrokerNode {
   id: string;
+  userId?: string;
   name: string;
   login: string;
   server: string;
@@ -38,41 +39,13 @@ const DB_FILE = process.env.VERCEL || process.env.NODE_ENV === 'production'
 function readDb(): BrokerNode[] {
   try {
     if (!fs.existsSync(DB_FILE)) {
-      const initial: BrokerNode[] = [
-        {
-          id: '882910',
-          name: 'Vantage-Real-01',
-          login: '882910',
-          server: 'VantageInternational-Live',
-          status: 'connected',
-          balance: 12450.00,
-          equity: 12690.12,
-          pnl: 240.12,
-          positions: [
-            { id: 't1', symbol: 'XAUUSD', type: 'BUY', volume: 0.1, openPrice: 2315.50, currentPrice: 2317.90, profit: 240.12 }
-          ]
-        },
-        {
-          id: '110922',
-          name: 'IC-Markets-Pro',
-          login: '110922',
-          server: 'ICMarketsSC-Live',
-          status: 'connected',
-          balance: 5200.50,
-          equity: 5080.50,
-          pnl: -120.00,
-          positions: [
-            { id: 't2', symbol: 'EURUSD', type: 'SELL', volume: 0.5, openPrice: 1.08550, currentPrice: 1.08790, profit: -120.00 }
-          ]
-        }
-      ];
-      // Ensure folder exists
+      // Start with empty list — users connect their own accounts
       const dir = path.dirname(DB_FILE);
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
       }
-      fs.writeFileSync(DB_FILE, JSON.stringify(initial, null, 2));
-      return initial;
+      fs.writeFileSync(DB_FILE, JSON.stringify([], null, 2));
+      return [];
     }
     const data = fs.readFileSync(DB_FILE, 'utf8');
     return JSON.parse(data);
@@ -100,7 +73,8 @@ export async function connectBroker(
   name: string,
   login: string,
   password?: string,
-  server?: string
+  server?: string,
+  userId?: string
 ): Promise<BrokerNode> {
   if (metaApiInstance) {
     try {
@@ -154,6 +128,7 @@ export async function connectBroker(
   
   const mockNode: BrokerNode = {
     id: login,
+    userId: userId,
     name: name,
     login: login,
     server: server || 'Demo-Server',
@@ -285,11 +260,11 @@ export function getAllSimulatedBrokers(): BrokerNode[] {
   return readDb();
 }
 
-export async function getAllBrokers(): Promise<BrokerNode[]> {
-  if (metaApiInstance) {
+export async function getAllBrokers(userId?: string): Promise<BrokerNode[]> {
+  if (getMetaApi()) {
     try {
       console.log('[Broker Engine] Fetching accounts list from MetaAPI Cloud...');
-      const accounts = await metaApiInstance.metatraderAccountApi.getAccountsWithInfiniteScrollPagination();
+      const accounts = await getMetaApi().metatraderAccountApi.getAccountsWithInfiniteScrollPagination();
       const list: BrokerNode[] = [];
       for (const account of accounts) {
         let details: any = { balance: 0, equity: 0 };
@@ -336,8 +311,12 @@ export async function getAllBrokers(): Promise<BrokerNode[]> {
     }
   }
 
-  // Fallback Simulator Mode
-  return readDb();
+  // Fallback Simulator Mode — filter by userId
+  const all = readDb();
+  if (userId) {
+    return all.filter(b => b.userId === userId);
+  }
+  return all;
 }
 
 export async function searchBrokerServers(query: string): Promise<string[]> {
