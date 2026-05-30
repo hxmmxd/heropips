@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface Partner {
   name: string;
@@ -18,262 +18,409 @@ interface ReferralTabProps {
   partners?: Partner[];
 }
 
-const LEVEL_COLORS = ['#6366f1','#3b82f6','#10b981','#f59e0b','#ec4899'];
-const LEVEL_LABELS = ['Direct','Level 2','Level 3','Level 4','Level 5'];
-
-const LEVEL_RATES = [
-  { commission: 10, rebate: 5  },
-  { commission: 5,  rebate: 2  },
-  { commission: 3,  rebate: 1  },
-  { commission: 2,  rebate: 0.5},
+const LEVEL_COLORS  = ['#6366f1', '#3b82f6', '#10b981', '#f59e0b', '#ec4899'];
+const LEVEL_LABELS  = ['Direct', 'Level 2', 'Level 3', 'Level 4', 'Level 5'];
+const LEVEL_RATES   = [
+  { commission: 10, rebate: 5   },
+  { commission: 5,  rebate: 2   },
+  { commission: 3,  rebate: 1   },
+  { commission: 2,  rebate: 0.5 },
   { commission: 1,  rebate: 0.25},
 ];
 
 const mockNetwork: Partner[] = [
-  { name: 'Alpha_Quant', portfolio: '42,481', rebate: '622', commission: '124', status: 'Active', joined: 'May 12', trades: 84, level: 1,
+  {
+    name: 'Alpha_Quant', portfolio: '42,481', rebate: '622', commission: '124',
+    status: 'Active', joined: 'May 12', trades: 84, level: 1,
     children: [
-      { name: 'Quant_Sub1', portfolio: '12,000', rebate: '88', commission: '17', status: 'Active', joined: 'May 15', trades: 28, level: 2,
+      {
+        name: 'Quant_Sub1', portfolio: '12,000', rebate: '88', commission: '17',
+        status: 'Active', joined: 'May 15', trades: 28, level: 2,
         children: [
-          { name: 'Sub1_Child', portfolio: '5,400', rebate: '32', commission: '6', status: 'Active', joined: 'May 20', trades: 11, level: 3,
+          {
+            name: 'Sub1_Child', portfolio: '5,400', rebate: '32', commission: '6',
+            status: 'Active', joined: 'May 20', trades: 11, level: 3,
             children: [
-              { name: 'Deep_Trader', portfolio: '2,100', rebate: '12', commission: '2', status: 'Active', joined: 'May 22', trades: 4, level: 4,
+              {
+                name: 'Deep_Trader', portfolio: '2,100', rebate: '12', commission: '2',
+                status: 'Active', joined: 'May 22', trades: 4, level: 4,
                 children: [
                   { name: 'Ultra_Deep', portfolio: '800', rebate: '4', commission: '0.8', status: 'Inactive', joined: 'May 28', trades: 1, level: 5 },
-                ]
+                ],
               },
-            ]
+            ],
           },
-        ]
+        ],
       },
-    ]
+    ],
   },
-  { name: 'Institutional_Void', portfolio: '540,200', rebate: '4,240', commission: '848', status: 'Active', joined: 'Apr 10', trades: 612, level: 1,
+  {
+    name: 'Institutional_Void', portfolio: '540,200', rebate: '4,240', commission: '848',
+    status: 'Active', joined: 'Apr 10', trades: 612, level: 1,
     children: [
       { name: 'Void_Sub', portfolio: '28,000', rebate: '198', commission: '40', status: 'Active', joined: 'Apr 18', trades: 74, level: 2 },
-    ]
+    ],
   },
-  { name: 'Scalp_Hunter', portfolio: '89,120', rebate: '1,142', commission: '228', status: 'Active', joined: 'Apr 29', trades: 210, level: 1 },
-  { name: 'Retail_King', portfolio: '12,400', rebate: '88', commission: '17', status: 'Active', joined: 'May 18', trades: 31, level: 1 },
-  { name: 'FX_Nomad', portfolio: '8,800', rebate: '44', commission: '8', status: 'Inactive', joined: 'May 25', trades: 12, level: 1 },
+  { name: 'Scalp_Hunter',  portfolio: '89,120', rebate: '1,142', commission: '228', status: 'Active',   joined: 'Apr 29', trades: 210, level: 1 },
+  { name: 'Retail_King',   portfolio: '12,400', rebate: '88',    commission: '17',  status: 'Active',   joined: 'May 18', trades: 31,  level: 1 },
+  { name: 'FX_Nomad',      portfolio: '8,800',  rebate: '44',    commission: '8',   status: 'Inactive', joined: 'May 25', trades: 12,  level: 1 },
 ];
 
-const milestones = [
-  { label: '1st Referral',  reward: '$25',    refs: 1,  reached: true  },
-  { label: '5 Referrals',   reward: '$100',   refs: 5,  reached: true  },
-  { label: '10 Referrals',  reward: '$250',   refs: 10, reached: false },
-  { label: '25 Referrals',  reward: '$750',   refs: 25, reached: false },
-  { label: '50 Referrals',  reward: '$2,000', refs: 50, reached: false },
+const MILESTONES = [
+  { label: '1st Referral', reward: '$25',    refs: 1,  reached: true  },
+  { label: '5 Referrals',  reward: '$100',   refs: 5,  reached: true  },
+  { label: '10 Referrals', reward: '$250',   refs: 10, reached: false },
+  { label: '25 Referrals', reward: '$750',   refs: 25, reached: false },
+  { label: '50 Referrals', reward: '$2,000', refs: 50, reached: false },
 ];
 
 const REFERRAL_CODE = 'TGPT-U82910';
 const REFERRAL_LINK = 'tradegpt.ai/r/u82910';
 
-function countAll(nodes: Partner[]): { total: number; byLevel: number[] } {
-  const byLevel = [0,0,0,0,0];
+function countAll(nodes: Partner[]) {
+  const byLevel = [0, 0, 0, 0, 0];
   function walk(p: Partner) {
-    const lvl = (p.level ?? 1) - 1;
-    if (lvl >= 0 && lvl < 5) byLevel[lvl]++;
+    const idx = (p.level ?? 1) - 1;
+    if (idx >= 0 && idx < 5) byLevel[idx]++;
     p.children?.forEach(walk);
   }
   nodes.forEach(walk);
-  return { total: byLevel.reduce((a,b)=>a+b,0), byLevel };
+  return { total: byLevel.reduce((a, b) => a + b, 0), byLevel };
+}
+
+// Animated counter hook
+function useCounter(target: number, duration = 1200) {
+  const [val, setVal] = useState(0);
+  useEffect(() => {
+    let start = 0;
+    const step = target / (duration / 16);
+    const timer = setInterval(() => {
+      start += step;
+      if (start >= target) { setVal(target); clearInterval(timer); }
+      else setVal(Math.floor(start));
+    }, 16);
+    return () => clearInterval(timer);
+  }, [target, duration]);
+  return val;
 }
 
 function NetworkNode({ partner, depth = 0 }: { partner: Partner; depth?: number }) {
   const [open, setOpen] = useState(depth === 0);
-  const lvlIdx = (partner.level ?? 1) - 1;
-  const color = LEVEL_COLORS[lvlIdx];
-  const hasChildren = (partner.children?.length ?? 0) > 0;
+  const lvlIdx  = (partner.level ?? 1) - 1;
+  const color   = LEVEL_COLORS[lvlIdx];
+  const hasKids = (partner.children?.length ?? 0) > 0;
+  const initials = partner.name.slice(0, 2).toUpperCase();
 
   return (
-    <div style={{ marginLeft: depth > 0 ? 24 : 0, borderLeft: depth > 0 ? `2px solid ${color}22` : 'none', paddingLeft: depth > 0 ? 16 : 0, marginTop: 8 }}>
-      <div className="ref-net-node" onClick={() => hasChildren && setOpen(!open)}
-        style={{ borderColor: open && hasChildren ? color + '44' : undefined, cursor: hasChildren ? 'pointer' : 'default' }}>
-        <div className="ref-net-badge" style={{ background: color }}>L{partner.level}</div>
-        <div className="ref-net-avatar" style={{ background: `linear-gradient(135deg, ${color}, ${color}99)` }}>
-          {partner.name.slice(0,2).toUpperCase()}
+    <div className={`ref-tree-item depth-${depth}`}>
+      {depth > 0 && <div className="ref-tree-line" style={{ borderColor: color + '30' }} />}
+      <div
+        className={`ref-tree-node ${hasKids ? 'ref-tree-node--clickable' : ''} ${open && hasKids ? 'ref-tree-node--open' : ''}`}
+        style={{ borderColor: open && hasKids ? color + '40' : 'var(--border)' }}
+        onClick={() => hasKids && setOpen(!open)}
+      >
+        <span className="ref-tree-lvl-badge" style={{ background: color }}>L{partner.level}</span>
+        <div className="ref-tree-avatar" style={{ background: `linear-gradient(135deg,${color},${color}88)` }}>
+          {initials}
         </div>
-        <div className="ref-net-info">
-          <span className="ref-net-name">{partner.name}</span>
-          <span className="ref-net-meta">{LEVEL_LABELS[lvlIdx]} · {partner.trades} trades · joined {partner.joined}</span>
+        <div className="ref-tree-info">
+          <span className="ref-tree-name">{partner.name}</span>
+          <span className="ref-tree-meta">
+            {LEVEL_LABELS[lvlIdx]}&nbsp;·&nbsp;{partner.trades} trades&nbsp;·&nbsp;{partner.joined}
+          </span>
         </div>
-        <div className="ref-net-right">
-          <span className="ref-net-rebate" style={{ color: '#10b981' }}>+${partner.rebate}</span>
-          <span className={`ref-partner-status ${partner.status === 'Active' ? 'ref-status--active' : 'ref-status--inactive'}`}>{partner.status}</span>
-          {hasChildren && (
-            <span style={{ fontSize:10, color: color, fontWeight:700, background:`${color}15`, padding:'2px 7px', borderRadius:6 }}>
-              {open ? '▲' : `▼ ${partner.children!.length}`}
+        <div className="ref-tree-right">
+          <span className="ref-tree-rebate">+${partner.rebate}</span>
+          <span className={`ref-badge-status ${partner.status === 'Active' ? 'ref-badge-active' : 'ref-badge-inactive'}`}>
+            {partner.status}
+          </span>
+          {hasKids && (
+            <span className="ref-tree-toggle" style={{ color, background: color + '15' }}>
+              {open ? '▲' : `▼${partner.children!.length}`}
             </span>
           )}
         </div>
       </div>
-      {open && hasChildren && partner.children!.map((child, i) => (
-        <NetworkNode key={i} partner={child} depth={depth + 1} />
-      ))}
+      {open && hasKids && (
+        <div className="ref-tree-children">
+          {partner.children!.map((child, i) => (
+            <NetworkNode key={i} partner={child} depth={depth + 1} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-export default function ReferralTab({ partners = mockNetwork }: ReferralTabProps) {
-  const [copied, setCopied] = useState<'code'|'link'|null>(null);
-  const [activeTab, setActiveTab] = useState<'network'|'milestones'|'rates'>('network');
+type Tab = 'network' | 'milestones' | 'rates';
 
-  const copy = (text: string, type: 'code'|'link') => {
+export default function ReferralTab({ partners = mockNetwork }: ReferralTabProps) {
+  const [copied, setCopied]   = useState<'code' | 'link' | null>(null);
+  const [activeTab, setActiveTab] = useState<Tab>('network');
+  const [shareOpen, setShareOpen] = useState(false);
+
+  const { total, byLevel } = countAll(partners);
+  const progressPct = Math.min((total / 10) * 100, 100);
+
+  const animTotal     = useCounter(total);
+  const animRebate    = useCounter(4820);
+  const animComm      = useCounter(1240);
+
+  const copy = (text: string, type: 'code' | 'link') => {
     navigator.clipboard.writeText(text);
     setCopied(type);
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const { total, byLevel } = countAll(partners);
-  const progressToNext = (total / 10) * 100;
+  const share = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'Join TradeGPT', text: 'Use my referral link to join TradeGPT!', url: 'https://' + REFERRAL_LINK });
+      } catch {}
+    } else {
+      setShareOpen(true);
+    }
+  };
+
+  const TABS: { id: Tab; icon: string; label: string }[] = [
+    { id: 'network',    icon: '🌐', label: 'Network'    },
+    { id: 'milestones', icon: '🏆', label: 'Milestones' },
+    { id: 'rates',      icon: '📊', label: 'Rates'      },
+  ];
 
   return (
-    <div className="referral-root">
+    <div className="ref2-root">
 
-      {/* Hero */}
-      <div className="ref-hero">
-        <div className="ref-hero-glow" />
-        <div className="ref-hero-badge">🎁 Referral Hub</div>
-        <h1 className="ref-hero-title">Earn While Your Network Trades</h1>
-        <p className="ref-hero-sub">5-level deep commission structure. Earn on every trade your network makes — forever.</p>
-      </div>
-
-      {/* Stats */}
-      <div className="ref-stats">
-        <div className="ref-stat">
-          <span className="ref-stat-label">Total Rebates</span>
-          <span className="ref-stat-value green">$4,820</span>
-          <span className="ref-stat-sub">↑ 12.4% this month</span>
-        </div>
-        <div className="ref-stat">
-          <span className="ref-stat-label">Commissions</span>
-          <span className="ref-stat-value">$1,240</span>
-          <span className="ref-stat-sub">↑ 8.1% this month</span>
-        </div>
-        <div className="ref-stat">
-          <span className="ref-stat-label">Network Size</span>
-          <span className="ref-stat-value blue">{total}</span>
-          <span className="ref-stat-sub">Across {byLevel.filter(Boolean).length} levels</span>
-        </div>
-        <div className="ref-stat">
-          <span className="ref-stat-label">Network Volume</span>
-          <span className="ref-stat-value purple">$1.2M</span>
-          <span className="ref-stat-sub">Combined portfolio</span>
+      {/* ── HERO ── */}
+      <div className="ref2-hero">
+        <div className="ref2-hero-orb ref2-orb1" />
+        <div className="ref2-hero-orb ref2-orb2" />
+        <div className="ref2-hero-inner">
+          <div className="ref2-hero-badge">
+            <span className="ref2-hero-badge-dot" />
+            Referral Hub
+          </div>
+          <h1 className="ref2-hero-title">
+            Earn While Your<br />Network Trades
+          </h1>
+          <p className="ref2-hero-sub">
+            5-level deep commission structure. Earn on every trade your network makes — forever.
+          </p>
+          <div className="ref2-hero-actions">
+            <button className="ref2-btn-primary" onClick={() => copy(REFERRAL_LINK, 'link')}>
+              {copied === 'link' ? '✓ Copied!' : '🔗 Copy Link'}
+            </button>
+            <button className="ref2-btn-secondary" onClick={share}>
+              ↗ Share
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Level breakdown */}
-      <div style={{ padding:'0 40px 20px', display:'flex', gap:8 }}>
+      {/* ── STATS GRID ── */}
+      <div className="ref2-stats">
+        {[
+          { label: 'Total Rebates',   value: `$${animRebate.toLocaleString()}`, sub: '↑ 12.4% this month', color: '#10b981', icon: '💰' },
+          { label: 'Commissions',     value: `$${animComm.toLocaleString()}`,   sub: '↑ 8.1% this month',  color: '#6366f1', icon: '📈' },
+          { label: 'Network Size',    value: animTotal,                          sub: `${byLevel.filter(Boolean).length} active levels`, color: '#3b82f6', icon: '👥' },
+          { label: 'Network Volume',  value: '$1.2M',                            sub: 'Combined portfolios', color: '#f59e0b', icon: '🌐' },
+        ].map((s, i) => (
+          <div key={i} className="ref2-stat-card">
+            <div className="ref2-stat-icon">{s.icon}</div>
+            <div className="ref2-stat-body">
+              <span className="ref2-stat-label">{s.label}</span>
+              <span className="ref2-stat-value" style={{ color: s.color }}>{s.value}</span>
+              <span className="ref2-stat-sub">{s.sub}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── REFERRAL LINK CARD ── */}
+      <div className="ref2-link-card">
+        <div className="ref2-link-top">
+          <div className="ref2-link-icon">🔗</div>
+          <div className="ref2-link-text">
+            <span className="ref2-link-eyebrow">Your Referral Link</span>
+            <code className="ref2-link-url">https://{REFERRAL_LINK}</code>
+          </div>
+        </div>
+        <div className="ref2-link-actions">
+          <div className="ref2-code-pill">
+            <span className="ref2-code-tag">CODE</span>
+            <code className="ref2-code-val">{REFERRAL_CODE}</code>
+            <button className="ref2-code-copy" onClick={() => copy(REFERRAL_CODE, 'code')}>
+              {copied === 'code' ? '✓' : '⎘'}
+            </button>
+          </div>
+          <button className="ref2-btn-copy" onClick={() => copy(REFERRAL_LINK, 'link')}>
+            {copied === 'link' ? '✓ Copied!' : 'Copy Link'}
+          </button>
+          <button className="ref2-btn-share" onClick={share}>
+            ↗ Share
+          </button>
+        </div>
+      </div>
+
+      {/* ── LEVEL OVERVIEW STRIP ── */}
+      <div className="ref2-levels">
         {LEVEL_RATES.map((r, i) => (
-          <div key={i} style={{ flex:1, background:'var(--sidebar-bg)', border:'1px solid var(--border)', borderRadius:12, padding:'12px 10px', textAlign:'center' }}>
-            <div style={{ width:28, height:28, borderRadius:7, background:LEVEL_COLORS[i], display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:800, color:'#fff', margin:'0 auto 8px' }}>L{i+1}</div>
-            <p style={{ fontSize:16, fontWeight:800, color:LEVEL_COLORS[i] }}>{r.commission}%</p>
-            <p style={{ fontSize:10, color:'#10b981', fontWeight:700 }}>+{r.rebate}% rebate</p>
-            <p style={{ fontSize:10, color:'var(--subtext)', marginTop:2 }}>{byLevel[i]} members</p>
+          <div key={i} className="ref2-level-chip" style={{ borderColor: LEVEL_COLORS[i] + '30', background: LEVEL_COLORS[i] + '08' }}>
+            <div className="ref2-level-dot" style={{ background: LEVEL_COLORS[i] }}>L{i + 1}</div>
+            <div className="ref2-level-info">
+              <span className="ref2-level-pct" style={{ color: LEVEL_COLORS[i] }}>{r.commission}%</span>
+              <span className="ref2-level-sub">{byLevel[i]} members</span>
+            </div>
           </div>
         ))}
       </div>
 
-      {/* Invite Card */}
-      <div className="ref-invite-card">
-        <div className="ref-invite-left">
-          <div className="ref-invite-icon">🔗</div>
+      {/* ── MILESTONE PROGRESS ── */}
+      <div className="ref2-progress-card">
+        <div className="ref2-progress-header">
           <div>
-            <p className="ref-invite-eyebrow">Your Referral Link</p>
-            <code className="ref-invite-url">{REFERRAL_LINK}</code>
+            <span className="ref2-progress-title">Next Milestone</span>
+            <span className="ref2-progress-sub">{total} / 10 referrals · Earn $250</span>
           </div>
+          <span className="ref2-progress-pct">{Math.round(progressPct)}%</span>
         </div>
-        <div className="ref-invite-actions">
-          <div className="ref-code-pill">
-            <span className="ref-code-label">CODE</span>
-            <code className="ref-code-val">{REFERRAL_CODE}</code>
-            <button className="ref-copy-btn" onClick={() => copy(REFERRAL_CODE,'code')}>{copied==='code'?'✓':'⎘'}</button>
-          </div>
-          <button className="ref-copy-link-btn" onClick={() => copy(REFERRAL_LINK,'link')}>{copied==='link'?'✓ Copied!':'Copy Link'}</button>
+        <div className="ref2-track">
+          <div className="ref2-fill" style={{ width: `${progressPct}%` }} />
+          <div className="ref2-thumb" style={{ left: `${progressPct}%` }} />
+        </div>
+        <div className="ref2-track-labels">
+          <span>0</span>
+          <span>5 · $100</span>
+          <span>10 · $250 🎯</span>
         </div>
       </div>
 
-      {/* Progress bar */}
-      <div className="ref-milestone-bar-card">
-        <div className="ref-milestone-bar-top">
-          <span className="ref-milestone-bar-label">Progress to next milestone</span>
-          <span className="ref-milestone-bar-sub">{total} / 10 referrals · $250 reward</span>
-        </div>
-        <div className="ref-progress-track">
-          <div className="ref-progress-fill" style={{ width:`${Math.min(progressToNext,100)}%` }} />
-          <div className="ref-progress-thumb" style={{ left:`${Math.min(progressToNext,100)}%` }} />
-        </div>
-        <div className="ref-progress-labels"><span>0</span><span>5</span><span>10 🎯</span></div>
-      </div>
-
-      {/* Tabs */}
-      <div className="ref-tabs-header">
-        {([['network','🌐 Network Tree'],['milestones','🏆 Milestones'],['rates','📊 Commission Rates']] as const).map(([id,label]) => (
-          <button key={id} className={`ref-tab-btn ${activeTab===id?'ref-tab-btn--active':''}`} onClick={() => setActiveTab(id)}>{label}</button>
+      {/* ── TABS ── */}
+      <div className="ref2-tabs">
+        {TABS.map(t => (
+          <button
+            key={t.id}
+            className={`ref2-tab ${activeTab === t.id ? 'ref2-tab--active' : ''}`}
+            onClick={() => setActiveTab(t.id)}
+          >
+            <span className="ref2-tab-icon">{t.icon}</span>
+            <span className="ref2-tab-label">{t.label}</span>
+          </button>
         ))}
       </div>
 
-      {/* Network Tree */}
+      {/* ── NETWORK TREE ── */}
       {activeTab === 'network' && (
-        <div style={{ padding:'0 40px' }}>
-          {partners.map((p, i) => <NetworkNode key={i} partner={p} />)}
+        <div className="ref2-section">
+          <div className="ref2-section-header">
+            <span className="ref2-section-title">Your Network ({total} members)</span>
+            <span className="ref2-section-hint">Tap to expand levels</span>
+          </div>
+          <div className="ref2-tree">
+            {partners.map((p, i) => <NetworkNode key={i} partner={p} />)}
+          </div>
         </div>
       )}
 
-      {/* Milestones */}
+      {/* ── MILESTONES ── */}
       {activeTab === 'milestones' && (
-        <div className="ref-milestones">
-          {milestones.map((m, i) => (
-            <div key={i} className={`ref-milestone ${m.reached?'ref-milestone--reached':''}`}>
-              <div className="ref-milestone-check">{m.reached?'✓':i+1}</div>
-              <div className="ref-milestone-info">
-                <span className="ref-milestone-title">{m.label}</span>
-                <span className="ref-milestone-sub">{m.reached?'Unlocked ✓':'Locked'}</span>
+        <div className="ref2-section">
+          <div className="ref2-section-header">
+            <span className="ref2-section-title">Milestone Rewards</span>
+            <span className="ref2-section-hint">2 of 5 unlocked</span>
+          </div>
+          <div className="ref2-milestones">
+            {MILESTONES.map((m, i) => (
+              <div key={i} className={`ref2-milestone ${m.reached ? 'ref2-milestone--done' : ''}`}>
+                <div className="ref2-milestone-icon">
+                  {m.reached ? '✓' : <span style={{ opacity: 0.4 }}>{i + 1}</span>}
+                </div>
+                <div className="ref2-milestone-body">
+                  <span className="ref2-milestone-label">{m.label}</span>
+                  <span className="ref2-milestone-status">{m.reached ? '🎉 Unlocked & paid' : `${m.refs - total > 0 ? m.refs - total : 0} more referrals needed`}</span>
+                </div>
+                <div className="ref2-milestone-reward" style={{ color: m.reached ? '#10b981' : 'var(--subtext)' }}>
+                  {m.reward}
+                </div>
               </div>
-              <div className="ref-milestone-reward">{m.reward}</div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
 
-      {/* Commission Rates */}
+      {/* ── COMMISSION RATES ── */}
       {activeTab === 'rates' && (
-        <div style={{ padding:'0 40px', display:'flex', flexDirection:'column', gap:10 }}>
-          {LEVEL_RATES.map((r, i) => (
-            <div key={i} style={{ display:'flex', alignItems:'center', gap:16, padding:'18px 22px', background:'var(--sidebar-bg)', border:`1px solid ${LEVEL_COLORS[i]}33`, borderRadius:14 }}>
-              <div style={{ width:36, height:36, borderRadius:10, background:LEVEL_COLORS[i], display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:800, color:'#fff', flexShrink:0 }}>L{i+1}</div>
-              <div style={{ flex:1 }}>
-                <p style={{ fontSize:14, fontWeight:700, color:'var(--text)', marginBottom:2 }}>{LEVEL_LABELS[i]}</p>
-                <p style={{ fontSize:11, color:'var(--subtext)' }}>{byLevel[i]} members in your network</p>
+        <div className="ref2-section">
+          <div className="ref2-section-header">
+            <span className="ref2-section-title">Commission Structure</span>
+            <span className="ref2-section-hint">% of trade volume</span>
+          </div>
+          <div className="ref2-rates">
+            {LEVEL_RATES.map((r, i) => (
+              <div key={i} className="ref2-rate-row" style={{ borderColor: LEVEL_COLORS[i] + '25' }}>
+                <div className="ref2-rate-badge" style={{ background: LEVEL_COLORS[i] }}>L{i + 1}</div>
+                <div className="ref2-rate-info">
+                  <span className="ref2-rate-name" style={{ color: LEVEL_COLORS[i] }}>{LEVEL_LABELS[i]}</span>
+                  <span className="ref2-rate-members">{byLevel[i]} members</span>
+                </div>
+                <div className="ref2-rate-nums">
+                  <div className="ref2-rate-num" style={{ color: LEVEL_COLORS[i] }}>
+                    {r.commission}%
+                    <span className="ref2-rate-num-label">commission</span>
+                  </div>
+                  <div className="ref2-rate-num" style={{ color: '#10b981' }}>
+                    +{r.rebate}%
+                    <span className="ref2-rate-num-label">rebate</span>
+                  </div>
+                </div>
+                <div className="ref2-rate-bar-wrap">
+                  <div className="ref2-rate-bar" style={{ width: `${r.commission * 10}%`, background: LEVEL_COLORS[i] }} />
+                </div>
               </div>
-              <div style={{ textAlign:'right' }}>
-                <p style={{ fontSize:18, fontWeight:800, color:LEVEL_COLORS[i] }}>{r.commission}% commission</p>
-                <p style={{ fontSize:12, color:'#10b981', fontWeight:700 }}>+{r.rebate}% rebate on their trades</p>
-              </div>
-            </div>
-          ))}
-          <p style={{ fontSize:11, color:'var(--subtext)', textAlign:'center', padding:'8px 0' }}>Commission rates set by admin · Rates are of trade volume</p>
+            ))}
+          </div>
+          <p className="ref2-rates-note">Rates configured by admin · Applied to trade volume · Paid monthly</p>
         </div>
       )}
 
-      {/* How it works */}
-      <div className="ref-how">
-        <p className="ref-how-title">How 5-Level Referral Works</p>
-        <div className="ref-how-steps">
+      {/* ── HOW IT WORKS ── */}
+      <div className="ref2-how">
+        <span className="ref2-how-title">How 5-Level Referral Works</span>
+        <div className="ref2-how-steps">
           {[
-            { icon:'🔗', label:'Share link',     sub:'Send to traders you know' },
-            { icon:'📋', label:'They sign up',   sub:'Joins via your link' },
-            { icon:'💹', label:'They refer too', sub:'Their referrals = your L2' },
-            { icon:'💰', label:'You earn deep',  sub:'Earn through 5 levels' },
-          ].map((s,i) => (
-            <div key={i} className="ref-how-step">
-              <div className="ref-how-icon">{s.icon}</div>
-              <span className="ref-how-label">{s.label}</span>
-              <span className="ref-how-sub">{s.sub}</span>
+            { icon: '🔗', n: '01', label: 'Share your link',  sub: 'Send to traders you know' },
+            { icon: '✍️', n: '02', label: 'They sign up',     sub: 'Create via your referral' },
+            { icon: '💹', n: '03', label: 'They refer too',   sub: 'Build your L2+ network'  },
+            { icon: '💰', n: '04', label: 'You earn deep',    sub: 'Earn through 5 levels'   },
+          ].map((s, i) => (
+            <div key={i} className="ref2-how-step">
+              <div className="ref2-how-num">{s.n}</div>
+              <div className="ref2-how-icon">{s.icon}</div>
+              <span className="ref2-how-label">{s.label}</span>
+              <span className="ref2-how-sub">{s.sub}</span>
+              {i < 3 && <div className="ref2-how-arrow">→</div>}
             </div>
           ))}
         </div>
       </div>
+
+      {/* ── SHARE MODAL (fallback) ── */}
+      {shareOpen && (
+        <div className="ref2-modal-overlay" onClick={() => setShareOpen(false)}>
+          <div className="ref2-modal" onClick={e => e.stopPropagation()}>
+            <div className="ref2-modal-header">
+              <span className="ref2-modal-title">Share Your Link</span>
+              <button className="ref2-modal-close" onClick={() => setShareOpen(false)}>✕</button>
+            </div>
+            <div className="ref2-modal-body">
+              <div className="ref2-modal-url">{REFERRAL_LINK}</div>
+              <button className="ref2-btn-primary ref2-modal-copy" onClick={() => { copy(REFERRAL_LINK, 'link'); setShareOpen(false); }}>
+                {copied === 'link' ? '✓ Copied!' : '⎘ Copy to clipboard'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
