@@ -508,14 +508,18 @@ export default function ReferralTab({ partners = mockNetwork }: ReferralTabProps
                   <p className="ref2-wd-label">Payment Method</p>
                   <div className="ref2-wd-methods">
                     {([
-                      { id:'crypto', icon:'₿', label:'Crypto',  sub:'via NOWPayments' },
+                      { id:'crypto', icon:'crypto_img', label:'Crypto',  sub:'via NOWPayments' },
                       { id:'bank',   icon:'🏦', label:'Bank',    sub:'Wire transfer' },
                       { id:'paypal', icon:'🅿', label:'PayPal',  sub:'Instant payout' },
                     ] as const).map(m => (
                       <button key={m.id}
                         className={`ref2-wd-method ${withdrawMethod === m.id ? 'ref2-wd-method--active' : ''}`}
                         onClick={() => setWithdrawMethod(m.id)}>
-                        <span className="ref2-wd-method-icon">{m.icon}</span>
+                        <span className="ref2-wd-method-icon">
+                          {m.icon === 'crypto_img' ? (
+                            <img src="https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/btc.png" alt="Crypto" width={22} height={22} style={{ borderRadius:50, background:'#fff' }} />
+                          ) : m.icon}
+                        </span>
                         <span className="ref2-wd-method-label">{m.label}</span>
                         <span className="ref2-wd-method-sub">{m.sub}</span>
                       </button>
@@ -524,17 +528,37 @@ export default function ReferralTab({ partners = mockNetwork }: ReferralTabProps
                   {/* Crypto coin picker */}
                   {withdrawMethod === 'crypto' && (
                     <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:10 }}>
-                      {['USDT (TRC-20)','USDT (ERC-20)','BTC','ETH','BNB','USDC'].map(coin => (
-                        <button key={coin}
-                          onClick={() => setWithdrawCoin(coin)}
-                          style={{
-                            padding:'5px 12px', borderRadius:20, fontSize:11, fontWeight:700,
-                            border:'1px solid', cursor:'pointer', fontFamily:'inherit',
-                            background: withdrawCoin === coin ? '#6366f1' : 'transparent',
-                            borderColor: withdrawCoin === coin ? '#6366f1' : 'var(--border)',
-                            color: withdrawCoin === coin ? '#fff' : 'var(--subtext)',
-                          }}>{coin}</button>
-                      ))}
+                      {[
+                        { name:'USDT (TRC-20)', slug:'usdt' },
+                        { name:'USDT (ERC-20)', slug:'usdt' },
+                        { name:'BTC',           slug:'btc'  },
+                        { name:'ETH',           slug:'eth'  },
+                        { name:'BNB',           slug:'bnb'  },
+                        { name:'USDC',          slug:'usdc' },
+                      ].map(coin => {
+                        const active = withdrawCoin === coin.name;
+                        return (
+                          <button key={coin.name}
+                            onClick={() => setWithdrawCoin(coin.name)}
+                            style={{
+                              display:'flex', alignItems:'center', gap:6,
+                              padding:'5px 12px 5px 6px', borderRadius:20, fontSize:11, fontWeight:700,
+                              border:'1px solid', cursor:'pointer', fontFamily:'inherit',
+                              background: active ? '#6366f1' : 'transparent',
+                              borderColor: active ? '#6366f1' : 'var(--border)',
+                              color: active ? '#fff' : 'var(--subtext)',
+                              transition:'all 0.15s',
+                            }}>
+                            <img
+                              src={`https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/${coin.slug}.png`}
+                              alt={coin.name}
+                              width={18} height={18}
+                              style={{ borderRadius:50, background:'#fff', flexShrink:0 }}
+                            />
+                            {coin.name}
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                 </div>

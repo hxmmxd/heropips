@@ -1246,16 +1246,17 @@ export default function AdminPage() {
                         <p style={{ fontSize:11, color:'var(--adm-text-muted)', margin:'0 0 14px' }}>Select which coins users can withdraw to. Toggle to enable/disable.</p>
                         <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
                           {[
-                            { coin:'USDT (TRC-20)', icon:'💚', net:'Tron' },
-                            { coin:'USDT (ERC-20)', icon:'💜', net:'Ethereum' },
-                            { coin:'BTC',           icon:'🟠', net:'Bitcoin' },
-                            { coin:'ETH',           icon:'🔷', net:'Ethereum' },
-                            { coin:'BNB',           icon:'🟡', net:'BSC' },
-                            { coin:'USDC',          icon:'🔵', net:'Multi-chain' },
-                            { coin:'LTC',           icon:'⚪', net:'Litecoin' },
-                            { coin:'DOGE',          icon:'🐕', net:'Dogecoin' },
+                            { coin:'USDT (TRC-20)', slug:'usdt', net:'Tron TRC-20' },
+                            { coin:'USDT (ERC-20)', slug:'usdt', net:'Ethereum ERC-20' },
+                            { coin:'BTC',           slug:'btc',  net:'Bitcoin' },
+                            { coin:'ETH',           slug:'eth',  net:'Ethereum' },
+                            { coin:'BNB',           slug:'bnb',  net:'BNB Smart Chain' },
+                            { coin:'USDC',          slug:'usdc', net:'Multi-chain' },
+                            { coin:'LTC',           slug:'ltc',  net:'Litecoin' },
+                            { coin:'DOGE',          slug:'doge', net:'Dogecoin' },
                           ].map(c => {
                             const on = npCoins.includes(c.coin);
+                            const iconUrl = `https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/${c.slug}.png`;
                             return (
                               <div key={c.coin} style={{
                                 display:'flex', alignItems:'center', gap:10, padding:'8px 12px',
@@ -1263,7 +1264,7 @@ export default function AdminPage() {
                                 border:'1px solid', borderColor: on ? 'rgba(99,102,241,0.2)' : 'var(--adm-border)',
                                 cursor:'pointer', transition:'all 0.15s',
                               }} onClick={() => setNpCoins(on ? npCoins.filter(x=>x!==c.coin) : [...npCoins, c.coin])}>
-                                <span style={{ fontSize:16 }}>{c.icon}</span>
+                                <img src={iconUrl} alt={c.coin} width={28} height={28} style={{ borderRadius:50, flexShrink:0, background:'#fff' }} />
                                 <div style={{ flex:1 }}>
                                   <p style={{ fontSize:12, fontWeight:700, color:'var(--adm-text)', margin:0 }}>{c.coin}</p>
                                   <p style={{ fontSize:9, color:'var(--adm-text-muted)', margin:0 }}>{c.net}</p>
