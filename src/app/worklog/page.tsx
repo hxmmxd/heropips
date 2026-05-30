@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 
-/* ── Changelog Data ─────────────────────────────────────────────── */
+/* ── Work Log Data ──────────────────────────────────────────────── */
 interface ChangelogEntry {
   version: string;
   date: string;
@@ -122,7 +122,7 @@ const tagStyles: Record<string, { bg: string; color: string; label: string }> = 
 };
 
 /* ── Page ────────────────────────────────────────────────────────── */
-export default function ChangelogPage() {
+export default function WorkLogPage() {
   const [activeVersion, setActiveVersion] = useState(changelog[0].version);
 
   // Track scroll position to highlight active nav item
@@ -152,7 +152,7 @@ export default function ChangelogPage() {
       {/* Mobile Header */}
       <div className="cl-mobile-header">
         <a href="/">← Dashboard</a>
-        <span>Changelog</span>
+        <span>Work Log</span>
         <span style={{ width: 70 }} />
       </div>
 
@@ -166,7 +166,7 @@ export default function ChangelogPage() {
         </div>
 
         <nav className="cl-sidebar-nav">
-          <div className="cl-nav-label">Releases</div>
+          <div className="cl-nav-label">Updates</div>
           {changelog.map((entry) => (
             <a
               key={entry.version}
@@ -188,9 +188,9 @@ export default function ChangelogPage() {
       <main className="cl-main">
         {/* Hero */}
         <div className="cl-hero">
-          <div className="cl-hero-badge">CHANGELOG</div>
-          <h1>What&apos;s New in TradeGPT</h1>
-          <p>Every feature, fix, and improvement — shipped and documented.</p>
+          <div className="cl-hero-badge">WORK LOG</div>
+          <h1>Development Updates</h1>
+          <p>Internal team log — daily progress, features shipped, and milestones.</p>
           <div className="cl-stats-row">
             <div className="cl-stat-pill"><strong>65</strong> <span>commits</span></div>
             <div className="cl-stat-pill"><strong>19.7K</strong> <span>lines written</span></div>
@@ -233,7 +233,7 @@ export default function ChangelogPage() {
 
         {/* Footer */}
         <footer className="cl-footer">
-          <p>Built with 🧠 by the TradeGPT team</p>
+          <p>Internal use only — TradeGPT Engineering</p>
         </footer>
       </main>
     </div>
