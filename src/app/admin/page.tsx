@@ -78,6 +78,28 @@ export default function AdminPage() {
   const [newAnnouncement, setNewAnnouncement] = useState({ title: '', message: '', type: 'info' });
   const [riskRules, setRiskRules] = useState<any[]>([]);
   const [signupTrends, setSignupTrends] = useState<{month:string;count:number}[]>([]);
+  const [settingsSubPage, setSettingsSubPage] = useState<'main'|'referral'>('main');
+  const [referralConfig, setReferralConfig] = useState({
+    enabled: true,
+    levels: [
+      { level: 1, label: 'Direct',       commission: 10, rebate: 5  },
+      { level: 2, label: 'Level 2',      commission: 5,  rebate: 2  },
+      { level: 3, label: 'Level 3',      commission: 3,  rebate: 1  },
+      { level: 4, label: 'Level 4',      commission: 2,  rebate: 0.5},
+      { level: 5, label: 'Level 5',      commission: 1,  rebate: 0.25},
+    ],
+    milestones: [
+      { referrals: 1,  reward: 25   },
+      { referrals: 5,  reward: 100  },
+      { referrals: 10, reward: 250  },
+      { referrals: 25, reward: 750  },
+      { referrals: 50, reward: 2000 },
+    ],
+    minWithdrawal: 50,
+    cookieDays: 30,
+    payoutDay: 1,
+  });
+  const [refSaved, setRefSaved] = useState(false);
   const [revenueTrends, setRevenueTrends] = useState<{month:string;revenue:number}[]>([]);
   const [topSymbols, setTopSymbols] = useState<{symbol:string;count:number}[]>([]);
   const [brokerProviders, setBrokerProviders] = useState<any[]>([]);
@@ -905,6 +927,114 @@ export default function AdminPage() {
                     </div>
                   ))}
                 </div>
+              </div>
+            {/* ── Referral Program Settings ── */}
+              <div className="adm-card adm-card-full">
+                <div className="adm-card-head" style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                  <h3>🎁 Referral Program</h3>
+                  <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+                    <button onClick={() => setSettingsSubPage(settingsSubPage === 'referral' ? 'main' : 'referral')}
+                      style={{ fontSize:12, fontWeight:700, padding:'6px 14px', borderRadius:8, border:'1px solid var(--adm-border)', background: settingsSubPage === 'referral' ? '#6366f1' : 'transparent', color: settingsSubPage === 'referral' ? '#fff' : 'var(--adm-text-muted)', cursor:'pointer' }}>
+                      {settingsSubPage === 'referral' ? '← Back' : 'Configure →'}
+                    </button>
+                    <div className={`adm-switch ${referralConfig.enabled ? 'adm-switch-on' : ''}`} role="button" tabIndex={0}
+                      onClick={() => setReferralConfig({ ...referralConfig, enabled: !referralConfig.enabled })}>
+                      <span className="adm-switch-track"><span className="adm-switch-thumb" /></span>
+                    </div>
+                  </div>
+                </div>
+                {settingsSubPage === 'referral' ? (
+                  <div className="adm-card-body" style={{ display:'flex', flexDirection:'column', gap:28 }}>
+                    <div>
+                      <p style={{ fontSize:13, fontWeight:700, marginBottom:14, color:'var(--adm-text)' }}>Commission & Rebate Per Level</p>
+                      <div style={{ display:'grid', gridTemplateColumns:'40px 1fr 1fr 1fr', borderRadius:10, overflow:'hidden', border:'1px solid var(--adm-border)' }}>
+                        {['Lvl','Label','Commission %','Rebate %'].map(h => (
+                          <div key={h} style={{ padding:'9px 14px', background:'var(--adm-bg-secondary)', fontSize:10, fontWeight:700, color:'var(--adm-text-muted)', textTransform:'uppercase', borderBottom:'1px solid var(--adm-border)' }}>{h}</div>
+                        ))}
+                        {referralConfig.levels.map((lvl, i) => {
+                          const c = ['#6366f1','#3b82f6','#10b981','#f59e0b','#ec4899'][i];
+                          return (
+                            <React.Fragment key={lvl.level}>
+                              <div style={{ padding:'12px 14px', borderBottom:'1px solid var(--adm-border)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                                <span style={{ width:24, height:24, borderRadius:6, background:c, display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:800, color:'#fff' }}>L{lvl.level}</span>
+                              </div>
+                              <div style={{ padding:'12px 14px', borderBottom:'1px solid var(--adm-border)' }}>
+                                <input style={{ width:'100%', background:'var(--adm-bg)', border:'1px solid var(--adm-border)', borderRadius:6, padding:'5px 8px', fontSize:12, fontWeight:600, color:'var(--adm-text)', fontFamily:'inherit' }}
+                                  value={lvl.label} onChange={e => { const ls = referralConfig.levels.map((l,j) => j===i?{...l,label:e.target.value}:l); setReferralConfig({...referralConfig,levels:ls}); }} />
+                              </div>
+                              <div style={{ padding:'12px 14px', borderBottom:'1px solid var(--adm-border)', display:'flex', alignItems:'center', gap:4 }}>
+                                <input type="number" min={0} max={100} step={0.5}
+                                  style={{ width:70, background:'var(--adm-bg)', border:'1px solid var(--adm-border)', borderRadius:6, padding:'5px 8px', fontSize:13, fontWeight:700, color:c, fontFamily:'inherit' }}
+                                  value={lvl.commission} onChange={e => { const ls = referralConfig.levels.map((l,j) => j===i?{...l,commission:Number(e.target.value)}:l); setReferralConfig({...referralConfig,levels:ls}); }} />
+                                <span style={{ fontSize:11, color:'var(--adm-text-muted)' }}>%</span>
+                              </div>
+                              <div style={{ padding:'12px 14px', borderBottom:'1px solid var(--adm-border)', display:'flex', alignItems:'center', gap:4 }}>
+                                <input type="number" min={0} max={100} step={0.25}
+                                  style={{ width:70, background:'var(--adm-bg)', border:'1px solid var(--adm-border)', borderRadius:6, padding:'5px 8px', fontSize:13, fontWeight:700, color:'#10b981', fontFamily:'inherit' }}
+                                  value={lvl.rebate} onChange={e => { const ls = referralConfig.levels.map((l,j) => j===i?{...l,rebate:Number(e.target.value)}:l); setReferralConfig({...referralConfig,levels:ls}); }} />
+                                <span style={{ fontSize:11, color:'var(--adm-text-muted)' }}>%</span>
+                              </div>
+                            </React.Fragment>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <div>
+                      <p style={{ fontSize:13, fontWeight:700, marginBottom:14, color:'var(--adm-text)' }}>Milestone Rewards</p>
+                      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+                        {referralConfig.milestones.map((m, i) => (
+                          <div key={i} style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 16px', background:'var(--adm-bg-secondary)', border:'1px solid var(--adm-border)', borderRadius:10 }}>
+                            <span style={{ fontSize:11, fontWeight:700, color:'var(--adm-text-muted)', minWidth:80 }}>At {m.referrals} ref{m.referrals>1?'s':''}</span>
+                            <span style={{ color:'#10b981' }}>$</span>
+                            <input type="number" min={0}
+                              style={{ flex:1, background:'var(--adm-bg)', border:'1px solid var(--adm-border)', borderRadius:6, padding:'5px 8px', fontSize:13, fontWeight:700, color:'#10b981', fontFamily:'inherit' }}
+                              value={m.reward} onChange={e => { const ms = referralConfig.milestones.map((x,j) => j===i?{...x,reward:Number(e.target.value)}:x); setReferralConfig({...referralConfig,milestones:ms}); }} />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p style={{ fontSize:13, fontWeight:700, marginBottom:14, color:'var(--adm-text)' }}>Global Settings</p>
+                      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:12 }}>
+                        {[{label:'Min Withdrawal ($)',key:'minWithdrawal'},{label:'Cookie Duration (days)',key:'cookieDays'},{label:'Payout Day of Month',key:'payoutDay'}].map(f => (
+                          <div key={f.key} style={{ background:'var(--adm-bg-secondary)', border:'1px solid var(--adm-border)', borderRadius:10, padding:'14px 16px' }}>
+                            <p style={{ fontSize:10, fontWeight:700, color:'var(--adm-text-muted)', textTransform:'uppercase', marginBottom:8 }}>{f.label}</p>
+                            <input type="number" min={1}
+                              style={{ width:'100%', background:'var(--adm-bg)', border:'1px solid var(--adm-border)', borderRadius:6, padding:'6px 10px', fontSize:14, fontWeight:700, color:'var(--adm-text)', fontFamily:'inherit' }}
+                              value={(referralConfig as any)[f.key]} onChange={e => setReferralConfig({...referralConfig,[f.key]:Number(e.target.value)})} />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+                      <button onClick={() => { setRefSaved(true); setTimeout(()=>setRefSaved(false),2500); }}
+                        style={{ background:'#6366f1', color:'#fff', border:'none', borderRadius:10, padding:'10px 24px', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
+                        Save Referral Config
+                      </button>
+                      {refSaved && <span style={{ fontSize:12, color:'#10b981', fontWeight:700 }}>✓ Saved successfully</span>}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="adm-card-body">
+                    <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:10 }}>
+                      {referralConfig.levels.map((lvl, i) => {
+                        const c = ['#6366f1','#3b82f6','#10b981','#f59e0b','#ec4899'][i];
+                        return (
+                          <div key={lvl.level} style={{ textAlign:'center', padding:'16px 10px', background:'var(--adm-bg-secondary)', border:'1px solid var(--adm-border)', borderRadius:12 }}>
+                            <div style={{ width:32, height:32, borderRadius:8, background:c, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:800, color:'#fff', margin:'0 auto 10px' }}>L{lvl.level}</div>
+                            <p style={{ fontSize:10, fontWeight:700, color:'var(--adm-text-muted)', textTransform:'uppercase', marginBottom:4 }}>{lvl.label}</p>
+                            <p style={{ fontSize:16, fontWeight:800, color:c }}>{lvl.commission}%</p>
+                            <p style={{ fontSize:11, color:'#10b981', fontWeight:600 }}>+{lvl.rebate}% rebate</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <p style={{ fontSize:11, color:'var(--adm-text-muted)', marginTop:12 }}>
+                      Min withdrawal: ${referralConfig.minWithdrawal} · Cookie: {referralConfig.cookieDays} days · Payout day: {referralConfig.payoutDay}
+                      {!referralConfig.enabled && <span style={{ color:'#ef4444', marginLeft:8, fontWeight:700 }}>Program disabled</span>}
+                    </p>
+                  </div>
+                )}
               </div>
             </>
           )}

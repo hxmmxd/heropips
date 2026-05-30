@@ -2267,3 +2267,31 @@ body {
   .ref-how { margin: 20px 20px 0; }
   .ref-how-steps { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* Referral Network Tree Nodes */
+.ref-net-node {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 16px;
+  background: var(--sidebar-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  margin-bottom: 2px;
+}
+.ref-net-node:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.07); }
+.ref-net-badge {
+  font-size: 9px; font-weight: 800; color: #fff;
+  padding: 2px 5px; border-radius: 4px; flex-shrink: 0;
+}
+.ref-net-avatar {
+  width: 30px; height: 30px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800; color: #fff; flex-shrink: 0;
+}
+.ref-net-info { flex: 1; min-width: 0; }
+.ref-net-name { font-size: 13px; font-weight: 700; color: var(--text); display: block; }
+.ref-net-meta { font-size: 10.5px; color: var(--subtext); }
+.ref-net-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.ref-net-rebate { font-size: 13px; font-weight: 700; }

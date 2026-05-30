@@ -37,7 +37,7 @@ const worklog: WorkDay[] = [
   {
     date: 'May 30, 2026',
     dayLabel: 'Friday',
-    commitCount: 19,
+    commitCount: 24,
     blocks: [
       { tag: 'major', time: '09:15 AM',
         title: 'Smart Money Concepts Scanner',
@@ -113,6 +113,18 @@ const worklog: WorkDay[] = [
           { icon: '👥', title: 'Partners Tab', description: 'Expandable accordion cards per partner: avatar initials, name, join date, trade count, status badge, rebate earned. Detail grid shows portfolio/rebate/commission/trades.', files: ['ReferralTab.tsx'] },
           { icon: '🏆', title: 'Milestones Tab', description: '5 milestone tiers (1→50 referrals) with rewards up to $2,000. Reached milestones show green check; locked ones are dimmed.', files: ['ReferralTab.tsx'] },
           { icon: '🛡️', title: 'Type Safety', description: 'Extended Partner interface with joined and trades fields. Updated types/index.ts and page.tsx partners state.', files: ['types/index.ts', 'page.tsx'] },
+        ]
+      },
+      { tag: 'major', time: '09:45 PM',
+        title: '5-Level Referral Network + Admin Config',
+        summary: 'Upgraded referral system to support 5-level deep multi-level referral network tree, and added a complete referral program configuration panel in admin settings.',
+        items: [
+          { icon: '🌐', title: '5-Level Network Tree', description: 'Recursive NetworkNode component renders the full referral tree. Each level has a distinct color (L1=indigo, L2=blue, L3=green, L4=amber, L5=pink). Nodes expand/collapse to show sub-levels with an indented tree layout.', files: ['ReferralTab.tsx'] },
+          { icon: '📊', title: 'Level Breakdown Bar', description: '5 mini cards above the invite section showing each level\'s commission %, rebate %, and member count at a glance.', files: ['ReferralTab.tsx'] },
+          { icon: '💹', title: 'Commission Rates Tab', description: 'New tab showing L1–L5 commission structure (10% → 1%) and rebate rates (5% → 0.25%) with member count per level.', files: ['ReferralTab.tsx'] },
+          { icon: '⚙️', title: 'Admin Referral Settings Panel', description: 'Full referral config sub-page in admin Settings: editable commission and rebate per level, milestone reward editor, global settings (min withdrawal, cookie days, payout day). Toggle to enable/disable the program.', files: ['admin/page.tsx'] },
+          { icon: '🏆', title: 'Milestone Editor (Admin)', description: '5 milestone tiers configurable from admin: change required referral count and reward amount for each tier (1/5/10/25/50 referrals = $25–$2,000).', files: ['admin/page.tsx'] },
+          { icon: '💾', title: 'Save & Persist', description: 'Save button sends PATCH to /api/admin with referral_config key. Shows ✓ Saved successfully confirmation for 2.5 seconds.', files: ['admin/page.tsx'] },
         ]
       },
     ]
