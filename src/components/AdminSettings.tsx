@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
-  Zap, Crown, Rocket, Check, X, Loader2
+  Zap, Crown, Rocket, Check, X, Loader2, Play, AlertTriangle, Copy, CheckCircle2, Shield, Settings, Activity, Send, Trash2, Key, Info, Terminal
 } from 'lucide-react';
 
 interface AdminSettingsProps {
@@ -16,10 +16,434 @@ export default function AdminSettings({
   initialAnnouncements,
   onRefresh
 }: AdminSettingsProps) {
-  const [config, setConfig] = useState(initialConfig);
-  const [announcements, setAnnouncements] = useState(initialAnnouncements);
   const [settingsSubPage, setSettingsSubPage] = useState<'main' | 'referral' | 'pricing' | 'announcements' | 'payments'>('main');
 
+  // Core configurations are passed down to child components which isolate state.
+  return (
+    <div className="settings-reimagined">
+      <style>{`
+        /* ── Reimagined Premium CSS System ── */
+        .settings-reimagined {
+          display: flex;
+          gap: 24px;
+          min-height: calc(100vh - 120px);
+          font-family: 'Inter', system-ui, sans-serif;
+          color: #f3f4f6;
+        }
+
+        @media (max-width: 1024px) {
+          .settings-reimagined {
+            flex-direction: column;
+          }
+        }
+
+        /* Glass Sidebar */
+        .settings-sidebar {
+          width: 260px;
+          flex-shrink: 0;
+          background: rgba(17, 24, 39, 0.45);
+          backdrop-filter: blur(16px);
+          border: 1px solid rgba(255, 255, 255, 0.06);
+          border-radius: 20px;
+          padding: 16px;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          align-self: flex-start;
+          box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        }
+
+        @media (max-width: 1024px) {
+          .settings-sidebar {
+            width: 100%;
+            flex-direction: row;
+            overflow-x: auto;
+            white-space: nowrap;
+          }
+        }
+
+        .settings-sidebar-title {
+          font-size: 11px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 1.5px;
+          color: rgba(255, 255, 255, 0.4);
+          padding: 12px 14px 6px;
+        }
+
+        .sidebar-btn {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px 14px;
+          background: transparent;
+          border: none;
+          color: rgba(255, 255, 255, 0.6);
+          font-size: 13px;
+          font-weight: 600;
+          border-radius: 12px;
+          cursor: pointer;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          text-align: left;
+        }
+
+        .sidebar-btn:hover {
+          color: #fff;
+          background: rgba(255, 255, 255, 0.04);
+        }
+
+        .sidebar-btn.active {
+          color: #fff;
+          background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(59, 130, 246, 0.15) 100%);
+          border-left: 3px solid #6366f1;
+          box-shadow: inset 0 0 12px rgba(99, 102, 241, 0.08);
+        }
+
+        .sidebar-btn-icon {
+          width: 18px;
+          height: 18px;
+          opacity: 0.8;
+          transition: transform 0.2s ease;
+        }
+
+        .sidebar-btn.active .sidebar-btn-icon {
+          opacity: 1;
+          transform: scale(1.1);
+          color: #818cf8;
+        }
+
+        /* Content Area */
+        .settings-content {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+        }
+
+        /* Glass Cards */
+        .premium-card {
+          background: rgba(17, 24, 39, 0.45);
+          backdrop-filter: blur(16px);
+          border: 1px solid rgba(255, 255, 255, 0.06);
+          border-radius: 20px;
+          padding: 24px;
+          box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+          position: relative;
+          overflow: hidden;
+        }
+
+        .premium-card::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 1px;
+          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+        }
+
+        .card-title {
+          font-size: 18px;
+          font-weight: 700;
+          margin: 0 0 6px;
+          background: linear-gradient(135deg, #fff 0%, #d1d5db 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .card-desc {
+          font-size: 13px;
+          color: rgba(255, 255, 255, 0.55);
+          margin: 0 0 20px;
+          line-height: 1.5;
+        }
+
+        /* Custom Inputs styling */
+        .re-input-group {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          margin-bottom: 16px;
+        }
+
+        .re-label {
+          font-size: 12px;
+          font-weight: 600;
+          color: rgba(255, 255, 255, 0.7);
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .re-input {
+          background: rgba(17, 24, 39, 0.6);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 10px;
+          padding: 10px 14px;
+          color: #fff;
+          font-family: inherit;
+          font-size: 13px;
+          transition: all 0.2s ease;
+        }
+
+        .re-input:focus {
+          outline: none;
+          border-color: #6366f1;
+          box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        }
+
+        /* Cyber toggles */
+        .cyber-switch-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 16px 0;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .cyber-switch-row:last-child {
+          border-bottom: none;
+        }
+
+        .switch-info {
+          display: flex;
+          align-items: flex-start;
+          gap: 12px;
+        }
+
+        .switch-title {
+          font-size: 14px;
+          font-weight: 600;
+          color: #fff;
+          margin: 0 0 3px;
+        }
+
+        .switch-desc {
+          font-size: 12px;
+          color: rgba(255, 255, 255, 0.45);
+          margin: 0;
+          line-height: 1.4;
+        }
+
+        .switch-icon-bg {
+          width: 38px;
+          height: 38px;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 16px;
+        }
+
+        /* Buttons styling */
+        .re-btn-primary {
+          background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+          color: #fff;
+          border: none;
+          border-radius: 12px;
+          padding: 12px 24px;
+          font-size: 13px;
+          font-weight: 700;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+          transition: all 0.2s ease;
+        }
+
+        .re-btn-primary:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 6px 20px rgba(99, 102, 241, 0.45);
+        }
+
+        .re-btn-secondary {
+          background: rgba(255, 255, 255, 0.05);
+          color: rgba(255, 255, 255, 0.8);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 12px;
+          padding: 12px 20px;
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .re-btn-secondary:hover {
+          background: rgba(255, 255, 255, 0.08);
+          color: #fff;
+        }
+
+        /* Spin Animation */
+        @keyframes customSpin {
+          to { transform: rotate(360deg); }
+        }
+        .spin {
+          animation: customSpin 1s linear infinite;
+        }
+      `}</style>
+
+      {/* ── Glass Sidebar Navigation ── */}
+      <div className="settings-sidebar">
+        <div className="settings-sidebar-title">Categories</div>
+        {[
+          { id: 'main', label: 'Platform Controls', icon: Settings },
+          { id: 'referral', label: 'Referral Program', icon: Crown },
+          { id: 'pricing', label: 'Plan Pricing', icon: Zap },
+          { id: 'announcements', label: 'Announcements', icon: Send },
+          { id: 'payments', label: 'NOWPayments Gateway', icon: Shield },
+        ].map(tab => {
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setSettingsSubPage(tab.id as any)}
+              className={`sidebar-btn ${settingsSubPage === tab.id ? 'active' : ''}`}
+            >
+              <Icon className="sidebar-btn-icon" />
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── Active Content panel ── */}
+      <div className="settings-content">
+        {settingsSubPage === 'main' && (
+          <PlatformTab initialConfig={initialConfig} />
+        )}
+        {settingsSubPage === 'referral' && (
+          <ReferralTab initialConfig={initialConfig} />
+        )}
+        {settingsSubPage === 'pricing' && (
+          <PricingTab initialConfig={initialConfig} />
+        )}
+        {settingsSubPage === 'announcements' && (
+          <AnnouncementsTab initialAnnouncements={initialAnnouncements} onRefresh={onRefresh} />
+        )}
+        {settingsSubPage === 'payments' && (
+          <PaymentsTab initialConfig={initialConfig} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// 1. PLATFORM CONTROLS TAB (Isolated States)
+// ──────────────────────────────────────────────────────────────────────
+function PlatformTab({ initialConfig }: { initialConfig: Record<string, any> }) {
+  const [config, setConfig] = useState(initialConfig);
+
+  useEffect(() => {
+    setConfig(initialConfig);
+  }, [initialConfig]);
+
+  const toggleConfig = async (key: string) => {
+    const newVal = !config[key];
+    setConfig(prev => ({ ...prev, [key]: newVal }));
+    await fetch('/api/admin', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ configKey: key, configValue: newVal })
+    });
+  };
+
+  const toggleFeatureFlag = async (flagKey: string, currentVal: boolean) => {
+    const updatedFlags = { ...config.feature_flags, [flagKey]: !currentVal };
+    setConfig(prev => ({ ...prev, feature_flags: updatedFlags }));
+    await fetch('/api/admin', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ configKey: 'feature_flags', configValue: updatedFlags })
+    });
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* Platform Toggles */}
+      <div className="premium-card">
+        <h3 className="card-title"><Activity style={{ color: '#6366f1' }} /> System Parameters</h3>
+        <p className="card-desc">Control global network configurations and live broker rules instantly.</p>
+
+        <div>
+          {[
+            { key: 'maintenance_mode', icon: '⚠️', label: 'Maintenance Mode', desc: 'Display client-facing maintenance screen to all accounts', color: 'rgba(245,158,11,0.15)' },
+            { key: 'ai_kill_switch', icon: '⚡', label: 'AI Signal Kill Switch', desc: 'Immediately freeze automated execution pipelines globally', color: 'rgba(239,68,68,0.15)' },
+            { key: 'new_registrations', icon: '👤', label: 'Allow Registrations', desc: 'Permit new traders to register and initialize accounts', color: 'rgba(16,185,129,0.15)' },
+            { key: 'demo_mode', icon: '🧪', label: 'Demo Mode Simulation', desc: 'Route broker signals directly to sandbox simulator accounts', color: 'rgba(99,102,241,0.15)' },
+          ].map(t => (
+            <div key={t.key} className="cyber-switch-row">
+              <div className="switch-info">
+                <div className="switch-icon-bg" style={{ backgroundColor: t.color }}>{t.icon}</div>
+                <div>
+                  <p className="switch-title">{t.label}</p>
+                  <p className="switch-desc">{t.desc}</p>
+                </div>
+              </div>
+              <div
+                className={`adm-switch ${config[t.key] ? 'adm-switch-on' : ''}`}
+                role="button"
+                tabIndex={0}
+                onClick={() => toggleConfig(t.key)}
+              >
+                <span className="adm-switch-track">
+                  <span className="adm-switch-thumb" />
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Feature Flags */}
+      <div className="premium-card">
+        <h3 className="card-title">🚩 Feature Gates</h3>
+        <p className="card-desc">Safely activate pre-release system components and features.</p>
+
+        {config.feature_flags ? (
+          <div>
+            {Object.entries(config.feature_flags as Record<string, boolean>).map(([key, val]) => (
+              <div key={key} className="cyber-switch-row">
+                <div className="switch-info">
+                  <div className="switch-icon-bg" style={{ backgroundColor: 'rgba(255,255,255,0.04)', fontSize: 13 }}>🚩</div>
+                  <div>
+                    <p className="switch-title" style={{ textTransform: 'capitalize' }}>
+                      {key.replace(/_/g, ' ')}
+                    </p>
+                  </div>
+                </div>
+                <div
+                  className={`adm-switch ${val ? 'adm-switch-on' : ''}`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => toggleFeatureFlag(key, val)}
+                >
+                  <span className="adm-switch-track">
+                    <span className="adm-switch-thumb" />
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', padding: '24px', color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>
+            No feature gates configured.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// 2. REFERRAL PROGRAM TAB (Isolated State + Interactive Previews)
+// ──────────────────────────────────────────────────────────────────────
+function ReferralTab({ initialConfig }: { initialConfig: Record<string, any> }) {
   const [referralConfig, setReferralConfig] = useState(() => {
     if (initialConfig?.referral_config) {
       return initialConfig.referral_config;
@@ -27,17 +451,17 @@ export default function AdminSettings({
     return {
       enabled: true,
       levels: [
-        { level: 1, label: 'Direct',       commission: 10, rebate: 5  },
-        { level: 2, label: 'Level 2',      commission: 5,  rebate: 2  },
-        { level: 3, label: 'Level 3',      commission: 3,  rebate: 1  },
-        { level: 4, label: 'Level 4',      commission: 2,  rebate: 0.5},
-        { level: 5, label: 'Level 5',      commission: 1,  rebate: 0.25},
+        { level: 1, label: 'Direct', commission: 10, rebate: 5 },
+        { level: 2, label: 'Level 2', commission: 5, rebate: 2 },
+        { level: 3, label: 'Level 3', commission: 3, rebate: 1 },
+        { level: 4, label: 'Level 4', commission: 2, rebate: 0.5 },
+        { level: 5, label: 'Level 5', commission: 1, rebate: 0.25 },
       ],
       milestones: [
-        { referrals: 1,  reward: 25   },
-        { referrals: 5,  reward: 100  },
-        { referrals: 10, reward: 250  },
-        { referrals: 25, reward: 750  },
+        { referrals: 1, reward: 25 },
+        { referrals: 5, reward: 100 },
+        { referrals: 10, reward: 250 },
+        { referrals: 25, reward: 750 },
         { referrals: 50, reward: 2000 },
       ],
       minWithdrawal: 50,
@@ -45,570 +469,737 @@ export default function AdminSettings({
       payoutDay: 1,
     };
   });
+  const [saved, setSaved] = useState(false);
 
-  const [npApiKey, setNpApiKey]             = useState('');
-  const [npEmail, setNpEmail]               = useState('');
-  const [npPassword, setNpPassword]         = useState('');
-  const [npTotpSecret, setNpTotpSecret]     = useState('');
-  const [npIpnSecret, setNpIpnSecret]       = useState('');
-  const [npSandbox, setNpSandbox]           = useState(false);
-  const [npCoins, setNpCoins]               = useState(['USDT (TRC-20)','USDT (ERC-20)','BTC','ETH','BNB','USDC']);
+  const saveConfig = async () => {
+    await fetch('/api/admin', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ configKey: 'referral_config', configValue: referralConfig })
+    });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+  };
 
-  const [npTestResult, setNpTestResult]     = useState<{ok:boolean;message:string}|null>(null);
-  const [npTesting, setNpTesting]           = useState(false);
-  const [npSaved, setNpSaved]               = useState(false);
-  const [refSaved, setRefSaved]             = useState(false);
-  const [saveMsg, setSaveMsg]               = useState('');
-  const [newAnnouncement, setNewAnnouncement] = useState({ title: '', message: '', type: 'info' });
+  const handleLevelChange = (index: number, key: 'label' | 'commission' | 'rebate', val: any) => {
+    const newLevels = [...referralConfig.levels];
+    newLevels[index] = { ...newLevels[index], [key]: val };
+    setReferralConfig({ ...referralConfig, levels: newLevels });
+  };
+
+  const handleMilestoneChange = (index: number, key: 'reward', val: number) => {
+    const newMilestones = [...referralConfig.milestones];
+    newMilestones[index] = { ...newMilestones[index], [key]: val };
+    setReferralConfig({ ...referralConfig, milestones: newMilestones });
+  };
+
+  const resetToDefaults = () => {
+    setReferralConfig({
+      enabled: true,
+      levels: [
+        { level: 1, label: 'Direct', commission: 10, rebate: 5 },
+        { level: 2, label: 'Level 2', commission: 5, rebate: 2 },
+        { level: 3, label: 'Level 3', commission: 3, rebate: 1 },
+        { level: 4, label: 'Level 4', commission: 2, rebate: 0.5 },
+        { level: 5, label: 'Level 5', commission: 1, rebate: 0.25 },
+      ],
+      milestones: [
+        { referrals: 1, reward: 25 },
+        { referrals: 5, reward: 100 },
+        { referrals: 10, reward: 250 },
+        { referrals: 25, reward: 750 },
+        { referrals: 50, reward: 2000 },
+      ],
+      minWithdrawal: 50,
+      cookieDays: 30,
+      payoutDay: 1,
+    });
+  };
+
+  return (
+    <div className="premium-card" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+          <h3 className="card-title" style={{ margin: 0 }}>🎁 Multi-Tier Affiliates</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: referralConfig.enabled ? '#10b981' : '#ef4444' }}>
+              {referralConfig.enabled ? '● ENABLED' : '○ DISABLED'}
+            </span>
+            <div
+              className={`adm-switch ${referralConfig.enabled ? 'adm-switch-on' : ''}`}
+              role="button"
+              tabIndex={0}
+              onClick={() => setReferralConfig({ ...referralConfig, enabled: !referralConfig.enabled })}
+            >
+              <span className="adm-switch-track"><span className="adm-switch-thumb" /></span>
+            </div>
+          </div>
+        </div>
+        <p className="card-desc">Configure commission splits, milestone payouts, and user rebate rules.</p>
+      </div>
+
+      {/* Multi-Level splits */}
+      <div>
+        <p style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 14 }}>Commission Matrix</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {referralConfig.levels.map((lvl: any, i: number) => {
+            const colors = ['#6366f1', '#3b82f6', '#10b981', '#f59e0b', '#ec4899'];
+            return (
+              <div
+                key={lvl.level}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '50px 1fr 140px 140px',
+                  alignItems: 'center',
+                  gap: 16,
+                  padding: '12px 16px',
+                  background: 'rgba(255,255,255,0.02)',
+                  border: '1px solid rgba(255,255,255,0.05)',
+                  borderRadius: 12
+                }}
+              >
+                <div style={{
+                  width: 32, height: 32, borderRadius: 8,
+                  background: colors[i], color: '#fff',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 12, fontWeight: 800
+                }}>
+                  L{lvl.level}
+                </div>
+                <input
+                  className="re-input"
+                  style={{ width: '100%', padding: '8px 12px' }}
+                  value={lvl.label}
+                  onChange={e => handleLevelChange(i, 'label', e.target.value)}
+                />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <input
+                    type="number"
+                    className="re-input"
+                    style={{ width: '100%', textAlign: 'center', fontWeight: 700, color: colors[i] }}
+                    value={lvl.commission}
+                    onChange={e => handleLevelChange(i, 'commission', Number(e.target.value))}
+                  />
+                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>%</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <input
+                    type="number"
+                    className="re-input"
+                    style={{ width: '100%', textAlign: 'center', fontWeight: 700, color: '#10b981' }}
+                    value={lvl.rebate}
+                    onChange={e => handleLevelChange(i, 'rebate', Number(e.target.value))}
+                  />
+                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>%</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Milestone rewards */}
+      <div>
+        <p style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 14 }}>Affiliate Targets & Milestones</p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
+          {referralConfig.milestones.map((m: any, i: number) => (
+            <div
+              key={i}
+              style={{
+                background: 'rgba(255,255,255,0.02)',
+                border: '1px solid rgba(255,255,255,0.04)',
+                borderRadius: 12,
+                padding: '14px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 8
+              }}
+            >
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#3b82f6', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                🏆 {m.referrals} Direct Ref{m.referrals > 1 ? 's' : ''}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 14, color: '#10b981', fontWeight: 700 }}>$</span>
+                <input
+                  type="number"
+                  className="re-input"
+                  style={{ flex: 1, padding: '6px 10px', fontSize: 14, fontWeight: 800, color: '#10b981' }}
+                  value={m.reward}
+                  onChange={e => handleMilestoneChange(i, 'reward', Number(e.target.value))}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Global limits */}
+      <div>
+        <p style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 14 }}>Global Thresholds</p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
+          {[
+            { label: 'Minimum Withdrawal ($)', key: 'minWithdrawal' },
+            { label: 'Tracking Cookie (Days)', key: 'cookieDays' },
+            { label: 'Payout Processing Day', key: 'payoutDay' },
+          ].map(f => (
+            <div
+              key={f.key}
+              style={{
+                background: 'rgba(255,255,255,0.02)',
+                border: '1px solid rgba(255,255,255,0.04)',
+                borderRadius: 12,
+                padding: '14px'
+              }}
+            >
+              <label style={{ display: 'block', fontSize: 11, color: 'rgba(255,255,255,0.4)', fontWeight: 600, marginBottom: 8 }}>
+                {f.label}
+              </label>
+              <input
+                type="number"
+                className="re-input"
+                style={{ width: '100%', padding: '8px 12px', fontWeight: 700 }}
+                value={(referralConfig as any)[f.key]}
+                onChange={e => setReferralConfig({ ...referralConfig, [f.key]: Number(e.target.value) })}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 20 }}>
+        <button className="re-btn-primary" onClick={saveConfig}>
+          <CheckCircle2 style={{ width: 16, height: 16 }} /> Save Changes
+        </button>
+        <button className="re-btn-secondary" onClick={resetToDefaults}>
+          Reset to Defaults
+        </button>
+        {saved && (
+          <span style={{ fontSize: 13, color: '#10b981', fontWeight: 700, animation: 'fadeIn 0.2s ease' }}>
+            ✓ Configuration saved successfully
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// 3. PLAN PRICING TAB (Dynamic Previews)
+// ──────────────────────────────────────────────────────────────────────
+function PricingTab({ initialConfig }: { initialConfig: Record<string, any> }) {
+  const [config, setConfig] = useState(initialConfig);
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    if (initialConfig) {
-      setConfig(initialConfig);
-      if (initialConfig.referral_config) {
-        setReferralConfig(initialConfig.referral_config);
-      }
-      if (initialConfig.nowpayments_config) {
-        const npc = initialConfig.nowpayments_config;
-        setNpApiKey(npc.api_key || '');
-        setNpEmail(npc.email || '');
-        setNpPassword(npc.password || '');
-        setNpTotpSecret(npc.totp_secret || '');
-        setNpIpnSecret(npc.ipn_secret || '');
-        setNpSandbox(npc.sandbox ?? false);
-        if (Array.isArray(npc.enabled_coins)) {
-          setNpCoins(npc.enabled_coins);
-        }
+    setConfig(initialConfig);
+  }, [initialConfig]);
+
+  const handlePriceChange = (key: string, val: number) => {
+    const pricing = { ...config.plan_pricing, [key]: val };
+    setConfig(prev => ({ ...prev, plan_pricing: pricing }));
+  };
+
+  const savePricing = async () => {
+    await fetch('/api/admin', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ configKey: 'plan_pricing', configValue: config.plan_pricing })
+    });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+  };
+
+  return (
+    <div className="premium-card">
+      <h3 className="card-title"><Zap style={{ color: '#f59e0b' }} /> Plan Pricing Tiers</h3>
+      <p className="card-desc">Configure client subscription pricing and dynamically preview cards live.</p>
+
+      {/* Previews & Inputs Grid */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 20 }}>
+          {[
+            { key: 'starter', label: 'Starter Tier', icon: Rocket, color: '#6b7280', shadow: 'rgba(107,114,128,0.15)', desc: 'For automated trading entry levels' },
+            { key: 'pro', label: 'Pro Tier', icon: Crown, color: '#8b5cf6', shadow: 'rgba(139,92,246,0.25)', desc: 'Optimized for high-performance scale' },
+            { key: 'enterprise', label: 'Enterprise Tier', icon: Shield, color: '#f59e0b', shadow: 'rgba(245,158,11,0.25)', desc: 'Dedicated institutional integration' },
+          ].map(tier => {
+            const Icon = tier.icon;
+            const price = config.plan_pricing?.[tier.key] ?? 0;
+            return (
+              <div
+                key={tier.key}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.02)',
+                  border: `1px solid rgba(255,255,255,0.04)`,
+                  borderRadius: 16,
+                  padding: 24,
+                  textAlign: 'center',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  boxShadow: `0 10px 30px ${tier.shadow}`,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 16
+                }}
+              >
+                <div style={{
+                  width: 48, height: 48, borderRadius: 12,
+                  background: `linear-gradient(135deg, ${tier.color}20, ${tier.color}40)`,
+                  display: 'flex', alignItems: 'center', justifySelf: 'center', margin: '0 auto',
+                  justifyContent: 'center', color: tier.color
+                }}>
+                  <Icon style={{ width: 22, height: 22 }} />
+                </div>
+                <div>
+                  <h4 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 4px', color: '#fff' }}>{tier.label}</h4>
+                  <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', margin: 0 }}>{tier.desc}</p>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, margin: '8px 0' }}>
+                  <span style={{ fontSize: 20, fontWeight: 700, color: tier.color }}>$</span>
+                  <input
+                    type="number"
+                    className="re-input"
+                    style={{ width: 90, fontSize: 20, fontWeight: 800, textAlign: 'center', color: '#fff' }}
+                    value={price}
+                    onChange={e => handlePriceChange(tier.key, Number(e.target.value))}
+                  />
+                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>/mo</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 20 }}>
+          <button className="re-btn-primary" onClick={savePricing}>
+            <CheckCircle2 style={{ width: 16, height: 16 }} /> Save Pricing Matrix
+          </button>
+          {saved && (
+            <span style={{ fontSize: 13, color: '#10b981', fontWeight: 700 }}>
+              ✓ Subscriptions successfully updated
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// 4. ANNOUNCEMENTS TAB (Isolated Feed Forms)
+// ──────────────────────────────────────────────────────────────────────
+function AnnouncementsTab({
+  initialAnnouncements,
+  onRefresh
+}: {
+  initialAnnouncements: any[];
+  onRefresh: () => Promise<void> | void;
+}) {
+  const [announcements, setAnnouncements] = useState(initialAnnouncements);
+  const [newAnnouncement, setNewAnnouncement] = useState({ title: '', message: '', type: 'info' });
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setAnnouncements(initialAnnouncements);
+  }, [initialAnnouncements]);
+
+  const postAnnouncement = async () => {
+    if (!newAnnouncement.title) return;
+    setLoading(true);
+    await fetch('/api/admin', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ announcement: newAnnouncement })
+    });
+    setNewAnnouncement({ title: '', message: '', type: 'info' });
+    await onRefresh();
+    setLoading(false);
+  };
+
+  const deleteAnnouncement = async (id: string) => {
+    await fetch('/api/admin', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ announcement: { id, is_active: false } })
+    });
+    setAnnouncements(prev => prev.filter(a => a.id !== id));
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* Post Board */}
+      <div className="premium-card">
+        <h3 className="card-title"><Send style={{ color: '#3b82f6' }} /> Broadcast Terminal</h3>
+        <p className="card-desc">Publish system-wide notifications, maintenance schedules, or alerts.</p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div className="re-input-group" style={{ marginBottom: 0 }}>
+            <label className="re-label">Announcement Title</label>
+            <input
+              className="re-input"
+              placeholder="e.g., MT5 Server Integration Upgrade"
+              value={newAnnouncement.title}
+              onChange={e => setNewAnnouncement(prev => ({ ...prev, title: e.target.value }))}
+            />
+          </div>
+
+          <div className="re-input-group" style={{ marginBottom: 0 }}>
+            <label className="re-label">Message Payload</label>
+            <input
+              className="re-input"
+              placeholder="Detailed system update notes..."
+              value={newAnnouncement.message}
+              onChange={e => setNewAnnouncement(prev => ({ ...prev, message: e.target.value }))}
+            />
+          </div>
+
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <div className="re-input-group" style={{ flex: 1, marginBottom: 0 }}>
+              <label className="re-label">Severity Level</label>
+              <select
+                className="re-input"
+                style={{ background: 'rgba(17, 24, 39, 0.8)' }}
+                value={newAnnouncement.type}
+                onChange={e => setNewAnnouncement(prev => ({ ...prev, type: e.target.value }))}
+              >
+                <option value="info">ℹ️ System Info</option>
+                <option value="warning">⚠️ High Warning</option>
+                <option value="success">✅ Maintenance Completed</option>
+              </select>
+            </div>
+            <button
+              className="re-btn-primary"
+              style={{ marginTop: 22, height: 42 }}
+              disabled={loading || !newAnnouncement.title}
+              onClick={postAnnouncement}
+            >
+              {loading ? <Loader2 className="spin" style={{ width: 16, height: 16 }} /> : 'Broadcast Broadcast'}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Broadcast Feed */}
+      <div className="premium-card">
+        <h3 className="card-title">📢 Published Board ({announcements.length})</h3>
+        <p className="card-desc">Manage active announcements currently visible to connected accounts.</p>
+
+        {announcements.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '32px', color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>
+            No broadcasts posted.
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {announcements.map(a => {
+              const borderColors = { info: '#3b82f6', warning: '#f59e0b', success: '#10b981' };
+              const color = borderColors[a.type as 'info' | 'warning' | 'success'] || '#3b82f6';
+              return (
+                <div
+                  key={a.id}
+                  style={{
+                    padding: '16px 20px',
+                    borderRadius: 14,
+                    background: 'rgba(255,255,255,0.02)',
+                    borderLeft: `4px solid ${color}`,
+                    borderTop: '1px solid rgba(255,255,255,0.04)',
+                    borderRight: '1px solid rgba(255,255,255,0.04)',
+                    borderBottom: '1px solid rgba(255,255,255,0.04)',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    justifyContent: 'space-between',
+                    gap: 16
+                  }}
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <p style={{ fontSize: 14, fontWeight: 700, color: '#fff', margin: 0 }}>{a.title}</p>
+                    <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', margin: 0 }}>{a.message}</p>
+                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontWeight: 600, marginTop: 4 }}>
+                      {new Date(a.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <button
+                    style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer' }}
+                    onClick={() => deleteAnnouncement(a.id)}
+                  >
+                    <Trash2 style={{ width: 16, height: 16 }} />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// 5. NOWPAYMENTS GATEWAY TAB (Isolate inputs + Connection Log Terminal)
+// ──────────────────────────────────────────────────────────────────────
+function PaymentsTab({ initialConfig }: { initialConfig: Record<string, any> }) {
+  const [npApiKey, setNpApiKey] = useState('');
+  const [npEmail, setNpEmail] = useState('');
+  const [npPassword, setNpPassword] = useState('');
+  const [npTotpSecret, setNpTotpSecret] = useState('');
+  const [npIpnSecret, setNpIpnSecret] = useState('');
+  const [npSandbox, setNpSandbox] = useState(false);
+  const [npCoins, setNpCoins] = useState(['USDT (TRC-20)', 'USDT (ERC-20)', 'BTC', 'ETH', 'BNB', 'USDC']);
+
+  const [logs, setLogs] = useState<string[]>([]);
+  const [testing, setTesting] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const terminalEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (initialConfig?.nowpayments_config) {
+      const npc = initialConfig.nowpayments_config;
+      setNpApiKey(npc.api_key || '');
+      setNpEmail(npc.email || '');
+      setNpPassword(npc.password || '');
+      setNpTotpSecret(npc.totp_secret || '');
+      setNpIpnSecret(npc.ipn_secret || '');
+      setNpSandbox(npc.sandbox ?? false);
+      if (Array.isArray(npc.enabled_coins)) {
+        setNpCoins(npc.enabled_coins);
       }
     }
   }, [initialConfig]);
 
   useEffect(() => {
-    if (initialAnnouncements) {
-      setAnnouncements(initialAnnouncements);
+    if (terminalEndRef.current) {
+      terminalEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [initialAnnouncements]);
+  }, [logs]);
+
+  const testGatewayConnection = async () => {
+    setTesting(true);
+    setLogs([]);
+    const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+    setLogs(prev => [...prev, `[INFO] Initializing gateway handshake...`]);
+    await sleep(600);
+    setLogs(prev => [...prev, `[INFO] Env Target: ${npSandbox ? 'SANDBOX SIMULATOR' : 'PRODUCTION GATEWAY'}`]);
+    await sleep(500);
+    setLogs(prev => [...prev, `[INFO] Resolving NOWPayments server status via withdrawals client...`]);
+    await sleep(700);
+
+    try {
+      const res = await fetch('/api/withdrawals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'test_gateway', apiKey: npApiKey || undefined }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setLogs(prev => [
+          ...prev,
+          `[SUCCESS] Connection established! Node status: ONLINE`,
+          `[SUCCESS] Response details: ${data.message}`
+        ]);
+      } else {
+        setLogs(prev => [
+          ...prev,
+          `[ERROR] Handshake failed! Details: ${data.message}`
+        ]);
+      }
+    } catch (e: any) {
+      setLogs(prev => [...prev, `[ERROR] Network error: ${e.message}`]);
+    }
+    setTesting(false);
+  };
+
+  const saveConfiguration = async () => {
+    const cfg = {
+      api_key: npApiKey,
+      email: npEmail,
+      password: npPassword,
+      totp_secret: npTotpSecret,
+      ipn_secret: npIpnSecret,
+      sandbox: npSandbox,
+      enabled_coins: npCoins
+    };
+    await fetch('/api/admin', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ configKey: 'nowpayments_config', configValue: cfg })
+    });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+  };
 
   return (
-    <>
-      {/* ── Settings Sub-Nav ── */}
-      <div className="adm-card adm-card-full" style={{ padding:0, overflow:'hidden' }}>
-        <div style={{ display:'flex', borderBottom:'1px solid var(--border)', background:'var(--sidebar-bg)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* Credentials */}
+      <div className="premium-card">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+          <h3 className="card-title" style={{ margin: 0 }}><Shield style={{ color: '#10b981' }} /> NOWPayments Gateway</h3>
+          <div
+            style={{
+              padding: '6px 12px',
+              borderRadius: 8,
+              fontSize: 11,
+              fontWeight: 700,
+              backgroundColor: npSandbox ? 'rgba(245,158,11,0.15)' : 'rgba(16,185,129,0.15)',
+              color: npSandbox ? '#f59e0b' : '#10b981',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6
+            }}
+          >
+            <span style={{
+              width: 6, height: 6, borderRadius: '50%',
+              backgroundColor: npSandbox ? '#f59e0b' : '#10b981',
+              animation: 'pulse 1.5s infinite'
+            }} />
+            {npSandbox ? 'SANDBOX ENGINE' : 'LIVE BLOCKCHAIN'}
+          </div>
+        </div>
+        <p className="card-desc">Configure automated cryptocurrency withdrawals and transaction verification API credentials.</p>
+
+        {/* Inputs */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {[
-            { id:'main',         label:'Platform',  icon:'⚡' },
-            { id:'referral',     label:'Referral',  icon:'🎁' },
-            { id:'pricing',      label:'Pricing',   icon:'💳' },
-            { id:'announcements',label:'Announce',  icon:'📢' },
-            { id:'payments',     label:'Payments',  icon:'₿' },
-          ].map(tab => (
-            <button key={tab.id}
-              onClick={() => {
-                setSettingsSubPage(tab.id as any);
-                document.querySelector('.adm-main')?.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-              style={{
-                padding:'14px 20px', border:'none', background:'none', cursor:'pointer',
-                fontFamily:'inherit', fontSize:13, fontWeight:600,
-                color: settingsSubPage === tab.id ? 'var(--text)' : 'var(--subtext)',
-                borderBottom: settingsSubPage === tab.id ? '2px solid #6366f1' : '2px solid transparent',
-                display:'flex', alignItems:'center', gap:7, transition:'all 0.15s',
-                whiteSpace:'nowrap',
-              }}>
-              <span>{tab.icon}</span>{tab.label}
-            </button>
-          ))}
+            { label: 'API Key (HMAC-SHA512)', hint: 'Dashboard → Settings → API Keys', val: npApiKey, setter: setNpApiKey, icon: Key },
+            { label: 'Dashboard User Email', hint: 'Authenticated nowpayments.io dashboard email login', val: npEmail, setter: setNpEmail, icon: Send },
+            { label: 'Dashboard Secure Password', hint: 'Password (exclusively authenticated via standard secure HTTPS tokens)', val: npPassword, setter: setNpPassword, icon: Key },
+            { label: 'Two-Step 2FA Secret Key (TOTP)', hint: 'TOTP secret from Two-step auth setup in Dashboard settings', val: npTotpSecret, setter: setNpTotpSecret, icon: Shield },
+            { label: 'IPN Instant Webhook Secret', hint: 'Verification key from Dashboard → Payment Settings', val: npIpnSecret, setter: setNpIpnSecret, icon: Shield },
+          ].map(f => {
+            const Icon = f.icon;
+            return (
+              <div key={f.label} className="re-input-group" style={{ marginBottom: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <label className="re-label"><Icon style={{ width: 14, height: 14, opacity: 0.6 }} /> {f.label}</label>
+                  <span style={{ fontSize: 9, fontWeight: 700, color: f.val ? '#10b981' : '#f59e0b' }}>
+                    {f.val ? 'CONFIGURED' : 'UNCONFIGURED'}
+                  </span>
+                </div>
+                <input
+                  type="password"
+                  className="re-input"
+                  placeholder="••••••••••••••••••••••••••••••••"
+                  value={f.val}
+                  onChange={e => f.setter(e.target.value)}
+                />
+                <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', margin: '4px 0 0' }}>{f.hint}</p>
+              </div>
+            );
+          })}
+
+          {/* Sandbox toggle */}
+          <div className="cyber-switch-row" style={{ borderBottom: 'none', paddingTop: 8 }}>
+            <div className="switch-info">
+              <div className="switch-icon-bg" style={{ backgroundColor: 'rgba(99,102,241,0.1)' }}>🧪</div>
+              <div>
+                <p className="switch-title">Activate Sandbox Test Mode</p>
+                <p className="switch-desc">Verify connection status using play money sandbox testnets</p>
+              </div>
+            </div>
+            <div
+              className={`adm-switch ${npSandbox ? 'adm-switch-on' : ''}`}
+              role="button"
+              tabIndex={0}
+              onClick={() => setNpSandbox(!npSandbox)}
+            >
+              <span className="adm-switch-track"><span className="adm-switch-thumb" /></span>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* ── Platform Tab ── */}
-      {settingsSubPage === 'main' && (
-        <>
-          {/* Platform Toggles */}
-          <div className="adm-card adm-card-full">
-            <div className="adm-card-head"><h3>Platform Controls</h3></div>
-            <div className="adm-card-body">
-              <div className="adm-toggle-list">
-                {[
-                  { key:'maintenance_mode', icon:'⚠️', label:'Maintenance Mode',     desc:'Show maintenance page to all users',                color:'#f59e0b' },
-                  { key:'ai_kill_switch',   icon:'⚡', label:'AI Kill Switch',        desc:'Immediately pause all AI signal generation',        color:'#ef4444' },
-                  { key:'new_registrations',icon:'👤', label:'Allow Registrations',   desc:'Let new users sign up to the platform',             color:'#10b981' },
-                  { key:'demo_mode',        icon:'🧪', label:'Demo Mode',             desc:'Route all trades to paper trading simulator',       color:'#6366f1' },
-                ].map(t => (
-                  <div key={t.key} className="adm-toggle-row">
-                    <div className="adm-toggle-info">
-                      <span style={{ fontSize:18 }}>{t.icon}</span>
-                      <div><p className="adm-toggle-name">{t.label}</p><p className="adm-toggle-desc">{t.desc}</p></div>
-                    </div>
-                    <div className={`adm-switch ${config[t.key] ? 'adm-switch-on' : ''}`} role="button" tabIndex={0}
-                      onClick={() => {
-                        const val = !config[t.key];
-                        fetch('/api/admin', { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ configKey: t.key, configValue: val }) });
-                        setConfig({ ...config, [t.key]: val });
-                      }}>
-                      <span className="adm-switch-track"><span className="adm-switch-thumb" /></span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+      {/* Connection log terminal */}
+      <div className="premium-card">
+        <h3 className="card-title"><Terminal style={{ color: '#10b981' }} /> Interactive Gateway Terminal</h3>
+        <p className="card-desc">Execute instant handshakes and view debug outputs in real time.</p>
 
-          {/* Feature Flags */}
-          <div className="adm-card adm-card-full">
-            <div className="adm-card-head"><h3>Feature Flags</h3></div>
-            <div className="adm-card-body">
-              {config.feature_flags ? (
-                <div className="adm-toggle-list">
-                  {Object.entries(config.feature_flags as Record<string, boolean>).map(([key, val]) => (
-                    <div key={key} className="adm-toggle-row">
-                      <div className="adm-toggle-info">
-                        <span style={{ fontSize:16 }}>🚩</span>
-                        <div><p className="adm-toggle-name">{key.replace(/_/g,' ').replace(/\b\w/g, l => l.toUpperCase())}</p></div>
-                      </div>
-                      <div className={`adm-switch ${val ? 'adm-switch-on' : ''}`} role="button" tabIndex={0}
-                        onClick={() => {
-                          const flags = { ...config.feature_flags, [key]: !val };
-                          fetch('/api/admin', { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ configKey:'feature_flags', configValue: flags }) });
-                          setConfig({ ...config, feature_flags: flags });
-                        }}>
-                        <span className="adm-switch-track"><span className="adm-switch-thumb" /></span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p style={{ fontSize:13, color:'var(--adm-text-muted)', padding:'12px 0' }}>No feature flags configured yet.</p>
-              )}
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* ── Referral Tab ── */}
-      {settingsSubPage === 'referral' && (
-        <div className="adm-card adm-card-full">
-          <div className="adm-card-head" style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-            <h3>🎁 Referral Program</h3>
-            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-              <span style={{ fontSize:12, color: referralConfig.enabled ? '#10b981' : '#ef4444', fontWeight:700 }}>
-                {referralConfig.enabled ? '● Active' : '○ Disabled'}
-              </span>
-              <div className={`adm-switch ${referralConfig.enabled ? 'adm-switch-on' : ''}`} role="button" tabIndex={0}
-                onClick={() => setReferralConfig({ ...referralConfig, enabled: !referralConfig.enabled })}>
-                <span className="adm-switch-track"><span className="adm-switch-thumb" /></span>
-              </div>
-            </div>
-          </div>
-          <div className="adm-card-body" style={{ display:'flex', flexDirection:'column', gap:28 }}>
-
-            {/* Commission table */}
-            <div>
-              <p style={{ fontSize:13, fontWeight:700, marginBottom:14, color:'var(--adm-text)' }}>Commission & Rebate Per Level</p>
-              <div style={{ borderRadius:12, overflow:'hidden', border:'1px solid var(--adm-border)' }}>
-                <div style={{ display:'grid', gridTemplateColumns:'48px 1fr 140px 140px', background:'var(--adm-bg-secondary)', borderBottom:'1px solid var(--adm-border)' }}>
-                  {['Lvl','Label','Commission %','Rebate %'].map(h => (
-                    <div key={h} style={{ padding:'10px 14px', fontSize:10, fontWeight:700, color:'var(--adm-text-muted)', textTransform:'uppercase', letterSpacing:'0.6px' }}>{h}</div>
-                  ))}
-                </div>
-                {referralConfig.levels.map((lvl: any, i: number) => {
-                  const colors = ['#6366f1','#3b82f6','#10b981','#f59e0b','#ec4899'];
-                  const c = colors[i];
-                  return (
-                    <div key={lvl.level} style={{ display:'grid', gridTemplateColumns:'48px 1fr 140px 140px', borderBottom: i < 4 ? '1px solid var(--adm-border)' : 'none' }}>
-                      <div style={{ padding:'14px', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                        <span style={{ width:28, height:28, borderRadius:7, background:c, display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:800, color:'#fff' }}>L{lvl.level}</span>
-                      </div>
-                      <div style={{ padding:'14px', display:'flex', alignItems:'center' }}>
-                        <input style={{ width:'100%', background:'var(--adm-bg)', border:'1px solid var(--adm-border)', borderRadius:8, padding:'7px 10px', fontSize:13, fontWeight:600, color:'var(--adm-text)', fontFamily:'inherit' }}
-                          value={lvl.label}
-                          onChange={e => { const ls = referralConfig.levels.map((l: any, j: number) => j===i?{...l,label:e.target.value}:l); setReferralConfig({...referralConfig,levels:ls}); }} />
-                      </div>
-                      <div style={{ padding:'14px', display:'flex', alignItems:'center', gap:6 }}>
-                        <input type="number" min={0} max={100} step={0.5}
-                          style={{ width:72, background:'var(--adm-bg)', border:'1px solid var(--adm-border)', borderRadius:8, padding:'7px 10px', fontSize:14, fontWeight:800, color:c, fontFamily:'inherit', textAlign:'center' }}
-                          value={lvl.commission}
-                          onChange={e => { const ls = referralConfig.levels.map((l: any, j: number) => j===i?{...l,commission:Number(e.target.value)}:l); setReferralConfig({...referralConfig,levels:ls}); }} />
-                        <span style={{ fontSize:12, color:'var(--adm-text-muted)', fontWeight:600 }}>%</span>
-                      </div>
-                      <div style={{ padding:'14px', display:'flex', alignItems:'center', gap:6 }}>
-                        <input type="number" min={0} max={100} step={0.25}
-                          style={{ width:72, background:'var(--adm-bg)', border:'1px solid var(--adm-border)', borderRadius:8, padding:'7px 10px', fontSize:14, fontWeight:800, color:'#10b981', fontFamily:'inherit', textAlign:'center' }}
-                          value={lvl.rebate}
-                          onChange={e => { const ls = referralConfig.levels.map((l: any, j: number) => j===i?{...l,rebate:Number(e.target.value)}:l); setReferralConfig({...referralConfig,levels:ls}); }} />
-                        <span style={{ fontSize:12, color:'var(--adm-text-muted)', fontWeight:600 }}>%</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Milestones */}
-            <div>
-              <p style={{ fontSize:13, fontWeight:700, marginBottom:14, color:'var(--adm-text)' }}>Milestone Rewards</p>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
-                {referralConfig.milestones.map((m: any, i: number) => (
-                  <div key={i} style={{ display:'flex', alignItems:'center', gap:14, padding:'14px 18px', background:'var(--adm-bg-secondary)', border:'1px solid var(--adm-border)', borderRadius:12 }}>
-                    <div style={{ background:'rgba(16,185,129,0.1)', borderRadius:8, padding:'6px 10px', fontSize:11, fontWeight:700, color:'#10b981', whiteSpace:'nowrap' }}>
-                      At {m.referrals} ref{m.referrals>1?'s':''}
-                    </div>
-                    <div style={{ display:'flex', alignItems:'center', gap:4, flex:1 }}>
-                      <span style={{ fontSize:15, color:'#10b981', fontWeight:700 }}>$</span>
-                      <input type="number" min={0}
-                        style={{ flex:1, background:'var(--adm-bg)', border:'1px solid var(--adm-border)', borderRadius:8, padding:'7px 10px', fontSize:15, fontWeight:800, color:'#10b981', fontFamily:'inherit' }}
-                        value={m.reward}
-                        onChange={e => { const ms = referralConfig.milestones.map((x: any, j: number) => j===i?{...x,reward:Number(e.target.value)}:x); setReferralConfig({...referralConfig,milestones:ms}); }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Global settings */}
-            <div>
-              <p style={{ fontSize:13, fontWeight:700, marginBottom:14, color:'var(--adm-text)' }}>Global Settings</p>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:12 }}>
-                {[
-                  { label:'Min Withdrawal', key:'minWithdrawal', prefix:'$', suffix:'' },
-                  { label:'Cookie Duration', key:'cookieDays',    prefix:'', suffix:' days' },
-                  { label:'Payout Day',      key:'payoutDay',     prefix:'Day ', suffix:'' },
-                ].map(f => (
-                  <div key={f.key} style={{ background:'var(--adm-bg-secondary)', border:'1px solid var(--adm-border)', borderRadius:12, padding:'16px 18px' }}>
-                    <p style={{ fontSize:10, fontWeight:700, color:'var(--adm-text-muted)', textTransform:'uppercase', letterSpacing:'0.6px', marginBottom:10 }}>{f.label}</p>
-                    <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                      {f.prefix && <span style={{ fontSize:13, color:'var(--adm-text-muted)', fontWeight:600 }}>{f.prefix}</span>}
-                      <input type="number" min={1}
-                        style={{ flex:1, background:'var(--adm-bg)', border:'1px solid var(--adm-border)', borderRadius:8, padding:'8px 10px', fontSize:16, fontWeight:800, color:'var(--adm-text)', fontFamily:'inherit' }}
-                        value={(referralConfig as any)[f.key]}
-                        onChange={e => setReferralConfig({...referralConfig, [f.key]: Number(e.target.value)})} />
-                      {f.suffix && <span style={{ fontSize:13, color:'var(--adm-text-muted)', fontWeight:600 }}>{f.suffix}</span>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Save */}
-            <div style={{ display:'flex', alignItems:'center', gap:14, paddingTop:4 }}>
-              <button onClick={async () => {
-                await fetch('/api/admin', {
-                  method: 'PATCH',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ configKey: 'referral_config', configValue: referralConfig })
-                });
-                setRefSaved(true);
-                setTimeout(()=>setRefSaved(false),2500);
-              }}
-                style={{ background:'linear-gradient(135deg,#6366f1,#3b82f6)', color:'#fff', border:'none', borderRadius:10, padding:'11px 28px', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'inherit', boxShadow:'0 4px 12px rgba(99,102,241,0.3)' }}>
-                Save Referral Config
-              </button>
-              <button onClick={() => setReferralConfig({
-                enabled:true, cookieDays:30, payoutDay:1, minWithdrawal:50,
-                levels:[{level:1,label:'Direct',commission:10,rebate:5},{level:2,label:'Level 2',commission:5,rebate:2},{level:3,label:'Level 3',commission:3,rebate:1},{level:4,label:'Level 4',commission:2,rebate:0.5},{level:5,label:'Level 5',commission:1,rebate:0.25}],
-                milestones:[{referrals:1,reward:25},{referrals:5,reward:100},{referrals:10,reward:250},{referrals:25,reward:750},{referrals:50,reward:2000}],
-              })} style={{ background:'none', border:'1px solid var(--adm-border)', borderRadius:10, padding:'11px 20px', fontSize:13, fontWeight:600, color:'var(--adm-text-muted)', cursor:'pointer', fontFamily:'inherit' }}>
-                Reset to Defaults
-              </button>
-              {refSaved && <span style={{ fontSize:13, color:'#10b981', fontWeight:700, display:'flex', alignItems:'center', gap:6 }}>✓ Saved successfully</span>}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Pricing Tab ── */}
-      {settingsSubPage === 'pricing' && (
-        <div className="adm-card adm-card-full">
-          <div className="adm-card-head"><h3>Plan Pricing</h3></div>
-          <div className="adm-card-body">
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:16 }}>
-              {[
-                { key:'starter',    label:'Starter',    icon:'⚡', color:'#6b7280', desc:'For individual traders' },
-                { key:'pro',        label:'Pro',        icon:'👑', color:'#8b5cf6', desc:'For serious traders' },
-                { key:'enterprise', label:'Enterprise', icon:'🚀', color:'#f59e0b', desc:'For institutions' },
-              ].map(tier => (
-                <div key={tier.key} style={{ background:'var(--adm-bg-secondary)', border:'1px solid var(--adm-border)', borderRadius:16, padding:'24px 20px', textAlign:'center' }}>
-                  <div style={{ fontSize:28, marginBottom:8 }}>{tier.icon}</div>
-                  <p style={{ fontSize:15, fontWeight:800, color:'var(--adm-text)', marginBottom:4 }}>{tier.label}</p>
-                  <p style={{ fontSize:11, color:'var(--adm-text-muted)', marginBottom:18 }}>{tier.desc}</p>
-                  <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:4, marginBottom:16 }}>
-                    <span style={{ fontSize:20, fontWeight:700, color:tier.color }}>$</span>
-                    <input type="number" min={0}
-                      style={{ width:90, background:'var(--adm-bg)', border:`2px solid ${tier.color}33`, borderRadius:10, padding:'8px 10px', fontSize:22, fontWeight:800, color:tier.color, fontFamily:'inherit', textAlign:'center' }}
-                      value={config.plan_pricing?.[tier.key] ?? ''}
-                      onChange={e => { const pricing = { ...config.plan_pricing, [tier.key]: Number(e.target.value) }; setConfig({ ...config, plan_pricing: pricing }); }} />
-                    <span style={{ fontSize:13, color:'var(--adm-text-muted)', fontWeight:600 }}>/mo</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div style={{ marginTop:20, display:'flex', alignItems:'center', gap:14 }}>
-              <button onClick={() => {
-                fetch('/api/admin', { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ configKey:'plan_pricing', configValue: config.plan_pricing }) });
-                setSaveMsg('Pricing saved'); setTimeout(()=>setSaveMsg(''),2500);
-              }} style={{ background:'linear-gradient(135deg,#8b5cf6,#6366f1)', color:'#fff', border:'none', borderRadius:10, padding:'11px 28px', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'inherit', boxShadow:'0 4px 12px rgba(139,92,246,0.3)' }}>
-                Save Pricing
-              </button>
-              {saveMsg === 'Pricing saved' && <span style={{ fontSize:13, color:'#10b981', fontWeight:700 }}>✓ Pricing updated</span>}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Announcements Tab ── */}
-      {settingsSubPage === 'announcements' && (
-        <div className="adm-card adm-card-full">
-          <div className="adm-card-head"><h3>Announcements ({announcements.length})</h3></div>
-          <div className="adm-card-body" style={{ display:'flex', flexDirection:'column', gap:20 }}>
-            {/* New announcement form */}
-            <div style={{ background:'var(--adm-bg-secondary)', border:'1px solid var(--adm-border)', borderRadius:14, padding:'20px' }}>
-              <p style={{ fontSize:12, fontWeight:700, color:'var(--adm-text-muted)', textTransform:'uppercase', marginBottom:14, letterSpacing:'0.6px' }}>New Announcement</p>
-              <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-                <input className="adm-edit-input" placeholder="Title (e.g. Scheduled Maintenance)" value={newAnnouncement.title} onChange={e => setNewAnnouncement({ ...newAnnouncement, title: e.target.value })} />
-                <input className="adm-edit-input" placeholder="Message body…" value={newAnnouncement.message} onChange={e => setNewAnnouncement({ ...newAnnouncement, message: e.target.value })} />
-                <div style={{ display:'flex', gap:10, alignItems:'center' }}>
-                  <select className="adm-select" value={newAnnouncement.type} onChange={e => setNewAnnouncement({ ...newAnnouncement, type: e.target.value })} style={{ flex:1 }}>
-                    <option value="info">ℹ️ Info</option>
-                    <option value="warning">⚠️ Warning</option>
-                    <option value="success">✅ Success</option>
-                  </select>
-                  <button onClick={async () => {
-                    if (!newAnnouncement.title) return;
-                    await fetch('/api/admin', { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ announcement: newAnnouncement }) });
-                    setNewAnnouncement({ title:'', message:'', type:'info' });
-                    onRefresh();
-                  }} style={{ background:'#6366f1', color:'#fff', border:'none', borderRadius:10, padding:'10px 22px', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
-                    + Post
-                  </button>
-                </div>
-              </div>
-            </div>
-            {/* List */}
-            {announcements.length === 0 ? (
-              <div style={{ textAlign:'center', padding:'32px', color:'var(--adm-text-muted)', fontSize:13 }}>📢 No active announcements</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div
+            style={{
+              background: '#070b13',
+              borderRadius: 14,
+              border: '1px solid rgba(255,255,255,0.06)',
+              padding: 16,
+              minHeight: 140,
+              maxHeight: 200,
+              overflowY: 'auto',
+              fontFamily: 'Courier New, Courier, monospace',
+              fontSize: 12,
+              lineHeight: 1.5,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 4
+            }}
+          >
+            {logs.length === 0 ? (
+              <span style={{ color: 'rgba(255,255,255,0.3)' }}>Terminal idle. Awaiting handshake request...</span>
             ) : (
-              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-                {announcements.map(a => (
-                  <div key={a.id} className={`adm-announce-item adm-announce-${a.type}`} style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:16 }}>
-                    <div>
-                      <p className="adm-announce-title">{a.title}</p>
-                      <p className="adm-announce-msg">{a.message}</p>
-                      <p className="adm-announce-date">{new Date(a.created_at).toLocaleDateString()}</p>
-                    </div>
-                    <button style={{ background:'none', border:'none', cursor:'pointer', color:'var(--adm-text-muted)', fontSize:16, padding:4, flexShrink:0 }}
-                      onClick={async () => {
-                        await fetch('/api/admin', { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ announcement: { id: a.id, is_active: false } }) });
-                        setAnnouncements(announcements.filter(x => x.id !== a.id));
-                      }}>✕</button>
+              logs.map((log, index) => {
+                let color = '#fff';
+                if (log.startsWith('[ERROR]')) color = '#ef4444';
+                if (log.startsWith('[SUCCESS]')) color = '#10b981';
+                if (log.startsWith('[INFO]')) color = '#3b82f6';
+                return (
+                  <div key={index} style={{ color }}>
+                    {log}
                   </div>
-                ))}
-              </div>
+                );
+              })
             )}
+            <div ref={terminalEndRef} />
+          </div>
+
+          {/* Webhook URLs */}
+          <div
+            style={{
+              background: 'rgba(255,255,255,0.01)',
+              border: '1px solid rgba(255,255,255,0.04)',
+              borderRadius: 12,
+              padding: '14px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12
+            }}
+          >
+            <div style={{ flex: 1 }}>
+              <span style={{ display: 'block', fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>
+                Instant Payment Notification (IPN) Webhook URL
+              </span>
+              <span style={{ fontSize: 12, fontFamily: 'monospace', color: '#818cf8', wordBreak: 'break-all' }}>
+                {typeof window !== 'undefined' ? window.location.origin : 'https://yourdomain.com'}/api/webhooks/nowpayments
+              </span>
+            </div>
+            <button
+              className="re-btn-secondary"
+              style={{ padding: '8px 14px', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 6 }}
+              onClick={() => navigator.clipboard.writeText((typeof window !== 'undefined' ? window.location.origin : 'https://yourdomain.com') + '/api/webhooks/nowpayments')}
+            >
+              <Copy style={{ width: 14, height: 14 }} /> Copy
+            </button>
           </div>
         </div>
-      )}
 
-      {/* ── Payments (NOWPayments) Tab ── */}
-      {settingsSubPage === 'payments' && (
-        <div className="gw-root">
-
-          {/* ── Hero Header ── */}
-          <div className={`gw-hero ${npSandbox ? 'gw-hero-sandbox' : 'gw-hero-prod'}`}>
-            <div className="gw-hero-left">
-              <div className="gw-hero-logo">₿</div>
-              <div>
-                <p className="gw-hero-title">NOWPayments Gateway</p>
-                <p className="gw-hero-sub">
-                  Crypto withdrawal infrastructure ·{' '}
-                  <a href="https://nowpayments.io" target="_blank" rel="noreferrer">nowpayments.io</a>
-                </p>
-              </div>
-            </div>
-            <div className="gw-hero-right">
-              <div className="gw-mode-badge">
-                <div className={`gw-mode-dot ${npSandbox ? 'gw-mode-dot-sandbox' : 'gw-mode-dot-live'}`} />
-                <div>
-                  <p className="gw-mode-text">{npSandbox ? 'Sandbox' : 'Production'}</p>
-                  <p className="gw-mode-sub">{npSandbox ? 'Test mode active' : 'Live transactions'}</p>
-                </div>
-              </div>
-              <div className="gw-env-toggle" role="button" tabIndex={0} onClick={() => setNpSandbox(!npSandbox)}>
-                <span className="gw-env-label">{npSandbox ? 'SANDBOX' : 'LIVE'}</span>
-                <div className={`gw-toggle-pill ${npSandbox ? 'gw-toggle-pill-sandbox' : 'gw-toggle-pill-live'}`}>
-                  <div className={`gw-toggle-thumb ${npSandbox ? 'gw-toggle-thumb-sandbox' : 'gw-toggle-thumb-live'}`} />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Test Result */}
-          {npTestResult && (
-            <div className={`gw-result ${npTestResult.ok ? 'gw-result-ok' : 'gw-result-fail'}`}>
-              <span className="gw-result-icon">{npTestResult.ok ? '✓' : '✕'}</span>
-              <div style={{ flex: 1 }}>
-                <p className="gw-result-title">{npTestResult.ok ? 'Gateway Connected Successfully' : 'Connection Failed'}</p>
-                <p className="gw-result-msg">{npTestResult.message}</p>
-              </div>
-              <button className="gw-result-close" onClick={() => setNpTestResult(null)}>✕</button>
-            </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 20, marginTop: 20 }}>
+          <button
+            className="re-btn-secondary"
+            style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+            disabled={testing || !npApiKey}
+            onClick={testGatewayConnection}
+          >
+            {testing ? <Loader2 className="spin" style={{ width: 16, height: 16 }} /> : <Play style={{ width: 16, height: 16 }} />}
+            🔌 Test Connection
+          </button>
+          <button className="re-btn-primary" onClick={saveConfiguration}>
+            <CheckCircle2 style={{ width: 16, height: 16 }} /> Save Configuration
+          </button>
+          {saved && (
+            <span style={{ fontSize: 13, color: '#10b981', fontWeight: 700 }}>
+              ✓ Gateway updated successfully
+            </span>
           )}
-
-          {/* ── Body: Left config + Right status ── */}
-          <div className="gw-body">
-
-            {/* LEFT: Credentials + Coins */}
-            <div className="gw-left">
-
-              {/* API Credentials */}
-              <div>
-                <p className="gw-sec-label">API Credentials</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {([
-                    { label: 'API Key', key: 'apiKey', hint: 'From NOWPayments Dashboard → Settings → API Keys', value: npApiKey, setter: setNpApiKey, icon: '🗝' },
-                    { label: 'Dashboard Email', key: 'email', hint: 'Email you use to log in to nowpayments.io (needed for JWT auth)', value: npEmail, setter: setNpEmail, icon: '✉️' },
-                    { label: 'Dashboard Password', key: 'password', hint: 'Password for nowpayments.io (JWT is fetched fresh on each payout — expires in 5 min)', value: npPassword, setter: setNpPassword, icon: '🔑' },
-                    { label: 'TOTP Secret (2FA)', key: 'totp', hint: 'base32 TOTP secret from Dashboard → Account Settings → Two-step auth (enables automated payout verification)', value: npTotpSecret, setter: setNpTotpSecret, icon: '📲' },
-                    { label: 'IPN Secret', key: 'ipn', hint: 'From NOWPayments Dashboard → Payment Settings → IPN Secret Key (for HMAC-SHA512 webhook verification)', value: npIpnSecret, setter: setNpIpnSecret, icon: '🛡' },
-                  ] as const).map(f => (
-                    <div key={f.key} className="gw-field">
-                      <div className="gw-field-head">
-                        <span className="gw-field-name"><span>{f.icon}</span>{f.label}</span>
-                        <span className={f.value ? 'gw-field-badge-set' : 'gw-field-badge-unset'}>
-                          {f.value ? 'SET' : 'NOT SET'}
-                        </span>
-                      </div>
-                      <div className="gw-input-wrap">
-                        <input
-                          id={`gw-input-${f.key}`}
-                          type="password"
-                          placeholder="Enter value…"
-                          className={`gw-input ${f.value ? 'gw-input-set' : ''}`}
-                          value={f.value}
-                          onChange={e => (f.setter as any)(e.target.value)}
-                          autoComplete="new-password"
-                        />
-                      </div>
-                      <p style={{ fontSize: 10, color: 'var(--subtext)', margin: 0 }}>{f.hint}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Payout Flow Info */}
-              <div>
-                <p className="gw-sec-label">Payout Flow</p>
-                <div style={{ padding: '14px 16px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--input-bg)', lineHeight: 1.7, fontSize: 12, color: 'var(--subtext)' }}>
-                  <p style={{ margin: '0 0 8px', fontWeight: 700, color: 'var(--text)', fontSize: 13 }}>How withdrawals work</p>
-                  <p style={{ margin: '0 0 4px' }}>1. User raises a withdrawal request (USDT, crypto only)</p>
-                  <p style={{ margin: '0 0 4px' }}>2. Request appears in your Admin dashboard as <strong style={{ color: '#f59e0b' }}>Pending</strong></p>
-                  <p style={{ margin: '0 0 4px' }}>3. You review &amp; approve → NOWPayments creates the payout</p>
-                  <p style={{ margin: '0 0 4px' }}>4. NOWPayments sends IPN → status auto-updates to <strong style={{ color: '#10b981' }}>Completed</strong></p>
-                  <p style={{ margin: '8px 0 0', fontSize: 10, opacity: 0.6 }}>Rejected requests automatically refund the user&apos;s balance.</p>
-                </div>
-              </div>
-            </div>
-
-            {/* RIGHT: Status + Webhook + Checklist */}
-            <div className="gw-right">
-
-              {/* KPI Status */}
-              <div>
-                <p className="gw-sec-label">Gateway Status</p>
-                <div className="gw-kpis">
-                  {[
-                    { label: 'Environment', value: npSandbox ? 'Sandbox' : 'Live', color: npSandbox ? '#f59e0b' : '#10b981' },
-                    { label: 'API Key', value: npApiKey ? '● Set' : '○ Missing', color: npApiKey ? '#10b981' : '#ef4444' },
-                    { label: 'Auth (JWT)', value: (npEmail && npPassword) ? '● Set' : '○ Missing', color: (npEmail && npPassword) ? '#10b981' : '#ef4444' },
-                    { label: '2FA Auto', value: npTotpSecret ? '● Active' : '○ Manual', color: npTotpSecret ? '#10b981' : '#f59e0b' },
-                  ].map((s, i) => (
-                    <div key={i} className="gw-kpi">
-                      <p className="gw-kpi-label">{s.label}</p>
-                      <p className="gw-kpi-val" style={{ color: s.color }}>{s.value}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="gw-divider" />
-
-              {/* IPN Webhook */}
-              <div>
-                <p className="gw-sec-label">IPN Webhook URL</p>
-                <p style={{ fontSize: 11, color: 'var(--subtext)', margin: '0 0 8px', lineHeight: 1.5 }}>
-                  Register this in your <strong>NOWPayments → IPN Settings</strong> to receive real-time payout status callbacks.
-                </p>
-                <div className="gw-webhook-box">
-                  <span className="gw-webhook-url">
-                    {typeof window !== 'undefined' ? window.location.origin : 'https://yourdomain.com'}/api/webhooks/nowpayments
-                  </span>
-                  <button className="gw-webhook-copy"
-                    onClick={() => navigator.clipboard.writeText(window.location.origin + '/api/webhooks/nowpayments')}>
-                    ⎘ Copy
-                  </button>
-                </div>
-              </div>
-
-              <div className="gw-divider" />
-
-              {/* Setup Checklist */}
-              <div>
-                <p className="gw-sec-label">Setup Checklist</p>
-                <div className="gw-checks">
-                  {[
-                    { label: 'API Key configured', done: !!npApiKey },
-                    { label: 'Dashboard email set', done: !!npEmail },
-                    { label: 'Dashboard password set', done: !!npPassword },
-                    { label: 'IPN Secret set', done: !!npIpnSecret },
-                    { label: '2FA auto-verify (TOTP)', done: !!npTotpSecret },
-                    { label: 'IPN webhook URL registered', done: false },
-                    { label: 'API connection tested', done: npTestResult?.ok === true },
-                  ].map((c, i) => (
-                    <div key={i} className="gw-check">
-                      <div className={`gw-check-icon ${c.done ? 'gw-check-icon-done' : 'gw-check-icon-todo'}`}>
-                        {c.done ? '✓' : i + 1}
-                      </div>
-                      <span className={c.done ? 'gw-check-text-done' : 'gw-check-text'}>{c.label}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* ── Footer Action Bar ── */}
-          <div className="gw-footer">
-            <div className="gw-footer-left">
-              <button id="gw-test-btn" className="gw-btn-test"
-                disabled={npTesting || !npApiKey}
-                onClick={async () => {
-                  setNpTesting(true); setNpTestResult(null);
-                  try {
-                    const r = await fetch('/api/withdrawals', {
-                      method: 'POST', headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ action: 'test_gateway', apiKey: npApiKey || undefined }),
-                    });
-                    setNpTestResult(await r.json());
-                  } catch (e) {
-                    setNpTestResult({ ok: false, message: (e as Error).message });
-                  }
-                  setNpTesting(false);
-                }}>
-                {npTesting ? <><span className="gw-spin">◌</span> Testing…</> : <>🔌 Test Connection</>}
-              </button>
-              <button id="gw-save-btn" className="gw-btn-save"
-                onClick={() => {
-                  const cfg = { api_key: npApiKey, email: npEmail, password: npPassword, totp_secret: npTotpSecret, ipn_secret: npIpnSecret, sandbox: npSandbox, enabled_coins: npCoins };
-                  fetch('/api/admin', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ configKey: 'nowpayments_config', configValue: cfg }) });
-                  setNpSaved(true); setTimeout(() => setNpSaved(false), 2500);
-                }}>
-                💾 Save Configuration
-              </button>
-              {npSaved && <span className="gw-saved-toast">✓ Saved!</span>}
-            </div>
-            <a href="https://account.nowpayments.io" target="_blank" rel="noreferrer" className="gw-dash-link">
-              Open NOWPayments ↗
-            </a>
-          </div>
         </div>
-      )}
-    </>
+      </div>
+    </div>
   );
 }
