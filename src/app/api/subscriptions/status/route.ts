@@ -58,7 +58,12 @@ export async function GET(request: Request) {
       }
     }
 
-    return NextResponse.json({ status });
+    return NextResponse.json({
+      status,
+      pay_address: (payment as any).pay_address,
+      pay_amount: (payment as any).pay_amount,
+      pay_currency: (payment as any).pay_currency
+    });
   } catch (err: any) {
     console.error('[status] error:', err);
     return NextResponse.json({ error: err.message }, { status: 500 });

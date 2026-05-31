@@ -11,6 +11,7 @@
   "dependencies": {
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.78.0",
+    "jspdf": "^4.2.1",
     "lightweight-charts": "^5.2.0",
     "lucide-react": "^1.16.0",
     "metaapi.cloud-sdk": "^29.3.3",

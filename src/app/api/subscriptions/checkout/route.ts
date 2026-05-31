@@ -81,6 +81,7 @@ export async function POST(request: Request) {
       price_amount: price,
       pay_amount: payment.pay_amount,
       pay_currency: payment.pay_currency,
+      pay_address: payment.pay_address,
       status: 'pending',
       created_at: new Date().toISOString()
     };

@@ -35,6 +35,39 @@ const tagStyles: Record<string, { bg: string; color: string; label: string }> = 
 
 const worklog: WorkDay[] = [
   {
+    date: 'May 31, 2026',
+    dayLabel: 'Sunday',
+    commitCount: 6,
+    blocks: [
+      { tag: 'major', time: '11:15 AM',
+        title: 'Crypto Invoices History & Interactive Payment Gateway',
+        summary: 'Fully integrated a billing & subscription invoice history dashboard with dynamic payment recovery modal overlays for pending/expired transactions.',
+        items: [
+          { icon: '🪙', title: 'Interactive QR Code Popups', description: 'Clicking on any pending invoice status pill inside the history table launches the secure NOWPayments deposit overlay, allowing users to pay with their designated cryptocurrency.', files: ['SubscriptionTab.tsx'] },
+          { icon: '⚠️', title: 'Expired Link Handling', description: 'Clicking on expired invoices displays the modal with an Expired Status warning banner, preventing users from making deposits to obsolete checkout addresses.', files: ['SubscriptionTab.tsx'] },
+          { icon: '📡', title: 'Enriched Status endpoint', description: 'Modified the GET /api/subscriptions/status endpoint to return pay_address, pay_amount, and pay_currency, facilitating checkout modal construction for legacy items.', files: ['api/subscriptions/status/route.ts'] },
+          { icon: '💾', title: 'Pay Address Persistence', description: 'Updated the checkout creation handler to persist pay_address inside Supabase platform_config pending_subscriptions mapping.', files: ['api/subscriptions/checkout/route.ts'] }
+        ]
+      },
+      { tag: 'feature', time: '02:30 PM',
+        title: 'Dynamic Client-Side PDF Invoice Generator',
+        summary: 'Integrated pure client-side PDF document compiler using jsPDF library to generate sleek, premium-branded invoice receipts for users.',
+        items: [
+          { icon: '📄', title: 'jsPDF Invoice Compilation', description: 'Generates a high-quality A4 PDF with TradeGPT institutional header branding, billing address metadata, cryptocurrency breakdown, transaction details, and verified emerald status indicators.', files: ['lib/invoicePdf.ts'] },
+          { icon: '📥', title: 'One-Click Receipt Download', description: 'Added a "PDF Receipt" action button to the history row that instantly triggers document rendering and local download in the user\'s browser.', files: ['SubscriptionTab.tsx'] }
+        ]
+      },
+      { tag: 'improvement', time: '04:15 PM',
+        title: 'Premium Glassmorphism Deposit Modal Overhaul',
+        summary: 'Polished the NOWPayments cryptocurrency payment modal overlay with dark glassmorphism styling and reliable services.',
+        items: [
+          { icon: '🖼️', title: 'QR Code Server Migration', description: 'Replaced deprecated Google Charts QR generator URL with QR Server API, ensuring 100% reliability for deposit QR codes.', files: ['SubscriptionTab.tsx'] },
+          { icon: '📋', title: 'Copyable Addresses & Badges', description: 'Added one-click clipboard copy buttons with visual checkmark transitions, and a secure deposit badge header.', files: ['SubscriptionTab.tsx'] }
+        ]
+      }
+    ]
+  },
+  {
     date: 'May 30, 2026',
     dayLabel: 'Friday',
     commitCount: 40,
