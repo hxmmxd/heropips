@@ -319,49 +319,49 @@ function ReferralTab({ initialConfig }: { initialConfig: Record<string, any> }) 
         {/* Milestones */}
         <div>
           <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 12 }}>Milestone Rewards</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--card-bg, #fff)', border: '1px solid var(--border)', borderRadius: 12, padding: '0 18px', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
             {referralConfig.milestones.map((m: any, i: number) => (
               <div
                 key={i}
                 style={{
-                  padding: '14px 18px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  gap: 12,
-                  background: 'var(--card-bg, #fff)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 12,
-                  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.02)',
-                  transition: 'all 0.2s ease',
+                  padding: '14px 0',
+                  borderBottom: i === referralConfig.milestones.length - 1 ? 'none' : '1px solid var(--border)',
+                  gap: 16
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                {/* Part 1: Icon + Tier (Aligned left with fixed width) */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: 140, flexShrink: 0 }}>
                   <div
                     style={{
-                      width: 34,
-                      height: 34,
-                      borderRadius: 10,
+                      width: 28,
+                      height: 28,
+                      borderRadius: 8,
                       background: 'rgba(245, 158, 11, 0.1)',
                       color: '#f59e0b',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: 15,
+                      fontSize: 13,
                     }}
                   >
                     🏆
                   </div>
-                  <div>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', display: 'block', lineHeight: 1.2 }}>
-                      {m.referrals} Referral{m.referrals > 1 ? 's' : ''}
-                    </span>
-                    <span style={{ fontSize: 11, color: 'var(--subtext)', fontWeight: 500 }}>
-                      Tier {i + 1} Target
-                    </span>
-                  </div>
+                  <span style={{ fontSize: 13, color: 'var(--subtext)', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                    Tier {i + 1} Target
+                  </span>
                 </div>
-                
+
+                {/* Part 2: Referral Count Target (Middle column, aligned) */}
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap' }}>
+                    {m.referrals} Referral{m.referrals > 1 ? 's' : ''}
+                  </span>
+                </div>
+
+                {/* Part 3: Reward Input (Aligned right) */}
                 <div
                   style={{
                     display: 'flex',
@@ -371,7 +371,8 @@ function ReferralTab({ initialConfig }: { initialConfig: Record<string, any> }) 
                     border: '1px solid var(--border)',
                     borderRadius: 8,
                     padding: '6px 12px',
-                    transition: 'border-color 0.15s ease',
+                    width: 120,
+                    justifyContent: 'space-between'
                   }}
                 >
                   <span style={{ fontSize: 13, color: 'var(--subtext)', fontWeight: 700 }}>$</span>
@@ -380,7 +381,7 @@ function ReferralTab({ initialConfig }: { initialConfig: Record<string, any> }) 
                     style={{
                       border: 'none',
                       background: 'transparent',
-                      width: 65,
+                      width: '100%',
                       textAlign: 'right',
                       fontWeight: 800,
                       fontSize: 14,
