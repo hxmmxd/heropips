@@ -258,3 +258,71 @@ export async function PATCH(request: Request) {
 
   return NextResponse.json({ success: true });
 }
+
+export async function POST(request: Request) {
+  const supabaseAdmin = getSupabaseAdmin();
+  const supabase = createServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Check admin status
+  const { data: profile } = await supabaseAdmin
+    .from('profiles')
+    .select('is_admin')
+    .eq('id', user.id)
+    .single();
+
+  if (!(profile as any)?.is_admin) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  const body = await request.json();
+  const { action, smtpConfig, testEmail } = body;
+
+  if (action === 'test_smtp') {
+    try {
+      const nodemailer = await import('nodemailer');
+      const transporter = nodemailer.createTransport({
+        host: smtpConfig.host,
+        port: Number(smtpConfig.port) || 587,
+        secure: !!smtpConfig.secure,
+        auth: {
+          user: smtpConfig.user,
+          pass: smtpConfig.pass,
+        },
+      });
+
+      // Verify connection
+      await transporter.verify();
+
+      // If test email requested, send a test message
+      if (testEmail) {
+        await transporter.sendMail({
+          from: smtpConfig.from || 'TradeGPT <noreply@yourdomain.com>',
+          to: testEmail,
+          subject: '[TradeGPT] SMTP Configuration Test',
+          html: `
+            <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
+              <h2 style="color: #10a37f; text-align: center; margin-bottom: 24px;">SMTP Test Successful!</h2>
+              <p style="font-size: 15px; color: #475569; line-height: 1.5;">
+                Your SMTP configuration has been verified. The mail transport channel is online and fully functional.
+              </p>
+              <p style="font-size: 13px; color: #94a3b8; line-height: 1.5; text-align: center; margin-top: 30px;">
+                This is an automated test message from TradeGPT admin console.
+              </p>
+            </div>
+          `
+        });
+      }
+
+      return NextResponse.json({ success: true, message: 'SMTP connection verified successfully!' });
+    } catch (err: any) {
+      console.error('[smtp-test] error:', err);
+      return NextResponse.json({ success: false, error: err.message || 'SMTP Connection failed' });
+    }
+  }
+
+  return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+}
