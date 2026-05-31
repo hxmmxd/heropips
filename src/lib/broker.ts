@@ -190,8 +190,16 @@ export async function connectBroker(
 
       return node;
     } catch (err: any) {
-      const errMsg = err?.details || err?.message || String(err);
-      console.error('[Broker Engine] Live connection failed:', errMsg);
+      let errMsg: string;
+      if (Array.isArray(err?.details)) {
+        // MetaAPI returns details as an array of objects — extract readable messages
+        errMsg = err.details
+          .map((d: any) => d?.message || d?.type || JSON.stringify(d))
+          .join('; ');
+      } else {
+        errMsg = err?.message || String(err);
+      }
+      console.error('[Broker Engine] Live connection failed:', errMsg, err);
       throw new Error(`Broker connection failed: ${errMsg}`);
     }
   }
