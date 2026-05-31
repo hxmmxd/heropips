@@ -319,22 +319,24 @@ function ReferralTab({ initialConfig }: { initialConfig: Record<string, any> }) 
         {/* Milestones */}
         <div>
           <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 12 }}>Milestone Rewards</p>
-          <div className="ref2-milestones">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
             {referralConfig.milestones.map((m: any, i: number) => (
-              <div key={i} className="ref2-milestone ref2-milestone--done" style={{ opacity: 1 }}>
-                <div className="ref2-milestone-icon">
-                  🏆
+              <div key={i} className="ref2-milestone ref2-milestone--done" style={{ opacity: 1, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, borderRadius: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(16,185,129,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}>
+                    🏆
+                  </div>
+                  <div>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', display: 'block' }}>{m.referrals} Ref{m.referrals > 1 ? 's' : ''} Target</span>
+                    <span style={{ fontSize: 10, color: 'var(--subtext)' }}>Tier {i + 1} Reward</span>
+                  </div>
                 </div>
-                <div className="ref2-milestone-body">
-                  <span className="ref2-milestone-label">{m.referrals} Referral{m.referrals > 1 ? 's' : ''} Target</span>
-                  <span className="ref2-milestone-status">Milestone Reward Tier {i + 1}</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontSize: 14, color: 'var(--subtext)', fontWeight: 700 }}>$</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <span style={{ fontSize: 13, color: '#10b981', fontWeight: 800 }}>$</span>
                   <input
                     type="number"
                     className="adm-edit-input"
-                    style={{ width: 100, padding: '6px 12px', fontWeight: 800, textAlign: 'right', fontSize: 16 }}
+                    style={{ width: 75, padding: '6px 8px', fontWeight: 800, textAlign: 'right', fontSize: 14 }}
                     value={m.reward}
                     onChange={e => handleMilestoneChange(i, 'reward', Number(e.target.value))}
                   />
