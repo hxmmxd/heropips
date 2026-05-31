@@ -8,7 +8,7 @@ interface SubscriptionTabProps {
   onBack?: () => void;
 }
 
-const plans = [
+const defaultPlans = [
   {
     id: 'starter',
     name: 'Starter',
@@ -80,10 +80,32 @@ export default function SubscriptionTab({ onBack }: SubscriptionTabProps) {
   const [currentPlan, setCurrentPlan] = useState('free');
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [plans, setPlans] = useState(defaultPlans);
   const supabase = createClient();
 
   useEffect(() => {
     const load = async () => {
+      try {
+        const pricingRes = await fetch('/api/pricing');
+        if (pricingRes.ok) {
+          const pricingData = await pricingRes.json();
+          setPlans(prev => prev.map(p => {
+            const remotePlan = pricingData[p.id];
+            if (remotePlan) {
+              return {
+                ...p,
+                price: typeof remotePlan === 'object' ? (remotePlan.price ?? p.price) : (Number(remotePlan) ?? p.price),
+                features: remotePlan.features ?? p.features,
+                limits: remotePlan.limits ?? p.limits,
+              };
+            }
+            return p;
+          }));
+        }
+      } catch (e) {
+        console.error('Error fetching pricing:', e);
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const { data } = await supabase.from('profiles').select('plan').eq('id', user.id).single();
