@@ -319,18 +319,22 @@ function ReferralTab({ initialConfig }: { initialConfig: Record<string, any> }) 
         {/* Milestones */}
         <div>
           <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 12 }}>Milestone Rewards</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
+          <div className="ref2-milestones">
             {referralConfig.milestones.map((m: any, i: number) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: 10 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--subtext)', whiteSpace: 'nowrap' }}>
-                  {m.referrals} Ref{m.referrals > 1 ? 's' : ''}:
-                </span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4, flex: 1 }}>
-                  <span style={{ fontSize: 12, color: 'var(--subtext)', fontWeight: 600 }}>$</span>
+              <div key={i} className="ref2-milestone ref2-milestone--done" style={{ opacity: 1 }}>
+                <div className="ref2-milestone-icon">
+                  🏆
+                </div>
+                <div className="ref2-milestone-body">
+                  <span className="ref2-milestone-label">{m.referrals} Referral{m.referrals > 1 ? 's' : ''} Target</span>
+                  <span className="ref2-milestone-status">Milestone Reward Tier {i + 1}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 14, color: 'var(--subtext)', fontWeight: 700 }}>$</span>
                   <input
                     type="number"
                     className="adm-edit-input"
-                    style={{ flex: 1, padding: '5px 8px', fontWeight: 700 }}
+                    style={{ width: 100, padding: '6px 12px', fontWeight: 800, textAlign: 'right', fontSize: 16 }}
                     value={m.reward}
                     onChange={e => handleMilestoneChange(i, 'reward', Number(e.target.value))}
                   />
