@@ -37,32 +37,70 @@ const worklog: WorkDay[] = [
   {
     date: 'May 31, 2026',
     dayLabel: 'Sunday',
-    commitCount: 6,
+    commitCount: 17,
     blocks: [
-      { tag: 'major', time: '11:15 AM',
-        title: 'Crypto Invoices History & Interactive Payment Gateway',
-        summary: 'Fully integrated a billing & subscription invoice history dashboard with dynamic payment recovery modal overlays for pending/expired transactions.',
+      { tag: 'major', time: '02:30 AM',
+        title: 'MetaAPI Integration Engine & Order Execution Refactor',
+        summary: 'Replaced slow MetaAPI streaming sync connections with high-performance direct REST endpoints to prevent serverless execution timeouts and upgrade order tickets.',
         items: [
-          { icon: '🪙', title: 'Interactive QR Code Popups', description: 'Clicking on any pending invoice status pill inside the history table launches the secure NOWPayments deposit overlay, allowing users to pay with their designated cryptocurrency.', files: ['SubscriptionTab.tsx'] },
-          { icon: '⚠️', title: 'Expired Link Handling', description: 'Clicking on expired invoices displays the modal with an Expired Status warning banner, preventing users from making deposits to obsolete checkout addresses.', files: ['SubscriptionTab.tsx'] },
-          { icon: '📡', title: 'Enriched Status endpoint', description: 'Modified the GET /api/subscriptions/status endpoint to return pay_address, pay_amount, and pay_currency, facilitating checkout modal construction for legacy items.', files: ['api/subscriptions/status/route.ts'] },
-          { icon: '💾', title: 'Pay Address Persistence', description: 'Updated the checkout creation handler to persist pay_address inside Supabase platform_config pending_subscriptions mapping.', files: ['api/subscriptions/checkout/route.ts'] }
+          { icon: '🏦', title: 'MetaAPI REST Migration', description: 'Replaced latency-prone streaming SDK sync calls (waitConnected / waitSynchronized) with direct HTTP REST requests, slashing execution latency to ~2s.', files: ['broker.ts', 'api/execute/route.ts'] },
+          { icon: '🎫', title: 'High-Fidelity TradeTicket UI', description: 'Rebuilt the manual order confirmation form showing inline spinners, transaction success screens, filled execution price, and explicit error descriptors.', files: ['TradeTicket.tsx', 'TerminalTab.tsx'] },
+          { icon: '🔧', title: 'Automated Stop Loss / Take Profit Corrections', description: 'Added automatic stops filter to resolve Mt5 INVALID_STOPS errors by dynamically stripping out-of-range SL/TP parameters on retry.', files: ['broker.ts'] },
+          { icon: '📋', title: 'Detailed Error Serializer', description: 'Added structured metadata parser to properly serialize complex MetaAPI SDK error response details array.', files: ['broker.ts'] }
         ]
       },
-      { tag: 'feature', time: '02:30 PM',
-        title: 'Dynamic Client-Side PDF Invoice Generator',
-        summary: 'Integrated pure client-side PDF document compiler using jsPDF library to generate sleek, premium-branded invoice receipts for users.',
+      { tag: 'fix', time: '09:40 AM',
+        title: 'Live Account Info Synchronizer',
+        summary: 'Resolved issues causing mt5 accounts to display stale zeros by migrating metadata fetching to Rest API endpoints.',
         items: [
-          { icon: '📄', title: 'jsPDF Invoice Compilation', description: 'Generates a high-quality A4 PDF with TradeGPT institutional header branding, billing address metadata, cryptocurrency breakdown, transaction details, and verified emerald status indicators.', files: ['lib/invoicePdf.ts'] },
-          { icon: '📥', title: 'One-Click Receipt Download', description: 'Added a "PDF Receipt" action button to the history row that instantly triggers document rendering and local download in the user\'s browser.', files: ['SubscriptionTab.tsx'] }
+          { icon: '💹', title: 'Live Balance & Equity Fetch', description: 'Created active REST endpoint queries to pull real-time account balances, equity, and floating P&L directly from the MT5 server.', files: ['broker.ts', 'api/broker/route.ts'] },
+          { icon: '🧼', title: 'Accounts Filter Sanity Checks', description: 'Removed invalid login and server search parameters from MetaAPI account lookup filters that triggered type validation exceptions.', files: ['broker.ts'] }
         ]
       },
-      { tag: 'improvement', time: '04:15 PM',
-        title: 'Premium Glassmorphism Deposit Modal Overhaul',
-        summary: 'Polished the NOWPayments cryptocurrency payment modal overlay with dark glassmorphism styling and reliable services.',
+      { tag: 'major', time: '10:15 AM',
+        title: 'Isolated Admin Settings Architecture',
+        summary: 'Decoupled monolithic configurations, wrapping them in isolated components and styling with high-performance glassmorphism layers.',
         items: [
-          { icon: '🖼️', title: 'QR Code Server Migration', description: 'Replaced deprecated Google Charts QR generator URL with QR Server API, ensuring 100% reliability for deposit QR codes.', files: ['SubscriptionTab.tsx'] },
-          { icon: '📋', title: 'Copyable Addresses & Badges', description: 'Added one-click clipboard copy buttons with visual checkmark transitions, and a secure deposit badge header.', files: ['SubscriptionTab.tsx'] }
+          { icon: '🔌', title: 'Isolated Component Architecture', description: 'Moved settings forms to an independent AdminSettings component, fixing layout lag caused by heavy re-renders.', files: ['admin/page.tsx', 'AdminSettings.tsx'] },
+          { icon: '🎨', title: 'Glassmorphism settings portal UI', description: 'Refactored platform controls with full status indicators, instant changes saving, and simulated terminal log feedback.', files: ['AdminSettings.tsx'] }
+        ]
+      },
+      { tag: 'improvement', time: '10:45 AM',
+        title: 'Milestone Rewards Settings Redesign',
+        summary: 'Refactored milestone rewards config panels into responsive compact layouts with gold trophy badges and custom input fields.',
+        items: [
+          { icon: '🏆', title: 'Gold Trophy Milestones UI', description: 'Redesigned milestone tiers showing gold trophy layouts, aligned tabular grids, and custom currency fields for referral incentive amounts.', files: ['AdminSettings.tsx'] }
+        ]
+      },
+      { tag: 'feature', time: '11:20 AM',
+        title: 'Dynamic Subscription Plans Control Panel',
+        summary: 'Integrated live subscription tier features and limit controllers, enabling dynamically populated plans on the user dashboard.',
+        items: [
+          { icon: '💳', title: 'Plans and Limits Settings', description: 'Created live dynamic inputs in admin controls to modify starter, pro, and enterprise pricing, features list, and limit values.', files: ['AdminSettings.tsx', 'api/pricing/route.ts'] }
+        ]
+      },
+      { tag: 'major', time: '11:40 AM',
+        title: 'NOWPayments Gateway Integration',
+        summary: 'Wired referral systems and subscription checkout portals to NOWPayments gateway infrastructure, restricting withdrawals to cryptocurrency.',
+        items: [
+          { icon: '🛒', title: 'NOWPayments Subscriptions Checkout', description: 'Developed API route for transaction creation, active payment status polling endpoint, and webhook payload parsing.', files: ['api/subscriptions/checkout/route.ts', 'api/subscriptions/status/route.ts', 'api/webhooks/nowpayments/route.ts'] },
+          { icon: '🔒', title: 'Cryptocurrency Withdrawal Enforcement', description: 'Wired component inputs to restrict payout channels to valid destination crypto addresses with minimum checks.', files: ['ReferralTab.tsx', 'lib/nowpayments.ts'] }
+        ]
+      },
+      { tag: 'feature', time: '01:30 PM',
+        title: 'SMTP Mail Server Configurations & Signup OTP Flow',
+        summary: 'Built nodemailer SMTP credentials settings in administration, adding email verify dispatches and OTP validation endpoints.',
+        items: [
+          { icon: '📧', title: 'Custom Nodemailer Mail Dispatcher', description: 'Configured email sending helper reading environment or database dynamic SMTP credentials.', files: ['lib/mail.ts', 'api/admin/route.ts'] },
+          { icon: '🔑', title: 'OTP Sign Up Handshake', description: 'Integrated dynamic OTP generation, signup verification routes, and screen controllers on registration form.', files: ['api/auth/signup/route.ts', 'api/auth/verify-otp/route.ts', 'login/page.tsx'] }
+        ]
+      },
+      { tag: 'major', time: '02:30 PM',
+        title: 'Invoices History Dashboard & PDF Receipt Engine',
+        summary: 'Built billing records tab with client-side PDF invoice compilation, dynamic status click QR overlays, and checkout recovery routes.',
+        items: [
+          { icon: '📄', title: 'jsPDF Receipts Compiler', description: 'Implemented local PDF compiler generating high-quality A4 invoices with TradeGPT brand headers, transaction metadata, and completed status badges.', files: ['lib/invoicePdf.ts'] },
+          { icon: '🪙', title: 'Interactive Payment QR overlays', description: 'Connected status pill buttons to checkout modal. Clicking pending invoices launches the payment QR display. Clicking expired invoices warns the user.', files: ['SubscriptionTab.tsx', 'api/subscriptions/status/route.ts', 'api/subscriptions/history/route.ts'] }
         ]
       }
     ]
