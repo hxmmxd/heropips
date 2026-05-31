@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { sendOtpEmail } from '@/lib/mail';
 
 let _supabaseAdmin: any = null;
 function getSupabaseAdmin() {
@@ -22,8 +21,7 @@ export async function POST(request: Request) {
 
     const supabaseAdmin = getSupabaseAdmin();
 
-    // 1. Check if user already exists in auth.users
-    // Note: Due to pagination, we also verify in profiles if listUsers is capped
+    // 1. Check if user already exists
     const { data: existingUsers, error: listError } = await supabaseAdmin.auth.admin.listUsers();
     if (listError) throw listError;
     const exists = existingUsers?.users?.some((u: any) => u.email?.toLowerCase() === email.toLowerCase());
@@ -31,40 +29,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'User already exists' }, { status: 400 });
     }
 
-    // 2. Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
-
-    // 3. Store pending signup in platform_config -> pending_signups key
-    const { data: configRow } = await supabaseAdmin
-      .from('platform_config')
-      .select('value')
-      .eq('key', 'pending_signups')
-      .single();
-
-    const pendingMap = configRow?.value || {};
-    pendingMap[email.toLowerCase()] = {
+    // 2. Create the user directly as confirmed
+    const { data: userRecord, error: createError } = await supabaseAdmin.auth.admin.createUser({
+      email,
       password,
-      fullName,
-      otp,
-      expiresAt,
-      created_at: new Date().toISOString()
-    };
+      email_confirm: true,
+      user_metadata: { full_name: fullName }
+    });
 
-    await supabaseAdmin
-      .from('platform_config')
-      .upsert({
-        key: 'pending_signups',
-        value: pendingMap,
-        updated_at: new Date().toISOString()
-      });
-
-    // 4. Send OTP email using custom SMTP configuration
-    await sendOtpEmail(email, otp);
+    if (createError) throw createError;
 
     return NextResponse.json({ success: true });
   } catch (err: any) {
     console.error('[signup] error:', err);
-    return NextResponse.json({ error: err.message || 'Verification email failed to send.' }, { status: 500 });
+    return NextResponse.json({ error: err.message || 'Signup failed' }, { status: 500 });
   }
 }
