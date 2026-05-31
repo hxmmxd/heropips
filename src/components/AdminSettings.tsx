@@ -321,22 +321,74 @@ function ReferralTab({ initialConfig }: { initialConfig: Record<string, any> }) 
           <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 12 }}>Milestone Rewards</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
             {referralConfig.milestones.map((m: any, i: number) => (
-              <div key={i} className="ref2-milestone ref2-milestone--done" style={{ opacity: 1, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, borderRadius: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(16,185,129,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}>
+              <div
+                key={i}
+                style={{
+                  padding: '14px 18px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 12,
+                  background: 'var(--card-bg, #fff)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 12,
+                  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.02)',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div
+                    style={{
+                      width: 34,
+                      height: 34,
+                      borderRadius: 10,
+                      background: 'rgba(245, 158, 11, 0.1)',
+                      color: '#f59e0b',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 15,
+                    }}
+                  >
                     🏆
                   </div>
                   <div>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', display: 'block' }}>{m.referrals} Ref{m.referrals > 1 ? 's' : ''} Target</span>
-                    <span style={{ fontSize: 10, color: 'var(--subtext)' }}>Tier {i + 1} Reward</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', display: 'block', lineHeight: 1.2 }}>
+                      {m.referrals} Referral{m.referrals > 1 ? 's' : ''}
+                    </span>
+                    <span style={{ fontSize: 11, color: 'var(--subtext)', fontWeight: 500 }}>
+                      Tier {i + 1} Target
+                    </span>
                   </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <span style={{ fontSize: 13, color: '#10b981', fontWeight: 800 }}>$</span>
+                
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    background: 'var(--input-bg, #f9fafb)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 8,
+                    padding: '6px 12px',
+                    transition: 'border-color 0.15s ease',
+                  }}
+                >
+                  <span style={{ fontSize: 13, color: 'var(--subtext)', fontWeight: 700 }}>$</span>
                   <input
                     type="number"
-                    className="adm-edit-input"
-                    style={{ width: 75, padding: '6px 8px', fontWeight: 800, textAlign: 'right', fontSize: 14 }}
+                    style={{
+                      border: 'none',
+                      background: 'transparent',
+                      width: 65,
+                      textAlign: 'right',
+                      fontWeight: 800,
+                      fontSize: 14,
+                      outline: 'none',
+                      color: 'var(--text)',
+                      padding: 0,
+                      margin: 0,
+                    }}
                     value={m.reward}
                     onChange={e => handleMilestoneChange(i, 'reward', Number(e.target.value))}
                   />
