@@ -674,7 +674,11 @@ export default function SubscriptionTab({ onBack }: SubscriptionTabProps) {
                         <td style={{ textAlign: 'right' }}>
                           <button
                             type="button"
-                            onClick={() => generateInvoicePdf(item)}
+                            onClick={async () => {
+                              const configRes = await fetch('/api/invoice-config');
+                              const invoiceCfg = configRes.ok ? await configRes.json() : undefined;
+                              await generateInvoicePdf(item, invoiceCfg);
+                            }}
                             className="pdf-btn"
                           >
                             <ExternalLink style={{ width: 12, height: 12 }} />
