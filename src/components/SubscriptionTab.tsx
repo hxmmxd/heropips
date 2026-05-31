@@ -96,6 +96,7 @@ export default function SubscriptionTab({ onBack }: SubscriptionTabProps) {
 
   const [history, setHistory] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
+  const [activeSubTab, setActiveSubTab] = useState<'plans' | 'invoices'>('plans');
 
   const fetchHistory = async () => {
     try {
@@ -522,6 +523,40 @@ export default function SubscriptionTab({ onBack }: SubscriptionTabProps) {
           color: #ffffff;
           border-color: #6366f1;
         }
+        .sub-tab-nav {
+          display: flex;
+          gap: 4px;
+          background: var(--input-bg);
+          border: 1px solid var(--border);
+          border-radius: 14px;
+          padding: 4px;
+          width: fit-content;
+          margin: 0 auto 28px;
+        }
+        .sub-tab-btn {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 9px 20px;
+          border-radius: 10px;
+          border: none;
+          background: transparent;
+          color: var(--subtext);
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          white-space: nowrap;
+        }
+        .sub-tab-btn:hover {
+          color: var(--text);
+          background: rgba(255,255,255,0.04);
+        }
+        .sub-tab-btn.active {
+          background: linear-gradient(135deg, #6366f1, #8b5cf6);
+          color: #ffffff;
+          box-shadow: 0 2px 12px rgba(99,102,241,0.3);
+        }
         @keyframes fadeIn {
           from { opacity: 0; }
           to { opacity: 1; }
@@ -541,12 +576,47 @@ export default function SubscriptionTab({ onBack }: SubscriptionTabProps) {
             </button>
           )}
           <div>
-            <h2 className="sub-title">Choose your plan</h2>
-            <p className="sub-subtitle">Unlock the full power of institutional AI trading</p>
+            <h2 className="sub-title">{activeSubTab === 'plans' ? 'Choose your plan' : 'Invoice History'}</h2>
+            <p className="sub-subtitle">
+              {activeSubTab === 'plans'
+                ? 'Unlock the full power of institutional AI trading'
+                : 'Your crypto payment records, receipts, and deposit status'}
+            </p>
           </div>
         </div>
 
+        {/* Tab Switcher */}
+        <div className="sub-tab-nav">
+          <button
+            className={`sub-tab-btn ${activeSubTab === 'plans' ? 'active' : ''}`}
+            onClick={() => setActiveSubTab('plans')}
+          >
+            <Zap style={{ width: 14, height: 14 }} />
+            Subscription Plans
+          </button>
+          <button
+            className={`sub-tab-btn ${activeSubTab === 'invoices' ? 'active' : ''}`}
+            onClick={() => { setActiveSubTab('invoices'); fetchHistory(); }}
+          >
+            <Coins style={{ width: 14, height: 14 }} />
+            Invoice History
+            {history.length > 0 && (
+              <span style={{
+                background: 'rgba(99,102,241,0.2)',
+                color: activeSubTab === 'invoices' ? '#fff' : '#818cf8',
+                borderRadius: 20,
+                padding: '1px 7px',
+                fontSize: 11,
+                fontWeight: 700,
+                minWidth: 20,
+                textAlign: 'center',
+              }}>{history.length}</span>
+            )}
+          </button>
+        </div>
+
         {/* Plans Grid */}
+        {activeSubTab === 'plans' && (
         <div className="sub-grid">
           {plans.map((plan) => {
             const Icon = plan.icon;
@@ -602,25 +672,40 @@ export default function SubscriptionTab({ onBack }: SubscriptionTabProps) {
             );
           })}
         </div>
+        )} {/* end activeSubTab === 'plans' */}
 
-        {/* Invoices History Section */}
-        <div className="invoice-history-section">
-          <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Coins style={{ width: 20, height: 20, color: '#6366f1' }} />
-            Billing & Invoice History
-          </h3>
-          <p style={{ margin: '6px 0 0', fontSize: 13, color: 'var(--subtext)' }}>
-            Real-time status of your crypto subscription deposits. Download original PDF receipts for your completed transactions.
-          </p>
+        {/* Invoice History Tab */}
+        {activeSubTab === 'invoices' && (
+        <div className="invoice-history-section" style={{ marginTop: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <div>
+              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 10 }}>
+                <Coins style={{ width: 20, height: 20, color: '#6366f1' }} />
+                Billing & Invoice History
+              </h3>
+              <p style={{ margin: '6px 0 0', fontSize: 13, color: 'var(--subtext)' }}>
+                Real-time status of your crypto subscription deposits. Click a status to view QR code. Download PDF receipts.
+              </p>
+            </div>
+            <button
+              onClick={fetchHistory}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--subtext)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+            >
+              <RefreshCw style={{ width: 13, height: 13 }} />
+              Refresh
+            </button>
+          </div>
 
           {loadingHistory ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 0', gap: 10, color: 'var(--subtext)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px 0', gap: 10, color: 'var(--subtext)' }}>
               <RefreshCw className="bm-spin" style={{ width: 18, height: 18 }} />
               <span>Loading invoice history...</span>
             </div>
           ) : history.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--subtext)', fontSize: 13, border: '1px dashed var(--border)', borderRadius: 16, marginTop: 20 }}>
-              No billing records found. Subscribe to a plan above to generate an invoice.
+            <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--subtext)', fontSize: 13, border: '1px dashed var(--border)', borderRadius: 16 }}>
+              <Coins style={{ width: 32, height: 32, margin: '0 auto 12px', opacity: 0.3 }} />
+              <div style={{ fontWeight: 600, marginBottom: 6 }}>No invoices yet</div>
+              <div>Go to <button onClick={() => setActiveSubTab('plans')} style={{ color: '#6366f1', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700, padding: 0 }}>Subscription Plans</button> to get started.</div>
             </div>
           ) : (
             <div className="invoice-table-wrapper">
@@ -640,7 +725,7 @@ export default function SubscriptionTab({ onBack }: SubscriptionTabProps) {
                   {history.map((item: any) => {
                     return (
                       <tr key={item.payment_id}>
-                        <td style={{ fontFamily: 'monospace', fontWeight: 600, color: 'var(--subtext)' }}>
+                        <td style={{ fontFamily: 'monospace', fontWeight: 600, color: 'var(--subtext)', fontSize: 12 }}>
                           {item.payment_id}
                         </td>
                         <td>
@@ -666,7 +751,7 @@ export default function SubscriptionTab({ onBack }: SubscriptionTabProps) {
                             onClick={() => handleViewInvoice(item)}
                             className={`invoice-status-pill ${item.status}`}
                             style={{ border: 'none', cursor: 'pointer', transition: 'all 0.15s', outline: 'none' }}
-                            title="Click to view payment instructions / QR"
+                            title="Click to view payment QR code"
                           >
                             {item.status === 'completed' || item.status === 'finished' ? 'Completed' : item.status}
                           </button>
@@ -693,6 +778,7 @@ export default function SubscriptionTab({ onBack }: SubscriptionTabProps) {
             </div>
           )}
         </div>
+        )} {/* end activeSubTab === 'invoices' */}
 
         {/* Footer note */}
         <p className="sub-footer">
