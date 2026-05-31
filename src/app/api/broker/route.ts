@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { connectBroker, disconnectBroker, getAllBrokers, searchBrokerServers } from '@/lib/broker';
+import { connectBroker, disconnectBroker, getAllBrokers, getBrokerDetails, searchBrokerServers } from '@/lib/broker';
 import { createClient } from '@/lib/supabase/server';
 
 export async function GET(request: Request) {
@@ -20,8 +20,21 @@ export async function GET(request: Request) {
       return NextResponse.json({ brokers: [] });
     }
 
-    const list = await getAllBrokers(user.id);
-    return NextResponse.json({ brokers: list });
+    const cached = await getAllBrokers(user.id);
+
+    // Fetch live balance/equity for each broker in parallel via REST API
+    const live = await Promise.all(
+      cached.map(async (b) => {
+        try {
+          const details = await getBrokerDetails(b.id);
+          return details ?? b; // fall back to cached if REST fails
+        } catch {
+          return b;
+        }
+      })
+    );
+
+    return NextResponse.json({ brokers: live });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

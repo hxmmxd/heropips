@@ -237,7 +237,6 @@ export async function getBrokerDetails(id: string): Promise<BrokerNode | null> {
     try {
       const account = await api.metatraderAccountApi.getAccount(id);
 
-      // Ensure it's deployed and connected
       if (account.state !== 'DEPLOYED') {
         return {
           id,
@@ -253,31 +252,40 @@ export async function getBrokerDetails(id: string): Promise<BrokerNode | null> {
         };
       }
 
-      const connection = account.getRPCConnection();
-      await connection.connect();
-      await connection.waitSynchronized();
+      // ── REST API — no streaming sync needed ──────────────────────────────────
+      const headers = { 'auth-token': token };
+      const base = `${MT_CLIENT_BASE}/users/current/accounts/${id}`;
 
-      const details = await connection.getAccountInformation();
-      const positions = await connection.getPositions();
+      const [infoRes, posRes] = await Promise.all([
+        fetch(`${base}/account-information`, { headers }),
+        fetch(`${base}/positions`,           { headers }),
+      ]);
+
+      const info = infoRes.ok ? await infoRes.json() : {};
+      const posData = posRes.ok ? await posRes.json() : [];
+      const positions = Array.isArray(posData) ? posData : [];
+
+      const balance = info.balance || 0;
+      const equity  = info.equity  || 0;
 
       return {
         id,
-        name: account.name,
-        login: account.login,
-        server: account.server,
+        name:     account.name,
+        login:    account.login,
+        server:   account.server,
         platform: account.platform || 'mt5',
-        status: 'connected',
-        balance: details.balance || 0,
-        equity: details.equity || 0,
-        pnl: (details.equity || 0) - (details.balance || 0),
+        status:   'connected',
+        balance,
+        equity,
+        pnl: equity - balance,
         positions: positions.map((p: any) => ({
-          id: p.id,
-          symbol: p.symbol,
-          type: p.type,
-          volume: p.volume,
-          openPrice: p.openPrice,
+          id:           p.id,
+          symbol:       p.symbol,
+          type:         p.type,
+          volume:       p.volume,
+          openPrice:    p.openPrice,
           currentPrice: p.currentPrice,
-          profit: p.profit,
+          profit:       p.profit,
         })),
       };
     } catch (err) {
