@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  Zap, Crown, Rocket, Check, X, Loader2, Play, AlertTriangle, Copy, CheckCircle2, Shield, Settings, Activity, Send, Trash2, Key, Info, Terminal
+  Zap, Crown, Rocket, Loader2, Play, Copy, Shield, Settings, Activity, Send, Trash2, Key, Terminal, FileText
 } from 'lucide-react';
 
 interface AdminSettingsProps {
@@ -18,301 +18,34 @@ export default function AdminSettings({
 }: AdminSettingsProps) {
   const [settingsSubPage, setSettingsSubPage] = useState<'main' | 'referral' | 'pricing' | 'announcements' | 'payments'>('main');
 
-  // Core configurations are passed down to child components which isolate state.
   return (
-    <div className="settings-reimagined">
-      <style>{`
-        /* ── Reimagined Premium CSS System ── */
-        .settings-reimagined {
-          display: flex;
-          gap: 24px;
-          min-height: calc(100vh - 120px);
-          font-family: 'Inter', system-ui, sans-serif;
-          color: #f3f4f6;
-        }
-
-        @media (max-width: 1024px) {
-          .settings-reimagined {
-            flex-direction: column;
-          }
-        }
-
-        /* Glass Sidebar */
-        .settings-sidebar {
-          width: 260px;
-          flex-shrink: 0;
-          background: rgba(17, 24, 39, 0.45);
-          backdrop-filter: blur(16px);
-          border: 1px solid rgba(255, 255, 255, 0.06);
-          border-radius: 20px;
-          padding: 16px;
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-          align-self: flex-start;
-          box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-        }
-
-        @media (max-width: 1024px) {
-          .settings-sidebar {
-            width: 100%;
-            flex-direction: row;
-            overflow-x: auto;
-            white-space: nowrap;
-          }
-        }
-
-        .settings-sidebar-title {
-          font-size: 11px;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 1.5px;
-          color: rgba(255, 255, 255, 0.4);
-          padding: 12px 14px 6px;
-        }
-
-        .sidebar-btn {
-          width: 100%;
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 12px 14px;
-          background: transparent;
-          border: none;
-          color: rgba(255, 255, 255, 0.6);
-          font-size: 13px;
-          font-weight: 600;
-          border-radius: 12px;
-          cursor: pointer;
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-          text-align: left;
-        }
-
-        .sidebar-btn:hover {
-          color: #fff;
-          background: rgba(255, 255, 255, 0.04);
-        }
-
-        .sidebar-btn.active {
-          color: #fff;
-          background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(59, 130, 246, 0.15) 100%);
-          border-left: 3px solid #6366f1;
-          box-shadow: inset 0 0 12px rgba(99, 102, 241, 0.08);
-        }
-
-        .sidebar-btn-icon {
-          width: 18px;
-          height: 18px;
-          opacity: 0.8;
-          transition: transform 0.2s ease;
-        }
-
-        .sidebar-btn.active .sidebar-btn-icon {
-          opacity: 1;
-          transform: scale(1.1);
-          color: #818cf8;
-        }
-
-        /* Content Area */
-        .settings-content {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-        }
-
-        /* Glass Cards */
-        .premium-card {
-          background: rgba(17, 24, 39, 0.45);
-          backdrop-filter: blur(16px);
-          border: 1px solid rgba(255, 255, 255, 0.06);
-          border-radius: 20px;
-          padding: 24px;
-          box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
-          position: relative;
-          overflow: hidden;
-        }
-
-        .premium-card::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 1px;
-          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-        }
-
-        .card-title {
-          font-size: 18px;
-          font-weight: 700;
-          margin: 0 0 6px;
-          background: linear-gradient(135deg, #fff 0%, #d1d5db 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .card-desc {
-          font-size: 13px;
-          color: rgba(255, 255, 255, 0.55);
-          margin: 0 0 20px;
-          line-height: 1.5;
-        }
-
-        /* Custom Inputs styling */
-        .re-input-group {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          margin-bottom: 16px;
-        }
-
-        .re-label {
-          font-size: 12px;
-          font-weight: 600;
-          color: rgba(255, 255, 255, 0.7);
-          display: flex;
-          align-items: center;
-          gap: 6px;
-        }
-
-        .re-input {
-          background: rgba(17, 24, 39, 0.6);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 10px;
-          padding: 10px 14px;
-          color: #fff;
-          font-family: inherit;
-          font-size: 13px;
-          transition: all 0.2s ease;
-        }
-
-        .re-input:focus {
-          outline: none;
-          border-color: #6366f1;
-          box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
-        }
-
-        /* Cyber toggles */
-        .cyber-switch-row {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 16px 0;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .cyber-switch-row:last-child {
-          border-bottom: none;
-        }
-
-        .switch-info {
-          display: flex;
-          align-items: flex-start;
-          gap: 12px;
-        }
-
-        .switch-title {
-          font-size: 14px;
-          font-weight: 600;
-          color: #fff;
-          margin: 0 0 3px;
-        }
-
-        .switch-desc {
-          font-size: 12px;
-          color: rgba(255, 255, 255, 0.45);
-          margin: 0;
-          line-height: 1.4;
-        }
-
-        .switch-icon-bg {
-          width: 38px;
-          height: 38px;
-          border-radius: 10px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 16px;
-        }
-
-        /* Buttons styling */
-        .re-btn-primary {
-          background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-          color: #fff;
-          border: none;
-          border-radius: 12px;
-          padding: 12px 24px;
-          font-size: 13px;
-          font-weight: 700;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
-          transition: all 0.2s ease;
-        }
-
-        .re-btn-primary:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 6px 20px rgba(99, 102, 241, 0.45);
-        }
-
-        .re-btn-secondary {
-          background: rgba(255, 255, 255, 0.05);
-          color: rgba(255, 255, 255, 0.8);
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          border-radius: 12px;
-          padding: 12px 20px;
-          font-size: 13px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .re-btn-secondary:hover {
-          background: rgba(255, 255, 255, 0.08);
-          color: #fff;
-        }
-
-        /* Spin Animation */
-        @keyframes customSpin {
-          to { transform: rotate(360deg); }
-        }
-        .spin {
-          animation: customSpin 1s linear infinite;
-        }
-      `}</style>
-
-      {/* ── Glass Sidebar Navigation ── */}
-      <div className="settings-sidebar">
-        <div className="settings-sidebar-title">Categories</div>
+    <div style={{ display: 'flex', gap: 24, width: '100%' }}>
+      {/* ── Sub Navigation (Matches Admin Sidebar Theme) ── */}
+      <div className="adm-nav" style={{ border: '1px solid var(--border)', borderRadius: 14, height: 'fit-content' }}>
         {[
           { id: 'main', label: 'Platform Controls', icon: Settings },
           { id: 'referral', label: 'Referral Program', icon: Crown },
           { id: 'pricing', label: 'Plan Pricing', icon: Zap },
           { id: 'announcements', label: 'Announcements', icon: Send },
-          { id: 'payments', label: 'NOWPayments Gateway', icon: Shield },
+          { id: 'payments', label: 'Payments Gateway', icon: Shield },
         ].map(tab => {
           const Icon = tab.icon;
           return (
             <button
               key={tab.id}
               onClick={() => setSettingsSubPage(tab.id as any)}
-              className={`sidebar-btn ${settingsSubPage === tab.id ? 'active' : ''}`}
+              className={`adm-nav-item ${settingsSubPage === tab.id ? 'active' : ''}`}
+              style={{ width: '100%', textAlign: 'left' }}
             >
-              <Icon className="sidebar-btn-icon" />
+              <Icon style={{ width: 16, height: 16 }} />
               {tab.label}
             </button>
           );
         })}
       </div>
 
-      {/* ── Active Content panel ── */}
-      <div className="settings-content">
+      {/* ── Settings Sections ── */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 20 }}>
         {settingsSubPage === 'main' && (
           <PlatformTab initialConfig={initialConfig} />
         )}
@@ -366,62 +99,30 @@ function PlatformTab({ initialConfig }: { initialConfig: Record<string, any> }) 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       {/* Platform Toggles */}
-      <div className="premium-card">
-        <h3 className="card-title"><Activity style={{ color: '#6366f1' }} /> System Parameters</h3>
-        <p className="card-desc">Control global network configurations and live broker rules instantly.</p>
-
-        <div>
-          {[
-            { key: 'maintenance_mode', icon: '⚠️', label: 'Maintenance Mode', desc: 'Display client-facing maintenance screen to all accounts', color: 'rgba(245,158,11,0.15)' },
-            { key: 'ai_kill_switch', icon: '⚡', label: 'AI Signal Kill Switch', desc: 'Immediately freeze automated execution pipelines globally', color: 'rgba(239,68,68,0.15)' },
-            { key: 'new_registrations', icon: '👤', label: 'Allow Registrations', desc: 'Permit new traders to register and initialize accounts', color: 'rgba(16,185,129,0.15)' },
-            { key: 'demo_mode', icon: '🧪', label: 'Demo Mode Simulation', desc: 'Route broker signals directly to sandbox simulator accounts', color: 'rgba(99,102,241,0.15)' },
-          ].map(t => (
-            <div key={t.key} className="cyber-switch-row">
-              <div className="switch-info">
-                <div className="switch-icon-bg" style={{ backgroundColor: t.color }}>{t.icon}</div>
-                <div>
-                  <p className="switch-title">{t.label}</p>
-                  <p className="switch-desc">{t.desc}</p>
-                </div>
-              </div>
-              <div
-                className={`adm-switch ${config[t.key] ? 'adm-switch-on' : ''}`}
-                role="button"
-                tabIndex={0}
-                onClick={() => toggleConfig(t.key)}
-              >
-                <span className="adm-switch-track">
-                  <span className="adm-switch-thumb" />
-                </span>
-              </div>
-            </div>
-          ))}
+      <div className="adm-card adm-card-full">
+        <div className="adm-card-head">
+          <h3>System Controls</h3>
         </div>
-      </div>
-
-      {/* Feature Flags */}
-      <div className="premium-card">
-        <h3 className="card-title">🚩 Feature Gates</h3>
-        <p className="card-desc">Safely activate pre-release system components and features.</p>
-
-        {config.feature_flags ? (
-          <div>
-            {Object.entries(config.feature_flags as Record<string, boolean>).map(([key, val]) => (
-              <div key={key} className="cyber-switch-row">
-                <div className="switch-info">
-                  <div className="switch-icon-bg" style={{ backgroundColor: 'rgba(255,255,255,0.04)', fontSize: 13 }}>🚩</div>
+        <div className="adm-card-body">
+          <div className="adm-toggle-list">
+            {[
+              { key: 'maintenance_mode', label: 'Maintenance Mode', desc: 'Display client-facing maintenance screen to all users' },
+              { key: 'ai_kill_switch', label: 'AI Signal Kill Switch', desc: 'Immediately pause all automated AI signal execution pipelines' },
+              { key: 'new_registrations', label: 'Allow Registrations', desc: 'Permit new traders to register and create accounts' },
+              { key: 'demo_mode', label: 'Demo Mode Simulation', desc: 'Route broker signals directly to simulator accounts' },
+            ].map(t => (
+              <div key={t.key} className="adm-toggle-row">
+                <div className="adm-toggle-info">
                   <div>
-                    <p className="switch-title" style={{ textTransform: 'capitalize' }}>
-                      {key.replace(/_/g, ' ')}
-                    </p>
+                    <p className="adm-toggle-name">{t.label}</p>
+                    <p className="adm-toggle-desc">{t.desc}</p>
                   </div>
                 </div>
                 <div
-                  className={`adm-switch ${val ? 'adm-switch-on' : ''}`}
+                  className={`adm-switch ${config[t.key] ? 'adm-switch-on' : ''}`}
                   role="button"
                   tabIndex={0}
-                  onClick={() => toggleFeatureFlag(key, val)}
+                  onClick={() => toggleConfig(t.key)}
                 >
                   <span className="adm-switch-track">
                     <span className="adm-switch-thumb" />
@@ -430,11 +131,43 @@ function PlatformTab({ initialConfig }: { initialConfig: Record<string, any> }) 
               </div>
             ))}
           </div>
-        ) : (
-          <div style={{ textAlign: 'center', padding: '24px', color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>
-            No feature gates configured.
-          </div>
-        )}
+        </div>
+      </div>
+
+      {/* Feature Flags */}
+      <div className="adm-card adm-card-full">
+        <div className="adm-card-head">
+          <h3>Feature Gates</h3>
+        </div>
+        <div className="adm-card-body">
+          {config.feature_flags ? (
+            <div className="adm-toggle-list">
+              {Object.entries(config.feature_flags as Record<string, boolean>).map(([key, val]) => (
+                <div key={key} className="adm-toggle-row">
+                  <div className="adm-toggle-info">
+                    <div>
+                      <p className="adm-toggle-name" style={{ textTransform: 'capitalize' }}>
+                        {key.replace(/_/g, ' ')}
+                      </p>
+                    </div>
+                  </div>
+                  <div
+                    className={`adm-switch ${val ? 'adm-switch-on' : ''}`}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => toggleFeatureFlag(key, val)}
+                  >
+                    <span className="adm-switch-track">
+                      <span className="adm-switch-thumb" />
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p style={{ fontSize: 13, color: 'var(--subtext)', padding: '12px 0' }}>No feature gates configured.</p>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -517,168 +250,135 @@ function ReferralTab({ initialConfig }: { initialConfig: Record<string, any> }) 
   };
 
   return (
-    <div className="premium-card" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-      <div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-          <h3 className="card-title" style={{ margin: 0 }}>🎁 Multi-Tier Affiliates</h3>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: referralConfig.enabled ? '#10b981' : '#ef4444' }}>
-              {referralConfig.enabled ? '● ENABLED' : '○ DISABLED'}
-            </span>
-            <div
-              className={`adm-switch ${referralConfig.enabled ? 'adm-switch-on' : ''}`}
-              role="button"
-              tabIndex={0}
-              onClick={() => setReferralConfig({ ...referralConfig, enabled: !referralConfig.enabled })}
-            >
-              <span className="adm-switch-track"><span className="adm-switch-thumb" /></span>
-            </div>
+    <div className="adm-card adm-card-full">
+      <div className="adm-card-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <h3>🎁 Referral Program Settings</h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: referralConfig.enabled ? '#10a37f' : 'var(--subtext)' }}>
+            {referralConfig.enabled ? '● Active' : '○ Disabled'}
+          </span>
+          <div
+            className={`adm-switch ${referralConfig.enabled ? 'adm-switch-on' : ''}`}
+            role="button"
+            tabIndex={0}
+            onClick={() => setReferralConfig({ ...referralConfig, enabled: !referralConfig.enabled })}
+          >
+            <span className="adm-switch-track"><span className="adm-switch-thumb" /></span>
           </div>
         </div>
-        <p className="card-desc">Configure commission splits, milestone payouts, and user rebate rules.</p>
       </div>
+      <div className="adm-card-body" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 
-      {/* Multi-Level splits */}
-      <div>
-        <p style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 14 }}>Commission Matrix</p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {referralConfig.levels.map((lvl: any, i: number) => {
-            const colors = ['#6366f1', '#3b82f6', '#10b981', '#f59e0b', '#ec4899'];
-            return (
-              <div
-                key={lvl.level}
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '50px 1fr 140px 140px',
-                  alignItems: 'center',
-                  gap: 16,
-                  padding: '12px 16px',
-                  background: 'rgba(255,255,255,0.02)',
-                  border: '1px solid rgba(255,255,255,0.05)',
-                  borderRadius: 12
-                }}
-              >
-                <div style={{
-                  width: 32, height: 32, borderRadius: 8,
-                  background: colors[i], color: '#fff',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 12, fontWeight: 800
-                }}>
+        {/* Level Commission */}
+        <div>
+          <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 12 }}>Commission & Rebates Per Level</p>
+          <div style={{ borderRadius: 10, overflow: 'hidden', border: '1px solid var(--border)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '48px 1fr 140px 140px', background: 'var(--input-bg)', borderBottom: '1px solid var(--border)' }}>
+              {['Lvl', 'Label', 'Commission %', 'Rebate %'].map(h => (
+                <div key={h} style={{ padding: '10px 14px', fontSize: 10, fontWeight: 700, color: 'var(--subtext)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>{h}</div>
+              ))}
+            </div>
+            {referralConfig.levels.map((lvl: any, i: number) => (
+              <div key={lvl.level} style={{ display: 'grid', gridTemplateColumns: '48px 1fr 140px 140px', borderBottom: i < referralConfig.levels.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                <div style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'var(--subtext)' }}>
                   L{lvl.level}
                 </div>
-                <input
-                  className="re-input"
-                  style={{ width: '100%', padding: '8px 12px' }}
-                  value={lvl.label}
-                  onChange={e => handleLevelChange(i, 'label', e.target.value)}
-                />
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ padding: '10px 14px', display: 'flex', alignItems: 'center' }}>
+                  <input
+                    className="adm-edit-input"
+                    style={{ width: '100%', padding: '6px 10px' }}
+                    value={lvl.label}
+                    onChange={e => handleLevelChange(i, 'label', e.target.value)}
+                  />
+                </div>
+                <div style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 6 }}>
                   <input
                     type="number"
-                    className="re-input"
-                    style={{ width: '100%', textAlign: 'center', fontWeight: 700, color: colors[i] }}
+                    className="adm-edit-input"
+                    style={{ width: 72, padding: '6px 10px', textAlign: 'center', fontWeight: 700 }}
                     value={lvl.commission}
                     onChange={e => handleLevelChange(i, 'commission', Number(e.target.value))}
                   />
-                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>%</span>
+                  <span style={{ fontSize: 12, color: 'var(--subtext)' }}>%</span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 6 }}>
                   <input
                     type="number"
-                    className="re-input"
-                    style={{ width: '100%', textAlign: 'center', fontWeight: 700, color: '#10b981' }}
+                    className="adm-edit-input"
+                    style={{ width: 72, padding: '6px 10px', textAlign: 'center', fontWeight: 700 }}
                     value={lvl.rebate}
                     onChange={e => handleLevelChange(i, 'rebate', Number(e.target.value))}
                   />
-                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>%</span>
+                  <span style={{ fontSize: 12, color: 'var(--subtext)' }}>%</span>
                 </div>
               </div>
-            );
-          })}
+            ))}
+          </div>
         </div>
-      </div>
 
-      {/* Milestone rewards */}
-      <div>
-        <p style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 14 }}>Affiliate Targets & Milestones</p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
-          {referralConfig.milestones.map((m: any, i: number) => (
-            <div
-              key={i}
-              style={{
-                background: 'rgba(255,255,255,0.02)',
-                border: '1px solid rgba(255,255,255,0.04)',
-                borderRadius: 12,
-                padding: '14px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 8
-              }}
-            >
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#3b82f6', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                🏆 {m.referrals} Direct Ref{m.referrals > 1 ? 's' : ''}
+        {/* Milestones */}
+        <div>
+          <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 12 }}>Milestone Rewards</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
+            {referralConfig.milestones.map((m: any, i: number) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: 10 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--subtext)', whiteSpace: 'nowrap' }}>
+                  {m.referrals} Ref{m.referrals > 1 ? 's' : ''}:
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, flex: 1 }}>
+                  <span style={{ fontSize: 12, color: 'var(--subtext)', fontWeight: 600 }}>$</span>
+                  <input
+                    type="number"
+                    className="adm-edit-input"
+                    style={{ flex: 1, padding: '5px 8px', fontWeight: 700 }}
+                    value={m.reward}
+                    onChange={e => handleMilestoneChange(i, 'reward', Number(e.target.value))}
+                  />
+                </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 14, color: '#10b981', fontWeight: 700 }}>$</span>
+            ))}
+          </div>
+        </div>
+
+        {/* Limits */}
+        <div>
+          <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 12 }}>Threshold Configuration</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+            {[
+              { label: 'Min Withdrawal ($)', key: 'minWithdrawal' },
+              { label: 'Cookie Days', key: 'cookieDays' },
+              { label: 'Payout Day of Month', key: 'payoutDay' },
+            ].map(f => (
+              <div key={f.key} style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px' }}>
+                <label style={{ display: 'block', fontSize: 11, color: 'var(--subtext)', fontWeight: 600, marginBottom: 6 }}>
+                  {f.label}
+                </label>
                 <input
                   type="number"
-                  className="re-input"
-                  style={{ flex: 1, padding: '6px 10px', fontSize: 14, fontWeight: 800, color: '#10b981' }}
-                  value={m.reward}
-                  onChange={e => handleMilestoneChange(i, 'reward', Number(e.target.value))}
+                  className="adm-edit-input"
+                  style={{ width: '100%', padding: '6px 10px', fontWeight: 700 }}
+                  value={(referralConfig as any)[f.key]}
+                  onChange={e => setReferralConfig({ ...referralConfig, [f.key]: Number(e.target.value) })}
                 />
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
 
-      {/* Global limits */}
-      <div>
-        <p style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 14 }}>Global Thresholds</p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
-          {[
-            { label: 'Minimum Withdrawal ($)', key: 'minWithdrawal' },
-            { label: 'Tracking Cookie (Days)', key: 'cookieDays' },
-            { label: 'Payout Processing Day', key: 'payoutDay' },
-          ].map(f => (
-            <div
-              key={f.key}
-              style={{
-                background: 'rgba(255,255,255,0.02)',
-                border: '1px solid rgba(255,255,255,0.04)',
-                borderRadius: 12,
-                padding: '14px'
-              }}
-            >
-              <label style={{ display: 'block', fontSize: 11, color: 'rgba(255,255,255,0.4)', fontWeight: 600, marginBottom: 8 }}>
-                {f.label}
-              </label>
-              <input
-                type="number"
-                className="re-input"
-                style={{ width: '100%', padding: '8px 12px', fontWeight: 700 }}
-                value={(referralConfig as any)[f.key]}
-                onChange={e => setReferralConfig({ ...referralConfig, [f.key]: Number(e.target.value) })}
-              />
-            </div>
-          ))}
+        {/* Save */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+          <button className="adm-post-btn" onClick={saveConfig}>
+            Save Referral Configuration
+          </button>
+          <button className="adm-pagination button" style={{ height: 34, padding: '0 16px' }} onClick={resetToDefaults}>
+            Reset defaults
+          </button>
+          {saved && (
+            <span style={{ fontSize: 13, color: '#10a37f', fontWeight: 600 }}>
+              ✓ Settings stored
+            </span>
+          )}
         </div>
-      </div>
-
-      {/* Actions */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 20 }}>
-        <button className="re-btn-primary" onClick={saveConfig}>
-          <CheckCircle2 style={{ width: 16, height: 16 }} /> Save Changes
-        </button>
-        <button className="re-btn-secondary" onClick={resetToDefaults}>
-          Reset to Defaults
-        </button>
-        {saved && (
-          <span style={{ fontSize: 13, color: '#10b981', fontWeight: 700, animation: 'fadeIn 0.2s ease' }}>
-            ✓ Configuration saved successfully
-          </span>
-        )}
       </div>
     </div>
   );
@@ -711,73 +411,45 @@ function PricingTab({ initialConfig }: { initialConfig: Record<string, any> }) {
   };
 
   return (
-    <div className="premium-card">
-      <h3 className="card-title"><Zap style={{ color: '#f59e0b' }} /> Plan Pricing Tiers</h3>
-      <p className="card-desc">Configure client subscription pricing and dynamically preview cards live.</p>
-
-      {/* Previews & Inputs Grid */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 20 }}>
+    <div className="adm-card adm-card-full">
+      <div className="adm-card-head">
+        <h3>Plan Pricing Options</h3>
+      </div>
+      <div className="adm-card-body" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
           {[
-            { key: 'starter', label: 'Starter Tier', icon: Rocket, color: '#6b7280', shadow: 'rgba(107,114,128,0.15)', desc: 'For automated trading entry levels' },
-            { key: 'pro', label: 'Pro Tier', icon: Crown, color: '#8b5cf6', shadow: 'rgba(139,92,246,0.25)', desc: 'Optimized for high-performance scale' },
-            { key: 'enterprise', label: 'Enterprise Tier', icon: Shield, color: '#f59e0b', shadow: 'rgba(245,158,11,0.25)', desc: 'Dedicated institutional integration' },
+            { key: 'starter', label: 'Starter Plan', desc: 'Starter Tier subscription' },
+            { key: 'pro', label: 'Pro Plan', desc: 'Pro Tier subscription' },
+            { key: 'enterprise', label: 'Enterprise Plan', desc: 'Enterprise Tier subscription' },
           ].map(tier => {
-            const Icon = tier.icon;
             const price = config.plan_pricing?.[tier.key] ?? 0;
             return (
-              <div
-                key={tier.key}
-                style={{
-                  background: 'rgba(255, 255, 255, 0.02)',
-                  border: `1px solid rgba(255,255,255,0.04)`,
-                  borderRadius: 16,
-                  padding: 24,
-                  textAlign: 'center',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  boxShadow: `0 10px 30px ${tier.shadow}`,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 16
-                }}
-              >
-                <div style={{
-                  width: 48, height: 48, borderRadius: 12,
-                  background: `linear-gradient(135deg, ${tier.color}20, ${tier.color}40)`,
-                  display: 'flex', alignItems: 'center', justifySelf: 'center', margin: '0 auto',
-                  justifyContent: 'center', color: tier.color
-                }}>
-                  <Icon style={{ width: 22, height: 22 }} />
-                </div>
-                <div>
-                  <h4 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 4px', color: '#fff' }}>{tier.label}</h4>
-                  <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', margin: 0 }}>{tier.desc}</p>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, margin: '8px 0' }}>
-                  <span style={{ fontSize: 20, fontWeight: 700, color: tier.color }}>$</span>
+              <div key={tier.key} style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 14px' }}>
+                <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', margin: '0 0 4px' }}>{tier.label}</p>
+                <p style={{ fontSize: 11, color: 'var(--subtext)', margin: '0 0 12px' }}>{tier.desc}</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 14, color: 'var(--subtext)', fontWeight: 600 }}>$</span>
                   <input
                     type="number"
-                    className="re-input"
-                    style={{ width: 90, fontSize: 20, fontWeight: 800, textAlign: 'center', color: '#fff' }}
+                    className="adm-edit-input"
+                    style={{ width: '100%', padding: '6px 10px', fontSize: 16, fontWeight: 800 }}
                     value={price}
                     onChange={e => handlePriceChange(tier.key, Number(e.target.value))}
                   />
-                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>/mo</span>
+                  <span style={{ fontSize: 12, color: 'var(--subtext)' }}>/mo</span>
                 </div>
               </div>
             );
           })}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 20 }}>
-          <button className="re-btn-primary" onClick={savePricing}>
-            <CheckCircle2 style={{ width: 16, height: 16 }} /> Save Pricing Matrix
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+          <button className="adm-post-btn" onClick={savePricing}>
+            Save Plan Pricing
           </button>
           {saved && (
-            <span style={{ fontSize: 13, color: '#10b981', fontWeight: 700 }}>
-              ✓ Subscriptions successfully updated
+            <span style={{ fontSize: 13, color: '#10a37f', fontWeight: 600 }}>
+              ✓ Pricing updated
             </span>
           )}
         </div>
@@ -829,106 +501,105 @@ function AnnouncementsTab({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       {/* Post Board */}
-      <div className="premium-card">
-        <h3 className="card-title"><Send style={{ color: '#3b82f6' }} /> Broadcast Terminal</h3>
-        <p className="card-desc">Publish system-wide notifications, maintenance schedules, or alerts.</p>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div className="re-input-group" style={{ marginBottom: 0 }}>
-            <label className="re-label">Announcement Title</label>
-            <input
-              className="re-input"
-              placeholder="e.g., MT5 Server Integration Upgrade"
-              value={newAnnouncement.title}
-              onChange={e => setNewAnnouncement(prev => ({ ...prev, title: e.target.value }))}
-            />
+      <div className="adm-card adm-card-full">
+        <div className="adm-card-head">
+          <h3>Create Announcement</h3>
+        </div>
+        <div className="adm-card-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <label style={{ fontSize: 11, color: 'var(--subtext)', fontWeight: 600 }}>Title</label>
+              <input
+                className="adm-edit-input"
+                placeholder="e.g., Scheduled Maintenance"
+                value={newAnnouncement.title}
+                onChange={e => setNewAnnouncement(prev => ({ ...prev, title: e.target.value }))}
+              />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <label style={{ fontSize: 11, color: 'var(--subtext)', fontWeight: 600 }}>Severity Type</label>
+              <select
+                className="adm-select"
+                style={{ width: '100%' }}
+                value={newAnnouncement.type}
+                onChange={e => setNewAnnouncement(prev => ({ ...prev, type: e.target.value }))}
+              >
+                <option value="info">ℹ️ System Information</option>
+                <option value="warning">⚠️ High Warning Alert</option>
+                <option value="success">✅ Task Completed</option>
+              </select>
+            </div>
           </div>
-
-          <div className="re-input-group" style={{ marginBottom: 0 }}>
-            <label className="re-label">Message Payload</label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <label style={{ fontSize: 11, color: 'var(--subtext)', fontWeight: 600 }}>Announcement Content</label>
             <input
-              className="re-input"
-              placeholder="Detailed system update notes..."
+              className="adm-edit-input"
+              placeholder="Provide notification details here..."
               value={newAnnouncement.message}
               onChange={e => setNewAnnouncement(prev => ({ ...prev, message: e.target.value }))}
             />
           </div>
-
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            <div className="re-input-group" style={{ flex: 1, marginBottom: 0 }}>
-              <label className="re-label">Severity Level</label>
-              <select
-                className="re-input"
-                style={{ background: 'rgba(17, 24, 39, 0.8)' }}
-                value={newAnnouncement.type}
-                onChange={e => setNewAnnouncement(prev => ({ ...prev, type: e.target.value }))}
-              >
-                <option value="info">ℹ️ System Info</option>
-                <option value="warning">⚠️ High Warning</option>
-                <option value="success">✅ Maintenance Completed</option>
-              </select>
-            </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
             <button
-              className="re-btn-primary"
-              style={{ marginTop: 22, height: 42 }}
+              className="adm-post-btn"
               disabled={loading || !newAnnouncement.title}
               onClick={postAnnouncement}
             >
-              {loading ? <Loader2 className="spin" style={{ width: 16, height: 16 }} /> : 'Broadcast Broadcast'}
+              {loading ? 'Posting...' : 'Post Announcement'}
             </button>
           </div>
         </div>
       </div>
 
       {/* Broadcast Feed */}
-      <div className="premium-card">
-        <h3 className="card-title">📢 Published Board ({announcements.length})</h3>
-        <p className="card-desc">Manage active announcements currently visible to connected accounts.</p>
-
-        {announcements.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '32px', color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>
-            No broadcasts posted.
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {announcements.map(a => {
+      <div className="adm-card adm-card-full">
+        <div className="adm-card-head">
+          <h3>Active Notifications ({announcements.length})</h3>
+        </div>
+        <div className="adm-card-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {announcements.length === 0 ? (
+            <p style={{ textAlign: 'center', padding: '16px 0', color: 'var(--subtext)', fontSize: 13, margin: 0 }}>
+              No active announcements broadcasted.
+            </p>
+          ) : (
+            announcements.map(a => {
               const borderColors = { info: '#3b82f6', warning: '#f59e0b', success: '#10b981' };
               const color = borderColors[a.type as 'info' | 'warning' | 'success'] || '#3b82f6';
               return (
                 <div
                   key={a.id}
                   style={{
-                    padding: '16px 20px',
-                    borderRadius: 14,
-                    background: 'rgba(255,255,255,0.02)',
+                    padding: '14px 16px',
+                    borderRadius: 10,
+                    background: 'var(--input-bg)',
                     borderLeft: `4px solid ${color}`,
-                    borderTop: '1px solid rgba(255,255,255,0.04)',
-                    borderRight: '1px solid rgba(255,255,255,0.04)',
-                    borderBottom: '1px solid rgba(255,255,255,0.04)',
+                    borderTop: '1px solid var(--border)',
+                    borderRight: '1px solid var(--border)',
+                    borderBottom: '1px solid var(--border)',
                     display: 'flex',
                     alignItems: 'flex-start',
                     justifyContent: 'space-between',
-                    gap: 16
+                    gap: 12
                   }}
                 >
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <p style={{ fontSize: 14, fontWeight: 700, color: '#fff', margin: 0 }}>{a.title}</p>
-                    <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', margin: 0 }}>{a.message}</p>
-                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontWeight: 600, marginTop: 4 }}>
+                  <div>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', margin: '0 0 2px' }}>{a.title}</p>
+                    <p style={{ fontSize: 12, color: 'var(--subtext)', margin: '0 0 6px' }}>{a.message}</p>
+                    <span style={{ fontSize: 10, color: 'var(--subtext)', opacity: 0.6 }}>
                       {new Date(a.created_at).toLocaleDateString()}
                     </span>
                   </div>
                   <button
-                    style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer' }}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--subtext)', cursor: 'pointer', padding: 2 }}
                     onClick={() => deleteAnnouncement(a.id)}
                   >
-                    <Trash2 style={{ width: 16, height: 16 }} />
+                    <Trash2 style={{ width: 15, height: 15 }} />
                   </button>
                 </div>
               );
-            })}
-          </div>
-        )}
+            })
+          )}
+        </div>
       </div>
     </div>
   );
@@ -1031,69 +702,39 @@ function PaymentsTab({ initialConfig }: { initialConfig: Record<string, any> }) 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       {/* Credentials */}
-      <div className="premium-card">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-          <h3 className="card-title" style={{ margin: 0 }}><Shield style={{ color: '#10b981' }} /> NOWPayments Gateway</h3>
-          <div
-            style={{
-              padding: '6px 12px',
-              borderRadius: 8,
-              fontSize: 11,
-              fontWeight: 700,
-              backgroundColor: npSandbox ? 'rgba(245,158,11,0.15)' : 'rgba(16,185,129,0.15)',
-              color: npSandbox ? '#f59e0b' : '#10b981',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6
-            }}
-          >
-            <span style={{
-              width: 6, height: 6, borderRadius: '50%',
-              backgroundColor: npSandbox ? '#f59e0b' : '#10b981',
-              animation: 'pulse 1.5s infinite'
-            }} />
-            {npSandbox ? 'SANDBOX ENGINE' : 'LIVE BLOCKCHAIN'}
-          </div>
+      <div className="adm-card adm-card-full">
+        <div className="adm-card-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h3>Withdrawals Gateway Configuration</h3>
+          <span style={{ fontSize: 11, fontWeight: 700, color: npSandbox ? '#f59e0b' : '#10a37f' }}>
+            {npSandbox ? 'SANDBOX MODE' : 'PRODUCTION MODE'}
+          </span>
         </div>
-        <p className="card-desc">Configure automated cryptocurrency withdrawals and transaction verification API credentials.</p>
-
-        {/* Inputs */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div className="adm-card-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {[
-            { label: 'API Key (HMAC-SHA512)', hint: 'Dashboard → Settings → API Keys', val: npApiKey, setter: setNpApiKey, icon: Key },
-            { label: 'Dashboard User Email', hint: 'Authenticated nowpayments.io dashboard email login', val: npEmail, setter: setNpEmail, icon: Send },
-            { label: 'Dashboard Secure Password', hint: 'Password (exclusively authenticated via standard secure HTTPS tokens)', val: npPassword, setter: setNpPassword, icon: Key },
-            { label: 'Two-Step 2FA Secret Key (TOTP)', hint: 'TOTP secret from Two-step auth setup in Dashboard settings', val: npTotpSecret, setter: setNpTotpSecret, icon: Shield },
-            { label: 'IPN Instant Webhook Secret', hint: 'Verification key from Dashboard → Payment Settings', val: npIpnSecret, setter: setNpIpnSecret, icon: Shield },
-          ].map(f => {
-            const Icon = f.icon;
-            return (
-              <div key={f.label} className="re-input-group" style={{ marginBottom: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <label className="re-label"><Icon style={{ width: 14, height: 14, opacity: 0.6 }} /> {f.label}</label>
-                  <span style={{ fontSize: 9, fontWeight: 700, color: f.val ? '#10b981' : '#f59e0b' }}>
-                    {f.val ? 'CONFIGURED' : 'UNCONFIGURED'}
-                  </span>
-                </div>
-                <input
-                  type="password"
-                  className="re-input"
-                  placeholder="••••••••••••••••••••••••••••••••"
-                  value={f.val}
-                  onChange={e => f.setter(e.target.value)}
-                />
-                <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', margin: '4px 0 0' }}>{f.hint}</p>
-              </div>
-            );
-          })}
+            { label: 'API Key (HMAC-SHA512)', key: 'api_key', val: npApiKey, setter: setNpApiKey },
+            { label: 'nowpayments.io Login Email', key: 'email', val: npEmail, setter: setNpEmail },
+            { label: 'nowpayments.io Login Password', key: 'password', val: npPassword, setter: setNpPassword },
+            { label: '2FA Secure Key Secret (TOTP)', key: 'totp', val: npTotpSecret, setter: setNpTotpSecret },
+            { label: 'IPN Webhook Verification Secret', key: 'ipn', val: npIpnSecret, setter: setNpIpnSecret },
+          ].map(f => (
+            <div key={f.key} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <label style={{ fontSize: 11, color: 'var(--subtext)', fontWeight: 600 }}>{f.label}</label>
+              <input
+                type="password"
+                className="adm-edit-input"
+                placeholder={f.val ? '••••••••••••••••••••••••••••••••' : 'Enter credential value...'}
+                value={f.val}
+                onChange={e => f.setter(e.target.value)}
+              />
+            </div>
+          ))}
 
           {/* Sandbox toggle */}
-          <div className="cyber-switch-row" style={{ borderBottom: 'none', paddingTop: 8 }}>
-            <div className="switch-info">
-              <div className="switch-icon-bg" style={{ backgroundColor: 'rgba(99,102,241,0.1)' }}>🧪</div>
+          <div className="adm-toggle-row" style={{ borderBottom: 'none', padding: '8px 0 0' }}>
+            <div className="adm-toggle-info">
               <div>
-                <p className="switch-title">Activate Sandbox Test Mode</p>
-                <p className="switch-desc">Verify connection status using play money sandbox testnets</p>
+                <p className="adm-toggle-name">Sandbox Mode</p>
+                <p className="adm-toggle-desc">Simulate payouts and transactions without moving real assets</p>
               </div>
             </div>
             <div
@@ -1108,36 +749,37 @@ function PaymentsTab({ initialConfig }: { initialConfig: Record<string, any> }) 
         </div>
       </div>
 
-      {/* Connection log terminal */}
-      <div className="premium-card">
-        <h3 className="card-title"><Terminal style={{ color: '#10b981' }} /> Interactive Gateway Terminal</h3>
-        <p className="card-desc">Execute instant handshakes and view debug outputs in real time.</p>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* Terminal log & Webhook */}
+      <div className="adm-card adm-card-full">
+        <div className="adm-card-head">
+          <h3>Gateway Handshake Diagnostics</h3>
+        </div>
+        <div className="adm-card-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {/* Terminal Console */}
           <div
             style={{
-              background: '#070b13',
-              borderRadius: 14,
-              border: '1px solid rgba(255,255,255,0.06)',
-              padding: 16,
-              minHeight: 140,
-              maxHeight: 200,
+              background: 'var(--bg)',
+              borderRadius: 10,
+              border: '1px solid var(--border)',
+              padding: 14,
+              minHeight: 120,
+              maxHeight: 180,
               overflowY: 'auto',
               fontFamily: 'Courier New, Courier, monospace',
               fontSize: 12,
-              lineHeight: 1.5,
+              lineHeight: 1.4,
               display: 'flex',
               flexDirection: 'column',
               gap: 4
             }}
           >
             {logs.length === 0 ? (
-              <span style={{ color: 'rgba(255,255,255,0.3)' }}>Terminal idle. Awaiting handshake request...</span>
+              <span style={{ color: 'var(--subtext)' }}>Terminal ready. Click &quot;Test Connection&quot; to begin.</span>
             ) : (
               logs.map((log, index) => {
-                let color = '#fff';
+                let color = 'var(--text)';
                 if (log.startsWith('[ERROR]')) color = '#ef4444';
-                if (log.startsWith('[SUCCESS]')) color = '#10b981';
+                if (log.startsWith('[SUCCESS]')) color = '#10a37f';
                 if (log.startsWith('[INFO]')) color = '#3b82f6';
                 return (
                   <div key={index} style={{ color }}>
@@ -1149,13 +791,13 @@ function PaymentsTab({ initialConfig }: { initialConfig: Record<string, any> }) 
             <div ref={terminalEndRef} />
           </div>
 
-          {/* Webhook URLs */}
+          {/* Webhook */}
           <div
             style={{
-              background: 'rgba(255,255,255,0.01)',
-              border: '1px solid rgba(255,255,255,0.04)',
-              borderRadius: 12,
-              padding: '14px 16px',
+              background: 'var(--input-bg)',
+              border: '1px solid var(--border)',
+              borderRadius: 10,
+              padding: '12px 14px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
@@ -1163,41 +805,41 @@ function PaymentsTab({ initialConfig }: { initialConfig: Record<string, any> }) 
             }}
           >
             <div style={{ flex: 1 }}>
-              <span style={{ display: 'block', fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>
-                Instant Payment Notification (IPN) Webhook URL
+              <span style={{ display: 'block', fontSize: 10, color: 'var(--subtext)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 2 }}>
+                IPN Callback URL
               </span>
-              <span style={{ fontSize: 12, fontFamily: 'monospace', color: '#818cf8', wordBreak: 'break-all' }}>
+              <span style={{ fontSize: 12, fontFamily: 'monospace', color: '#10a37f', wordBreak: 'break-all' }}>
                 {typeof window !== 'undefined' ? window.location.origin : 'https://yourdomain.com'}/api/webhooks/nowpayments
               </span>
             </div>
             <button
-              className="re-btn-secondary"
-              style={{ padding: '8px 14px', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 6 }}
+              className="adm-pagination button"
+              style={{ height: 32, padding: '0 12px', whiteSpace: 'nowrap' }}
               onClick={() => navigator.clipboard.writeText((typeof window !== 'undefined' ? window.location.origin : 'https://yourdomain.com') + '/api/webhooks/nowpayments')}
             >
-              <Copy style={{ width: 14, height: 14 }} /> Copy
+              ⎘ Copy
             </button>
           </div>
-        </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 20, marginTop: 20 }}>
-          <button
-            className="re-btn-secondary"
-            style={{ display: 'flex', alignItems: 'center', gap: 8 }}
-            disabled={testing || !npApiKey}
-            onClick={testGatewayConnection}
-          >
-            {testing ? <Loader2 className="spin" style={{ width: 16, height: 16 }} /> : <Play style={{ width: 16, height: 16 }} />}
-            🔌 Test Connection
-          </button>
-          <button className="re-btn-primary" onClick={saveConfiguration}>
-            <CheckCircle2 style={{ width: 16, height: 16 }} /> Save Configuration
-          </button>
-          {saved && (
-            <span style={{ fontSize: 13, color: '#10b981', fontWeight: 700 }}>
-              ✓ Gateway updated successfully
-            </span>
-          )}
+          {/* Actions */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 12, borderTop: '1px solid var(--border)', marginTop: 8 }}>
+            <button
+              className="adm-pagination button"
+              style={{ height: 34, padding: '0 16px', display: 'flex', alignItems: 'center', gap: 6 }}
+              disabled={testing || !npApiKey}
+              onClick={testGatewayConnection}
+            >
+              {testing ? 'Testing...' : 'Test Connection'}
+            </button>
+            <button className="adm-post-btn" onClick={saveConfiguration}>
+              Save Gateway Configuration
+            </button>
+            {saved && (
+              <span style={{ fontSize: 13, color: '#10a37f', fontWeight: 600 }}>
+                ✓ Gateway configuration saved
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </div>
