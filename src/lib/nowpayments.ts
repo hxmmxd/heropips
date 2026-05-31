@@ -274,3 +274,78 @@ export function verifyIpnSignature(payload: Record<string, any>, signature: stri
   hmac.update(JSON.stringify(sorted));
   return hmac.digest('hex') === signature;
 }
+
+// ── Payment Creation Methods ────────────────────────────────
+
+export interface CreatePaymentInput {
+  price_amount: number;
+  price_currency: string; // e.g. 'usd'
+  pay_currency: string;   // e.g. 'usdttrc20'
+  ipn_callback_url?: string;
+  order_id?: string;
+  order_description?: string;
+}
+
+export interface NowPaymentsPaymentResponse {
+  payment_id: string;
+  payment_status: string;
+  pay_address: string;
+  price_amount: number;
+  price_currency: string;
+  pay_amount: number;
+  pay_currency: string;
+  order_id?: string;
+  order_description?: string;
+  created_at: string;
+}
+
+/**
+ * POST /v1/payment — create a client invoice/payment.
+ */
+export async function createPayment(
+  input: CreatePaymentInput,
+  customConfig?: NowPaymentsConfig,
+): Promise<NowPaymentsPaymentResponse> {
+  const config = customConfig || await getActiveConfig();
+  const base   = getBase(config.sandbox);
+
+  const res = await fetch(`${base}/payment`, {
+    method:  'POST',
+    headers: {
+      'x-api-key':    config.api_key || '',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      price_amount:     input.price_amount,
+      price_currency:   input.price_currency.toLowerCase(),
+      pay_currency:     input.pay_currency.toLowerCase(),
+      ipn_callback_url: input.ipn_callback_url,
+      order_id:         input.order_id,
+      order_description: input.order_description,
+    }),
+  });
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.message || `Payment creation failed: ${res.status}`);
+  return data as NowPaymentsPaymentResponse;
+}
+
+/**
+ * GET /v1/payment/:id — check payment status
+ */
+export async function getPaymentStatus(
+  paymentId: string,
+  customConfig?: NowPaymentsConfig,
+): Promise<{ payment_id: string; payment_status: string; pay_amount: number; pay_currency: string }> {
+  const config = customConfig || await getActiveConfig();
+  const base   = getBase(config.sandbox);
+
+  const res  = await fetch(`${base}/payment/${paymentId}`, {
+    headers: {
+      'x-api-key': config.api_key || '',
+    },
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.message || `Payment status check failed: ${res.status}`);
+  return data;
+}

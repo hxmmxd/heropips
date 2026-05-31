@@ -160,7 +160,7 @@ export default function ReferralTab({ partners = mockNetwork }: ReferralTabProps
   const [shareOpen, setShareOpen] = useState(false);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [withdrawAmt, setWithdrawAmt]   = useState('');
-  const [withdrawMethod, setWithdrawMethod] = useState<'crypto'|'bank'|'paypal'>('crypto');
+  const [withdrawMethod, setWithdrawMethod] = useState<'crypto'>('crypto');
   const [withdrawCoin, setWithdrawCoin]     = useState('USDT (TRC-20)');
   const [withdrawAddr, setWithdrawAddr]   = useState('');
   const [withdrawStep, setWithdrawStep]   = useState<'form'|'confirm'|'success'>('form');
@@ -505,79 +505,70 @@ export default function ReferralTab({ partners = mockNetwork }: ReferralTabProps
 
                 {/* Method */}
                 <div>
-                  <p className="ref2-wd-label">Payment Method</p>
-                  <div className="ref2-wd-methods">
-                    {([
-                      { id:'crypto', icon:'crypto_img', label:'Crypto',  sub:'via NOWPayments' },
-                      { id:'bank',   icon:'🏦', label:'Bank',    sub:'Wire transfer' },
-                      { id:'paypal', icon:'🅿', label:'PayPal',  sub:'Instant payout' },
-                    ] as const).map(m => (
-                      <button key={m.id}
-                        className={`ref2-wd-method ${withdrawMethod === m.id ? 'ref2-wd-method--active' : ''}`}
-                        onClick={() => setWithdrawMethod(m.id)}>
-                        <span className="ref2-wd-method-icon">
-                          {m.icon === 'crypto_img' ? (
-                            <img src="https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/btc.png" alt="Crypto" width={22} height={22} style={{ borderRadius:50, background:'#fff' }} />
-                          ) : m.icon}
-                        </span>
-                        <span className="ref2-wd-method-label">{m.label}</span>
-                        <span className="ref2-wd-method-sub">{m.sub}</span>
-                      </button>
-                    ))}
-                  </div>
-                  {/* Crypto coin picker */}
-                  {withdrawMethod === 'crypto' && (
-                    <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:10 }}>
-                      {[
-                        { name:'USDT (TRC-20)', slug:'usdt' },
-                        { name:'USDT (ERC-20)', slug:'usdt' },
-                        { name:'BTC',           slug:'btc'  },
-                        { name:'ETH',           slug:'eth'  },
-                        { name:'BNB',           slug:'bnb'  },
-                        { name:'USDC',          slug:'usdc' },
-                      ].map(coin => {
-                        const active = withdrawCoin === coin.name;
-                        return (
-                          <button key={coin.name}
-                            onClick={() => setWithdrawCoin(coin.name)}
-                            style={{
-                              display:'flex', alignItems:'center', gap:6,
-                              padding:'5px 12px 5px 6px', borderRadius:20, fontSize:11, fontWeight:700,
-                              border:'1px solid', cursor:'pointer', fontFamily:'inherit',
-                              background: active ? '#6366f1' : 'transparent',
-                              borderColor: active ? '#6366f1' : 'var(--border)',
-                              color: active ? '#fff' : 'var(--subtext)',
-                              transition:'all 0.15s',
-                            }}>
-                            <img
-                              src={`https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/${coin.slug}.png`}
-                              alt={coin.name}
-                              width={18} height={18}
-                              style={{ borderRadius:50, background:'#fff', flexShrink:0 }}
-                            />
-                            {coin.name}
-                          </button>
-                        );
-                      })}
+                  <p className="ref2-wd-label">Payout Method</p>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 12,
+                    padding: '12px 14px',
+                    marginBottom: 10
+                  }}>
+                    <span className="ref2-wd-method-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, background: 'rgba(99, 102, 241, 0.1)', borderRadius: 8 }}>
+                      <img src="https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/btc.png" alt="Crypto" width={22} height={22} style={{ borderRadius: 50, background: '#fff' }} />
+                    </span>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Crypto Wallet</span>
+                      <span style={{ fontSize: 11, color: 'var(--subtext)' }}>Processed automatically via NOWPayments</span>
                     </div>
-                  )}
+                  </div>
+
+                  {/* Crypto coin picker */}
+                  <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:10 }}>
+                    {[
+                      { name:'USDT (TRC-20)', slug:'usdt' },
+                      { name:'USDT (ERC-20)', slug:'usdt' },
+                      { name:'BTC',           slug:'btc'  },
+                      { name:'ETH',           slug:'eth'  },
+                      { name:'BNB',           slug:'bnb'  },
+                      { name:'USDC',          slug:'usdc' },
+                    ].map(coin => {
+                      const active = withdrawCoin === coin.name;
+                      return (
+                        <button key={coin.name}
+                          type="button"
+                          onClick={() => setWithdrawCoin(coin.name)}
+                          style={{
+                            display:'flex', alignItems:'center', gap:6,
+                            padding:'5px 12px 5px 6px', borderRadius:20, fontSize:11, fontWeight:700,
+                            border:'1px solid', cursor:'pointer', fontFamily:'inherit',
+                            background: active ? '#6366f1' : 'transparent',
+                            borderColor: active ? '#6366f1' : 'var(--border)',
+                            color: active ? '#fff' : 'var(--subtext)',
+                            transition:'all 0.15s',
+                          }}>
+                          <img
+                            src={`https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/${coin.slug}.png`}
+                            alt={coin.name}
+                            width={18} height={18}
+                            style={{ borderRadius:50, background:'#fff', flexShrink:0 }}
+                          />
+                          {coin.name}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 {/* Address / details */}
                 <div>
-                  <p className="ref2-wd-label">
-                    {withdrawMethod === 'crypto' ? `${withdrawCoin} Wallet Address` :
-                     withdrawMethod === 'bank'   ? 'IBAN / Account Number' :
-                                                   'PayPal Email'}
-                  </p>
+                  <p className="ref2-wd-label">{withdrawCoin} Wallet Address</p>
                   <input
                     className="ref2-wd-addr"
-                    type={withdrawMethod === 'paypal' ? 'email' : 'text'}
-                    placeholder={
-                      withdrawMethod === 'crypto' ? 'T...' :
-                      withdrawMethod === 'bank'   ? 'GB29 NWBK...' :
-                                                    'you@email.com'
-                    }
+                    type="text"
+                    placeholder="T..."
                     value={withdrawAddr}
                     onChange={e => setWithdrawAddr(e.target.value)}
                   />
@@ -586,7 +577,7 @@ export default function ReferralTab({ partners = mockNetwork }: ReferralTabProps
                 {/* Fee note */}
                 <div className="ref2-wd-fee">
                   <span>Network fee</span>
-                  <span>{withdrawMethod === 'crypto' ? '$2.00' : withdrawMethod === 'bank' ? '$5.00' : 'Free'}</span>
+                  <span>$2.00</span>
                 </div>
 
                 <button

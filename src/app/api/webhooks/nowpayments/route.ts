@@ -139,15 +139,54 @@ export async function POST(request: Request) {
     return NextResponse.json({ received: true });
   }
 
-  // ── Payment IPN (backward compat, unlikely in payout-only flow) ──
-  const paymentId     = payload.payment_id;
+  // ── Payment IPN (handles both subscriptions and legacy withdrawals) ──
+  const paymentId     = String(payload.payment_id || '');
   const paymentStatus = (payload.payment_status || '').toLowerCase();
   const internalStatus = PAYMENT_STATUS_MAP[paymentStatus] || paymentStatus || 'unknown';
 
+  // 1. Check if it's a subscription checkout payment
+  const { data: configRow } = await supabaseAdmin
+    .from('platform_config')
+    .select('value')
+    .eq('key', 'pending_subscriptions')
+    .single();
+
+  const pendingMap = configRow?.value || {};
+  const subTx = pendingMap[paymentId];
+
+  if (subTx) {
+    if (paymentStatus === 'finished' && subTx.status !== 'completed') {
+      // Activate user subscription plan
+      await supabaseAdmin
+        .from('profiles')
+        .update({
+          plan: subTx.plan_id,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', subTx.user_id);
+
+      subTx.status = 'completed';
+    } else if (paymentStatus === 'failed' || paymentStatus === 'expired') {
+      subTx.status = paymentStatus;
+    }
+
+    // Save updated pending map back to platform_config
+    await supabaseAdmin
+      .from('platform_config')
+      .upsert({
+        key: 'pending_subscriptions',
+        value: pendingMap,
+        updated_at: new Date().toISOString()
+      });
+
+    return NextResponse.json({ received: true });
+  }
+
+  // 2. Fallback to legacy referral withdrawal payment mapping
   const { data: record } = await supabaseAdmin
     .from('referral_withdrawals')
     .select('*')
-    .eq('nowpayments_id', String(paymentId))
+    .eq('nowpayments_id', paymentId)
     .single();
 
   if (!record) {
