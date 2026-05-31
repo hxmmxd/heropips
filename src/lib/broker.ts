@@ -129,17 +129,36 @@ export async function connectBroker(
         await account.deploy();
       }
 
-      // Wait for connection to broker
-      console.log(`[Broker Engine] Waiting for broker connection...`);
-      await account.waitConnected();
-      console.log(`[Broker Engine] Connected to ${platform.toUpperCase()} server.`);
+      // ── Non-blocking REST approach ────────────────────────────────────────────
+      // waitConnected() + waitSynchronized() block for 1–3 min on new accounts
+      // and will always timeout on Vercel serverless (10–60s limit).
+      // Instead: save immediately with 'connecting' status, then try to fetch
+      // account info via the MetaAPI REST API (same as trade execution — no streaming needed).
+      console.log(`[Broker Engine] Account deployed (${account.id}). Fetching info via REST...`);
 
-      // Get account details via RPC
-      const connection = account.getRPCConnection();
-      await connection.connect();
-      await connection.waitSynchronized();
+      let balance = 0, equity = 0, brokerName = name;
 
-      const details = await connection.getAccountInformation();
+      try {
+        // Use REST endpoint — works without streaming sync, responds in ~1-2s
+        const infoRes = await fetch(
+          `${MT_CLIENT_BASE}/users/current/accounts/${account.id}/account-information`,
+          { headers: { 'auth-token': token }, signal: AbortSignal.timeout(8000) }
+        );
+        if (infoRes.ok) {
+          const info = await infoRes.json();
+          balance = info.balance || 0;
+          equity = info.equity || 0;
+          brokerName = info.broker || name;
+          console.log(`[Broker Engine] REST account info fetched — balance: ${balance}`);
+        } else {
+          // Account may still be initialising — non-fatal, status will be 'connecting'
+          console.warn(`[Broker Engine] REST info not ready yet (${infoRes.status}), saving as connecting`);
+        }
+      } catch (restErr: any) {
+        console.warn(`[Broker Engine] REST info fetch failed: ${restErr.message} — saving as connecting`);
+      }
+
+      const isConnected = balance > 0 || equity > 0;
 
       const node: BrokerNode = {
         id: account.id,
@@ -148,10 +167,10 @@ export async function connectBroker(
         login,
         server: server || '',
         platform,
-        status: 'connected',
-        balance: details.balance || 0,
-        equity: details.equity || 0,
-        pnl: (details.equity || 0) - (details.balance || 0),
+        status: isConnected ? 'connected' : 'connecting',
+        balance,
+        equity,
+        pnl: equity - balance,
         positions: [],
       };
 
@@ -168,17 +187,16 @@ export async function connectBroker(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
             process.env.SUPABASE_SERVICE_ROLE_KEY!
           );
-          // Upsert by metaapi_id to avoid duplicates
           const { error } = await sb.from('broker_accounts').upsert({
             user_id: userId,
-            broker_name: details.broker || name,
+            broker_name: brokerName,
             mt5_login: login,
             server: server || '',
             metaapi_id: account.id,
-            status: 'connected',
-            balance: details.balance || 0,
-            equity: details.equity || 0,
-            pnl: (details.equity || 0) - (details.balance || 0),
+            status: node.status,
+            balance,
+            equity,
+            pnl: equity - balance,
             is_active: true,
             updated_at: new Date().toISOString(),
           }, { onConflict: 'metaapi_id' });
@@ -186,7 +204,6 @@ export async function connectBroker(
           else console.log('[Broker Engine] Synced to Supabase broker_accounts');
         } catch (syncErr: any) {
           console.error('[Broker Engine] Supabase sync failed:', syncErr.message);
-          // Non-fatal — local DB still has the record
         }
       }
 
