@@ -91,17 +91,19 @@ export async function connectBroker(
     try {
       console.log(`[Broker Engine] Connecting ${name} to ${platform.toUpperCase()} via MetaAPI...`);
 
-      // Check if we already have an account with this login+server to avoid duplicates
-      const existing = await api.metatraderAccountApi.getAccountsWithInfiniteScrollPagination({
-        login: login,
-        server: server,
+      // Check if we already have an account with this login to avoid duplicates.
+      // NOTE: AccountsFilter does NOT support login/server fields — use query string search
+      // and filter client-side to match the specific login.
+      const allAccounts = await api.metatraderAccountApi.getAccountsWithInfiniteScrollPagination({
+        query: login, // searches over name, login, server
       });
+      const existingMatch = allAccounts.find((a: any) => a.login === login);
 
       let account: any;
 
-      if (existing && existing.length > 0) {
+      if (existingMatch) {
         // Reuse existing account
-        account = existing[0];
+        account = existingMatch;
         console.log(`[Broker Engine] Found existing account ${account.id}, reusing...`);
 
         // Redeploy if not deployed
@@ -113,14 +115,14 @@ export async function connectBroker(
         // Create new account
         account = await api.metatraderAccountApi.createAccount({
           name: name,
-          type: 'cloud-g2',         // g2 is faster and cheaper per SDK docs
-          platform: platform,
+          type: 'cloud-g2',   // faster and cheaper
+          platform: platform, // 'mt4' | 'mt5' — valid Platform type
           login: login,
           password: password || '',
           server: server || '',
-          magic: 0,                   // 0 = manual trades
+          magic: 0,           // must be 0 when manualTrades is true
           manualTrades: true,
-          reliability: 'high',        // recommended for production
+          // reliability defaults to 'high' — no need to pass it explicitly
         });
 
         console.log(`[Broker Engine] Account created (${account.id}). Deploying...`);
