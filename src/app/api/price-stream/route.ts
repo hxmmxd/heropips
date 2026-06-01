@@ -1,5 +1,6 @@
 import { getPlatformConfig } from '@/lib/platformConfig';
-import { recordApiCall } from '@/lib/apiStats';
+import { recordApiCall, markDisabled } from '@/lib/apiStats';
+import { fetchYahooPrices } from '@/lib/yahooFinance';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -36,7 +37,7 @@ async function fetchBinance(): Promise<Record<string, number>> {
 
 // ─── Source 2: Twelve Data (everything else) ─────────────────
 // 7 symbols × 1 credit = 7 credits per call.
-// We poll every 15s → 4 calls/min → 28 credits/min (safe on basic plan)
+// Grow plan: 55 credits/min → poll every 8s = 7.5 calls/min = 52.5 credits/min ✓
 const TD_SYMBOLS = ['XAU/USD', 'EUR/USD', 'GBP/USD', 'QQQ', 'DIA', 'USO', 'SPY'];
 
 async function getTwelveKey() {
@@ -68,9 +69,29 @@ async function fetchTwelveData(): Promise<Record<string, number>> {
   }
 }
 
+// ─── Source 3: Yahoo Finance (optional fallback) ─────────────
+// Free, no key. Enabled via platform_config key 'yahoo_finance_enabled'.
+// Used as fallback when Twelve Data returns empty results.
+const YF_SYMBOLS = [...TD_SYMBOLS]; // same set
+
+async function isYahooEnabled(): Promise<boolean> {
+  const val = await getPlatformConfig('yahoo_finance_enabled', '');
+  return val === 'true' || val === '1';
+}
+
+async function fetchYahooFallback(
+  existingPrices: Record<string, number>
+): Promise<Record<string, number>> {
+  // Only fetch symbols that Twelve Data didn't return
+  const missing = YF_SYMBOLS.filter(s => !(s in existingPrices));
+  if (missing.length === 0) return {};
+  const yfPrices = await fetchYahooPrices(missing);
+  return yfPrices;
+}
+
 // ─── SSE Handler ─────────────────────────────────────────────
-const BINANCE_POLL_MS = 2_000;   // crypto updates every 2s
-const TD_POLL_MS = 5_000;   // forex/metals/ETFs every 5s
+const BINANCE_POLL_MS = 2_000;   // crypto — Binance, free, unlimited
+const TD_POLL_MS = 8_000;        // 7 symbols × 7.5 calls/min = 52.5 credits/min (Grow plan: 55/min ✓)
 
 export async function GET() {
   const encoder = new TextEncoder();
@@ -88,8 +109,24 @@ export async function GET() {
         }
       };
 
-      // ── Initial tick — fetch both sources in parallel ──
-      const [binanceInit, tdInit] = await Promise.all([fetchBinance(), fetchTwelveData()]);
+      // ── Fetch Twelve Data + Yahoo Finance fallback ──
+      const fetchTdWithFallback = async () => {
+        const tdPrices = await fetchTwelveData();
+        const yahooEnabled = await isYahooEnabled();
+        if (yahooEnabled) {
+          // Fill missing symbols from Yahoo Finance
+          const yfPrices = await fetchYahooFallback(tdPrices);
+          return { ...yfPrices, ...tdPrices }; // TD wins on overlap
+        }
+        if (!yahooEnabled) markDisabled('yahoo_finance');
+        return tdPrices;
+      };
+
+      // ── Initial tick — fetch all sources in parallel ──
+      const [binanceInit, tdInit] = await Promise.all([
+        fetchBinance(),
+        fetchTdWithFallback(),
+      ]);
       send({ ...tdInit, ...binanceInit });
 
       // ── Crypto: fast polling via Binance ──
@@ -98,10 +135,10 @@ export async function GET() {
         send(await fetchBinance());
       }, BINANCE_POLL_MS);
 
-      // ── Forex/Metals/ETFs: slower polling via Twelve Data ──
+      // ── Forex/Metals/ETFs: Twelve Data + Yahoo fallback ──
       const tdTimer = setInterval(async () => {
         if (closed) { clearInterval(tdTimer); return; }
-        send(await fetchTwelveData());
+        send(await fetchTdWithFallback());
       }, TD_POLL_MS);
 
       // Auto-close before Vercel's 4.5-min function limit

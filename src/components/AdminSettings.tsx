@@ -1614,6 +1614,16 @@ function ApiIntegrationsTab({ initialConfig, apiStats = [] }: { initialConfig: R
         { key: 'metaapi_token', label: 'API Token', placeholder: 'Enter MetaAPI token', isSecret: true },
       ],
     },
+    {
+      id: 'yahoo_finance',
+      label: 'Yahoo Finance',
+      description: 'Free unofficial price feed — fallback for Forex, Metals, and ETFs when Twelve Data quota is exceeded',
+      planNote: 'No API key required — free and unlimited (soft rate-limited). Used as fallback only when Twelve Data returns no data.',
+      docsUrl: 'https://finance.yahoo.com/',
+      fields: [
+        { key: 'yahoo_finance_enabled', label: 'Enable as Fallback', placeholder: 'true', isSecret: false, isToggle: true },
+      ],
+    },
   ];
 
   // Per-field state
@@ -1740,6 +1750,50 @@ function ApiIntegrationsTab({ initialConfig, apiStats = [] }: { initialConfig: R
           <div className="adm-card-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {intg.fields.map(f => {
               const fstate = fields[f.key] || { value: '', show: false, saving: false, saved: false };
+              const isEnabled = fstate.value === 'true' || fstate.value === '1';
+
+              // ── Toggle field (e.g. Yahoo Finance enable/disable) ──
+              if ((f as any).isToggle) {
+                return (
+                  <div key={f.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0' }}>
+                    <div>
+                      <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{f.label}</p>
+                      <p style={{ margin: 0, fontSize: 11, color: 'var(--subtext)', marginTop: 3 }}>
+                        Currently <strong style={{ color: isEnabled ? '#10b981' : 'var(--subtext)' }}>{isEnabled ? 'enabled' : 'disabled'}</strong>
+                        {fstate.saved && <span style={{ color: '#10b981', marginLeft: 8 }}>✓ Saved</span>}
+                      </p>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        const next = isEnabled ? 'false' : 'true';
+                        setField(f.key, { value: next, saving: true });
+                        await fetch('/api/admin', {
+                          method: 'PATCH',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ configKey: f.key, configValue: next }),
+                        });
+                        setField(f.key, { value: next, saving: false, saved: true });
+                        setTimeout(() => setField(f.key, { saved: false }), 3000);
+                      }}
+                      style={{
+                        width: 48, height: 26, borderRadius: 13, border: 'none', cursor: 'pointer',
+                        background: isEnabled ? '#10b981' : 'var(--input-bg)',
+                        position: 'relative', transition: 'background 0.25s', flexShrink: 0,
+                        boxShadow: isEnabled ? '0 0 8px rgba(16,185,129,0.3)' : 'none',
+                      }}
+                    >
+                      <span style={{
+                        position: 'absolute', top: 3, left: isEnabled ? 26 : 4,
+                        width: 20, height: 20, borderRadius: '50%',
+                        background: '#fff', transition: 'left 0.25s',
+                        boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
+                      }} />
+                    </button>
+                  </div>
+                );
+              }
+
+              // ── Regular key/secret field ──
               return (
                 <div key={f.key}>
                   <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--subtext)', display: 'block', marginBottom: 6 }}>

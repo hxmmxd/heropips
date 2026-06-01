@@ -8,7 +8,7 @@
  * On persistent servers (local / Railway / Render), stats accumulate normally.
  */
 
-export type ApiName = 'twelve_data' | 'nvidia' | 'binance' | 'metaapi';
+export type ApiName = 'twelve_data' | 'nvidia' | 'binance' | 'yahoo_finance' | 'metaapi';
 
 export interface ApiStat {
   name: ApiName;
@@ -24,7 +24,7 @@ export interface ApiStat {
   lastErrorMsg: string | null;
   avgLatencyMs: number;
   lastLatencyMs: number | null;
-  status: 'active' | 'error' | 'idle' | 'unconfigured';
+  status: 'active' | 'error' | 'idle' | 'unconfigured' | 'disabled';
   // Quota info
   quotaPerMin: number | null;     // null = unlimited
   quotaPerDay: number | null;
@@ -62,6 +62,16 @@ const STATS: Record<ApiName, ApiStat> = {
     quotaPerMin: null,   // Effectively unlimited
     quotaPerDay: null,
   },
+  yahoo_finance: {
+    name: 'yahoo_finance', label: 'Yahoo Finance',
+    totalCalls: 0, successCalls: 0, errorCalls: 0,
+    recentTimestamps: [], lastCallAt: null, lastSuccessAt: null,
+    lastErrorAt: null, lastErrorMsg: null,
+    avgLatencyMs: 0, lastLatencyMs: null,
+    status: 'idle',
+    quotaPerMin: null,   // Unofficial — soft rate limited
+    quotaPerDay: null,
+  },
   metaapi: {
     name: 'metaapi', label: 'MetaAPI (MT5)',
     totalCalls: 0, successCalls: 0, errorCalls: 0,
@@ -76,7 +86,7 @@ const STATS: Record<ApiName, ApiStat> = {
 
 // Rolling latency samples (last 20 calls)
 const LATENCY_SAMPLES: Record<ApiName, number[]> = {
-  twelve_data: [], nvidia: [], binance: [], metaapi: [],
+  twelve_data: [], nvidia: [], binance: [], yahoo_finance: [], metaapi: [],
 };
 
 /** Record a completed API call */
@@ -118,6 +128,11 @@ export function recordApiCall(
 /** Mark an API as unconfigured (no key) */
 export function markUnconfigured(api: ApiName) {
   STATS[api].status = 'unconfigured';
+}
+
+/** Mark an API as disabled by admin toggle */
+export function markDisabled(api: ApiName) {
+  STATS[api].status = 'disabled';
 }
 
 /** Get a snapshot of all stats (safe to serialise) */
