@@ -35,7 +35,7 @@ export async function GET() {
   }
 
   // Fetch all data
-  const [usersRes, brokersRes, tradesRes, announcementsRes, configRes, auditRes, riskRes, providersRes] = await Promise.all([
+  const [usersRes, brokersRes, tradesRes, announcementsRes, configRes, auditRes, riskRes, providersRes, tradeCountsRes] = await Promise.all([
     supabaseAdmin.from('profiles').select('*').order('created_at', { ascending: false }),
     supabaseAdmin.from('broker_accounts').select('*').order('created_at', { ascending: false }),
     supabaseAdmin.from('trades').select('*').order('created_at', { ascending: false }).limit(200),
@@ -44,10 +44,24 @@ export async function GET() {
     supabaseAdmin.from('audit_log').select('*').order('created_at', { ascending: false }).limit(50),
     supabaseAdmin.from('risk_rules').select('*').order('created_at', { ascending: true }),
     supabaseAdmin.from('broker_providers').select('*').order('created_at', { ascending: true }),
+    supabaseAdmin.from('trades').select('broker_id'),
   ]);
 
   const users: any[] = usersRes.data || [];
-  const brokers: any[] = brokersRes.data || [];
+  
+  // Calculate trade counts per broker account
+  const tradeCounts = tradeCountsRes.data || [];
+  const brokerTradeCounts: Record<string, number> = {};
+  tradeCounts.forEach((t: any) => {
+    if (t.broker_id) {
+      brokerTradeCounts[t.broker_id] = (brokerTradeCounts[t.broker_id] || 0) + 1;
+    }
+  });
+
+  const brokers: any[] = (brokersRes.data || []).map((b: any) => ({
+    ...b,
+    trade_count: brokerTradeCounts[b.id] || 0,
+  }));
   const trades: any[] = tradesRes.data || [];
   const announcements: any[] = announcementsRes.data || [];
   const config: Record<string, any> = {};

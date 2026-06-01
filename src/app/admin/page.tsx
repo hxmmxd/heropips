@@ -39,7 +39,7 @@ interface UserRow {
   created_at: string;
 }
 
-interface BrokerRow { id: string; user_id: string; broker_name: string; mt5_login: string; account_id?: string; server: string; metaapi_id?: string; status: string; balance: number; equity: number; pnl: number; is_active: boolean; created_at: string; }
+interface BrokerRow { id: string; user_id: string; broker_name: string; mt5_login: string; account_id?: string; server: string; metaapi_id?: string; status: string; balance: number; equity: number; pnl: number; is_active: boolean; created_at: string; trade_count?: number; }
 interface TradeRow { id: string; user_id: string; symbol: string; action: string; volume: number; entry_price: number; close_price: number; pnl: number; status: string; created_at: string; }
 
 type SortKey = 'full_name' | 'email' | 'plan' | 'created_at';
@@ -1018,7 +1018,7 @@ export default function AdminPage() {
                 <div className="adm-empty-state"><Server className="adm-empty-icon" /><p>No broker accounts connected yet</p></div>
               ) : (
                 <div className="adm-table-wrap"><table className="adm-table"><thead><tr>
-                  <th>Broker</th><th>Login</th><th>Server</th><th>Balance</th><th>Status</th><th>Connected</th>
+                  <th>Broker</th><th>Login</th><th>Server</th><th>Balance</th><th style={{textAlign:'center'}}>Trades</th><th>Status</th><th>Connected</th>
                 </tr></thead><tbody>
                   {brokers.map(b => (
                     <tr key={b.id}>
@@ -1026,6 +1026,7 @@ export default function AdminPage() {
                       <td className="adm-mono">{b.mt5_login || b.account_id || '—'}</td>
                       <td className="adm-date-cell">{b.server || '—'}</td>
                       <td className="adm-mono">${(b.balance || 0).toLocaleString()}</td>
+                      <td className="adm-mono" style={{textAlign:'center'}}>{b.trade_count || 0}</td>
                       <td><span className={`adm-status ${b.status === 'connected' ? 'adm-status-on' : 'adm-status-off'}`}>
                         {b.status === 'connected' ? <><Wifi /> Connected</> : <><WifiOff /> Offline</>}
                       </span></td>
