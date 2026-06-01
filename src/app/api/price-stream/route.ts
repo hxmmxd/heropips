@@ -54,8 +54,8 @@ async function fetchTwelveData(): Promise<Record<string, number>> {
 }
 
 // ─── SSE Handler ─────────────────────────────────────────────
-const BINANCE_POLL_MS  = 2_000;   // crypto updates every 2s
-const TD_POLL_MS       = 5_000;   // forex/metals/ETFs every 5s
+const BINANCE_POLL_MS  = 2_000;   // crypto — Binance, free, unlimited
+const TD_POLL_MS       = 8_000;   // 7 symbols × 7.5 calls/min = 52.5 credits/min (Grow plan: 55/min ✓)
 
 export async function GET() {
   const encoder = new TextEncoder();
