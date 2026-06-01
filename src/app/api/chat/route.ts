@@ -269,7 +269,7 @@ Respond ONLY with this JSON (no markdown wrapping, no code fences):
       text: parsed.text || 'Analysis complete.',
       ticket: (explicitSignal && parsed.ticket) ? parsed.ticket : null,
       signalSymbol: !explicitSignal ? symbol : null,
-      marketData: !explicitSignal ? marketData : null,
+      marketData: marketData,
     });
   } catch (error: any) {
     console.error('[Chat API] Unexpected error:', error);
