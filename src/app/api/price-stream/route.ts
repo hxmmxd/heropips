@@ -55,7 +55,7 @@ async function fetchTwelveData(): Promise<Record<string, number>> {
 
 // ─── SSE Handler ─────────────────────────────────────────────
 const BINANCE_POLL_MS  = 2_000;   // crypto updates every 2s
-const TD_POLL_MS       = 15_000;  // rest updates every 15s
+const TD_POLL_MS       = 5_000;   // forex/metals/ETFs every 5s
 
 export async function GET() {
   const encoder = new TextEncoder();

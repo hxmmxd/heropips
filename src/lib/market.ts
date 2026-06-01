@@ -5,7 +5,7 @@ const BASE_URL = 'https://api.twelvedata.com';
 // ── Snapshot cache — 15 min TTL per symbol ─────────────────
 // Prevents hammering the Twelve Data quota on repeated chat queries
 const SNAPSHOT_CACHE = new Map<string, { snapshot: MarketSnapshot; expiresAt: number }>();
-const SNAPSHOT_TTL_MS = 15 * 60 * 1000; // 15 minutes
+const SNAPSHOT_TTL_MS = 3 * 60 * 1000; // 3 minutes
 
 
 export interface CandleData {
