@@ -82,19 +82,48 @@ export async function syncBrokerToSupabase(node: BrokerNode, userId: string) {
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
-    const { error } = await sb.from('broker_accounts').upsert({
-      user_id: userId,
-      broker_name: node.name,
-      mt5_login: node.login,
-      server: node.server,
-      metaapi_id: node.id,
-      status: node.status,
-      balance: node.balance,
-      equity: node.equity,
-      pnl: node.pnl,
-      is_active: true,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'metaapi_id' });
+    const { data: existing } = await sb
+      .from('broker_accounts')
+      .select('id')
+      .eq('metaapi_id', node.id)
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    let error;
+    if (existing?.id) {
+      const { error: err } = await sb
+        .from('broker_accounts')
+        .update({
+          broker_name: node.name,
+          mt5_login: node.login,
+          server: node.server,
+          status: node.status,
+          balance: node.balance,
+          equity: node.equity,
+          pnl: node.pnl,
+          is_active: true,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', existing.id);
+      error = err;
+    } else {
+      const { error: err } = await sb
+        .from('broker_accounts')
+        .insert({
+          user_id: userId,
+          broker_name: node.name,
+          mt5_login: node.login,
+          server: node.server,
+          metaapi_id: node.id,
+          status: node.status,
+          balance: node.balance,
+          equity: node.equity,
+          pnl: node.pnl,
+          is_active: true,
+          updated_at: new Date().toISOString(),
+        });
+      error = err;
+    }
     if (error) console.error('[Broker Engine] Supabase sync error:', error.message);
     else console.log('[Broker Engine] Synced to Supabase broker_accounts');
   } catch (syncErr: any) {

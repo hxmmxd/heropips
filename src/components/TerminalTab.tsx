@@ -356,7 +356,7 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
           <div className="h-full flex flex-col items-center justify-center text-center space-y-8 py-10 my-auto">
             <div className="loader shrink-0" />
             <h2 className="text-2xl lg:text-3xl font-medium text-[var(--text)] px-8 leading-tight max-w-xl">
-              How can I help you liquidate your account this evening?
+              Ready to print some green charts, or are we testing your margin's heat tolerance today?
             </h2>
           </div>
         ) : (
