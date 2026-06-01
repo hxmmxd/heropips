@@ -76,7 +76,7 @@ const YF_SYMBOLS = [...TD_SYMBOLS]; // same set
 
 async function isYahooEnabled(): Promise<boolean> {
   const val = await getPlatformConfig('yahoo_finance_enabled', '');
-  return val === 'true' || val === '1';
+  return val !== 'false';
 }
 
 async function fetchYahooFallback(

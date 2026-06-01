@@ -1,6 +1,7 @@
 import { computeIndicators } from './indicators';
 import { getPlatformConfig } from './platformConfig';
 import { recordApiCall, markUnconfigured } from './apiStats';
+import { fetchYahooCandles } from './yahooFinance';
 
 const BASE_URL = 'https://api.twelvedata.com';
 
@@ -457,14 +458,18 @@ export async function getMarketSnapshot(symbol: string): Promise<MarketSnapshot 
 export async function fetchCandles(symbol: string, interval: string = '1h', outputsize: number = 50): Promise<CandleData[]> {
   try {
     const key = await getApiKey();
+    if (!key) {
+      console.warn('[Market Engine] No Twelve Data API key, falling back to Yahoo Finance for candles');
+      return fetchYahooCandles(symbol, interval, outputsize);
+    }
     const res = await fetch(
       `${BASE_URL}/time_series?symbol=${encodeURIComponent(symbol)}&interval=${interval}&outputsize=${outputsize}&apikey=${key}`
     );
     const data = await res.json();
 
     if (data.status === 'error' || !data.values) {
-      console.error(`[Market Engine] /time_series error:`, data.message || 'unknown');
-      return [];
+      console.warn(`[Market Engine] Twelve Data time_series error, falling back to Yahoo Finance:`, data.message || 'unknown');
+      return fetchYahooCandles(symbol, interval, outputsize);
     }
 
     // Twelve Data returns newest first, reverse for chart
@@ -478,8 +483,8 @@ export async function fetchCandles(symbol: string, interval: string = '1h', outp
       }))
       .reverse();
   } catch (error) {
-    console.error('[Market Engine] Failed to fetch candles:', error);
-    return [];
+    console.error('[Market Engine] Failed to fetch candles from Twelve Data, trying Yahoo Finance:', error);
+    return fetchYahooCandles(symbol, interval, outputsize);
   }
 }
 
