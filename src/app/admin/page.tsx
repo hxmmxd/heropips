@@ -8,7 +8,7 @@ import {
   ArrowUpRight, Globe, Clock, Wifi, WifiOff, Receipt, CheckCircle, XCircle,
   Heart, Cpu, Database, Pencil, Check, X, Mail, User, Settings, Megaphone,
   FileText, Power, ToggleLeft, ToggleRight, AlertTriangle, Plus, Trash2,
-  Target, BarChart2, ShieldAlert, Plug, TestTube, Loader2, Key, Link2
+  Target, BarChart2, ShieldAlert, Plug, TestTube, Loader2, Key, Link2, Handshake
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import AdminSettings from '@/components/AdminSettings';
@@ -86,6 +86,14 @@ export default function AdminPage() {
   const [testingProvider, setTestingProvider] = useState<string | null>(null);
   const [apiStats, setApiStats] = useState<any[]>([]);
 
+  // ── Partner Brokers State ──
+  const EMPTY_PARTNER = { id: '', name: '', logo: '🏦', platform: 'mt5' as const, servers: [] as string[], rebate_per_lot: 5, rebate_currency: 'USD', website: '', notes: '', is_active: true, created_at: '' };
+  const [partnerBrokers, setPartnerBrokers] = useState<any[]>([]);
+  const [showAddPartner, setShowAddPartner] = useState(false);
+  const [editingPartner, setEditingPartner] = useState<any | null>(null);
+  const [partnerForm, setPartnerForm] = useState<any>(EMPTY_PARTNER);
+  const [partnerSaving, setPartnerSaving] = useState(false);
+
   // Poll API stats every 10s when analytics tab is active
   useEffect(() => {
     let timer: ReturnType<typeof setInterval>;
@@ -122,6 +130,7 @@ export default function AdminPage() {
       setRevenueTrends(data.revenueTrends || []);
       setTopSymbols(data.topSymbols || []);
       setBrokerProviders(data.brokerProviders || []);
+      setPartnerBrokers(data.config?.partner_brokers ?? []);
     } catch (err: any) { setError(err.message); }
     finally { setLoading(false); }
   };
@@ -130,6 +139,17 @@ export default function AdminPage() {
     setRefreshing(true);
     await loadData();
     setRefreshing(false);
+  };
+
+  const savePartnerBrokers = async (list: any[]) => {
+    setPartnerSaving(true);
+    await fetch('/api/admin', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ configKey: 'partner_brokers', configValue: list }),
+    });
+    setPartnerBrokers(list);
+    setPartnerSaving(false);
   };
 
   const handleUpdatePlan = async (userId: string, plan: string) => {
@@ -641,6 +661,165 @@ export default function AdminPage() {
                   )}
                 </div>
               </div>
+
+              {/* ── Partner Brokers ── */}
+              <div className="adm-card adm-card-full">
+                <div className="adm-card-head">
+                  <h3><Handshake style={{width:16,height:16,marginRight:6,verticalAlign:'middle'}}/>Partner Brokers <span className="adm-count-badge">{partnerBrokers.length}</span></h3>
+                  <div style={{display:'flex',alignItems:'center',gap:8}}>
+                    <span style={{fontSize:11,color:'var(--subtext)'}}>Shown in Connect Broker modal</span>
+                    <button className="adm-post-btn" onClick={() => { setPartnerForm({...EMPTY_PARTNER, id: crypto.randomUUID(), created_at: new Date().toISOString()}); setEditingPartner(null); setShowAddPartner(true); }}>+ Add Partner</button>
+                  </div>
+                </div>
+                <div className="adm-card-body">
+                  {partnerBrokers.length === 0 ? (
+                    <div className="adm-empty-state">
+                      <Handshake className="adm-empty-icon" />
+                      <p>No partner brokers configured</p>
+                      <p style={{fontSize:12,color:'var(--subtext)'}}>Add brokers you have partnerships with — users will see these first when connecting</p>
+                    </div>
+                  ) : (
+                    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))',gap:14}}>
+                      {partnerBrokers.map((p: any) => (
+                        <div key={p.id} style={{border:'1px solid var(--border)',borderRadius:14,padding:16,background:'var(--input-bg)',opacity:p.is_active?1:0.55,transition:'opacity 0.2s'}}>
+                          <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:10}}>
+                            <div style={{display:'flex',alignItems:'center',gap:10}}>
+                              <div style={{fontSize:28,lineHeight:1}}>{p.logo || '🏦'}</div>
+                              <div>
+                                <p style={{margin:0,fontSize:14,fontWeight:700,color:'var(--text)'}}>{p.name}</p>
+                                <span style={{fontSize:10,fontWeight:700,textTransform:'uppercase',padding:'2px 7px',borderRadius:20,background:'#3b82f620',color:'#3b82f6'}}>{p.platform?.toUpperCase()}</span>
+                              </div>
+                            </div>
+                            <div style={{display:'flex',alignItems:'center',gap:6}}>
+                              {/* Active toggle */}
+                              <button onClick={async () => { const updated = partnerBrokers.map((x:any) => x.id === p.id ? {...x, is_active: !x.is_active} : x); await savePartnerBrokers(updated); }}
+                                style={{width:36,height:20,borderRadius:10,border:'none',cursor:'pointer',background:p.is_active?'#10b981':'var(--border)',position:'relative',transition:'background 0.2s'}}>
+                                <span style={{position:'absolute',top:2,left:p.is_active?18:2,width:16,height:16,borderRadius:'50%',background:'#fff',transition:'left 0.2s',boxShadow:'0 1px 3px rgba(0,0,0,0.3)'}}/>
+                              </button>
+                              <button onClick={() => { setPartnerForm({...p, servers: [...p.servers]}); setEditingPartner(p.id); setShowAddPartner(true); }}
+                                style={{background:'none',border:'none',cursor:'pointer',color:'var(--subtext)',padding:4}}>
+                                <Pencil style={{width:14,height:14}}/>
+                              </button>
+                              <button onClick={async () => { if (!confirm(`Delete "${p.name}"?`)) return; await savePartnerBrokers(partnerBrokers.filter((x:any) => x.id !== p.id)); }}
+                                style={{background:'none',border:'none',cursor:'pointer',color:'#ef4444',padding:4}}>
+                                <Trash2 style={{width:14,height:14}}/>
+                              </button>
+                            </div>
+                          </div>
+                          {/* Rebate badge */}
+                          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}>
+                            <span style={{fontSize:11,fontWeight:700,color:'#10b981',background:'rgba(16,185,129,0.1)',padding:'3px 10px',borderRadius:20}}>
+                              💰 ${p.rebate_per_lot}/lot rebate
+                            </span>
+                            {p.website && <a href={p.website} target="_blank" rel="noopener noreferrer" style={{fontSize:11,color:'#4f8ef7',textDecoration:'none'}}>Visit ↗</a>}
+                          </div>
+                          {/* Servers list */}
+                          <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
+                            {(p.servers||[]).slice(0,4).map((s:string) => (
+                              <span key={s} style={{fontSize:10,fontFamily:'monospace',background:'var(--sidebar-bg)',border:'1px solid var(--border)',padding:'2px 8px',borderRadius:6,color:'var(--text)'}}>{s}</span>
+                            ))}
+                            {(p.servers||[]).length > 4 && <span style={{fontSize:10,color:'var(--subtext)'}}>+{p.servers.length - 4} more</span>}
+                          </div>
+                          {p.notes && <p style={{margin:'8px 0 0',fontSize:11,color:'var(--subtext)'}}>{p.notes}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Add/Edit Partner Broker Modal */}
+              {showAddPartner && (
+                <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:20}} onClick={() => setShowAddPartner(false)}>
+                  <div style={{background:'var(--sidebar-bg)',border:'1px solid var(--border)',borderRadius:18,padding:28,width:'100%',maxWidth:540,maxHeight:'90vh',overflowY:'auto'}} onClick={e=>e.stopPropagation()}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
+                      <h3 style={{margin:0,fontSize:16,fontWeight:700}}>{editingPartner ? 'Edit Partner Broker' : 'Add Partner Broker'}</h3>
+                      <button onClick={() => setShowAddPartner(false)} style={{background:'none',border:'none',cursor:'pointer',color:'var(--subtext)'}}><X style={{width:18,height:18}}/></button>
+                    </div>
+                    <div style={{display:'flex',flexDirection:'column',gap:14}}>
+                      {/* Logo + Name row */}
+                      <div style={{display:'flex',gap:10}}>
+                        <div style={{flexShrink:0}}>
+                          <label style={{fontSize:11,fontWeight:600,color:'var(--subtext)',display:'block',marginBottom:5}}>Logo (emoji)</label>
+                          <input value={partnerForm.logo} onChange={e=>setPartnerForm((f:any)=>({...f,logo:e.target.value}))}
+                            style={{width:60,textAlign:'center',fontSize:22,background:'var(--input-bg)',border:'1px solid var(--border)',borderRadius:9,padding:'6px 8px',color:'var(--text)'}}/>
+                        </div>
+                        <div style={{flex:1}}>
+                          <label style={{fontSize:11,fontWeight:600,color:'var(--subtext)',display:'block',marginBottom:5}}>Broker Name *</label>
+                          <input value={partnerForm.name} onChange={e=>setPartnerForm((f:any)=>({...f,name:e.target.value}))} placeholder="e.g. ICMarkets"
+                            style={{width:'100%',boxSizing:'border-box',background:'var(--input-bg)',border:'1px solid var(--border)',borderRadius:9,padding:'9px 12px',fontSize:13,color:'var(--text)'}}/>
+                        </div>
+                      </div>
+                      {/* Platform */}
+                      <div>
+                        <label style={{fontSize:11,fontWeight:600,color:'var(--subtext)',display:'block',marginBottom:5}}>Platform</label>
+                        <div style={{display:'flex',gap:8}}>
+                          {(['mt5','mt4','ctrader'] as const).map(p => (
+                            <button key={p} onClick={()=>setPartnerForm((f:any)=>({...f,platform:p}))}
+                              style={{padding:'7px 16px',borderRadius:8,border:`1.5px solid ${partnerForm.platform===p?'#3b82f6':'var(--border)'}`,background:partnerForm.platform===p?'rgba(59,130,246,0.1)':'var(--input-bg)',color:partnerForm.platform===p?'#3b82f6':'var(--subtext)',cursor:'pointer',fontSize:12,fontWeight:600,textTransform:'uppercase'}}>
+                              {p}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      {/* Servers */}
+                      <div>
+                        <label style={{fontSize:11,fontWeight:600,color:'var(--subtext)',display:'block',marginBottom:5}}>Servers (one per line)</label>
+                        <textarea value={(partnerForm.servers||[]).join('\n')}
+                          onChange={e=>setPartnerForm((f:any)=>({...f,servers:e.target.value.split('\n').map((s:string)=>s.trim()).filter(Boolean)}))}
+                          placeholder={'ICMarketsSC-Live\nICMarketsSC-Live2\nICMarketsSC-Demo'}
+                          rows={4}
+                          style={{width:'100%',boxSizing:'border-box',background:'var(--input-bg)',border:'1px solid var(--border)',borderRadius:9,padding:'9px 12px',fontSize:12,color:'var(--text)',fontFamily:'monospace',resize:'vertical'}}/>
+                      </div>
+                      {/* Rebate */}
+                      <div style={{display:'flex',gap:10}}>
+                        <div style={{flex:1}}>
+                          <label style={{fontSize:11,fontWeight:600,color:'var(--subtext)',display:'block',marginBottom:5}}>Rebate per Lot ($)</label>
+                          <input type="number" min={0} step={0.01} value={partnerForm.rebate_per_lot}
+                            onChange={e=>setPartnerForm((f:any)=>({...f,rebate_per_lot:parseFloat(e.target.value)||0}))}
+                            style={{width:'100%',boxSizing:'border-box',background:'var(--input-bg)',border:'1px solid var(--border)',borderRadius:9,padding:'9px 12px',fontSize:13,color:'var(--text)'}}/>
+                        </div>
+                        <div style={{flex:1}}>
+                          <label style={{fontSize:11,fontWeight:600,color:'var(--subtext)',display:'block',marginBottom:5}}>Website URL</label>
+                          <input value={partnerForm.website} onChange={e=>setPartnerForm((f:any)=>({...f,website:e.target.value}))} placeholder="https://icmarkets.com"
+                            style={{width:'100%',boxSizing:'border-box',background:'var(--input-bg)',border:'1px solid var(--border)',borderRadius:9,padding:'9px 12px',fontSize:13,color:'var(--text)'}}/>
+                        </div>
+                      </div>
+                      {/* Notes */}
+                      <div>
+                        <label style={{fontSize:11,fontWeight:600,color:'var(--subtext)',display:'block',marginBottom:5}}>Internal Notes</label>
+                        <input value={partnerForm.notes} onChange={e=>setPartnerForm((f:any)=>({...f,notes:e.target.value}))} placeholder="e.g. 20% rebate share, contact: partner@broker.com"
+                          style={{width:'100%',boxSizing:'border-box',background:'var(--input-bg)',border:'1px solid var(--border)',borderRadius:9,padding:'9px 12px',fontSize:13,color:'var(--text)'}}/>
+                      </div>
+                      {/* Active toggle */}
+                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 0',borderTop:'1px solid var(--border)'}}>
+                        <div>
+                          <p style={{margin:0,fontSize:13,fontWeight:600,color:'var(--text)'}}>Show to users</p>
+                          <p style={{margin:0,fontSize:11,color:'var(--subtext)'}}>Partner appears in Connect Broker modal</p>
+                        </div>
+                        <button onClick={()=>setPartnerForm((f:any)=>({...f,is_active:!f.is_active}))}
+                          style={{width:44,height:24,borderRadius:12,border:'none',cursor:'pointer',background:partnerForm.is_active?'#10b981':'var(--border)',position:'relative',transition:'background 0.2s'}}>
+                          <span style={{position:'absolute',top:2,left:partnerForm.is_active?22:2,width:20,height:20,borderRadius:'50%',background:'#fff',transition:'left 0.2s',boxShadow:'0 1px 3px rgba(0,0,0,0.3)'}}/>
+                        </button>
+                      </div>
+                      {/* Save */}
+                      <button
+                        disabled={!partnerForm.name || partnerSaving}
+                        onClick={async () => {
+                          if (!partnerForm.name) return;
+                          const updated = editingPartner
+                            ? partnerBrokers.map((x:any) => x.id === editingPartner ? partnerForm : x)
+                            : [...partnerBrokers, partnerForm];
+                          await savePartnerBrokers(updated);
+                          setShowAddPartner(false);
+                        }}
+                        style={{padding:'12px',borderRadius:10,border:'none',cursor:'pointer',background:'#4f8ef7',color:'#fff',fontSize:14,fontWeight:700,opacity:partnerSaving||!partnerForm.name?0.6:1,display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
+                        {partnerSaving ? <><Loader2 style={{width:14,height:14}} className="adm-spin"/>Saving...</> : <><CheckCircle style={{width:14,height:14}}/>{editingPartner ? 'Update Partner' : 'Add Partner'}</>}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Connected Accounts Table */}
               <div className="adm-card adm-card-full">

@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { X, ShieldCheck, TrendingUp, BarChart3, Coins, Server, Eye, EyeOff, Loader2, ChevronRight, Zap } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, ShieldCheck, TrendingUp, BarChart3, Coins, Server, Eye, EyeOff, Loader2, ChevronRight, Zap, Handshake, Star } from 'lucide-react';
 
 interface ModalNodeProps {
   isOpen: boolean;
@@ -18,6 +18,18 @@ interface ExchangeOption {
   category: 'forex' | 'crypto';
   color: string;
   description: string;
+}
+
+interface PartnerBroker {
+  id: string;
+  name: string;
+  logo: string;
+  platform: 'mt5' | 'mt4' | 'ctrader';
+  servers: string[];
+  rebate_per_lot: number;
+  rebate_currency: string;
+  website: string;
+  is_active: boolean;
 }
 
 const exchanges: ExchangeOption[] = [
@@ -41,10 +53,28 @@ export default function ModalNode({ isOpen, onClose, onConnect }: ModalNodeProps
   const [isSimulation, setIsSimulation] = useState(false);
   const [connecting, setConnecting] = useState(false);
 
+  // Partner brokers
+  const [partnerBrokers, setPartnerBrokers] = useState<PartnerBroker[]>([]);
+  const [selectedPartner, setSelectedPartner] = useState<PartnerBroker | null>(null);
+  const [partnerExpanded, setPartnerExpanded] = useState<string | null>(null); // which partner's server list is open
+
   const activeExchange = exchanges.find(e => e.id === selected)!;
   const isCrypto = activeExchange.category === 'crypto';
 
-  React.useEffect(() => {
+  // Filter partners for the selected platform
+  const relevantPartners = partnerBrokers.filter(p => p.platform === selected);
+
+  // Fetch partner brokers once on open
+  useEffect(() => {
+    if (!isOpen) return;
+    fetch('/api/partner-brokers')
+      .then(r => r.json())
+      .then(d => setPartnerBrokers(d.brokers || []))
+      .catch(() => {});
+  }, [isOpen]);
+
+  // Fetch MetaAPI server suggestions
+  useEffect(() => {
     if (!isOpen) return;
     if (isCrypto) return;
 
@@ -73,6 +103,8 @@ export default function ModalNode({ isOpen, onClose, onConnect }: ModalNodeProps
     setShowPassword(false);
     setShowSuggestions(false);
     setConnecting(false);
+    setSelectedPartner(null);
+    setPartnerExpanded(null);
   };
 
   const handleClose = () => { handleReset(); onClose(); };
@@ -87,6 +119,13 @@ export default function ModalNode({ isOpen, onClose, onConnect }: ModalNodeProps
     setConnecting(true);
     onConnect(isCrypto ? selected : serverName.trim(), loginId.trim(), password.trim());
     setTimeout(() => { handleReset(); onClose(); }, 300);
+  };
+
+  const handleSelectPartnerServer = (partner: PartnerBroker, server: string) => {
+    setSelectedPartner(partner);
+    setServerName(server);
+    setShowSuggestions(false);
+    setPartnerExpanded(null);
   };
 
   if (!isOpen) return null;
@@ -169,17 +208,92 @@ export default function ModalNode({ isOpen, onClose, onConnect }: ModalNodeProps
               <p>{isCrypto ? 'Use a read/trade-only API key — never enable withdrawals' : 'Your credentials are encrypted end-to-end'}</p>
             </div>
 
+            {/* ── Partner Brokers (forex only) ── */}
+            {!isCrypto && relevantPartners.length > 0 && (
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                  <Handshake style={{ width: 13, height: 13, color: '#10b981' }} />
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#10b981', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Recommended Partner Brokers
+                  </span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {relevantPartners.map(pb => {
+                    const isSelected = selectedPartner?.id === pb.id;
+                    const isExpanded = partnerExpanded === pb.id;
+                    return (
+                      <div key={pb.id} style={{
+                        border: `1.5px solid ${isSelected ? '#10b981' : 'var(--border)'}`,
+                        borderRadius: 12,
+                        background: isSelected ? 'rgba(16,185,129,0.05)' : 'var(--input-bg)',
+                        overflow: 'hidden',
+                        transition: 'border-color 0.2s',
+                      }}>
+                        {/* Header row */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', cursor: 'pointer' }}
+                          onClick={() => setPartnerExpanded(isExpanded ? null : pb.id)}>
+                          <span style={{ fontSize: 22, lineHeight: 1 }}>{pb.logo}</span>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{pb.name}</span>
+                              <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 20, background: 'rgba(59,130,246,0.1)', color: '#3b82f6', textTransform: 'uppercase' }}>{pb.platform}</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
+                              <span style={{ fontSize: 10, color: '#10b981', fontWeight: 700 }}>
+                                <Star style={{ width: 9, height: 9, display: 'inline', verticalAlign: 'middle' }} /> ${pb.rebate_per_lot}/lot rebate
+                              </span>
+                              <span style={{ fontSize: 10, color: 'var(--subtext)' }}>{pb.servers.length} server{pb.servers.length !== 1 ? 's' : ''}</span>
+                            </div>
+                          </div>
+                          <span style={{ fontSize: 10, color: 'var(--subtext)', transform: isExpanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }}>›</span>
+                        </div>
+
+                        {/* Server list (expanded) */}
+                        {isExpanded && (
+                          <div style={{ borderTop: '1px solid var(--border)', padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                            {pb.servers.map(srv => (
+                              <div key={srv}
+                                onClick={() => handleSelectPartnerServer(pb, srv)}
+                                style={{
+                                  display: 'flex', alignItems: 'center', gap: 8,
+                                  padding: '7px 10px', borderRadius: 8, cursor: 'pointer',
+                                  background: serverName === srv ? 'rgba(16,185,129,0.08)' : 'transparent',
+                                  border: `1px solid ${serverName === srv ? '#10b981' : 'transparent'}`,
+                                  transition: 'all 0.15s',
+                                }}
+                              >
+                                <Server style={{ width: 12, height: 12, color: serverName === srv ? '#10b981' : 'var(--subtext)', flexShrink: 0 }} />
+                                <span style={{ fontSize: 12, fontFamily: 'monospace', color: 'var(--text)' }}>{srv}</span>
+                                {serverName === srv && <span style={{ marginLeft: 'auto', fontSize: 10, color: '#10b981', fontWeight: 700 }}>Selected ✓</span>}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Divider */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '14px 0 4px' }}>
+                  <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+                  <span style={{ fontSize: 10, color: 'var(--subtext)', whiteSpace: 'nowrap' }}>or enter any server manually</span>
+                  <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+                </div>
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="bm-form">
               {/* Broker Server (forex only) */}
               {!isCrypto && (
                 <div className="bm-field">
-                  <label><Server className="bm-field-icon" /> Broker Server</label>
+                  <label><Server className="bm-field-icon" /> Broker Server{selectedPartner && <span style={{ marginLeft: 6, fontSize: 10, color: '#10b981', fontWeight: 700 }}>via {selectedPartner.name}</span>}</label>
                   <div className="bm-input-wrap">
                     <input
                       type="text"
                       placeholder={selected === 'ctrader' ? 'e.g. demo.ctrader.com' : 'e.g. ICMarketsSC-Live'}
                       value={serverName}
-                      onChange={e => { setServerName(e.target.value); setShowSuggestions(true); }}
+                      onChange={e => { setServerName(e.target.value); setShowSuggestions(true); setSelectedPartner(null); }}
                       onFocus={() => setShowSuggestions(true)}
                       onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                       required autoComplete="off"
@@ -195,7 +309,7 @@ export default function ModalNode({ isOpen, onClose, onConnect }: ModalNodeProps
                       )}
                       {!loading && suggestions.map(srv => (
                         <div key={srv} className="bm-suggest-item" role="button" tabIndex={0}
-                          onClick={() => { setServerName(srv); setShowSuggestions(false); }}>
+                          onClick={() => { setServerName(srv); setShowSuggestions(false); setSelectedPartner(null); }}>
                           <Server /> {srv}
                         </div>
                       ))}
