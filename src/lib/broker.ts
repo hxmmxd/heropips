@@ -75,6 +75,33 @@ function writeDb(brokers: BrokerNode[]) {
   }
 }
 
+export async function syncBrokerToSupabase(node: BrokerNode, userId: string) {
+  try {
+    const { createClient } = await import('@supabase/supabase-js');
+    const sb = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+    const { error } = await sb.from('broker_accounts').upsert({
+      user_id: userId,
+      broker_name: node.name,
+      mt5_login: node.login,
+      server: node.server,
+      metaapi_id: node.id,
+      status: node.status,
+      balance: node.balance,
+      equity: node.equity,
+      pnl: node.pnl,
+      is_active: true,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'metaapi_id' });
+    if (error) console.error('[Broker Engine] Supabase sync error:', error.message);
+    else console.log('[Broker Engine] Synced to Supabase broker_accounts');
+  } catch (syncErr: any) {
+    console.error('[Broker Engine] Supabase sync failed:', syncErr.message);
+  }
+}
+
 // ── Connect Broker ──────────────────────────────────────────
 
 export async function connectBroker(
@@ -181,30 +208,7 @@ export async function connectBroker(
 
       // Sync to Supabase broker_accounts if userId provided
       if (userId) {
-        try {
-          const { createClient } = await import('@supabase/supabase-js');
-          const sb = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!
-          );
-          const { error } = await sb.from('broker_accounts').upsert({
-            user_id: userId,
-            broker_name: brokerName,
-            mt5_login: login,
-            server: server || '',
-            metaapi_id: account.id,
-            status: node.status,
-            balance,
-            equity,
-            pnl: equity - balance,
-            is_active: true,
-            updated_at: new Date().toISOString(),
-          }, { onConflict: 'metaapi_id' });
-          if (error) console.error('[Broker Engine] Supabase sync error:', error.message);
-          else console.log('[Broker Engine] Synced to Supabase broker_accounts');
-        } catch (syncErr: any) {
-          console.error('[Broker Engine] Supabase sync failed:', syncErr.message);
-        }
+        await syncBrokerToSupabase(node, userId);
       }
 
       return node;
@@ -436,6 +440,25 @@ export async function disconnectBroker(brokerId: string, userId?: string): Promi
     return false;
   });
 
+  if (userId) {
+    try {
+      const { createClient } = await import('@supabase/supabase-js');
+      const sb = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      );
+      const { error } = await sb
+        .from('broker_accounts')
+        .delete()
+        .eq('metaapi_id', brokerId)
+        .eq('user_id', userId);
+      if (error) console.error('[Broker Engine] Supabase delete error:', error.message);
+      else console.log('[Broker Engine] Deleted from Supabase broker_accounts');
+    } catch (err: any) {
+      console.error('[Broker Engine] Supabase delete failed:', err.message);
+    }
+  }
+
   if (filtered.length === list.length) return false;
   writeDb(filtered);
   console.log(`[Broker Engine] Removed broker ${brokerId} from local DB`);
@@ -449,6 +472,38 @@ export function getAllSimulatedBrokers(): BrokerNode[] {
 }
 
 export async function getAllBrokers(userId?: string): Promise<BrokerNode[]> {
+  if (userId) {
+    try {
+      const { createClient } = await import('@supabase/supabase-js');
+      const sb = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      );
+      const { data, error } = await sb
+        .from('broker_accounts')
+        .select('*')
+        .eq('user_id', userId);
+
+      if (!error && data) {
+        return data.map((b: any) => ({
+          id: b.metaapi_id || b.id,
+          userId: b.user_id,
+          name: b.broker_name,
+          login: b.mt5_login,
+          server: b.server,
+          platform: 'mt5',
+          status: b.status,
+          balance: Number(b.balance) || 0,
+          equity: Number(b.equity) || 0,
+          pnl: Number(b.pnl) || 0,
+          positions: [],
+        }));
+      }
+    } catch (err: any) {
+      console.error('[Broker Engine] Failed to fetch brokers from Supabase:', err.message);
+    }
+  }
+
   const all = readDb();
   if (userId) return all.filter(b => b.userId === userId);
   return all;
