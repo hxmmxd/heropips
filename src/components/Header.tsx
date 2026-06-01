@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Menu, ChevronDown, Lightbulb } from 'lucide-react';
+import { Menu, ChevronDown, Lightbulb, RefreshCw } from 'lucide-react';
 import { Broker } from '../types';
 
 interface HeaderProps {
@@ -11,6 +11,7 @@ interface HeaderProps {
   onToggleSidebar: () => void;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
+  onRefresh?: () => Promise<void>;
 }
 
 // Programmatic synthesizer for physical switch toggle sounds using Web Audio API
@@ -81,8 +82,22 @@ export default function Header({
   onToggleSidebar,
   theme,
   onToggleTheme,
+  onRefresh,
 }: HeaderProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    if (!onRefresh || refreshing) return;
+    setRefreshing(true);
+    try {
+      await onRefresh();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const handleBrokerClick = (name: string) => {
     onSelectBroker(name);
@@ -181,6 +196,16 @@ export default function Header({
             </div>
           </div>
           <div className="flex items-center space-x-2 shrink-0 ml-2">
+            {onRefresh && activeBroker.acc !== 'none' && (
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="p-1 rounded-md hover:bg-[var(--input-bg)] text-[var(--subtext)] hover:text-[var(--text)] transition disabled:opacity-50 flex items-center justify-center mr-1"
+                title="Refresh Live Balance"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+              </button>
+            )}
             <span className="status-dot"></span>
           </div>
         </div>

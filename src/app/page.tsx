@@ -196,6 +196,25 @@ export default function Home() {
     }
   };
 
+  // Refresh live balances
+  const handleRefreshBalances = async () => {
+    try {
+      const res = await fetch('/api/broker');
+      const data = await res.json();
+      if (data.brokers?.length > 0) {
+        setBrokers(data.brokers.map((b: any) => ({
+          name: b.name,
+          balance: b.balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+          pnl: (b.pnl >= 0 ? '+' : '') + b.pnl.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+          equity: b.equity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+          acc: b.id || b.login,
+        })));
+      }
+    } catch (err) {
+      console.error('Failed to refresh balances:', err);
+    }
+  };
+
   // Handle sending messages via live API
   const handleSendMessage = async (text: string, forceSignal?: boolean) => {
     const newUserMessage: ChatMessage = {
@@ -292,6 +311,7 @@ export default function Home() {
           onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
           theme={theme}
           onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          onRefresh={handleRefreshBalances}
         />
 
         {/* Tab display contents */}
