@@ -78,6 +78,10 @@ export default function AdminPage() {
   const [editName, setEditName] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [editPlan, setEditPlan] = useState('');
+  const [selectedUserAccounts, setSelectedUserAccounts] = useState<BrokerRow[]>([]);
+  const [selectedUserTrades, setSelectedUserTrades] = useState<TradeRow[]>([]);
+  const [drawerLoading, setDrawerLoading] = useState(false);
+  const [drawerTab, setDrawerTab] = useState<'overview' | 'accounts' | 'metrics'>('overview');
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState('');
   const [announcements, setAnnouncements] = useState<any[]>([]);
@@ -212,13 +216,33 @@ export default function AdminPage() {
     else { setSortKey(key); setSortDir('asc'); }
   };
 
-  const openDrawer = (u: UserRow) => {
+  const openDrawer = async (u: UserRow) => {
     setDrawerUser(u);
     setEditName(u.full_name || '');
     setEditEmail(u.email || '');
     setEditPlan(u.plan || 'free');
     setEditMode(false);
     setSaveMsg('');
+    setDrawerTab('overview');
+
+    // Fetch user details (accounts & trades)
+    setDrawerLoading(true);
+    setSelectedUserAccounts([]);
+    setSelectedUserTrades([]);
+    try {
+      const res = await fetch(`/api/admin/user?userId=${u.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setSelectedUserAccounts(data.brokers || []);
+          setSelectedUserTrades(data.trades || []);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load user details:', err);
+    } finally {
+      setDrawerLoading(false);
+    }
   };
 
   const handleSaveUser = async () => {
@@ -620,28 +644,68 @@ export default function AdminPage() {
                       <button className="adm-drawer-close" onClick={() => setDrawerUser(null)}>✕</button>
                     </div>
                   </div>
-                  <div className="adm-drawer-body">
-                    <div className="adm-drawer-profile">
-                      <img src={drawerUser.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(drawerUser.full_name || drawerUser.email)}&background=10a37f&color=fff&size=80`} alt="" className="adm-drawer-avatar" />
-                      {!editMode ? (
-                        <>
-                          <h4>{drawerUser.full_name || drawerUser.email?.split('@')[0]}</h4>
-                          <p className="adm-drawer-email">{drawerUser.email}</p>
-                        </>
-                      ) : (
-                        <div className="adm-edit-profile-fields">
-                          <div className="adm-edit-field"><User className="adm-edit-icon" /><input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Full name" className="adm-edit-input" /></div>
-                          <div className="adm-edit-field"><Mail className="adm-edit-icon" /><input value={editEmail} onChange={e => setEditEmail(e.target.value)} placeholder="Email" className="adm-edit-input" /></div>
-                        </div>
-                      )}
-                      <div className="adm-drawer-tags">
-                        <span className={`adm-tag adm-tag-${drawerUser.plan || 'free'}`}>{(drawerUser.plan || 'free').charAt(0).toUpperCase() + (drawerUser.plan || 'free').slice(1)}</span>
-                        {drawerUser.is_admin && <span className="adm-tag" style={{background:'rgba(239,68,68,0.12)',color:'#f87171'}}>Admin</span>}
-                      </div>
+                  {!editMode && (
+                    <div className="adm-drawer-tabs" style={{ display: 'flex', borderBottom: '1px solid var(--border)', padding: '0 16px' }}>
+                      <button
+                        className={`adm-drawer-tab ${drawerTab === 'overview' ? 'active' : ''}`}
+                        onClick={() => setDrawerTab('overview')}
+                        style={{
+                          padding: '12px 16px',
+                          background: 'none',
+                          border: 'none',
+                          borderBottom: drawerTab === 'overview' ? '2px solid #10a37f' : '2px solid transparent',
+                          color: drawerTab === 'overview' ? '#10a37f' : 'var(--subtext)',
+                          fontWeight: drawerTab === 'overview' ? 'bold' : 'normal',
+                          cursor: 'pointer',
+                          fontSize: '13px'
+                        }}
+                      >
+                        Overview
+                      </button>
+                      <button
+                        className={`adm-drawer-tab ${drawerTab === 'accounts' ? 'active' : ''}`}
+                        onClick={() => setDrawerTab('accounts')}
+                        style={{
+                          padding: '12px 16px',
+                          background: 'none',
+                          border: 'none',
+                          borderBottom: drawerTab === 'accounts' ? '2px solid #10a37f' : '2px solid transparent',
+                          color: drawerTab === 'accounts' ? '#10a37f' : 'var(--subtext)',
+                          fontWeight: drawerTab === 'accounts' ? 'bold' : 'normal',
+                          cursor: 'pointer',
+                          fontSize: '13px'
+                        }}
+                      >
+                        Accounts ({selectedUserAccounts.length})
+                      </button>
+                      <button
+                        className={`adm-drawer-tab ${drawerTab === 'metrics' ? 'active' : ''}`}
+                        onClick={() => setDrawerTab('metrics')}
+                        style={{
+                          padding: '12px 16px',
+                          background: 'none',
+                          border: 'none',
+                          borderBottom: drawerTab === 'metrics' ? '2px solid #10a37f' : '2px solid transparent',
+                          color: drawerTab === 'metrics' ? '#10a37f' : 'var(--subtext)',
+                          fontWeight: drawerTab === 'metrics' ? 'bold' : 'normal',
+                          cursor: 'pointer',
+                          fontSize: '13px'
+                        }}
+                      >
+                        Metrics
+                      </button>
                     </div>
-
+                  )}
+                  <div className="adm-drawer-body">
                     {editMode ? (
                       <>
+                        <div className="adm-drawer-profile">
+                          <img src={drawerUser.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(drawerUser.full_name || drawerUser.email)}&background=10a37f&color=fff&size=80`} alt="" className="adm-drawer-avatar" />
+                          <div className="adm-edit-profile-fields">
+                            <div className="adm-edit-field"><User className="adm-edit-icon" /><input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Full name" className="adm-edit-input" /></div>
+                            <div className="adm-edit-field"><Mail className="adm-edit-icon" /><input value={editEmail} onChange={e => setEditEmail(e.target.value)} placeholder="Email" className="adm-edit-input" /></div>
+                          </div>
+                        </div>
                         <div className="adm-edit-section">
                           <label className="adm-edit-label">Subscription Plan</label>
                           <div className="adm-edit-plan-row">
@@ -663,20 +727,151 @@ export default function AdminPage() {
                       </>
                     ) : (
                       <>
-                        <div className="adm-drawer-fields">
-                          <div className="adm-drawer-field"><span>User ID</span><span className="adm-mono">{drawerUser.id.slice(0, 8)}…</span></div>
-                          <div className="adm-drawer-field"><span>Full Name</span><span>{drawerUser.full_name || '—'}</span></div>
-                          <div className="adm-drawer-field"><span>Email</span><span>{drawerUser.email}</span></div>
-                          <div className="adm-drawer-field"><span>Plan</span><span>{(drawerUser.plan || 'free').charAt(0).toUpperCase() + (drawerUser.plan || 'free').slice(1)}</span></div>
-                          <div className="adm-drawer-field"><span>Role</span><span>{drawerUser.is_admin ? 'Admin' : 'User'}</span></div>
-                          <div className="adm-drawer-field"><span>Joined</span><span>{drawerUser.created_at ? new Date(drawerUser.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '—'}</span></div>
-                        </div>
-                        <div className="adm-drawer-actions">
-                          <button onClick={() => setEditMode(true)} className="adm-drawer-btn"><Pencil /> Edit User Info</button>
-                          <button onClick={() => { handleUpdatePlan(drawerUser.id, 'pro'); setDrawerUser({...drawerUser, plan: 'pro'}); }} className="adm-drawer-btn"><Crown /> Upgrade to Pro</button>
-                          <button onClick={() => { handleToggleAdmin(drawerUser.id, drawerUser.is_admin); setDrawerUser({...drawerUser, is_admin: !drawerUser.is_admin}); }} className="adm-drawer-btn">{drawerUser.is_admin ? <><ShieldOff /> Remove Admin</> : <><Shield /> Make Admin</>}</button>
-                          <button className="adm-drawer-btn adm-drawer-btn-danger" onClick={() => { setSuspendDialog({ userId: drawerUser.id, name: drawerUser.full_name || drawerUser.email }); setDrawerUser(null); }}><Ban /> Suspend Account</button>
-                        </div>
+                        {drawerTab === 'overview' && (
+                          <>
+                            <div className="adm-drawer-profile">
+                              <img src={drawerUser.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(drawerUser.full_name || drawerUser.email)}&background=10a37f&color=fff&size=80`} alt="" className="adm-drawer-avatar" />
+                              <h4>{drawerUser.full_name || drawerUser.email?.split('@')[0]}</h4>
+                              <p className="adm-drawer-email">{drawerUser.email}</p>
+                              <div className="adm-drawer-tags">
+                                <span className={`adm-tag adm-tag-${drawerUser.plan || 'free'}`}>{(drawerUser.plan || 'free').charAt(0).toUpperCase() + (drawerUser.plan || 'free').slice(1)}</span>
+                                {drawerUser.is_admin && <span className="adm-tag" style={{background:'rgba(239,68,68,0.12)',color:'#f87171'}}>Admin</span>}
+                              </div>
+                            </div>
+                            <div className="adm-drawer-fields" style={{ marginTop: '20px' }}>
+                              <div className="adm-drawer-field"><span>User ID</span><span className="adm-mono">{drawerUser.id.slice(0, 8)}…</span></div>
+                              <div className="adm-drawer-field"><span>Full Name</span><span>{drawerUser.full_name || '—'}</span></div>
+                              <div className="adm-drawer-field"><span>Email</span><span>{drawerUser.email}</span></div>
+                              <div className="adm-drawer-field"><span>Plan</span><span>{(drawerUser.plan || 'free').charAt(0).toUpperCase() + (drawerUser.plan || 'free').slice(1)}</span></div>
+                              <div className="adm-drawer-field"><span>Role</span><span>{drawerUser.is_admin ? 'Admin' : 'User'}</span></div>
+                              <div className="adm-drawer-field"><span>Joined</span><span>{drawerUser.created_at ? new Date(drawerUser.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '—'}</span></div>
+                            </div>
+                            <div className="adm-drawer-actions">
+                              <button onClick={() => setEditMode(true)} className="adm-drawer-btn"><Pencil /> Edit User Info</button>
+                              <button onClick={() => { handleUpdatePlan(drawerUser.id, 'pro'); setDrawerUser({...drawerUser, plan: 'pro'}); }} className="adm-drawer-btn"><Crown /> Upgrade to Pro</button>
+                              <button onClick={() => { handleToggleAdmin(drawerUser.id, drawerUser.is_admin); setDrawerUser({...drawerUser, is_admin: !drawerUser.is_admin}); }} className="adm-drawer-btn">{drawerUser.is_admin ? <><ShieldOff /> Remove Admin</> : <><Shield /> Make Admin</>}</button>
+                              <button className="adm-drawer-btn adm-drawer-btn-danger" onClick={() => { setSuspendDialog({ userId: drawerUser.id, name: drawerUser.full_name || drawerUser.email }); setDrawerUser(null); }}><Ban /> Suspend Account</button>
+                            </div>
+                          </>
+                        )}
+
+                        {drawerTab === 'accounts' && (
+                          <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            {drawerLoading ? (
+                              <div className="text-center py-10" style={{ color: 'var(--subtext)' }}>
+                                Loading connected accounts...
+                              </div>
+                            ) : selectedUserAccounts.length === 0 ? (
+                              <div className="text-center py-12" style={{ color: 'var(--subtext)', border: '1px dashed var(--border)', borderRadius: '12px', background: 'rgba(255,255,255,0.01)' }}>
+                                No broker accounts connected yet.
+                              </div>
+                            ) : (
+                              selectedUserAccounts.map((acc) => (
+                                <div key={acc.id} style={{
+                                  border: '1px solid var(--border)',
+                                  borderRadius: '12px',
+                                  padding: '16px',
+                                  background: 'rgba(255,255,255,0.02)',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: '12px'
+                                }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div>
+                                      <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 'bold' }}>{acc.broker_name || 'MT5 Account'}</h4>
+                                      <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: 'var(--subtext)' }}>
+                                        Login: {acc.mt5_login} · Server: {acc.server}
+                                      </p>
+                                    </div>
+                                    <span className={`adm-status ${acc.status === 'connected' ? 'adm-status-on' : 'adm-status-off'}`} style={{ fontSize: '10px' }}>
+                                      {acc.status === 'connected' ? 'Connected' : 'Offline'}
+                                    </span>
+                                  </div>
+                                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', borderTop: '1px solid var(--border)', paddingTop: '12px' }}>
+                                    <div>
+                                      <span style={{ display: 'block', fontSize: '9px', color: 'var(--subtext)', textTransform: 'uppercase' }}>Balance</span>
+                                      <span className="adm-mono" style={{ fontSize: '12px', fontWeight: 'bold' }}>${(acc.balance || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                    </div>
+                                    <div>
+                                      <span style={{ display: 'block', fontSize: '9px', color: 'var(--subtext)', textTransform: 'uppercase' }}>P&L</span>
+                                      <span className={`adm-mono adm-pnl ${(acc.pnl || 0) >= 0 ? 'adm-pnl-pos' : 'adm-pnl-neg'}`} style={{ fontSize: '12px', fontWeight: 'bold' }}>
+                                        {(acc.pnl || 0) >= 0 ? '+' : ''}${(acc.pnl || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                      </span>
+                                    </div>
+                                    <div>
+                                      <span style={{ display: 'block', fontSize: '9px', color: 'var(--subtext)', textTransform: 'uppercase' }}>Trades</span>
+                                      <span className="adm-mono" style={{ fontSize: '12px', fontWeight: 'bold' }}>{acc.trade_count || 0}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        )}
+
+                        {drawerTab === 'metrics' && (
+                          <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            {drawerLoading ? (
+                              <div className="text-center py-10" style={{ color: 'var(--subtext)' }}>
+                                Loading metrics...
+                              </div>
+                            ) : (
+                              (() => {
+                                const totalTrades = selectedUserTrades.length;
+                                const closedTrades = selectedUserTrades.filter(t => t.status === 'closed' || t.close_price);
+                                const winningTrades = closedTrades.filter(t => (t.pnl || 0) > 0);
+                                const losingTrades = closedTrades.filter(t => (t.pnl || 0) < 0);
+                                const winRate = closedTrades.length > 0 ? (winningTrades.length / closedTrades.length) * 100 : 0;
+                                const totalPnl = selectedUserTrades.reduce((acc, t) => acc + (t.pnl || 0), 0);
+                                const avgVolume = totalTrades > 0 ? selectedUserTrades.reduce((acc, t) => acc + Number(t.volume || 0), 0) / totalTrades : 0;
+
+                                const grossProfit = winningTrades.reduce((acc, t) => acc + (t.pnl || 0), 0);
+                                const grossLoss = Math.abs(losingTrades.reduce((acc, t) => acc + (t.pnl || 0), 0));
+                                const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : grossProfit > 0 ? 99.9 : 0;
+
+                                return (
+                                  <>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                      <div style={{ border: '1px solid var(--border)', borderRadius: '12px', padding: '12px', background: 'rgba(255,255,255,0.02)' }}>
+                                        <span style={{ display: 'block', fontSize: '10px', color: 'var(--subtext)', textTransform: 'uppercase' }}>Total Trades</span>
+                                        <span className="adm-mono" style={{ fontSize: '20px', fontWeight: 'bold' }}>{totalTrades}</span>
+                                      </div>
+                                      <div style={{ border: '1px solid var(--border)', borderRadius: '12px', padding: '12px', background: 'rgba(255,255,255,0.02)' }}>
+                                        <span style={{ display: 'block', fontSize: '10px', color: 'var(--subtext)', textTransform: 'uppercase' }}>Win Rate</span>
+                                        <span className="adm-mono text-green-500" style={{ fontSize: '20px', fontWeight: 'bold' }}>{winRate.toFixed(1)}%</span>
+                                      </div>
+                                      <div style={{ border: '1px solid var(--border)', borderRadius: '12px', padding: '12px', background: 'rgba(255,255,255,0.02)' }}>
+                                        <span style={{ display: 'block', fontSize: '10px', color: 'var(--subtext)', textTransform: 'uppercase' }}>Cumulative P&L</span>
+                                        <span className={`adm-mono ${(totalPnl >= 0 ? 'adm-pnl-pos' : 'adm-pnl-neg')}`} style={{ fontSize: '20px', fontWeight: 'bold' }}>
+                                          {totalPnl >= 0 ? '+' : ''}${totalPnl.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </span>
+                                      </div>
+                                      <div style={{ border: '1px solid var(--border)', borderRadius: '12px', padding: '12px', background: 'rgba(255,255,255,0.02)' }}>
+                                        <span style={{ display: 'block', fontSize: '10px', color: 'var(--subtext)', textTransform: 'uppercase' }}>Profit Factor</span>
+                                        <span className="adm-mono" style={{ fontSize: '20px', fontWeight: 'bold' }}>{profitFactor.toFixed(2)}</span>
+                                      </div>
+                                    </div>
+
+                                    <div style={{ border: '1px solid var(--border)', borderRadius: '12px', padding: '16px', background: 'rgba(255,255,255,0.02)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                                        <span style={{ color: 'var(--subtext)' }}>Avg. Trade Size</span>
+                                        <span className="adm-mono font-bold">{avgVolume.toFixed(2)} Lots</span>
+                                      </div>
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                                        <span style={{ color: 'var(--subtext)' }}>Winning Trades</span>
+                                        <span className="adm-mono font-bold text-green-500">{winningTrades.length}</span>
+                                      </div>
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                                        <span style={{ color: 'var(--subtext)' }}>Losing Trades</span>
+                                        <span className="adm-mono font-bold text-red-500">{losingTrades.length}</span>
+                                      </div>
+                                    </div>
+                                  </>
+                                );
+                              })()
+                            )}
+                          </div>
+                        )}
                       </>
                     )}
                   </div>
