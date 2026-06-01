@@ -1,4 +1,5 @@
 import { getPlatformConfig } from '@/lib/platformConfig';
+import { recordApiCall } from '@/lib/apiStats';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -8,21 +9,27 @@ export const runtime = 'nodejs';
 const BINANCE_SYMBOLS = ['BTCUSDT', 'ETHUSDT'];
 
 async function fetchBinance(): Promise<Record<string, number>> {
+  const t0 = Date.now();
   try {
     const encoded = encodeURIComponent(JSON.stringify(BINANCE_SYMBOLS));
     const res = await fetch(
       `https://api.binance.com/api/v3/ticker/price?symbols=${encoded}`,
       { cache: 'no-store' }
     );
-    if (!res.ok) return {};
+    if (!res.ok) {
+      recordApiCall('binance', false, Date.now() - t0, `HTTP ${res.status}`);
+      return {};
+    }
     const data: { symbol: string; price: string }[] = await res.json();
     const out: Record<string, number> = {};
     for (const item of data) {
       if (item.symbol === 'BTCUSDT') out['BTC/USD'] = parseFloat(item.price);
       if (item.symbol === 'ETHUSDT') out['ETH/USD'] = parseFloat(item.price);
     }
+    recordApiCall('binance', true, Date.now() - t0);
     return out;
-  } catch {
+  } catch (err: any) {
+    recordApiCall('binance', false, Date.now() - t0, err?.message);
     return {};
   }
 }
@@ -39,18 +46,24 @@ async function getTwelveKey() {
 async function fetchTwelveData(): Promise<Record<string, number>> {
   const key = await getTwelveKey();
   if (!key) return {};
+  const t0 = Date.now();
   try {
     const url = `https://api.twelvedata.com/price?symbol=${TD_SYMBOLS.join(',')}&apikey=${key}`;
     const res = await fetch(url, { cache: 'no-store' });
-    if (!res.ok) return {};
+    if (!res.ok) {
+      recordApiCall('twelve_data', false, Date.now() - t0, `HTTP ${res.status}`);
+      return {};
+    }
     const data = await res.json();
     const out: Record<string, number> = {};
     for (const sym of TD_SYMBOLS) {
       const entry = data[sym];
       if (entry?.price) out[sym] = parseFloat(entry.price);
     }
+    recordApiCall('twelve_data', true, Date.now() - t0);
     return out;
-  } catch {
+  } catch (err: any) {
+    recordApiCall('twelve_data', false, Date.now() - t0, err?.message);
     return {};
   }
 }

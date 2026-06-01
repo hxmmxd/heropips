@@ -8,6 +8,7 @@ import {
 } from '@/lib/market';
 
 import { getPlatformConfig } from '@/lib/platformConfig';
+import { recordApiCall, markUnconfigured } from '@/lib/apiStats';
 
 // ── NVIDIA API Key Round-Robin Rotation ─────────────────────
 // Keys are read from Supabase platform_config first, then env vars
@@ -198,6 +199,8 @@ Respond ONLY with this JSON (no markdown wrapping, no code fences):
 
     // 5. Call NVIDIA NIM API
     const apiKey = await getNextApiKey();
+    if (!apiKey) markUnconfigured('nvidia');
+    const t0 = Date.now();
     const llmResponse = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -219,12 +222,14 @@ Respond ONLY with this JSON (no markdown wrapping, no code fences):
 
     if (!llmResponse.ok) {
       const errDetail = llmData?.detail || llmData?.error?.message || llmData?.message || JSON.stringify(llmData);
+      recordApiCall('nvidia', false, Date.now() - t0, errDetail);
       console.error(`[Chat API] NVIDIA error (status ${llmResponse.status}):`, errDetail);
       return NextResponse.json(
         { text: `Signal engine error: ${errDetail}`, ticket: null },
         { status: 502 }
       );
     }
+    recordApiCall('nvidia', true, Date.now() - t0);
 
     // 6. Parse structured JSON from LLM
     let rawContent = llmData.choices?.[0]?.message?.content || '{}';

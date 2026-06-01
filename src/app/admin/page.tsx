@@ -84,6 +84,23 @@ export default function AdminPage() {
   const [showAddProvider, setShowAddProvider] = useState(false);
   const [newProvider, setNewProvider] = useState({ name: '', type: 'metatrader', api_key: '', api_secret: '', base_url: '' });
   const [testingProvider, setTestingProvider] = useState<string | null>(null);
+  const [apiStats, setApiStats] = useState<any[]>([]);
+
+  // Poll API stats every 10s when analytics tab is active
+  useEffect(() => {
+    let timer: ReturnType<typeof setInterval>;
+    const fetchStats = async () => {
+      try {
+        const res = await fetch('/api/admin/api-stats');
+        if (res.ok) { const d = await res.json(); setApiStats(d.stats || []); }
+      } catch {}
+    };
+    if (activeSection === 'analytics' || activeSection === 'settings') {
+      fetchStats();
+      timer = setInterval(fetchStats, 10_000);
+    }
+    return () => clearInterval(timer);
+  }, [activeSection]);
 
   useEffect(() => { loadData(); }, []);
 
@@ -796,6 +813,76 @@ export default function AdminPage() {
                   }}><Server className="adm-export-card-icon" /><span>Export Brokers</span><Download /></button>
                 </div>
               </div>
+
+              {/* ── API Stats Panel ── */}
+              {apiStats.length > 0 && (
+                <div className="adm-card adm-card-full">
+                  <div className="adm-card-head">
+                    <h3><Wifi style={{width:15,height:15,marginRight:6,verticalAlign:'middle'}}/>API Integration Stats</h3>
+                    <span style={{fontSize:11,color:'var(--subtext)'}}>Live · refreshes every 10s</span>
+                  </div>
+                  <div className="adm-card-body" style={{display:'flex',flexDirection:'column',gap:16}}>
+                    {apiStats.map((s: any) => {
+                      const callsPerMin = s.recentTimestamps?.length ?? 0;
+                      const quotaUsePct = s.quotaPerMin ? Math.min((callsPerMin / s.quotaPerMin) * 100, 100) : null;
+                      const statusColor = s.status === 'active' ? '#10b981' : s.status === 'error' ? '#ef4444' : s.status === 'unconfigured' ? '#f59e0b' : '#6b7280';
+                      const statusLabel = s.status === 'active' ? 'Active' : s.status === 'error' ? 'Error' : s.status === 'unconfigured' ? 'Not Configured' : 'Idle';
+                      return (
+                        <div key={s.name} style={{display:'flex',alignItems:'flex-start',gap:16,padding:'14px 0',borderBottom:'1px solid var(--border)'}}>
+                          {/* Status dot */}
+                          <div style={{display:'flex',alignItems:'center',gap:8,minWidth:160}}>
+                            <div style={{width:9,height:9,borderRadius:'50%',background:statusColor,boxShadow:`0 0 6px ${statusColor}`,flexShrink:0}} />
+                            <div>
+                              <p style={{margin:0,fontSize:13,fontWeight:600,color:'var(--text)'}}>{s.label}</p>
+                              <span style={{fontSize:10,fontWeight:700,color:statusColor,textTransform:'uppercase',letterSpacing:'0.05em'}}>{statusLabel}</span>
+                            </div>
+                          </div>
+                          {/* Stats */}
+                          <div style={{flex:1,display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12}}>
+                            <div style={{textAlign:'center'}}>
+                              <p style={{margin:0,fontSize:18,fontWeight:700,color:'var(--text)',fontFamily:'monospace'}}>{s.totalCalls.toLocaleString()}</p>
+                              <p style={{margin:0,fontSize:10,color:'var(--subtext)'}}>Total Calls</p>
+                            </div>
+                            <div style={{textAlign:'center'}}>
+                              <p style={{margin:0,fontSize:18,fontWeight:700,color:'var(--text)',fontFamily:'monospace'}}>{callsPerMin}</p>
+                              <p style={{margin:0,fontSize:10,color:'var(--subtext)'}}>Calls/Min{s.quotaPerMin ? ` (of ${s.quotaPerMin})` : ''}</p>
+                            </div>
+                            <div style={{textAlign:'center'}}>
+                              <p style={{margin:0,fontSize:18,fontWeight:700,color:'var(--text)',fontFamily:'monospace'}}>{s.avgLatencyMs > 0 ? `${s.avgLatencyMs}ms` : '—'}</p>
+                              <p style={{margin:0,fontSize:10,color:'var(--subtext)'}}>Avg Latency</p>
+                            </div>
+                            <div style={{textAlign:'center'}}>
+                              <p style={{margin:0,fontSize:18,fontWeight:700,color:s.errorCalls > 0 ? '#ef4444' : 'var(--text)',fontFamily:'monospace'}}>{s.errorCalls}</p>
+                              <p style={{margin:0,fontSize:10,color:'var(--subtext)'}}>Errors</p>
+                            </div>
+                          </div>
+                          {/* Quota bar */}
+                          {quotaUsePct !== null && (
+                            <div style={{minWidth:120}}>
+                              <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+                                <span style={{fontSize:10,color:'var(--subtext)'}}>Quota</span>
+                                <span style={{fontSize:10,fontWeight:700,color:quotaUsePct > 90 ? '#ef4444' : quotaUsePct > 70 ? '#f59e0b' : '#10b981'}}>{quotaUsePct.toFixed(0)}%</span>
+                              </div>
+                              <div style={{height:6,background:'var(--input-bg)',borderRadius:3,overflow:'hidden'}}>
+                                <div style={{height:'100%',borderRadius:3,transition:'width 0.5s',width:`${quotaUsePct}%`,background:quotaUsePct > 90 ? '#ef4444' : quotaUsePct > 70 ? '#f59e0b' : '#10b981'}} />
+                              </div>
+                              <p style={{margin:'4px 0 0',fontSize:10,color:'var(--subtext)'}}>{callsPerMin}/{s.quotaPerMin}/min</p>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {apiStats.some((s: any) => s.lastErrorMsg) && (
+                      <div style={{marginTop:8,padding:'10px 14px',background:'rgba(239,68,68,0.06)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:10}}>
+                        <p style={{margin:'0 0 6px',fontSize:12,fontWeight:600,color:'#ef4444'}}>Recent Errors</p>
+                        {apiStats.filter((s: any) => s.lastErrorMsg).map((s: any) => (
+                          <p key={s.name} style={{margin:'2px 0',fontSize:11,color:'var(--subtext)'}}><span style={{color:'#ef4444',fontWeight:600}}>{s.label}:</span> {s.lastErrorMsg}</p>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </>
           )}
 
@@ -804,6 +891,7 @@ export default function AdminPage() {
               initialConfig={config}
               initialAnnouncements={announcements}
               onRefresh={loadData}
+              apiStats={apiStats}
             />
           )}
           {activeSection === 'audit' && (

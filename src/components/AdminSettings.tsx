@@ -9,12 +9,14 @@ interface AdminSettingsProps {
   initialConfig: Record<string, any>;
   initialAnnouncements: any[];
   onRefresh: () => Promise<void> | void;
+  apiStats?: any[];
 }
 
 export default function AdminSettings({
   initialConfig,
   initialAnnouncements,
-  onRefresh
+  onRefresh,
+  apiStats = [],
 }: AdminSettingsProps) {
   const [settingsSubPage, setSettingsSubPage] = useState<'main' | 'referral' | 'pricing' | 'announcements' | 'payments' | 'smtp' | 'invoice' | 'integrations'>('main');
 
@@ -71,7 +73,7 @@ export default function AdminSettings({
           <InvoiceConfigTab />
         )}
         {settingsSubPage === 'integrations' && (
-          <ApiIntegrationsTab initialConfig={initialConfig} />
+          <ApiIntegrationsTab initialConfig={initialConfig} apiStats={apiStats} />
         )}
       </div>
     </div>
@@ -1580,7 +1582,7 @@ function InvoiceConfigTab() {
 // ──────────────────────────────────────────────────────────────────────
 // 8. API INTEGRATIONS TAB
 // ──────────────────────────────────────────────────────────────────────
-function ApiIntegrationsTab({ initialConfig }: { initialConfig: Record<string, any> }) {
+function ApiIntegrationsTab({ initialConfig, apiStats = [] }: { initialConfig: Record<string, any>; apiStats?: any[] }) {
   const integrations = [
     {
       id: 'twelve_data',
@@ -1668,7 +1670,21 @@ function ApiIntegrationsTab({ initialConfig }: { initialConfig: Record<string, a
         </div>
       </div>
 
-      {integrations.map(intg => (
+      {integrations.map(intg => {
+        const stat = apiStats.find((s: any) => s.name === intg.id);
+        const callsPerMin = stat?.recentTimestamps?.length ?? null;
+        const statusColor = !stat ? '#6b7280'
+          : stat.status === 'active' ? '#10b981'
+          : stat.status === 'error' ? '#ef4444'
+          : stat.status === 'unconfigured' ? '#f59e0b'
+          : '#6b7280';
+        const statusLabel = !stat ? 'No data'
+          : stat.status === 'active' ? 'Connected'
+          : stat.status === 'error' ? 'Error'
+          : stat.status === 'unconfigured' ? 'Not Configured'
+          : 'Idle';
+
+        return (
         <div key={intg.id} className="adm-card adm-card-full">
           <div className="adm-card-head" style={{ borderBottom: '1px solid var(--border)', paddingBottom: 14, marginBottom: 14 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -1685,18 +1701,40 @@ function ApiIntegrationsTab({ initialConfig }: { initialConfig: Record<string, a
                   <p style={{ margin: 0, fontSize: 11, color: 'var(--subtext)', marginTop: 2 }}>{intg.description}</p>
                 </div>
               </div>
-              <a
-                href={intg.docsUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ fontSize: 11, color: '#4f8ef7', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}
-              >
-                Docs ↗
-              </a>
+              {/* Live status badge + metrics */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                {stat && (
+                  <>
+                    {callsPerMin !== null && (
+                      <div style={{ textAlign: 'right' }}>
+                        <p style={{ margin: 0, fontSize: 16, fontWeight: 700, fontFamily: 'monospace', color: 'var(--text)' }}>{callsPerMin}<span style={{ fontSize: 10, color: 'var(--subtext)', fontWeight: 400 }}>/min</span></p>
+                        {stat.avgLatencyMs > 0 && <p style={{ margin: 0, fontSize: 10, color: 'var(--subtext)' }}>{stat.avgLatencyMs}ms avg</p>}
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 20, background: `${statusColor}15`, border: `1px solid ${statusColor}40` }}>
+                      <div style={{ width: 7, height: 7, borderRadius: '50%', background: statusColor, boxShadow: stat.status === 'active' ? `0 0 5px ${statusColor}` : 'none' }} />
+                      <span style={{ fontSize: 11, fontWeight: 700, color: statusColor }}>{statusLabel}</span>
+                    </div>
+                  </>
+                )}
+                <a
+                  href={intg.docsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ fontSize: 11, color: '#4f8ef7', textDecoration: 'none' }}
+                >
+                  Docs ↗
+                </a>
+              </div>
             </div>
             <div style={{ marginTop: 10, fontSize: 11, color: 'var(--subtext)', background: 'var(--input-bg)', padding: '6px 10px', borderRadius: 7 }}>
               💡 {intg.planNote}
             </div>
+            {stat?.lastErrorMsg && (
+              <div style={{ marginTop: 8, fontSize: 11, color: '#ef4444', background: 'rgba(239,68,68,0.06)', padding: '6px 10px', borderRadius: 7, border: '1px solid rgba(239,68,68,0.2)' }}>
+                ⚠ Last error: {stat.lastErrorMsg}
+              </div>
+            )}
           </div>
 
           <div className="adm-card-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -1770,7 +1808,8 @@ function ApiIntegrationsTab({ initialConfig }: { initialConfig: Record<string, a
             })}
           </div>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

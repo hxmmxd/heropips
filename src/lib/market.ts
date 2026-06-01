@@ -1,5 +1,6 @@
 import { computeIndicators } from './indicators';
 import { getPlatformConfig } from './platformConfig';
+import { recordApiCall, markUnconfigured } from './apiStats';
 
 const BASE_URL = 'https://api.twelvedata.com';
 
@@ -165,6 +166,7 @@ async function fetchJSON(endpoint: string, params: Record<string, string>) {
   const apiKey = await getApiKey();
   if (!apiKey) {
     console.error('[Market Engine] TWELVE_DATA_API_KEY is not set');
+    markUnconfigured('twelve_data');
     return null;
   }
 
@@ -174,19 +176,24 @@ async function fetchJSON(endpoint: string, params: Record<string, string>) {
     url.searchParams.set(k, v);
   }
 
+  const t0 = Date.now();
   try {
     const res = await fetch(url.toString(), { cache: 'no-store' });
     if (!res.ok) {
+      recordApiCall('twelve_data', false, Date.now() - t0, `HTTP ${res.status}`);
       console.error(`[Market Engine] ${endpoint} returned ${res.status}`);
       return null;
     }
     const data = await res.json();
     if (data.status === 'error') {
+      recordApiCall('twelve_data', false, Date.now() - t0, data.message || 'API error');
       console.error(`[Market Engine] ${endpoint} error:`, data.message);
       return null;
     }
+    recordApiCall('twelve_data', true, Date.now() - t0);
     return data;
-  } catch (err) {
+  } catch (err: any) {
+    recordApiCall('twelve_data', false, Date.now() - t0, err?.message || 'Fetch failed');
     console.error(`[Market Engine] ${endpoint} fetch failed:`, err);
     return null;
   }
