@@ -406,24 +406,20 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
                               {(() => {
                                 const live = getPrice(msg.marketData.displaySymbol) ?? getPrice(msg.marketData.symbol);
                                 const displayP = live ?? msg.marketData.price;
-                                const isLive = live !== null;
                                 return (
                                   <>
-                                    <p className={`text-lg font-bold font-mono ${ isLive ? 'text-green-400' : 'text-[var(--text)]' }`}>
+                                    <p className="text-lg font-bold font-mono text-[var(--text)]">
                                       ${displayP > 999
                                         ? displayP.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                                         : displayP.toFixed(4)}
                                     </p>
-                                    <div className="flex items-center justify-end gap-1 mt-0.5">
-                                      {isLive && <span className="live-dot live-dot-pulse" style={{ width: 5, height: 5 }} />}
-                                      <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                                        msg.marketData.confluenceDirection === 'SELL'
-                                          ? 'bg-red-500/10 text-red-500'
-                                          : 'bg-green-500/10 text-green-500'
-                                      }`}>
-                                        {msg.marketData.confluenceDirection} Bias
-                                      </span>
-                                    </div>
+                                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                                      msg.marketData.confluenceDirection === 'SELL'
+                                        ? 'bg-red-500/10 text-red-500'
+                                        : 'bg-green-500/10 text-green-500'
+                                    }`}>
+                                      {msg.marketData.confluenceDirection} Bias
+                                    </span>
                                   </>
                                 );
                               })()}
