@@ -7,19 +7,28 @@ import {
   fetchNewsHeadlines,
 } from '@/lib/market';
 
+import { getPlatformConfig } from '@/lib/platformConfig';
+
 // ── NVIDIA API Key Round-Robin Rotation ─────────────────────
-const NVIDIA_KEYS: string[] = (() => {
+// Keys are read from Supabase platform_config first, then env vars
+let keyIndex = 0;
+
+async function getNvidiaKeys(): Promise<string[]> {
+  // Try Supabase first
+  const dbKeys = await getPlatformConfig('nvidia_api_keys', '');
+  if (dbKeys) return dbKeys.split(',').map((k: string) => k.trim()).filter(Boolean);
+  // Fall back to env vars
   const multi = process.env.NVIDIA_API_KEYS;
   if (multi) return multi.split(',').map(k => k.trim()).filter(Boolean);
   const single = process.env.NVIDIA_API_KEY;
   if (single) return [single];
   return [];
-})();
+}
 
-let keyIndex = 0;
-function getNextApiKey(): string | null {
-  if (NVIDIA_KEYS.length === 0) return null;
-  const key = NVIDIA_KEYS[keyIndex % NVIDIA_KEYS.length];
+async function getNextApiKey(): Promise<string | null> {
+  const keys = await getNvidiaKeys();
+  if (keys.length === 0) return null;
+  const key = keys[keyIndex % keys.length];
   keyIndex++;
   return key;
 }
@@ -61,7 +70,7 @@ export async function POST(request: Request) {
 
     // 2. No asset detected OR conversational mention → general conversation
     if (!symbol || !isDirectQuery) {
-      const apiKey = getNextApiKey();
+      const apiKey = await getNextApiKey();
       let parsedText = '';
 
       if (!apiKey) {
@@ -188,7 +197,7 @@ Respond ONLY with this JSON (no markdown wrapping, no code fences):
 {"text":"### 🤖 Multi-Agent Consensus\\n* **Technical Analysis**: [under 8 words findings]\\n* **Macro News**: [under 8 words sentiment]\\n* **Master Synthesis**: [under 8 words final summary]","newsSentiment":"BULLISH, BEARISH, or NEUTRAL"}`;
 
     // 5. Call NVIDIA NIM API
-    const apiKey = getNextApiKey();
+    const apiKey = await getNextApiKey();
     const llmResponse = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
       method: 'POST',
       headers: {

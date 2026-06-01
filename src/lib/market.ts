@@ -1,4 +1,5 @@
 import { computeIndicators } from './indicators';
+import { getPlatformConfig } from './platformConfig';
 
 const BASE_URL = 'https://api.twelvedata.com';
 
@@ -16,9 +17,9 @@ export interface CandleData {
   close: number;
 }
 
-// Read API key at call time (not module load time) to ensure env is loaded
-function getApiKey(): string {
-  return process.env.TWELVE_DATA_API_KEY || '';
+// Read API key — checks Supabase platform_config first, then env var
+async function getApiKey(): Promise<string> {
+  return getPlatformConfig('twelve_data_api_key', 'TWELVE_DATA_API_KEY');
 }
 
 // Supported symbol mappings (user-friendly → API format)
@@ -161,7 +162,7 @@ export interface MarketSnapshot {
 // ── Fetch Helpers ──────────────────────────────────────────
 
 async function fetchJSON(endpoint: string, params: Record<string, string>) {
-  const apiKey = getApiKey();
+  const apiKey = await getApiKey();
   if (!apiKey) {
     console.error('[Market Engine] TWELVE_DATA_API_KEY is not set');
     return null;
@@ -448,8 +449,9 @@ export async function getMarketSnapshot(symbol: string): Promise<MarketSnapshot 
 
 export async function fetchCandles(symbol: string, interval: string = '1h', outputsize: number = 50): Promise<CandleData[]> {
   try {
+    const key = await getApiKey();
     const res = await fetch(
-      `${BASE_URL}/time_series?symbol=${encodeURIComponent(symbol)}&interval=${interval}&outputsize=${outputsize}&apikey=${getApiKey()}`
+      `${BASE_URL}/time_series?symbol=${encodeURIComponent(symbol)}&interval=${interval}&outputsize=${outputsize}&apikey=${key}`
     );
     const data = await res.json();
 

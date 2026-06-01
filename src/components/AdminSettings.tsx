@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  Zap, Crown, Rocket, Loader2, Play, Copy, Shield, Settings, Activity, Send, Trash2, Key, Terminal, FileText, Mail, Receipt
+  Zap, Crown, Rocket, Loader2, Play, Copy, Shield, Settings, Activity, Send, Trash2, Key, Terminal, FileText, Mail, Receipt, Cpu, Eye, EyeOff, CheckCircle2
 } from 'lucide-react';
 
 interface AdminSettingsProps {
@@ -16,7 +16,7 @@ export default function AdminSettings({
   initialAnnouncements,
   onRefresh
 }: AdminSettingsProps) {
-  const [settingsSubPage, setSettingsSubPage] = useState<'main' | 'referral' | 'pricing' | 'announcements' | 'payments' | 'smtp' | 'invoice'>('main');
+  const [settingsSubPage, setSettingsSubPage] = useState<'main' | 'referral' | 'pricing' | 'announcements' | 'payments' | 'smtp' | 'invoice' | 'integrations'>('main');
 
   return (
     <div style={{ display: 'flex', gap: 24, width: '100%' }}>
@@ -30,6 +30,7 @@ export default function AdminSettings({
           { id: 'payments', label: 'Payments Gateway', icon: Shield },
           { id: 'smtp', label: 'SMTP Mailer', icon: Mail },
           { id: 'invoice', label: 'Invoice Branding', icon: Receipt },
+          { id: 'integrations', label: 'API Integrations', icon: Cpu },
         ].map(tab => {
           const Icon = tab.icon;
           return (
@@ -68,6 +69,9 @@ export default function AdminSettings({
         )}
         {settingsSubPage === 'invoice' && (
           <InvoiceConfigTab />
+        )}
+        {settingsSubPage === 'integrations' && (
+          <ApiIntegrationsTab initialConfig={initialConfig} />
         )}
       </div>
     </div>
@@ -1569,6 +1573,204 @@ function InvoiceConfigTab() {
           {saving ? 'Saving...' : 'Save Invoice Configuration'}
         </button>
       </div>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// 8. API INTEGRATIONS TAB
+// ──────────────────────────────────────────────────────────────────────
+function ApiIntegrationsTab({ initialConfig }: { initialConfig: Record<string, any> }) {
+  const integrations = [
+    {
+      id: 'twelve_data',
+      label: 'Twelve Data',
+      description: 'Market data, indicators (RSI, MACD, EMA, ATR), and candle history',
+      planNote: 'Grow plan ($29/mo) recommended — 55 credits/min, no daily limits',
+      docsUrl: 'https://twelvedata.com/pricing',
+      fields: [
+        { key: 'twelve_data_api_key', label: 'API Key', placeholder: 'Enter Twelve Data API key', isSecret: true },
+      ],
+    },
+    {
+      id: 'nvidia',
+      label: 'NVIDIA NIM (AI Chat)',
+      description: 'Powers the AI multi-agent trading analysis and chat responses',
+      planNote: 'Multiple keys supported (comma-separated) for round-robin rotation',
+      docsUrl: 'https://build.nvidia.com/',
+      fields: [
+        { key: 'nvidia_api_keys', label: 'API Key(s)', placeholder: 'nvapi-xxxx,nvapi-yyyy (comma-separated)', isSecret: true },
+      ],
+    },
+    {
+      id: 'metaapi',
+      label: 'MetaAPI (MT5 Broker)',
+      description: 'Connects MetaTrader 5 broker accounts for live trade execution',
+      planNote: 'Required for live broker connectivity and automated order execution',
+      docsUrl: 'https://metaapi.cloud/',
+      fields: [
+        { key: 'metaapi_token', label: 'API Token', placeholder: 'Enter MetaAPI token', isSecret: true },
+      ],
+    },
+  ];
+
+  // Per-field state
+  type FieldState = { value: string; show: boolean; saving: boolean; saved: boolean };
+  const [fields, setFields] = useState<Record<string, FieldState>>(() => {
+    const init: Record<string, FieldState> = {};
+    for (const intg of integrations) {
+      for (const f of intg.fields) {
+        const existing = initialConfig[f.key];
+        init[f.key] = {
+          value: existing || '',
+          show: false,
+          saving: false,
+          saved: false,
+        };
+      }
+    }
+    return init;
+  });
+
+  const setField = (key: string, patch: Partial<FieldState>) =>
+    setFields(prev => ({ ...prev, [key]: { ...prev[key], ...patch } }));
+
+  const saveField = async (key: string) => {
+    setField(key, { saving: true, saved: false });
+    try {
+      await fetch('/api/admin', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ configKey: key, configValue: fields[key].value }),
+      });
+      setField(key, { saving: false, saved: true });
+      setTimeout(() => setField(key, { saved: false }), 3000);
+    } catch {
+      setField(key, { saving: false });
+    }
+  };
+
+  const maskValue = (val: string) => {
+    if (!val) return '';
+    if (val.length <= 8) return '••••••••';
+    return val.slice(0, 4) + '••••••••' + val.slice(-4);
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* Header */}
+      <div className="adm-card adm-card-full">
+        <div className="adm-card-head">
+          <h3>API Integrations</h3>
+          <p style={{ fontSize: 12, color: 'var(--subtext)', marginTop: 4 }}>
+            Keys saved here override <code style={{ fontSize: 11, background: 'var(--input-bg)', padding: '1px 5px', borderRadius: 4 }}>.env.local</code> — changes take effect within 60 seconds, no redeploy needed.
+          </p>
+        </div>
+      </div>
+
+      {integrations.map(intg => (
+        <div key={intg.id} className="adm-card adm-card-full">
+          <div className="adm-card-head" style={{ borderBottom: '1px solid var(--border)', paddingBottom: 14, marginBottom: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: 10,
+                  background: 'var(--input-bg)', border: '1px solid var(--border)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                  <Cpu style={{ width: 16, height: 16, color: 'var(--subtext)' }} />
+                </div>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>{intg.label}</h4>
+                  <p style={{ margin: 0, fontSize: 11, color: 'var(--subtext)', marginTop: 2 }}>{intg.description}</p>
+                </div>
+              </div>
+              <a
+                href={intg.docsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ fontSize: 11, color: '#4f8ef7', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}
+              >
+                Docs ↗
+              </a>
+            </div>
+            <div style={{ marginTop: 10, fontSize: 11, color: 'var(--subtext)', background: 'var(--input-bg)', padding: '6px 10px', borderRadius: 7 }}>
+              💡 {intg.planNote}
+            </div>
+          </div>
+
+          <div className="adm-card-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {intg.fields.map(f => {
+              const fstate = fields[f.key] || { value: '', show: false, saving: false, saved: false };
+              return (
+                <div key={f.key}>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--subtext)', display: 'block', marginBottom: 6 }}>
+                    {f.label}
+                  </label>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <div style={{ flex: 1, position: 'relative' }}>
+                      <input
+                        type={f.isSecret && !fstate.show ? 'password' : 'text'}
+                        value={fstate.value}
+                        onChange={e => setField(f.key, { value: e.target.value, saved: false })}
+                        placeholder={fstate.value ? maskValue(fstate.value) : f.placeholder}
+                        style={{
+                          width: '100%', boxSizing: 'border-box',
+                          background: 'var(--input-bg)', border: '1px solid var(--border)',
+                          borderRadius: 9, padding: '9px 36px 9px 12px',
+                          fontSize: 13, color: 'var(--text)',
+                          outline: 'none', fontFamily: 'monospace',
+                        }}
+                        onFocus={e => (e.target.style.borderColor = '#4f8ef7')}
+                        onBlur={e => (e.target.style.borderColor = 'var(--border)')}
+                      />
+                      {f.isSecret && (
+                        <button
+                          type="button"
+                          onClick={() => setField(f.key, { show: !fstate.show })}
+                          style={{
+                            position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                            background: 'none', border: 'none', cursor: 'pointer',
+                            color: 'var(--subtext)', padding: 2,
+                          }}
+                        >
+                          {fstate.show
+                            ? <EyeOff style={{ width: 15, height: 15 }} />
+                            : <Eye style={{ width: 15, height: 15 }} />}
+                        </button>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => saveField(f.key)}
+                      disabled={fstate.saving || !fstate.value}
+                      style={{
+                        padding: '9px 16px', borderRadius: 9, border: 'none', cursor: 'pointer',
+                        background: fstate.saved ? '#10b981' : '#4f8ef7',
+                        color: '#fff', fontSize: 12, fontWeight: 600,
+                        display: 'flex', alignItems: 'center', gap: 6,
+                        opacity: fstate.saving || !fstate.value ? 0.6 : 1,
+                        transition: 'background 0.3s',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {fstate.saving
+                        ? <><Loader2 style={{ width: 13, height: 13 }} className="bm-spin" /> Saving</>
+                        : fstate.saved
+                        ? <><CheckCircle2 style={{ width: 13, height: 13 }} /> Saved!</>
+                        : <><Key style={{ width: 13, height: 13 }} /> Save Key</>}
+                    </button>
+                  </div>
+                  {fstate.saved && (
+                    <p style={{ fontSize: 11, color: '#10b981', marginTop: 5 }}>
+                      ✓ Key updated. Takes effect within 60 seconds — no restart needed.
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

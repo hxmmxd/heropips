@@ -1,3 +1,5 @@
+import { getPlatformConfig } from '@/lib/platformConfig';
+
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
@@ -30,12 +32,12 @@ async function fetchBinance(): Promise<Record<string, number>> {
 // We poll every 15s → 4 calls/min → 28 credits/min (safe on basic plan)
 const TD_SYMBOLS = ['XAU/USD', 'EUR/USD', 'GBP/USD', 'QQQ', 'DIA', 'USO', 'SPY'];
 
-function getTwelveKey() {
-  return process.env.TWELVE_DATA_API_KEY || '';
+async function getTwelveKey() {
+  return getPlatformConfig('twelve_data_api_key', 'TWELVE_DATA_API_KEY');
 }
 
 async function fetchTwelveData(): Promise<Record<string, number>> {
-  const key = getTwelveKey();
+  const key = await getTwelveKey();
   if (!key) return {};
   try {
     const url = `https://api.twelvedata.com/price?symbol=${TD_SYMBOLS.join(',')}&apikey=${key}`;
@@ -54,8 +56,8 @@ async function fetchTwelveData(): Promise<Record<string, number>> {
 }
 
 // ─── SSE Handler ─────────────────────────────────────────────
-const BINANCE_POLL_MS  = 2_000;   // crypto — Binance, free, unlimited
-const TD_POLL_MS       = 8_000;   // 7 symbols × 7.5 calls/min = 52.5 credits/min (Grow plan: 55/min ✓)
+const BINANCE_POLL_MS = 2_000;   // crypto updates every 2s
+const TD_POLL_MS = 5_000;   // forex/metals/ETFs every 5s
 
 export async function GET() {
   const encoder = new TextEncoder();
@@ -94,16 +96,16 @@ export async function GET() {
         closed = true;
         clearInterval(binanceTimer);
         clearInterval(tdTimer);
-        try { controller.close(); } catch {}
+        try { controller.close(); } catch { }
       }, 270_000);
     },
   });
 
   return new Response(stream, {
     headers: {
-      'Content-Type':      'text/event-stream',
-      'Cache-Control':     'no-cache, no-transform',
-      'Connection':        'keep-alive',
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
+      'Connection': 'keep-alive',
       'X-Accel-Buffering': 'no',
     },
   });
