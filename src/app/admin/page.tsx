@@ -8,7 +8,8 @@ import {
   ArrowUpRight, Globe, Clock, Wifi, WifiOff, Receipt, CheckCircle, XCircle,
   Heart, Cpu, Database, Pencil, Check, X, Mail, User, Settings, Megaphone,
   FileText, Power, ToggleLeft, ToggleRight, AlertTriangle, Plus, Trash2,
-  Target, BarChart2, ShieldAlert, Plug, TestTube, Loader2, Key, Link2, Handshake
+  Target, BarChart2, ShieldAlert, Plug, TestTube, Loader2, Key, Link2, Handshake,
+  Menu
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import AdminSettings from '@/components/AdminSettings';
@@ -43,7 +44,14 @@ interface TradeRow { id: string; user_id: string; symbol: string; type: string; 
 
 type SortKey = 'full_name' | 'email' | 'plan' | 'created_at';
 type SortDir = 'asc' | 'desc';
-type Section = 'overview' | 'users' | 'brokers' | 'trades' | 'analytics' | 'settings' | 'audit';
+type Section = 'overview' | 'users' | 'brokers' | 'accounts' | 'trades' | 'analytics' | 'settings' | 'audit';
+
+const generateUUID = () => {
+  if (typeof window !== 'undefined' && window.crypto?.randomUUID) {
+    return window.crypto.randomUUID();
+  }
+  return 'partner_' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+};
 
 export default function AdminPage() {
   const [stats, setStats] = useState<AdminStats | null>(null);
@@ -58,6 +66,7 @@ export default function AdminPage() {
   const [sortKey, setSortKey] = useState<SortKey>('created_at');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [refreshing, setRefreshing] = useState(false);
+  const [showMobileNav, setShowMobileNav] = useState(false);
   const [actionMenu, setActionMenu] = useState<string | null>(null);
   const [planFilter, setPlanFilter] = useState('all');
   const [roleFilter, setRoleFilter] = useState('all');
@@ -93,6 +102,34 @@ export default function AdminPage() {
   const [editingPartner, setEditingPartner] = useState<any | null>(null);
   const [partnerForm, setPartnerForm] = useState<any>(EMPTY_PARTNER);
   const [partnerSaving, setPartnerSaving] = useState(false);
+
+  // MetaAPI server search states inside modal
+  const [brokerSearchQuery, setBrokerSearchQuery] = useState('');
+  const [brokerSearchResults, setBrokerSearchResults] = useState<string[]>([]);
+  const [searchingServers, setSearchingServers] = useState(false);
+  const [customServerInput, setCustomServerInput] = useState('');
+
+  // Debounced search for broker servers
+  useEffect(() => {
+    if (!brokerSearchQuery.trim()) {
+      setBrokerSearchResults([]);
+      return;
+    }
+    const delay = setTimeout(async () => {
+      setSearchingServers(true);
+      try {
+        const res = await fetch(`/api/broker?q=${encodeURIComponent(brokerSearchQuery)}`);
+        if (res.ok) {
+          const d = await res.json();
+          setBrokerSearchResults(d.servers || []);
+        }
+      } catch {}
+      finally {
+        setSearchingServers(false);
+      }
+    }, 400);
+    return () => clearTimeout(delay);
+  }, [brokerSearchQuery]);
 
   // Poll API stats every 10s when analytics tab is active
   useEffect(() => {
@@ -143,13 +180,19 @@ export default function AdminPage() {
 
   const savePartnerBrokers = async (list: any[]) => {
     setPartnerSaving(true);
-    await fetch('/api/admin', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ configKey: 'partner_brokers', configValue: list }),
-    });
-    setPartnerBrokers(list);
-    setPartnerSaving(false);
+    try {
+      const res = await fetch('/api/admin', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ configKey: 'partner_brokers', configValue: list }),
+      });
+      if (!res.ok) throw new Error('Failed to save partner brokers');
+      setPartnerBrokers(list);
+    } catch (err: any) {
+      alert(err.message || 'Error saving partner brokers');
+    } finally {
+      setPartnerSaving(false);
+    }
   };
 
   const handleUpdatePlan = async (userId: string, plan: string) => {
@@ -276,6 +319,9 @@ export default function AdminPage() {
           <a href="/" className="adm-logo-link">
             <ArrowLeft className="adm-logo-arrow" />
           </a>
+          <button className="adm-hamburger" onClick={() => setShowMobileNav(!showMobileNav)} title="Toggle Navigation">
+            <Menu />
+          </button>
           <div className="adm-topbar-brand">
             <h1 className="adm-topbar-title">TradeGPT</h1>
             <span className="adm-topbar-badge">Admin</span>
@@ -293,6 +339,44 @@ export default function AdminPage() {
       </header>
 
       <div className="adm-body">
+        {/* Mobile Sidebar Navigation Drawer */}
+        {showMobileNav && (
+          <>
+            <div className="adm-drawer-overlay" onClick={() => setShowMobileNav(false)} style={{ zIndex: 1040 }} />
+            <nav className="adm-nav-mobile">
+              <div className="adm-nav-mobile-head">
+                <h3>Navigation</h3>
+                <button onClick={() => setShowMobileNav(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--subtext)' }}>✕</button>
+              </div>
+              <button className={`adm-nav-item ${activeSection === 'overview' ? 'active' : ''}`} onClick={() => { setActiveSection('overview'); setShowMobileNav(false); }}>
+                <BarChart3 /><span>Overview</span>
+              </button>
+              <button className={`adm-nav-item ${activeSection === 'users' ? 'active' : ''}`} onClick={() => { setActiveSection('users'); setShowMobileNav(false); }}>
+                <Users /><span>Users</span>
+              </button>
+              <button className={`adm-nav-item ${activeSection === 'brokers' ? 'active' : ''}`} onClick={() => { setActiveSection('brokers'); setShowMobileNav(false); }}>
+                <Server /><span>Brokers</span>
+              </button>
+              <button className={`adm-nav-item ${activeSection === 'accounts' ? 'active' : ''}`} onClick={() => { setActiveSection('accounts'); setShowMobileNav(false); }}>
+                <Database /><span>Accounts</span>
+              </button>
+              <button className={`adm-nav-item ${activeSection === 'trades' ? 'active' : ''}`} onClick={() => { setActiveSection('trades'); setShowMobileNav(false); }}>
+                <Receipt /><span>Trades</span>
+              </button>
+              <div className="adm-nav-divider" />
+              <button className={`adm-nav-item ${activeSection === 'analytics' ? 'active' : ''}`} onClick={() => { setActiveSection('analytics'); setShowMobileNav(false); }}>
+                <TrendingUp /><span>Analytics</span>
+              </button>
+              <button className={`adm-nav-item ${activeSection === 'settings' ? 'active' : ''}`} onClick={() => { setActiveSection('settings'); setShowMobileNav(false); }}>
+                <Settings /><span>Settings</span>
+              </button>
+              <button className={`adm-nav-item ${activeSection === 'audit' ? 'active' : ''}`} onClick={() => { setActiveSection('audit'); setShowMobileNav(false); }}>
+                <FileText /><span>Audit Log</span>
+              </button>
+            </nav>
+          </>
+        )}
+
         {/* Sidebar Nav */}
         <nav className="adm-nav">
           <button className={`adm-nav-item ${activeSection === 'overview' ? 'active' : ''}`} onClick={() => setActiveSection('overview')}>
@@ -303,6 +387,9 @@ export default function AdminPage() {
           </button>
           <button className={`adm-nav-item ${activeSection === 'brokers' ? 'active' : ''}`} onClick={() => setActiveSection('brokers')}>
             <Server /><span>Brokers</span>
+          </button>
+          <button className={`adm-nav-item ${activeSection === 'accounts' ? 'active' : ''}`} onClick={() => setActiveSection('accounts')}>
+            <Database /><span>Accounts</span>
           </button>
           <button className={`adm-nav-item ${activeSection === 'trades' ? 'active' : ''}`} onClick={() => setActiveSection('trades')}>
             <Receipt /><span>Trades</span>
@@ -619,11 +706,16 @@ export default function AdminPage() {
                             </div>
                             <div className="adm-provider-actions">
                               <div className="adm-provider-act" role="button" tabIndex={0} onClick={async () => {
-                                setTestingProvider(p.id);
-                                const res = await fetch('/api/admin', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ brokerProvider: { action: 'test', data: { id: p.id } } }) });
-                                const result = await res.json();
-                                setBrokerProviders(brokerProviders.map(x => x.id === p.id ? { ...x, status: result.status || 'error', error_message: result.error || null } : x));
-                                setTestingProvider(null);
+                                try {
+                                  setTestingProvider(p.id);
+                                  const res = await fetch('/api/admin', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ brokerProvider: { action: 'test', data: { id: p.id } } }) });
+                                  const result = await res.json();
+                                  setBrokerProviders(brokerProviders.map(x => x.id === p.id ? { ...x, status: result.status || 'error', error_message: result.error || null } : x));
+                                } catch (err: any) {
+                                  alert('Test connection failed: ' + (err.message || 'Unknown error'));
+                                } finally {
+                                  setTestingProvider(null);
+                                }
                               }}>{testingProvider === p.id ? <Loader2 className="adm-spin" /> : <TestTube />}</div>
                               <div className="adm-provider-act adm-provider-del" role="button" tabIndex={0} onClick={async () => {
                                 const yes = window.confirm(`Delete provider "${p.name}"?`);
@@ -668,7 +760,7 @@ export default function AdminPage() {
                   <h3><Handshake style={{width:16,height:16,marginRight:6,verticalAlign:'middle'}}/>Partner Brokers <span className="adm-count-badge">{partnerBrokers.length}</span></h3>
                   <div style={{display:'flex',alignItems:'center',gap:8}}>
                     <span style={{fontSize:11,color:'var(--subtext)'}}>Shown in Connect Broker modal</span>
-                    <button className="adm-post-btn" onClick={() => { setPartnerForm({...EMPTY_PARTNER, id: crypto.randomUUID(), created_at: new Date().toISOString()}); setEditingPartner(null); setShowAddPartner(true); }}>+ Add Partner</button>
+                    <button className="adm-post-btn" onClick={() => { setPartnerForm({...EMPTY_PARTNER, id: generateUUID(), created_at: new Date().toISOString()}); setEditingPartner(null); setShowAddPartner(true); setBrokerSearchQuery(''); setBrokerSearchResults([]); setCustomServerInput(''); }}>+ Add Partner</button>
                   </div>
                 </div>
                 <div className="adm-card-body">
@@ -679,7 +771,7 @@ export default function AdminPage() {
                       <p style={{fontSize:12,color:'var(--subtext)'}}>Add brokers you have partnerships with — users will see these first when connecting</p>
                     </div>
                   ) : (
-                    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))',gap:14}}>
+                    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(min(100%,300px),1fr))',gap:14}}>
                       {partnerBrokers.map((p: any) => (
                         <div key={p.id} style={{border:'1px solid var(--border)',borderRadius:14,padding:16,background:'var(--input-bg)',opacity:p.is_active?1:0.55,transition:'opacity 0.2s'}}>
                           <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:10}}>
@@ -696,7 +788,7 @@ export default function AdminPage() {
                                 style={{width:36,height:20,borderRadius:10,border:'none',cursor:'pointer',background:p.is_active?'#10b981':'var(--border)',position:'relative',transition:'background 0.2s'}}>
                                 <span style={{position:'absolute',top:2,left:p.is_active?18:2,width:16,height:16,borderRadius:'50%',background:'#fff',transition:'left 0.2s',boxShadow:'0 1px 3px rgba(0,0,0,0.3)'}}/>
                               </button>
-                              <button onClick={() => { setPartnerForm({...p, servers: [...p.servers]}); setEditingPartner(p.id); setShowAddPartner(true); }}
+                              <button onClick={() => { setPartnerForm({...p, servers: p.servers ? [...p.servers] : []}); setEditingPartner(p.id); setShowAddPartner(true); setBrokerSearchQuery(''); setBrokerSearchResults([]); setCustomServerInput(''); }}
                                 style={{background:'none',border:'none',cursor:'pointer',color:'var(--subtext)',padding:4}}>
                                 <Pencil style={{width:14,height:14}}/>
                               </button>
@@ -730,15 +822,15 @@ export default function AdminPage() {
 
               {/* Add/Edit Partner Broker Modal */}
               {showAddPartner && (
-                <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:20}} onClick={() => setShowAddPartner(false)}>
+                <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:20}} onClick={() => { setShowAddPartner(false); setBrokerSearchQuery(''); setBrokerSearchResults([]); setCustomServerInput(''); }}>
                   <div style={{background:'var(--sidebar-bg)',border:'1px solid var(--border)',borderRadius:18,padding:28,width:'100%',maxWidth:540,maxHeight:'90vh',overflowY:'auto'}} onClick={e=>e.stopPropagation()}>
                     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
                       <h3 style={{margin:0,fontSize:16,fontWeight:700}}>{editingPartner ? 'Edit Partner Broker' : 'Add Partner Broker'}</h3>
-                      <button onClick={() => setShowAddPartner(false)} style={{background:'none',border:'none',cursor:'pointer',color:'var(--subtext)'}}><X style={{width:18,height:18}}/></button>
+                      <button onClick={() => { setShowAddPartner(false); setBrokerSearchQuery(''); setBrokerSearchResults([]); setCustomServerInput(''); }} style={{background:'none',border:'none',cursor:'pointer',color:'var(--subtext)'}}><X style={{width:18,height:18}}/></button>
                     </div>
                     <div style={{display:'flex',flexDirection:'column',gap:14}}>
                       {/* Logo + Name row */}
-                      <div style={{display:'flex',gap:10}}>
+                      <div className="adm-form-row">
                         <div style={{flexShrink:0}}>
                           <label style={{fontSize:11,fontWeight:600,color:'var(--subtext)',display:'block',marginBottom:5}}>Logo (emoji)</label>
                           <input value={partnerForm.logo} onChange={e=>setPartnerForm((f:any)=>({...f,logo:e.target.value}))}
@@ -750,29 +842,119 @@ export default function AdminPage() {
                             style={{width:'100%',boxSizing:'border-box',background:'var(--input-bg)',border:'1px solid var(--border)',borderRadius:9,padding:'9px 12px',fontSize:13,color:'var(--text)'}}/>
                         </div>
                       </div>
-                      {/* Platform */}
-                      <div>
-                        <label style={{fontSize:11,fontWeight:600,color:'var(--subtext)',display:'block',marginBottom:5}}>Platform</label>
+
+                      {/* Servers Search & Selector */}
+                      <div style={{border:'1px solid var(--border)',borderRadius:12,padding:14,background:'rgba(0,0,0,0.1)'}}>
+                        <label style={{fontSize:11,fontWeight:600,color:'var(--subtext)',display:'block',marginBottom:6}}>Search MetaAPI Broker Servers</label>
+                        <div style={{display:'flex',gap:8,marginBottom:8}}>
+                          <input
+                            type="text"
+                            placeholder="Type to search (e.g. ICMarkets, Pepperstone)"
+                            value={brokerSearchQuery}
+                            onChange={e => setBrokerSearchQuery(e.target.value)}
+                            style={{flex:1,background:'var(--input-bg)',border:'1px solid var(--border)',borderRadius:9,padding:'8px 12px',fontSize:13,color:'var(--text)'}}
+                          />
+                          {searchingServers && <Loader2 style={{width:16,height:16,alignSelf:'center'}} className="adm-spin"/>}
+                        </div>
+
+                        {/* Search Results list */}
+                        {brokerSearchResults.length > 0 && (
+                          <div style={{maxHeight:120,overflowY:'auto',border:'1px solid var(--border)',borderRadius:9,background:'var(--sidebar-bg)',padding:8,display:'flex',flexWrap:'wrap',gap:6,marginBottom:10}}>
+                            {brokerSearchResults.map(srv => {
+                              const isSelected = partnerForm.servers?.includes(srv);
+                              return (
+                                <button
+                                  key={srv}
+                                  type="button"
+                                  onClick={() => {
+                                    const current = partnerForm.servers || [];
+                                    const next = isSelected ? current.filter((x: string) => x !== srv) : [...current, srv];
+                                    setPartnerForm((f: any) => ({ ...f, servers: next }));
+                                  }}
+                                  style={{
+                                    padding: '4px 8px',
+                                    borderRadius: 6,
+                                    border: `1px solid ${isSelected ? '#10b981' : 'var(--border)'}`,
+                                    background: isSelected ? 'rgba(16,185,129,0.1)' : 'var(--input-bg)',
+                                    color: isSelected ? '#10b981' : 'var(--text)',
+                                    fontSize: 11,
+                                    fontFamily: 'monospace',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.15s'
+                                  }}
+                                >
+                                  {srv} {isSelected ? '✓' : '+'}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {/* Selected Servers list */}
+                        <label style={{fontSize:11,fontWeight:600,color:'var(--subtext)',display:'block',marginBottom:6}}>Selected Servers (shown to users)</label>
+                        <div style={{display:'flex',flexWrap:'wrap',gap:6,minHeight:40,padding:10,border:'1px solid var(--border)',borderRadius:9,background:'var(--input-bg)',marginBottom:10}}>
+                          {(partnerForm.servers || []).length === 0 ? (
+                            <span style={{fontSize:11,color:'var(--subtext)',fontStyle:'italic'}}>No servers selected. Search above or add manually below.</span>
+                          ) : (
+                            partnerForm.servers.map((srv: string) => (
+                              <span
+                                key={srv}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                  padding: '2px 6px',
+                                  borderRadius: 6,
+                                  background: 'rgba(59,130,246,0.1)',
+                                  color: '#3b82f6',
+                                  fontSize: 11,
+                                  fontFamily: 'monospace',
+                                  border: '1px solid rgba(59,130,246,0.2)'
+                                }}
+                              >
+                                {srv}
+                                <button
+                                  type="button"
+                                  onClick={() => setPartnerForm((f: any) => ({ ...f, servers: (f.servers || []).filter((x: string) => x !== srv) }))}
+                                  style={{background:'none',border:'none',color:'#3b82f6',cursor:'pointer',fontSize:10,padding:0,lineHeight:1}}
+                                >
+                                  ✕
+                                </button>
+                              </span>
+                            ))
+                          )}
+                        </div>
+
+                        {/* Add custom manually */}
                         <div style={{display:'flex',gap:8}}>
-                          {(['mt5','mt4','ctrader'] as const).map(p => (
-                            <button key={p} onClick={()=>setPartnerForm((f:any)=>({...f,platform:p}))}
-                              style={{padding:'7px 16px',borderRadius:8,border:`1.5px solid ${partnerForm.platform===p?'#3b82f6':'var(--border)'}`,background:partnerForm.platform===p?'rgba(59,130,246,0.1)':'var(--input-bg)',color:partnerForm.platform===p?'#3b82f6':'var(--subtext)',cursor:'pointer',fontSize:12,fontWeight:600,textTransform:'uppercase'}}>
-                              {p}
-                            </button>
-                          ))}
+                          <input
+                            type="text"
+                            placeholder="Add server manually (e.g. ICMarketsSC-Live9)"
+                            value={customServerInput}
+                            onChange={e => setCustomServerInput(e.target.value)}
+                            style={{flex:1,background:'var(--input-bg)',border:'1px solid var(--border)',borderRadius:9,padding:'6px 10px',fontSize:12,color:'var(--text)',fontFamily:'monospace'}}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const val = customServerInput.trim();
+                              if (!val) return;
+                              if (partnerForm.servers?.includes(val)) {
+                                alert('Server already added.');
+                                return;
+                              }
+                              setPartnerForm((f: any) => ({ ...f, servers: [...(f.servers || []), val] }));
+                              setCustomServerInput('');
+                            }}
+                            style={{padding:'6px 12px',background:'var(--border)',border:'none',borderRadius:9,color:'var(--text)',fontSize:12,fontWeight:600,cursor:'pointer'}}
+                          >
+                            + Add
+                          </button>
                         </div>
                       </div>
-                      {/* Servers */}
-                      <div>
-                        <label style={{fontSize:11,fontWeight:600,color:'var(--subtext)',display:'block',marginBottom:5}}>Servers (one per line)</label>
-                        <textarea value={(partnerForm.servers||[]).join('\n')}
-                          onChange={e=>setPartnerForm((f:any)=>({...f,servers:e.target.value.split('\n').map((s:string)=>s.trim()).filter(Boolean)}))}
-                          placeholder={'ICMarketsSC-Live\nICMarketsSC-Live2\nICMarketsSC-Demo'}
-                          rows={4}
-                          style={{width:'100%',boxSizing:'border-box',background:'var(--input-bg)',border:'1px solid var(--border)',borderRadius:9,padding:'9px 12px',fontSize:12,color:'var(--text)',fontFamily:'monospace',resize:'vertical'}}/>
-                      </div>
+
                       {/* Rebate */}
-                      <div style={{display:'flex',gap:10}}>
+                      <div className="adm-form-row">
                         <div style={{flex:1}}>
                           <label style={{fontSize:11,fontWeight:600,color:'var(--subtext)',display:'block',marginBottom:5}}>Rebate per Lot ($)</label>
                           <input type="number" min={0} step={0.01} value={partnerForm.rebate_per_lot}
@@ -812,6 +994,9 @@ export default function AdminPage() {
                             : [...partnerBrokers, partnerForm];
                           await savePartnerBrokers(updated);
                           setShowAddPartner(false);
+                          setBrokerSearchQuery('');
+                          setBrokerSearchResults([]);
+                          setCustomServerInput('');
                         }}
                         style={{padding:'12px',borderRadius:10,border:'none',cursor:'pointer',background:'#4f8ef7',color:'#fff',fontSize:14,fontWeight:700,opacity:partnerSaving||!partnerForm.name?0.6:1,display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
                         {partnerSaving ? <><Loader2 style={{width:14,height:14}} className="adm-spin"/>Saving...</> : <><CheckCircle style={{width:14,height:14}}/>{editingPartner ? 'Update Partner' : 'Add Partner'}</>}
@@ -821,31 +1006,35 @@ export default function AdminPage() {
                 </div>
               )}
 
-              {/* Connected Accounts Table */}
-              <div className="adm-card adm-card-full">
-                <div className="adm-card-head"><h3>Connected Accounts ({brokers.length})</h3></div>
-                {brokers.length === 0 ? (
-                  <div className="adm-empty-state"><Server className="adm-empty-icon" /><p>No broker accounts connected yet</p></div>
-                ) : (
-                  <div className="adm-table-wrap"><table className="adm-table"><thead><tr>
-                    <th>Broker</th><th>Login</th><th>Server</th><th>Balance</th><th>Status</th><th>Connected</th>
-                  </tr></thead><tbody>
-                    {brokers.map(b => (
-                      <tr key={b.id}>
-                        <td><span className="adm-broker-name">{b.broker_name || 'MT5'}</span></td>
-                        <td className="adm-mono">{b.mt5_login || b.account_id || '—'}</td>
-                        <td className="adm-date-cell">{b.server || '—'}</td>
-                        <td className="adm-mono">${(b.balance || 0).toLocaleString()}</td>
-                        <td><span className={`adm-status ${b.status === 'connected' ? 'adm-status-on' : 'adm-status-off'}`}>
-                          {b.status === 'connected' ? <><Wifi /> Connected</> : <><WifiOff /> Offline</>}
-                        </span></td>
-                        <td className="adm-date-cell">{b.created_at ? new Date(b.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}</td>
-                      </tr>
-                    ))}
-                  </tbody></table></div>
-                )}
-              </div>
             </>
+          )}
+
+          {activeSection === 'accounts' && (
+            <div className="adm-card adm-card-full">
+              <div className="adm-card-head">
+                <h3><Database style={{width:16,height:16,marginRight:6,verticalAlign:'middle'}} />Connected Accounts ({brokers.length})</h3>
+              </div>
+              {brokers.length === 0 ? (
+                <div className="adm-empty-state"><Server className="adm-empty-icon" /><p>No broker accounts connected yet</p></div>
+              ) : (
+                <div className="adm-table-wrap"><table className="adm-table"><thead><tr>
+                  <th>Broker</th><th>Login</th><th>Server</th><th>Balance</th><th>Status</th><th>Connected</th>
+                </tr></thead><tbody>
+                  {brokers.map(b => (
+                    <tr key={b.id}>
+                      <td><span className="adm-broker-name">{b.broker_name || 'MT5'}</span></td>
+                      <td className="adm-mono">{b.mt5_login || b.account_id || '—'}</td>
+                      <td className="adm-date-cell">{b.server || '—'}</td>
+                      <td className="adm-mono">${(b.balance || 0).toLocaleString()}</td>
+                      <td><span className={`adm-status ${b.status === 'connected' ? 'adm-status-on' : 'adm-status-off'}`}>
+                        {b.status === 'connected' ? <><Wifi /> Connected</> : <><WifiOff /> Offline</>}
+                      </span></td>
+                      <td className="adm-date-cell">{b.created_at ? new Date(b.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}</td>
+                    </tr>
+                  ))}
+                </tbody></table></div>
+              )}
+            </div>
           )}
 
           {activeSection === 'trades' && (

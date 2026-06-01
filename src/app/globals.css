@@ -1315,6 +1315,94 @@ body {
   display: flex; flex-direction: column; gap: 4px;
 }
 @media (max-width: 768px) { .adm-nav { display: none; } }
+
+/* Mobile Menu / Hamburger */
+.adm-hamburger {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--subtext);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  transition: all 0.15s;
+}
+.adm-hamburger svg {
+  width: 20px;
+  height: 20px;
+}
+.adm-hamburger:hover {
+  background: var(--input-bg);
+  color: var(--text);
+}
+
+@media (max-width: 768px) {
+  .adm-hamburger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .adm-main {
+    padding: 16px;
+  }
+}
+
+/* Mobile Sidebar Drawer */
+.adm-nav-mobile {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 260px;
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--border);
+  z-index: 1050;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 16px;
+  gap: 4px;
+  box-shadow: 12px 0 40px rgba(0,0,0,0.25);
+  animation: admSlideInLeft 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes admSlideInLeft {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+.adm-nav-mobile-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding: 0 4px;
+}
+.adm-nav-mobile-head h3 {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text);
+}
+.adm-nav-mobile-head button {
+  background: none;
+  border: none;
+  color: var(--subtext);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+/* Responsive Form Rows for Modals */
+.adm-form-row {
+  display: flex;
+  gap: 12px;
+}
+@media (max-width: 500px) {
+  .adm-form-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+
 .adm-nav-item {
   display: flex; align-items: center; gap: 10px;
   padding: 10px 14px; border-radius: 10px;
@@ -1937,7 +2025,7 @@ body {
 .adm-risk-input:focus { border-color: #10a37f; }
 
 /* ── Broker Provider Hub ─────────────────────── */
-.adm-provider-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.adm-provider-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 16px; }
 .adm-provider-card {
   border: 1px solid var(--border); border-radius: 14px;
   padding: 20px; background: var(--sidebar-bg);

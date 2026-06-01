@@ -34,8 +34,6 @@ interface PartnerBroker {
 
 const exchanges: ExchangeOption[] = [
   { id: 'mt5', name: 'MetaTrader 5', icon: <TrendingUp />, category: 'forex', color: '#3b82f6', description: 'Forex, Gold, Indices' },
-  { id: 'mt4', name: 'MetaTrader 4', icon: <BarChart3 />, category: 'forex', color: '#6366f1', description: 'Forex, CFDs' },
-  { id: 'ctrader', name: 'cTrader', icon: <Zap />, category: 'forex', color: '#a855f7', description: 'Forex, Metals' },
   { id: 'binance', name: 'Binance', icon: <Coins />, category: 'crypto', color: '#f59e0b', description: 'Crypto Spot & Futures' },
   { id: 'bybit', name: 'Bybit', icon: <Coins />, category: 'crypto', color: '#f97316', description: 'Crypto Derivatives' },
 ];
@@ -47,10 +45,6 @@ export default function ModalNode({ isOpen, onClose, onConnect }: ModalNodeProps
   const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [isSimulation, setIsSimulation] = useState(false);
   const [connecting, setConnecting] = useState(false);
 
   // Partner brokers
@@ -73,35 +67,12 @@ export default function ModalNode({ isOpen, onClose, onConnect }: ModalNodeProps
       .catch(() => {});
   }, [isOpen]);
 
-  // Fetch MetaAPI server suggestions
-  useEffect(() => {
-    if (!isOpen) return;
-    if (isCrypto) return;
-
-    const fetchSuggestions = async () => {
-      setLoading(true);
-      try {
-        const res = await fetch(`/api/broker?q=${encodeURIComponent(serverName)}`);
-        const data = await res.json();
-        if (data.servers) {
-          setSuggestions(data.servers);
-          setIsSimulation(!!data.isSimulation);
-        }
-      } catch { /* silent */ }
-      finally { setLoading(false); }
-    };
-
-    const delay = setTimeout(fetchSuggestions, 250);
-    return () => clearTimeout(delay);
-  }, [serverName, isOpen, isCrypto]);
-
   const handleReset = () => {
     setStep(1);
     setServerName('');
     setLoginId('');
     setPassword('');
     setShowPassword(false);
-    setShowSuggestions(false);
     setConnecting(false);
     setSelectedPartner(null);
     setPartnerExpanded(null);
@@ -124,7 +95,6 @@ export default function ModalNode({ isOpen, onClose, onConnect }: ModalNodeProps
   const handleSelectPartnerServer = (partner: PartnerBroker, server: string) => {
     setSelectedPartner(partner);
     setServerName(server);
-    setShowSuggestions(false);
     setPartnerExpanded(null);
   };
 
@@ -273,49 +243,58 @@ export default function ModalNode({ isOpen, onClose, onConnect }: ModalNodeProps
                     );
                   })}
                 </div>
+              </div>
+            )}
 
-                {/* Divider */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '14px 0 4px' }}>
-                  <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-                  <span style={{ fontSize: 10, color: 'var(--subtext)', whiteSpace: 'nowrap' }}>or enter any server manually</span>
-                  <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-                </div>
+            {!isCrypto && relevantPartners.length === 0 && (
+              <div style={{
+                marginBottom: 16,
+                padding: '16px',
+                background: 'rgba(239,68,68,0.05)',
+                border: '1px solid rgba(239,68,68,0.15)',
+                borderRadius: 12,
+                textAlign: 'center'
+              }}>
+                <span style={{ fontSize: 13, color: '#ef4444', fontWeight: 600, display: 'block', marginBottom: 4 }}>No Partner Brokers Configured</span>
+                <span style={{ fontSize: 11, color: 'var(--subtext)' }}>Forex connections are currently restricted to partner brokers. Please contact support.</span>
               </div>
             )}
 
             <form onSubmit={handleSubmit} className="bm-form">
-              {/* Broker Server (forex only) */}
+              {/* Selected Partner Server Display (forex only) */}
               {!isCrypto && (
-                <div className="bm-field">
-                  <label><Server className="bm-field-icon" /> Broker Server{selectedPartner && <span style={{ marginLeft: 6, fontSize: 10, color: '#10b981', fontWeight: 700 }}>via {selectedPartner.name}</span>}</label>
-                  <div className="bm-input-wrap">
-                    <input
-                      type="text"
-                      placeholder={selected === 'ctrader' ? 'e.g. demo.ctrader.com' : 'e.g. ICMarketsSC-Live'}
-                      value={serverName}
-                      onChange={e => { setServerName(e.target.value); setShowSuggestions(true); setSelectedPartner(null); }}
-                      onFocus={() => setShowSuggestions(true)}
-                      onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                      required autoComplete="off"
-                    />
-                  </div>
-                  {showSuggestions && (suggestions.length > 0 || loading) && (
-                    <div className="bm-suggestions">
-                      {loading && (
-                        <div className="bm-suggest-loading">
-                          <span>Searching servers...</span>
-                          <Loader2 className="bm-spin" />
-                        </div>
+                <div className="bm-field" style={{ marginBottom: 16 }}>
+                  {serverName ? (
+                    <div style={{
+                      padding: '12px 14px',
+                      background: 'rgba(16,185,129,0.06)',
+                      border: '1.5px solid #10b981',
+                      borderRadius: 12,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
+                    }}>
+                      <div>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: '#10b981', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>Selected Server</span>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', fontFamily: 'monospace' }}>{serverName}</span>
+                      </div>
+                      {selectedPartner && (
+                        <span style={{ fontSize: 11, color: 'var(--subtext)' }}>
+                          via {selectedPartner.name}
+                        </span>
                       )}
-                      {!loading && suggestions.map(srv => (
-                        <div key={srv} className="bm-suggest-item" role="button" tabIndex={0}
-                          onClick={() => { setServerName(srv); setShowSuggestions(false); setSelectedPartner(null); }}>
-                          <Server /> {srv}
-                        </div>
-                      ))}
-                      {isSimulation && !loading && (
-                        <div className="bm-suggest-note">💡 Showing simulated results</div>
-                      )}
+                    </div>
+                  ) : (
+                    <div style={{
+                      padding: '12px 14px',
+                      background: 'rgba(239,68,68,0.06)',
+                      border: '1.5px dashed #ef4444',
+                      borderRadius: 12,
+                      textAlign: 'center'
+                    }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: '#ef4444' }}>
+                        Please select a partner broker server above to continue
+                      </span>
                     </div>
                   )}
                 </div>
@@ -323,7 +302,7 @@ export default function ModalNode({ isOpen, onClose, onConnect }: ModalNodeProps
 
               {/* Login / API Key */}
               <div className="bm-field">
-                <label>{isCrypto ? '🔑 API Key' : `👤 ${selected === 'ctrader' ? 'cTrader ID' : 'Account Login'}`}</label>
+                <label>{isCrypto ? '🔑 API Key' : '👤 Account Login'}</label>
                 <div className="bm-input-wrap">
                   <input
                     type="text"
@@ -358,8 +337,8 @@ export default function ModalNode({ isOpen, onClose, onConnect }: ModalNodeProps
               {/* Actions */}
               <div className="bm-actions">
                 <div className="bm-back" role="button" tabIndex={0} onClick={() => setStep(1)}>← Back</div>
-                <button type="submit" className="bm-connect" disabled={connecting}
-                  style={{ background: activeExchange.color }}>
+                <button type="submit" className="bm-connect" disabled={connecting || (!isCrypto && !serverName)}
+                  style={{ background: (!isCrypto && !serverName) ? 'var(--border)' : activeExchange.color, cursor: (!isCrypto && !serverName) ? 'not-allowed' : 'pointer' }}>
                   {connecting ? <><Loader2 className="bm-spin" /> Connecting...</> : <>Connect {activeExchange.name}</>}
                 </button>
               </div>
