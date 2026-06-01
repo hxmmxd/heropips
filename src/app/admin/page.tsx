@@ -1018,7 +1018,7 @@ export default function AdminPage() {
                 <div className="adm-empty-state"><Server className="adm-empty-icon" /><p>No broker accounts connected yet</p></div>
               ) : (
                 <div className="adm-table-wrap"><table className="adm-table"><thead><tr>
-                  <th>Broker</th><th>Login</th><th>Server</th><th>Balance</th><th style={{textAlign:'center'}}>Trades</th><th>Status</th><th>Connected</th>
+                  <th>Broker</th><th>Login</th><th>Server</th><th>Balance</th><th>P&L</th><th style={{textAlign:'center'}}>Trades</th><th>Status</th><th>Connected</th>
                 </tr></thead><tbody>
                   {brokers.map(b => (
                     <tr key={b.id}>
@@ -1026,6 +1026,9 @@ export default function AdminPage() {
                       <td className="adm-mono">{b.mt5_login || b.account_id || '—'}</td>
                       <td className="adm-date-cell">{b.server || '—'}</td>
                       <td className="adm-mono">${(b.balance || 0).toLocaleString()}</td>
+                      <td className={`adm-mono adm-pnl ${(b.pnl || 0) >= 0 ? 'adm-pnl-pos' : 'adm-pnl-neg'}`}>
+                        {(b.pnl || 0) >= 0 ? '+' : ''}${(b.pnl || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </td>
                       <td className="adm-mono" style={{textAlign:'center'}}>{b.trade_count || 0}</td>
                       <td><span className={`adm-status ${b.status === 'connected' ? 'adm-status-on' : 'adm-status-off'}`}>
                         {b.status === 'connected' ? <><Wifi /> Connected</> : <><WifiOff /> Offline</>}
