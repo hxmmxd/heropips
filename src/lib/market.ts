@@ -2,6 +2,12 @@ import { computeIndicators } from './indicators';
 
 const BASE_URL = 'https://api.twelvedata.com';
 
+// ── Snapshot cache — 15 min TTL per symbol ─────────────────
+// Prevents hammering the Twelve Data quota on repeated chat queries
+const SNAPSHOT_CACHE = new Map<string, { snapshot: MarketSnapshot; expiresAt: number }>();
+const SNAPSHOT_TTL_MS = 15 * 60 * 1000; // 15 minutes
+
+
 export interface CandleData {
   time: string;
   open: number;
@@ -362,6 +368,13 @@ function gradeConfidence(score: number): 'AAA' | 'AA' | 'A' | 'BBB' {
 // ── Main Market Snapshot Assembler ─────────────────────────
 
 export async function getMarketSnapshot(symbol: string): Promise<MarketSnapshot | null> {
+  // Return cached result if still fresh
+  const cached = SNAPSHOT_CACHE.get(symbol);
+  if (cached && Date.now() < cached.expiresAt) {
+    console.log(`[Market Engine] Cache hit for ${symbol} (expires in ${Math.round((cached.expiresAt - Date.now()) / 1000)}s)`);
+    return cached.snapshot;
+  }
+
   try {
     console.log(`[Market Engine] Fetching snapshot for ${symbol}...`);
 
@@ -406,7 +419,7 @@ export async function getMarketSnapshot(symbol: string): Promise<MarketSnapshot 
 
     console.log(`[Market Engine] Confluence: ${score}% ${direction} (Grade: ${gradeConfidence(score)})`);
 
-    return {
+    const snapshot: MarketSnapshot = {
       symbol,
       displaySymbol: displaySymbol(symbol),
       price,
@@ -420,6 +433,11 @@ export async function getMarketSnapshot(symbol: string): Promise<MarketSnapshot 
       confluenceDirection: direction,
       confidenceGrade: gradeConfidence(score),
     };
+
+    // Store in cache
+    SNAPSHOT_CACHE.set(symbol, { snapshot, expiresAt: Date.now() + SNAPSHOT_TTL_MS });
+
+    return snapshot;
   } catch (error) {
     console.error('[Market Engine] Failed to assemble snapshot:', error);
     return null;
