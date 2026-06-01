@@ -405,18 +405,23 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
                             <div className="text-right">
                               {(() => {
                                 const live = getPrice(msg.marketData.displaySymbol) ?? getPrice(msg.marketData.symbol);
-                                const displayP = live ?? msg.marketData.price;
+                                const snapshotP = msg.marketData.price > 0 ? msg.marketData.price : null;
+                                const displayP = live ?? snapshotP;
                                 return (
                                   <>
                                     <p className="text-lg font-bold font-mono text-[var(--text)]">
-                                      ${displayP > 999
-                                        ? displayP.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                                        : displayP.toFixed(4)}
+                                      {displayP != null
+                                        ? `$${displayP > 999
+                                            ? displayP.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                                            : displayP.toFixed(4)}`
+                                        : '—'}
                                     </p>
                                     <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
                                       msg.marketData.confluenceDirection === 'SELL'
                                         ? 'bg-red-500/10 text-red-500'
-                                        : 'bg-green-500/10 text-green-500'
+                                        : msg.marketData.confluenceDirection === 'BUY'
+                                        ? 'bg-green-500/10 text-green-500'
+                                        : 'bg-[var(--border)] text-[var(--subtext)]'
                                     }`}>
                                       {msg.marketData.confluenceDirection} Bias
                                     </span>

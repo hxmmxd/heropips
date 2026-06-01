@@ -250,20 +250,22 @@ Respond ONLY with this JSON (no markdown wrapping, no code fences):
       };
     }
 
-    // Build marketData for rich card rendering
-    const marketData = snapshot ? {
+    // Build marketData — always non-null so the rich card renders.
+    // If snapshot failed (rate-limit / network) we return a stub; live price
+    // from the SSE stream will fill in the price on the client side.
+    const marketData = {
       symbol: symbol,
       displaySymbol: symDisplay,
-      price: snapshot.price,
-      rsi: snapshot.indicators.rsi,
-      macdHistogram: snapshot.indicators.macd?.histogram ?? null,
-      ema50: snapshot.indicators.ema50,
-      atr: snapshot.indicators.atr,
-      confluenceScore: snapshot.confluenceScore,
-      confluenceDirection: snapshot.confluenceDirection,
-      confidenceGrade: snapshot.confidenceGrade,
+      price: snapshot?.price ?? 0,
+      rsi: snapshot?.indicators.rsi ?? null,
+      macdHistogram: snapshot?.indicators.macd?.histogram ?? null,
+      ema50: snapshot?.indicators.ema50 ?? null,
+      atr: snapshot?.indicators.atr ?? null,
+      confluenceScore: snapshot?.confluenceScore ?? 50,
+      confluenceDirection: snapshot?.confluenceDirection ?? 'NEUTRAL',
+      confidenceGrade: snapshot?.confidenceGrade ?? 'BBB',
       newsSentiment: parsed.newsSentiment || 'NEUTRAL',
-    } : null;
+    };
 
     return NextResponse.json({
       text: parsed.text || 'Analysis complete.',
