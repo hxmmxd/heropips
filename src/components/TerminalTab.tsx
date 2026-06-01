@@ -14,7 +14,7 @@ interface TerminalTabProps {
   onSendMessage: (text: string) => void;
   onGenerateSignal?: (symbol: string) => void;
   activeBrokerId: string;
-  onTradeExecuted?: (result: { orderId: string; ticket: any }) => void;
+  onTradeExecuted?: (result: { orderId: string; fillPrice?: number; ticket: any }) => void;
 }
 
 // Coin/Asset icons for analysis cards (larger versions of WatchIcon)
@@ -557,7 +557,7 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
                             });
                             const data = await res.json();
                             if (data.success) {
-                              onTradeExecuted?.({ orderId: data.orderId, ticket: msg.ticket });
+                              onTradeExecuted?.({ orderId: data.orderId, fillPrice: data.fillPrice, ticket: msg.ticket });
                               return { orderId: data.orderId, fillPrice: data.fillPrice };
                             }
                             throw new Error(data.error || 'Execution failed');

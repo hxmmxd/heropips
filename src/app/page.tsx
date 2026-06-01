@@ -29,19 +29,8 @@ export default function Home() {
   // Chat Messages state
   const [messages, setMessages] = useState<ChatMessage[]>([]);
 
-  // Stable logs data
-  const [logs, setLogs] = useState<TradeLog[]>([
-    { symbol: 'XAUUSD', action: 'BUY', orderId: '882100', amount: '243.50', isWin: true },
-    { symbol: 'EURUSD', action: 'SELL', orderId: '882101', amount: '89.20', isWin: false },
-    { symbol: 'BTCUSD', action: 'BUY', orderId: '882102', amount: '412.10', isWin: true },
-    { symbol: 'NAS100', action: 'SELL', orderId: '882103', amount: '315.00', isWin: false },
-    { symbol: 'US30', action: 'BUY', orderId: '882104', amount: '124.00', isWin: true },
-    { symbol: 'XRPUSD', action: 'BUY', orderId: '882105', amount: '45.80', isWin: true },
-    { symbol: 'ETHUSD', action: 'SELL', orderId: '882106', amount: '210.50', isWin: false },
-    { symbol: 'GBPUSD', action: 'BUY', orderId: '882107', amount: '180.20', isWin: true },
-    { symbol: 'USOIL', action: 'SELL', orderId: '882108', amount: '95.00', isWin: false },
-    { symbol: 'USDJPY', action: 'BUY', orderId: '882109', amount: '320.00', isWin: true },
-  ]);
+  // Real logs data from Supabase
+  const [logs, setLogs] = useState<any[]>([]);
 
   // Partners data
   const [partners, setPartners] = useState<Partner[]>([
@@ -102,7 +91,7 @@ export default function Home() {
     setSidebarOpen(false);
   };
 
-  // Load connected brokers from server on mount
+  // Load connected brokers and trade logs from server on mount
   useEffect(() => {
     const fetchBrokers = async () => {
       try {
@@ -121,7 +110,21 @@ export default function Home() {
         console.error('Failed to load brokers:', err);
       }
     };
+
+    const fetchTrades = async () => {
+      try {
+        const res = await fetch('/api/trades');
+        const data = await res.json();
+        if (data.trades) {
+          setLogs(data.trades);
+        }
+      } catch (err) {
+        console.error('Failed to load trade logs:', err);
+      }
+    };
+
     fetchBrokers();
+    fetchTrades();
   }, []);
 
   // Add new broker node from pairing modal
@@ -323,15 +326,30 @@ export default function Home() {
               onGenerateSignal={handleGenerateSignal}
               activeBrokerId={activeBroker.acc}
               onTradeExecuted={(result) => {
-                // Log the trade
                 const t = result.ticket;
-                setLogs((prev) => [{
-                  symbol: t.symbol,
-                  action: t.action || 'BUY',
-                  orderId: result.orderId,
-                  amount: t.risk,
-                  isWin: Math.random() > 0.4,
-                }, ...prev]);
+                // Prepend the new trade locally matching DB schema
+                setLogs((prev) => [
+                  {
+                    symbol: t.symbol,
+                    action: t.action || 'BUY',
+                    volume: parseFloat(t.lotVolume) || 0.01,
+                    entry_price: result.fillPrice || parseFloat(t.entryPrice) || 0,
+                    stop_loss: parseFloat(t.stopLoss) || null,
+                    take_profit: parseFloat(t.takeProfit) || null,
+                    status: 'open',
+                    order_id: String(result.orderId),
+                    created_at: new Date().toISOString(),
+                  },
+                  ...prev,
+                ]);
+
+                // Background fetch to ensure all data is in sync
+                fetch('/api/trades')
+                  .then((res) => res.json())
+                  .then((data) => {
+                    if (data.trades) setLogs(data.trades);
+                  })
+                  .catch((err) => console.error('Failed to refresh trades:', err));
 
                 // Update broker balance
                 setBrokers((prevBrokers) =>

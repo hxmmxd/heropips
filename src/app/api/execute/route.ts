@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { executeBrokerOrder } from '@/lib/broker';
+import { createClient as createServerClient } from '@/lib/supabase/server';
 
 /**
  * POST /api/execute
@@ -8,6 +9,12 @@ import { executeBrokerOrder } from '@/lib/broker';
  */
 export async function POST(request: Request) {
   try {
+    const supabase = createServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { brokerId, symbol, action, volume, entryPrice, stopLoss, takeProfit } = body;
 
@@ -23,7 +30,7 @@ export async function POST(request: Request) {
     const sl = stopLoss ? parseFloat(stopLoss) : undefined;
     const tp = takeProfit ? parseFloat(takeProfit) : undefined;
 
-    console.log(`[Execute API] Dispatching ${action} ${lotSize} lot(s) ${symbol} on broker ${brokerId}`);
+    console.log(`[Execute API] Dispatching ${action} ${lotSize} lot(s) ${symbol} on broker ${brokerId} for user ${user.id}`);
 
     const result = await executeBrokerOrder(
       brokerId,
@@ -34,6 +41,35 @@ export async function POST(request: Request) {
       sl,
       tp
     );
+
+    // Resolve database broker_accounts UUID if possible
+    const { data: brokerAccount } = await supabase
+      .from('broker_accounts')
+      .select('id')
+      .or(`id.eq."${brokerId}",metaapi_id.eq."${brokerId}"`)
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    // Log the trade in Supabase database
+    const { error: insertError } = await supabase
+      .from('trades')
+      .insert({
+        user_id: user.id,
+        broker_id: brokerAccount?.id || null,
+        symbol,
+        action,
+        volume: lotSize,
+        entry_price: result.fillPrice || entry,
+        stop_loss: sl || null,
+        take_profit: tp || null,
+        status: 'open',
+        order_id: String(result.orderId),
+        created_at: new Date().toISOString(),
+      });
+
+    if (insertError) {
+      console.error('[Execute API] Supabase trade logging error:', insertError.message);
+    }
 
     return NextResponse.json({
       success: true,

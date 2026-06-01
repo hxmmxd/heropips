@@ -40,7 +40,7 @@ interface UserRow {
 }
 
 interface BrokerRow { id: string; user_id: string; broker_name: string; mt5_login: string; account_id?: string; server: string; metaapi_id?: string; status: string; balance: number; equity: number; pnl: number; is_active: boolean; created_at: string; }
-interface TradeRow { id: string; user_id: string; symbol: string; type: string; volume: number; open_price: number; close_price: number; pnl: number; status: string; created_at: string; }
+interface TradeRow { id: string; user_id: string; symbol: string; action: string; volume: number; entry_price: number; close_price: number; pnl: number; status: string; created_at: string; }
 
 type SortKey = 'full_name' | 'email' | 'plan' | 'created_at';
 type SortDir = 'asc' | 'desc';
@@ -1042,7 +1042,7 @@ export default function AdminPage() {
               <div className="adm-card-head">
                 <h3>Trade Log ({trades.length})</h3>
                 <button className="adm-export-btn" onClick={() => {
-                  const csv = 'Symbol,Type,Volume,Open,Close,P&L,Status,Date\n' + trades.map(t => `${t.symbol},${t.type},${t.volume},${t.open_price},${t.close_price},${t.pnl},${t.status},${t.created_at}`).join('\n');
+                  const csv = 'Symbol,Type,Volume,Open,Close,P&L,Status,Date\n' + trades.map(t => `${t.symbol},${t.action},${t.volume},${t.entry_price},${t.close_price},${t.pnl},${t.status},${t.created_at}`).join('\n');
                   const blob = new Blob([csv], { type: 'text/csv' });
                   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'trades.csv'; a.click();
                 }}><Download /> Export CSV</button>
@@ -1056,10 +1056,10 @@ export default function AdminPage() {
                   {trades.map(t => (
                     <tr key={t.id}>
                       <td><span className="adm-symbol">{t.symbol}</span></td>
-                      <td><span className={`adm-trade-type ${t.type === 'buy' ? 'adm-buy' : 'adm-sell'}`}>{(t.type || '').toUpperCase()}</span></td>
-                      <td>{t.volume}</td>
-                      <td className="adm-mono">{t.open_price}</td>
-                      <td className="adm-mono">{t.close_price || '—'}</td>
+                      <td><span className={`adm-trade-type ${String(t.action).toLowerCase() === 'buy' ? 'adm-buy' : 'adm-sell'}`}>{(t.action || '').toUpperCase()}</span></td>
+                      <td>{Number(t.volume || 0).toFixed(2)}</td>
+                      <td className="adm-mono">${Number(t.entry_price || 0).toFixed(2)}</td>
+                      <td className="adm-mono">{t.close_price ? `$${Number(t.close_price).toFixed(2)}` : '—'}</td>
                       <td className={`adm-pnl ${(t.pnl || 0) >= 0 ? 'adm-pnl-pos' : 'adm-pnl-neg'}`}>{(t.pnl || 0) >= 0 ? '+' : ''}{(t.pnl || 0).toFixed(2)}</td>
                       <td><span className={`adm-status ${t.status === 'open' ? 'adm-status-on' : 'adm-status-off'}`}>{t.status === 'open' ? 'Open' : 'Closed'}</span></td>
                       <td className="adm-date-cell">{t.created_at ? new Date(t.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}</td>
