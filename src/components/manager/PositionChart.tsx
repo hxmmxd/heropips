@@ -29,65 +29,48 @@ export default function PositionChart({
   const candleSeriesRef = useRef<any>(null);
   const lastCandleRef = useRef<any>(null);
   const [livePrice, setLivePrice] = useState(currentPrice);
-  const [prevPrice, setPrevPrice] = useState(currentPrice);
   const [tickDirection, setTickDirection] = useState<'up' | 'down' | 'flat'>('flat');
   const livePriceLineRef = useRef<any>(null);
   const pnlFromEntry = livePrice - entryPrice;
   const pnlPct = entryPrice > 0 ? ((pnlFromEntry / entryPrice) * 100) * (isBuy ? 1 : -1) : 0;
   const pnlValue = isBuy ? pnlFromEntry : -pnlFromEntry;
 
-  // ── Connect to SSE price stream for live updates ──
+  // Normalize symbol for matching (XAUUSD -> XAUUSD, XAU/USD -> XAUUSD)
+  const normalizeSymbol = (s: string) => s.toUpperCase().replace(/[\/\.\-\s]/g, '');
+
+  // ── Live updates: SSE price stream + polling fallback ──
   useEffect(() => {
     let eventSource: EventSource | null = null;
     let reconnectTimer: any = null;
+    let pollTimer: any = null;
+    let sseMatched = false;
+    const normalSym = normalizeSymbol(symbol);
 
+    // Strategy 1: SSE price stream (instant, for supported symbols)
     const connect = () => {
       eventSource = new EventSource('/api/price-stream');
 
       eventSource.onmessage = (event) => {
         try {
-          const prices = JSON.parse(event.data);
-          // Match symbol — try exact, then fuzzy
-          const sym = symbol.toUpperCase();
+          const prices: Record<string, number> = JSON.parse(event.data);
           let newPrice: number | null = null;
 
-          // Direct match
           for (const [key, val] of Object.entries(prices)) {
-            const k = key.toUpperCase().replace('/', '');
-            const s = sym.replace('/', '').replace('.', '');
-            if (k === s || k.includes(s) || s.includes(k)) {
+            const normalKey = normalizeSymbol(key);
+            // Match: XAUUSD === XAUUSD, or XAUUSD contains XAU, etc.
+            if (
+              normalKey === normalSym ||
+              normalSym === normalKey ||
+              normalKey.startsWith(normalSym.slice(0, 3)) && normalSym.startsWith(normalKey.slice(0, 3))
+            ) {
               newPrice = val as number;
+              sseMatched = true;
               break;
             }
           }
 
           if (newPrice && newPrice > 0) {
-            setPrevPrice(prev => {
-              setTickDirection(newPrice! > prev ? 'up' : newPrice! < prev ? 'down' : 'flat');
-              return prev;
-            });
-            setLivePrice(newPrice);
-            setPrevPrice(newPrice);
-
-            // Update the last candle on the chart
-            if (candleSeriesRef.current && lastCandleRef.current) {
-              const last = { ...lastCandleRef.current };
-              last.close = newPrice;
-              if (newPrice > last.high) last.high = newPrice;
-              if (newPrice < last.low) last.low = newPrice;
-              lastCandleRef.current = last;
-              candleSeriesRef.current.update(last);
-            }
-
-            // Update live price line position
-            if (livePriceLineRef.current) {
-              try {
-                livePriceLineRef.current.applyOptions({
-                  price: newPrice,
-                  axisLabelColor: newPrice >= entryPrice ? '#16a34a' : '#ef4444',
-                });
-              } catch {}
-            }
+            updatePrice(newPrice);
           }
         } catch {}
       };
@@ -98,13 +81,76 @@ export default function PositionChart({
       };
     };
 
+    // Strategy 2: Polling fallback (for symbols not in SSE stream)
+    const pollCandles = async () => {
+      if (sseMatched) return; // SSE is working, no need to poll
+      try {
+        const res = await fetch(`/api/candles?symbol=${encodeURIComponent(symbol)}&interval=${timeframe}`);
+        const data = await res.json();
+        if (data.candles?.length > 0) {
+          const lastCandle = data.candles[data.candles.length - 1];
+          const price = lastCandle.close;
+          if (price && price > 0) {
+            updatePrice(price);
+
+            // Also update the full candle data
+            if (candleSeriesRef.current) {
+              const chartData = data.candles.map((c: any) => ({
+                time: Math.floor(new Date(c.time.replace(' ', 'T') + 'Z').getTime() / 1000) as any,
+                open: c.open,
+                high: c.high,
+                low: c.low,
+                close: c.close,
+              }));
+              candleSeriesRef.current.setData(chartData);
+              lastCandleRef.current = chartData[chartData.length - 1];
+            }
+          }
+        }
+      } catch {}
+    };
+
+    const updatePrice = (newPrice: number) => {
+      setLivePrice(prev => {
+        setTickDirection(newPrice > prev ? 'up' : newPrice < prev ? 'down' : 'flat');
+        return newPrice;
+      });
+
+      // Update the last candle on the chart
+      if (candleSeriesRef.current && lastCandleRef.current) {
+        const last = { ...lastCandleRef.current };
+        last.close = newPrice;
+        if (newPrice > last.high) last.high = newPrice;
+        if (newPrice < last.low) last.low = newPrice;
+        lastCandleRef.current = last;
+        candleSeriesRef.current.update(last);
+      }
+
+      // Update live price line
+      if (livePriceLineRef.current) {
+        try {
+          livePriceLineRef.current.applyOptions({
+            price: newPrice,
+            axisLabelColor: newPrice >= entryPrice ? '#16a34a' : '#ef4444',
+          });
+        } catch {}
+      }
+    };
+
     connect();
+    // Start polling after 3s — gives SSE a chance to match first
+    const startPoll = setTimeout(() => {
+      pollCandles();
+      pollTimer = setInterval(pollCandles, 3000);
+    }, 3000);
 
     return () => {
       eventSource?.close();
       if (reconnectTimer) clearTimeout(reconnectTimer);
+      if (pollTimer) clearInterval(pollTimer);
+      clearTimeout(startPoll);
     };
-  }, [symbol, entryPrice]);
+  }, [symbol, entryPrice, timeframe]);
 
   // ── Render chart ──
   useEffect(() => {
