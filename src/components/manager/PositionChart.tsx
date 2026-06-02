@@ -238,6 +238,43 @@ export default function PositionChart({
         candleSeries.setData(chartData);
         lastCandleRef.current = chartData[chartData.length - 1];
 
+        // ── EMA Overlays (computed client-side) ──
+        const computeEMA = (closes: number[], period: number) => {
+          const k = 2 / (period + 1);
+          const ema: number[] = [];
+          ema[0] = closes[0];
+          for (let i = 1; i < closes.length; i++) {
+            ema[i] = closes[i] * k + ema[i - 1] * (1 - k);
+          }
+          return ema;
+        };
+
+        const closes = chartData.map((c: any) => c.close);
+        const times = chartData.map((c: any) => c.time);
+
+        const emaConfigs = [
+          { period: 9,  color: 'rgba(255,152,0,0.7)', width: 1 },   // Orange — fast
+          { period: 21, color: 'rgba(33,150,243,0.6)', width: 1 },   // Blue — mid
+          { period: 50, color: 'rgba(156,39,176,0.5)', width: 1 },   // Purple — slow
+        ];
+
+        for (const cfg of emaConfigs) {
+          if (closes.length >= cfg.period) {
+            const emaValues = computeEMA(closes, cfg.period);
+            const emaLine = chart.addSeries(lc.LineSeries, {
+              color: cfg.color,
+              lineWidth: cfg.width,
+              priceLineVisible: false,
+              lastValueVisible: false,
+              crosshairMarkerVisible: false,
+            });
+            emaLine.setData(
+              emaValues.map((val, i) => ({ time: times[i], value: val }))
+                .slice(cfg.period - 1) // skip warm-up period
+            );
+          }
+        }
+
         // Volume
         const volumeSeries = chart.addSeries(lc.HistogramSeries, {
           priceFormat: { type: 'volume' },
@@ -366,6 +403,11 @@ export default function PositionChart({
             <span className="pos-chart-symbol">{symbol}</span>
             <span className={`pos-chart-dir ${isBuy ? 'mgr-positive' : 'mgr-negative'}`}>
               {isBuy ? '↗ LONG' : '↘ SHORT'}
+            </span>
+            <span className="pos-chart-ema-legend">
+              <span className="pos-chart-ema-dot" style={{ background: 'rgba(255,152,0,0.9)' }} />9
+              <span className="pos-chart-ema-dot" style={{ background: 'rgba(33,150,243,0.9)' }} />21
+              <span className="pos-chart-ema-dot" style={{ background: 'rgba(156,39,176,0.9)' }} />50
             </span>
           </div>
           <div className="pos-chart-actions">

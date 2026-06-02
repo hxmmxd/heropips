@@ -9,7 +9,7 @@ export async function GET(request: Request) {
   const interval = searchParams.get('interval') || '1h';
 
   const symbol = detectSymbol(symbolInput) || symbolInput;
-  const candles = await fetchCandles(symbol, interval, 50);
+  const candles = await fetchCandles(symbol, interval, 200);
 
   return NextResponse.json({ candles });
 }

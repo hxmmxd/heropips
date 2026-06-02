@@ -3727,6 +3727,16 @@ body {
   padding: 2px 8px; border-radius: 6px;
   background: rgba(255,255,255,0.06);
 }
+.pos-chart-ema-legend {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 9px; font-weight: 700; color: #555;
+  margin-left: 4px;
+  font-family: 'SF Mono', 'JetBrains Mono', monospace;
+}
+.pos-chart-ema-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  display: inline-block; margin-right: 2px;
+}
 .pos-chart-actions {
   display: flex; align-items: center; gap: 8px;
 }
