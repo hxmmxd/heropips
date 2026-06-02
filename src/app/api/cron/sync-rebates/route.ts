@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+export const dynamic = 'force-dynamic';
+
 const token = process.env.META_API_TOKEN || '';
 const MT_CLIENT_BASE = 'https://mt-client-api-v1.london.agiliumtrade.ai';
 
