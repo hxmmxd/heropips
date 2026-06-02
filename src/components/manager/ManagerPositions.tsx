@@ -75,12 +75,14 @@ export default function ManagerPositions({ positions, pendingOrders, accountInfo
   const [positionView, setPositionView] = useState<'open' | 'pending'>('open');
   const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
   const [closingId, setClosingId] = useState<string | null>(null);
+  const [closingGroup, setClosingGroup] = useState<string | null>(null);
   const [modifyingId, setModifyingId] = useState<string | null>(null);
   const [modifySL, setModifySL] = useState('');
   const [modifyTP, setModifyTP] = useState('');
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [batchClosing, setBatchClosing] = useState(false);
+  const [menuGroupKey, setMenuGroupKey] = useState<string | null>(null);
 
   const grouped = groupPositions(positions);
 
@@ -185,6 +187,47 @@ export default function ManagerPositions({ positions, pendingOrders, accountInfo
         onRefresh();
       }
     } catch {}
+  };
+
+  const handleCloseGroup = async (groupPositions: Position[]) => {
+    const count = groupPositions.length;
+    const sym = groupPositions[0]?.symbol || 'positions';
+    if (!confirm(`Close ${count} ${sym} position${count > 1 ? 's' : ''}?`)) return;
+    const groupKey = `${groupPositions[0]?.symbol}-${groupPositions[0]?.type}`;
+    setClosingGroup(groupKey);
+    try {
+      for (const p of groupPositions) {
+        await fetch('/api/broker/order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'close', brokerId: activeBrokerId, positionId: p.id }),
+        });
+      }
+      onRefresh();
+    } catch (err: any) {
+      alert('Close group failed: ' + err.message);
+    } finally {
+      setClosingGroup(null);
+    }
+  };
+
+  const handleModifyGroup = async (groupPositions: Position[]) => {
+    try {
+      for (const p of groupPositions) {
+        const body: any = { action: 'modify', brokerId: activeBrokerId, positionId: p.id };
+        if (modifySL) body.stopLoss = parseFloat(modifySL);
+        if (modifyTP) body.takeProfit = parseFloat(modifyTP);
+        await fetch('/api/broker/order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+      }
+      setModifyingId(null);
+      onRefresh();
+    } catch (err: any) {
+      alert('Modify group failed: ' + err.message);
+    }
   };
 
   return (
@@ -309,8 +352,15 @@ export default function ManagerPositions({ positions, pendingOrders, accountInfo
                             </span>
                           </div>
                         </div>
-                        <button className="mgr-pos-menu">⋯</button>
+                        <button className="mgr-pos-menu" onClick={() => setMenuGroupKey(menuGroupKey === `${group.symbol}-${group.type}` ? null : `${group.symbol}-${group.type}`)}>⋯</button>
                       </div>
+                      {menuGroupKey === `${group.symbol}-${group.type}` && (
+                        <div className="mgr-pos-context-menu">
+                          <button onClick={() => { handleCloseGroup(group.positions); setMenuGroupKey(null); }}>Close All {group.symbol}</button>
+                          <button onClick={() => { setModifyingId(firstPositionId); setModifySL(group.stopLoss?.toString() || ''); setModifyTP(group.takeProfit?.toString() || ''); setMenuGroupKey(null); }}>Set SL/TP All</button>
+                          <button onClick={() => setMenuGroupKey(null)}>Cancel</button>
+                        </div>
+                      )}
                       <div className="mgr-pos-meta">
                         <span>{group.positions.length} ticket{group.positions.length > 1 ? 's' : ''} · {group.totalVolume.toFixed(2)} lot</span>
                         {!hasSL && <span className="mgr-pos-no-sl">⚠ NO SL</span>}
@@ -347,7 +397,9 @@ export default function ManagerPositions({ positions, pendingOrders, accountInfo
                           </div>
                           <div className="mgr-pos-modify-actions">
                             <button onClick={() => setModifyingId(null)} className="mgr-pos-modify-cancel">Cancel</button>
-                            <button onClick={() => handleModify(firstPositionId)} className="mgr-pos-modify-save">Apply</button>
+                            <button onClick={() => handleModifyGroup(group.positions)} className="mgr-pos-modify-save">
+                              Apply to {group.positions.length > 1 ? `All ${group.positions.length}` : '1'}
+                            </button>
                           </div>
                         </div>
                       )}
@@ -359,7 +411,9 @@ export default function ManagerPositions({ positions, pendingOrders, accountInfo
                           <span className="mgr-pos-action-icon">🚩</span> TP
                         </button>
                         <button className="mgr-pos-action mgr-pos-action-rf" disabled><span className="mgr-pos-action-icon">🔒</span> RF</button>
-                        <button className="mgr-pos-action mgr-pos-action-flash" onClick={handleCloseAll}><span className="mgr-pos-action-icon">⚡</span></button>
+                        <button className="mgr-pos-action mgr-pos-action-flash" onClick={() => handleCloseGroup(group.positions)} disabled={closingGroup === `${group.symbol}-${group.type}`}>
+                          {closingGroup === `${group.symbol}-${group.type}` ? <span className="mgr-btn-spinner" /> : <span className="mgr-pos-action-icon">⚡</span>}
+                        </button>
                         <button className="mgr-pos-action mgr-pos-action-close" onClick={() => handleClose(firstPositionId)} disabled={closingId === firstPositionId}>
                           {closingId === firstPositionId ? <span className="mgr-btn-spinner" /> : <span className="mgr-pos-action-icon">✕</span>}
                         </button>

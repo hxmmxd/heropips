@@ -3126,6 +3126,22 @@ body {
   cursor: pointer; padding: 2px 6px; border-radius: 6px;
 }
 .mgr-pos-menu:hover { background: var(--input-bg); }
+.mgr-pos-context-menu {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 6px; border-radius: 10px;
+  background: rgba(10, 14, 20, 0.95); backdrop-filter: blur(12px);
+  border: 1px solid rgba(139, 105, 20, 0.25);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  margin: -4px 0 8px;
+}
+.mgr-pos-context-menu button {
+  background: none; border: none; color: var(--text); font-size: 12px;
+  padding: 8px 12px; border-radius: 8px; cursor: pointer; text-align: left;
+  font-weight: 600;
+}
+.mgr-pos-context-menu button:hover { background: rgba(184, 134, 11, 0.15); }
+.mgr-pos-context-menu button:first-child { color: #ef4444; }
+.mgr-pos-context-menu button:first-child:hover { background: rgba(239, 68, 68, 0.12); }
 .mgr-pos-meta {
   font-size: 10px; color: var(--subtext); display: flex; align-items: center; gap: 6px;
   margin-bottom: 6px;
