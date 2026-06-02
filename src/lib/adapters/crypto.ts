@@ -8,7 +8,7 @@ import crypto from 'crypto';
 import type {
   TradingAdapter, ConnectionCredentials, AccountInfo,
   BalanceInfo, Position, OrderRequest, OrderResult,
-} from '../engine';
+} from './types';
 
 // ── HMAC Signing ────────────────────────────────────────────
 

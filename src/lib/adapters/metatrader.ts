@@ -6,7 +6,7 @@
 import type {
   TradingAdapter, ConnectionCredentials, AccountInfo,
   BalanceInfo, Position, OrderRequest, OrderResult,
-} from '../engine';
+} from './types';
 
 export class MetaTraderAdapter implements TradingAdapter {
   name = 'MetaTrader (MetaAPI)';

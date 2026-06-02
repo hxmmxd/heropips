@@ -3396,45 +3396,6 @@ body {
   font-size: 11px; font-weight: 600; color: var(--subtext); margin-bottom: 4px; display: block;
 }
 
-/* ── Risk Page ─────────────────────────────────── */
-.mgr-risk-page { display: flex; flex-direction: column; gap: 10px; }
-.mgr-risk-warnings { display: flex; flex-direction: column; gap: 6px; }
-.mgr-risk-alert {
-  display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px;
-  border-radius: 10px; border: 1px solid;
-}
-.mgr-risk-alert strong { font-size: 12px; display: block; margin-bottom: 1px; }
-.mgr-risk-alert p { font-size: 10px; color: var(--subtext); margin: 0; }
-.mgr-risk-alert-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
-.mgr-risk-alert-warn {
-  background: rgba(180,83,9,0.06); border-color: rgba(180,83,9,0.2); color: #B45309;
-}
-.mgr-risk-alert-info {
-  background: rgba(59,130,246,0.06); border-color: rgba(59,130,246,0.2); color: #3b82f6;
-}
-.mgr-risk-alert-danger {
-  background: rgba(220,38,38,0.06); border-color: rgba(220,38,38,0.2); color: #dc2626;
-}
-.mgr-risk-alert-ok {
-  background: rgba(22,163,74,0.06); border-color: rgba(22,163,74,0.2); color: #16a34a;
-}
-
-/* Exposure Table */
-.mgr-exposure-table {
-  border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
-}
-.mgr-exposure-header {
-  display: grid; grid-template-columns: 2fr 1fr 1fr 1.5fr; padding: 6px 10px;
-  font-size: 9px; font-weight: 700; text-transform: uppercase;
-  color: var(--subtext); background: var(--input-bg); letter-spacing: 0.05em;
-}
-.mgr-exposure-row {
-  display: grid; grid-template-columns: 2fr 1fr 1fr 1.5fr; padding: 8px 10px;
-  font-size: 12px; font-weight: 600; color: var(--text);
-  border-top: 1px solid var(--border);
-}
-.mgr-exposure-sym { font-weight: 700; font-family: monospace; }
-
 /* ── Mobile Responsive ─────────────────────────── */
 @media (max-width: 480px) {
   .mgr-content { padding: 10px; }
