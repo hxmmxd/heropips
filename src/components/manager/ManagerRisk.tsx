@@ -57,6 +57,7 @@ export default function ManagerRisk({ accountInfo, positions, activeBrokerId }: 
       if (data.deals) setDeals(data.deals);
       if (data.stats) setStats(data.stats);
       if (data.equityCurve) setEquityCurve(data.equityCurve);
+      // liveRisk from API only if provided, otherwise compute locally
       if (data.liveRisk) setLiveRisk(data.liveRisk);
     } catch (err) {
       console.error('[Risk] Failed to fetch deals:', err);
@@ -69,6 +70,49 @@ export default function ManagerRisk({ accountInfo, positions, activeBrokerId }: 
     setLoading(true);
     fetchDeals();
   }, [fetchDeals]);
+
+  // Compute liveRisk from props (no extra API call needed)
+  useEffect(() => {
+    if (positions.length > 0 && accountInfo.balance > 0) {
+      const bal = accountInfo.balance;
+      const eq = accountInfo.equity || bal;
+      const totalLots = positions.reduce((a, p) => a + p.volume, 0);
+      const openPnl = positions.reduce((a, p) => a + p.profit, 0);
+      const withSL = positions.filter(p => p.stopLoss && p.stopLoss > 0).length;
+      const withTP = positions.filter(p => p.takeProfit && p.takeProfit > 0).length;
+      const margin = accountInfo.margin || 0;
+      const freeMargin = accountInfo.freeMargin || 0;
+      const marginLevel = margin > 0 ? (eq / margin) * 100 : 0;
+      const marginUsedPct = eq > 0 ? (margin / eq) * 100 : 0;
+      const currentDD = bal > 0 ? ((bal - eq) / bal) * 100 : 0;
+      const buyPos = positions.filter(p => p.type === 'POSITION_TYPE_BUY');
+      const sellPos = positions.filter(p => p.type === 'POSITION_TYPE_SELL');
+      const worst = positions.reduce((w, p) => (!w || p.profit < w.profit) ? p : w, positions[0]);
+      const best = positions.reduce((b, p) => (!b || p.profit > b.profit) ? p : b, positions[0]);
+
+      setLiveRisk({
+        openPositions: positions.length,
+        totalLots: Math.round(totalLots * 100) / 100,
+        openPnl: Math.round(openPnl * 100) / 100,
+        openPnlPct: Math.round((openPnl / bal) * 10000) / 100,
+        balance: bal, equity: Math.round(eq * 100) / 100,
+        margin: Math.round(margin * 100) / 100,
+        freeMargin: Math.round(freeMargin * 100) / 100,
+        marginLevel: Math.round(marginLevel * 10) / 10,
+        marginUsedPct: Math.round(marginUsedPct * 100) / 100,
+        currentDD: Math.round(currentDD * 100) / 100,
+        withSL, withTP, noSL: positions.length - withSL,
+        worstOpen: { symbol: worst.symbol, profit: Math.round(worst.profit * 100) / 100, type: worst.type },
+        bestOpen: { symbol: best.symbol, profit: Math.round(best.profit * 100) / 100, type: best.type },
+        buyCount: buyPos.length, sellCount: sellPos.length,
+        buyPnl: Math.round(buyPos.reduce((a, p) => a + p.profit, 0) * 100) / 100,
+        sellPnl: Math.round(sellPos.reduce((a, p) => a + p.profit, 0) * 100) / 100,
+        leverage: accountInfo.leverage || 0,
+      });
+    } else {
+      setLiveRisk(null);
+    }
+  }, [positions, accountInfo]);
 
   // P&L Attribution breakdown
   const longDeals = deals.filter(d => d.type === 'DEAL_TYPE_BUY');

@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 
 const MT_CLIENT_BASE = 'https://mt-client-api-v1.london.agiliumtrade.ai';
 const token = process.env.META_API_TOKEN || '';
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes — saves MetaAPI credits
 
 let _admin: any = null;
 function getAdmin() {
@@ -290,33 +290,19 @@ export async function GET(request: Request) {
     const startTime = new Date(now.getTime() - periodMs).toISOString();
     const endTime = now.toISOString();
 
-    // ── 1. Check cache first for instant response ──
+    // ── 1. Check cache first — ZERO MetaAPI calls ──
     const cached = await getCachedStats(user.id, brokerId, period);
     if (cached) {
-      // Return cached data immediately, but still fetch fresh in background
       const dbDeals = await getDealsFromDb(user.id, brokerId, startTime);
       const dbEquity = await getEquityCurveFromDb(user.id, brokerId, startTime.split('T')[0]);
-
-      // Still fetch live positions for liveRisk (fast call)
-      let liveRisk = null;
-      try {
-        const headers = { 'auth-token': token };
-        const base = `${MT_CLIENT_BASE}/users/current/accounts/${metaApiId}`;
-        const [infoRes, posRes] = await Promise.all([
-          fetch(`${base}/account-information`, { headers, signal: AbortSignal.timeout(5000) }),
-          fetch(`${base}/positions`, { headers, signal: AbortSignal.timeout(5000) }),
-        ]);
-        const info = infoRes.ok ? await infoRes.json() : {};
-        const positions = posRes.ok ? await posRes.json() : [];
-        liveRisk = buildLiveRisk(info, Array.isArray(positions) ? positions : []);
-      } catch {}
 
       return NextResponse.json({
         deals: dbDeals,
         equityCurve: dbEquity.length > 0 ? dbEquity : buildEquityCurveFromDeals(dbDeals, 0, startTime, endTime),
         stats: cached.stats_json,
-        liveRisk,
+        liveRisk: null, // Live risk comes from positions API (already loaded by parent)
         source: 'cache',
+        cachedAt: cached.last_synced,
       });
     }
 
