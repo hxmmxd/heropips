@@ -304,43 +304,6 @@ export default function PositionChart({
             className="tradingview-widget-container"
             style={{ height: '100%', width: '100%' }}
           />
-
-          {/* ── Floating Price Level Lines ── */}
-          {(() => {
-            // Calculate positions: map price to % from center (50%)
-            // Visible range heuristic: ±0.3% for forex, ±0.8% for metals/indices
-            const rangePercent = entryPrice > 100 ? 0.008 : 0.003;
-            const visibleHigh = livePrice * (1 + rangePercent);
-            const visibleLow = livePrice * (1 - rangePercent);
-            const range = visibleHigh - visibleLow;
-
-            const priceToPercent = (price: number) => {
-              const pct = ((visibleHigh - price) / range) * 100;
-              return Math.max(5, Math.min(95, pct)); // clamp 5-95%
-            };
-
-            const levels = [
-              { label: 'ENTRY', price: entryPrice, color: '#B8860B', style: 'solid' },
-              ...(stopLoss && stopLoss > 0 ? [{ label: 'SL', price: stopLoss, color: '#ef4444', style: 'dashed' }] : []),
-              ...(takeProfit && takeProfit > 0 ? [{ label: 'TP', price: takeProfit, color: '#22c55e', style: 'dashed' }] : []),
-            ];
-
-            return levels.map(lv => (
-              <div
-                key={lv.label}
-                className="pos-chart-overlay-line"
-                style={{
-                  top: `${priceToPercent(lv.price)}%`,
-                  borderTopColor: lv.color,
-                  borderTopStyle: lv.style as any,
-                }}
-              >
-                <span className="pos-chart-overlay-tag" style={{ background: lv.color }}>
-                  {lv.label} {lv.price.toFixed(decimals)}
-                </span>
-              </div>
-            ));
-          })()}
         </div>
 
         {/* ── Buy / Sell Bar ── */}
