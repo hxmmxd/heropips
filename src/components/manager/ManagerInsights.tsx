@@ -343,29 +343,62 @@ export default function ManagerInsights({ accountInfo, positions, activeBrokerId
         </div>
       </div>
 
-      {/* ── Quick Stats Row ── */}
-      <div className="ins-quick-stats">
-        <div className="ins-qs-item">
-          <span className="ins-qs-label">Buy BE</span>
-          <span className="ins-qs-value">—</span>
-          <span className="ins-qs-sub">{buyPositions.reduce((a, p) => a + p.volume, 0).toFixed(2)}L</span>
+      {/* Break-Even & Max Cards */}
+      <div className="mgr-be-grid">
+        <div className="mgr-be-card">
+          <div className="mgr-be-label">Buy BE</div>
+          <div className="mgr-be-value">—</div>
+          <div className="mgr-be-sub">{buyPositions.reduce((a, p) => a + p.volume, 0).toFixed(2)}L</div>
         </div>
-        <div className="ins-qs-item">
-          <span className="ins-qs-label">Sell BE</span>
-          <span className="ins-qs-value">—</span>
-          <span className="ins-qs-sub">{sellPositions.reduce((a, p) => a + p.volume, 0).toFixed(2)}L</span>
+        <div className="mgr-be-card">
+          <div className="mgr-be-label">Sell BE</div>
+          <div className="mgr-be-value">—</div>
+          <div className="mgr-be-sub">{sellPositions.reduce((a, p) => a + p.volume, 0).toFixed(2)}L</div>
         </div>
-        <div className="ins-qs-item">
-          <span className="ins-qs-label">Win %</span>
-          <span className="ins-qs-value mgr-positive">{winRate}%</span>
+        <div className="mgr-be-card">
+          <div className="mgr-be-label">Max Loss</div>
+          <div className="mgr-be-value mgr-negative">—</div>
         </div>
-        <div className="ins-qs-item">
-          <span className="ins-qs-label">No SL</span>
-          <span className={`ins-qs-value ${positionsWithoutSL > 0 ? 'mgr-warn' : ''}`}>{positionsWithoutSL}</span>
+        <div className="mgr-be-card">
+          <div className="mgr-be-label">Max Profit</div>
+          <div className="mgr-be-value">∞</div>
         </div>
-        <div className="ins-qs-item">
-          <span className="ins-qs-label">Near TP</span>
-          <span className="ins-qs-value mgr-positive">{nearestTP ? `${Math.round(nearestTP)}` : '—'}</span>
+      </div>
+
+      {/* Account Risk Summary */}
+      <div className="mgr-risk-summary">
+        <div className="mgr-risk-header">
+          <div className="mgr-risk-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M18 20V10M12 20V4M6 20v-6" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            Account Risk Summary
+          </div>
+          <button className="mgr-details-link">Details &gt;</button>
+        </div>
+        <div className="mgr-risk-stats">
+          <div className="mgr-risk-stat">
+            <span className="mgr-risk-stat-label">Win Rate</span>
+            <span className="mgr-risk-stat-value mgr-positive">{winRate}%</span>
+          </div>
+          <div className="mgr-risk-stat">
+            <span className="mgr-risk-stat-label">Avg R:R</span>
+            <span className="mgr-risk-stat-value">N/A</span>
+          </div>
+          <div className="mgr-risk-stat">
+            <span className="mgr-risk-stat-label">No SL</span>
+            <span className="mgr-risk-stat-value mgr-warn">{positionsWithoutSL}</span>
+          </div>
+        </div>
+        <div className="mgr-risk-stats mgr-risk-stats-2">
+          <div className="mgr-risk-stat">
+            <span className="mgr-risk-stat-label">Nearest SL</span>
+            <span className="mgr-risk-stat-value">{positionsWithoutSL === positions.length ? 'No SL' : '—'}</span>
+          </div>
+          <div className="mgr-risk-stat">
+            <span className="mgr-risk-stat-label">Nearest TP</span>
+            <span className="mgr-risk-stat-value mgr-positive">{nearestTP ? `${Math.round(nearestTP)} pts` : '—'}</span>
+          </div>
         </div>
       </div>
     </div>
