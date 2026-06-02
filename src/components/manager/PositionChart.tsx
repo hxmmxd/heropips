@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 
 interface PositionChartProps {
   symbol: string;
@@ -60,7 +60,7 @@ export default function PositionChart({
           try { chartRef.current.remove(); } catch {}
         }
 
-        const chartHeight = 320;
+        const chartHeight = containerRef.current.clientHeight || (window.innerHeight - 140);
         chart = createChart(containerRef.current, {
           width: containerRef.current.clientWidth,
           height: chartHeight,
@@ -188,7 +188,10 @@ export default function PositionChart({
         // Resize
         resizeObserver = new ResizeObserver((entries) => {
           if (entries[0] && containerRef.current && chart && isMounted) {
-            try { chart.applyOptions({ width: containerRef.current.clientWidth }); } catch {}
+            try {
+              const h = containerRef.current.clientHeight || (window.innerHeight - 140);
+              chart.applyOptions({ width: containerRef.current.clientWidth, height: h });
+            } catch {}
           }
         });
         resizeObserver.observe(containerRef.current);
@@ -214,75 +217,83 @@ export default function PositionChart({
 
   const timeframes = ['1m', '5m', '15m', '1h', '4h', '1D'];
 
+  // Prevent body scroll when fullscreen chart is open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
+
   return (
-    <div className="pos-chart-panel">
-      {/* Header */}
-      <div className="pos-chart-header">
-        <div className="pos-chart-title">
-          <span className="pos-chart-symbol">{symbol}</span>
-          <span className={`pos-chart-dir ${isBuy ? 'mgr-positive' : 'mgr-negative'}`}>
-            {isBuy ? '↗ LONG' : '↘ SHORT'}
-          </span>
-        </div>
-        <div className="pos-chart-actions">
-          <div className="pos-chart-timeframes">
-            {timeframes.map(tf => (
-              <button
-                key={tf}
-                onClick={() => setTimeframe(tf)}
-                className={`pos-chart-tf ${timeframe === tf ? 'pos-chart-tf-active' : ''}`}
-              >
-                {tf}
-              </button>
-            ))}
-          </div>
-          <button className="pos-chart-close" onClick={onClose}>✕</button>
-        </div>
-      </div>
-
-      {/* Price info bar */}
-      <div className="pos-chart-prices">
-        <div className="pos-chart-price-item">
-          <span className="pos-chart-price-label">ENTRY</span>
-          <span className="pos-chart-price-val" style={{ color: '#B8860B' }}>
-            {entryPrice.toFixed(entryPrice > 100 ? 2 : 5)}
-          </span>
-        </div>
-        {stopLoss && stopLoss > 0 && (
-          <div className="pos-chart-price-item">
-            <span className="pos-chart-price-label">SL</span>
-            <span className="pos-chart-price-val mgr-negative">
-              {stopLoss.toFixed(stopLoss > 100 ? 2 : 5)}
+    <div className="pos-chart-overlay" onClick={onClose}>
+      <div className="pos-chart-fullscreen" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="pos-chart-header">
+          <div className="pos-chart-title">
+            <span className="pos-chart-symbol">{symbol}</span>
+            <span className={`pos-chart-dir ${isBuy ? 'mgr-positive' : 'mgr-negative'}`}>
+              {isBuy ? '↗ LONG' : '↘ SHORT'}
             </span>
           </div>
-        )}
-        {takeProfit && takeProfit > 0 && (
+          <div className="pos-chart-actions">
+            <div className="pos-chart-timeframes">
+              {timeframes.map(tf => (
+                <button
+                  key={tf}
+                  onClick={() => setTimeframe(tf)}
+                  className={`pos-chart-tf ${timeframe === tf ? 'pos-chart-tf-active' : ''}`}
+                >
+                  {tf}
+                </button>
+              ))}
+            </div>
+            <button className="pos-chart-close" onClick={onClose}>✕</button>
+          </div>
+        </div>
+
+        {/* Price info bar */}
+        <div className="pos-chart-prices">
           <div className="pos-chart-price-item">
-            <span className="pos-chart-price-label">TP</span>
-            <span className="pos-chart-price-val mgr-positive">
-              {takeProfit.toFixed(takeProfit > 100 ? 2 : 5)}
+            <span className="pos-chart-price-label">ENTRY</span>
+            <span className="pos-chart-price-val" style={{ color: '#B8860B' }}>
+              {entryPrice.toFixed(entryPrice > 100 ? 2 : 5)}
             </span>
           </div>
-        )}
-        <div className="pos-chart-price-item">
-          <span className="pos-chart-price-label">MARK</span>
-          <span className="pos-chart-price-val">
-            {currentPrice.toFixed(currentPrice > 100 ? 2 : 5)}
-          </span>
-        </div>
-      </div>
-
-      {/* Chart */}
-      <div className="pos-chart-container">
-        {loading && (
-          <div className="pos-chart-loading">
-            <div className="mgr-spinner" />
+          {stopLoss && stopLoss > 0 && (
+            <div className="pos-chart-price-item">
+              <span className="pos-chart-price-label">SL</span>
+              <span className="pos-chart-price-val mgr-negative">
+                {stopLoss.toFixed(stopLoss > 100 ? 2 : 5)}
+              </span>
+            </div>
+          )}
+          {takeProfit && takeProfit > 0 && (
+            <div className="pos-chart-price-item">
+              <span className="pos-chart-price-label">TP</span>
+              <span className="pos-chart-price-val mgr-positive">
+                {takeProfit.toFixed(takeProfit > 100 ? 2 : 5)}
+              </span>
+            </div>
+          )}
+          <div className="pos-chart-price-item">
+            <span className="pos-chart-price-label">MARK</span>
+            <span className="pos-chart-price-val">
+              {currentPrice.toFixed(currentPrice > 100 ? 2 : 5)}
+            </span>
           </div>
-        )}
-        {error && (
-          <div className="pos-chart-error">{error}</div>
-        )}
-        <div ref={containerRef} className="pos-chart-canvas" />
+        </div>
+
+        {/* Chart */}
+        <div className="pos-chart-container">
+          {loading && (
+            <div className="pos-chart-loading">
+              <div className="mgr-spinner" />
+            </div>
+          )}
+          {error && (
+            <div className="pos-chart-error">{error}</div>
+          )}
+          <div ref={containerRef} className="pos-chart-canvas" />
+        </div>
       </div>
     </div>
   );

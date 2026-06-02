@@ -3691,17 +3691,25 @@ body {
 }
 
 /* ── Position Chart ───────────────────────────── */
-.pos-chart-panel {
-  margin-top: 14px;
-  border-radius: 14px;
-  overflow: hidden;
+.pos-chart-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(0,0,0,0.85);
+  backdrop-filter: blur(8px);
+  animation: posChartFadeIn 0.2s ease-out;
+}
+@keyframes posChartFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.pos-chart-fullscreen {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
   background: #0a0a0f;
-  border: 1px solid rgba(184,134,11,0.2);
   animation: posChartSlide 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 @keyframes posChartSlide {
-  from { opacity: 0; max-height: 0; transform: translateY(-8px); }
-  to { opacity: 1; max-height: 600px; transform: translateY(0); }
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 .pos-chart-header {
   display: flex; align-items: center; justify-content: space-between;
@@ -3763,10 +3771,10 @@ body {
 }
 
 .pos-chart-container {
-  position: relative; min-height: 320px;
+  position: relative; flex: 1; min-height: 0;
 }
 .pos-chart-canvas {
-  width: 100%;
+  width: 100%; height: 100%;
 }
 .pos-chart-loading {
   position: absolute; inset: 0; display: flex;
