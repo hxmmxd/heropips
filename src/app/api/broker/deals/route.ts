@@ -140,11 +140,11 @@ export async function GET(request: Request) {
     const startTime = new Date(now.getTime() - periodMs).toISOString();
     const endTime = now.toISOString();
 
+    const dealsUrl = `${base}/history-deals/time/${startTime}/${endTime}`;
+
     // Fetch deals, positions, and account info in parallel
     const [dealsRes, infoRes, posRes] = await Promise.all([
-      fetch(`${base}/history-deals-by-time-range?startTime=${startTime}&endTime=${endTime}`, {
-        headers, signal: AbortSignal.timeout(12000),
-      }),
+      fetch(dealsUrl, { headers, signal: AbortSignal.timeout(12000) }),
       fetch(`${base}/account-information`, { headers, signal: AbortSignal.timeout(8000) }),
       fetch(`${base}/positions`, { headers, signal: AbortSignal.timeout(8000) }),
     ]);
