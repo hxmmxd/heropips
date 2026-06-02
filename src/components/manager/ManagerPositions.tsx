@@ -152,43 +152,6 @@ export default function ManagerPositions({ positions, pendingOrders, accountInfo
     }
   };
 
-  const handleModify = async (positionId: string) => {
-    try {
-      const body: any = { action: 'modify', brokerId: activeBrokerId, positionId };
-      if (modifySL) body.stopLoss = parseFloat(modifySL);
-      if (modifyTP) body.takeProfit = parseFloat(modifyTP);
-      const res = await fetch('/api/broker/order', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setModifyingId(null);
-        onRefresh();
-      } else {
-        alert(data.error || 'Modify failed');
-      }
-    } catch (err: any) {
-      alert('Modify failed: ' + err.message);
-    }
-  };
-
-  const handleCloseAll = async () => {
-    if (!confirm(`Close all ${positions.length} positions?`)) return;
-    try {
-      const res = await fetch('/api/broker/order', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'closeAll', brokerId: activeBrokerId }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        onRefresh();
-      }
-    } catch {}
-  };
-
   const handleCloseGroup = async (groupPositions: Position[]) => {
     const count = groupPositions.length;
     const sym = groupPositions[0]?.symbol || 'positions';

@@ -384,13 +384,12 @@ export async function GET(request: Request) {
       equityCurve[equityCurve.length - 1].equity = equity;
     }
 
-    const liveRisk = buildLiveRisk(info, positions);
 
     return NextResponse.json({
       deals: closedTrades,
       equityCurve,
       stats,
-      liveRisk,
+      liveRisk: null, // Computed locally on frontend from positions props
       source: 'live',
     });
   } catch (error: any) {
@@ -415,47 +414,3 @@ function buildEquityCurveFromDeals(closedTrades: any[], balance: number, startTi
   return curve;
 }
 
-// ── Helper: Build live risk from positions ──
-function buildLiveRisk(info: any, positions: any[]) {
-  if (positions.length === 0) return null;
-
-  const balance = info.balance || 0;
-  const equity = info.equity || balance;
-  const totalLots = positions.reduce((a: number, p: any) => a + (p.volume || 0), 0);
-  const openPnl = positions.reduce((a: number, p: any) => a + (p.profit || 0), 0);
-  const openPnlPct = balance > 0 ? (openPnl / balance) * 100 : 0;
-  const withSL = positions.filter((p: any) => p.stopLoss && p.stopLoss > 0).length;
-  const withTP = positions.filter((p: any) => p.takeProfit && p.takeProfit > 0).length;
-  const margin = info.margin || 0;
-  const freeMargin = info.freeMargin || 0;
-  const marginLevel = margin > 0 ? (equity / margin) * 100 : 0;
-  const marginUsedPct = equity > 0 ? (margin / equity) * 100 : 0;
-  const currentDD = balance > 0 ? ((balance - equity) / balance) * 100 : 0;
-
-  const worstOpen = positions.reduce((w: any, p: any) => (!w || p.profit < w.profit) ? p : w, null);
-  const bestOpen = positions.reduce((b: any, p: any) => (!b || p.profit > b.profit) ? p : b, null);
-
-  const buyPositions = positions.filter((p: any) => p.type === 'POSITION_TYPE_BUY');
-  const sellPositions = positions.filter((p: any) => p.type === 'POSITION_TYPE_SELL');
-
-  return {
-    openPositions: positions.length,
-    totalLots: Math.round(totalLots * 100) / 100,
-    openPnl: Math.round(openPnl * 100) / 100,
-    openPnlPct: Math.round(openPnlPct * 100) / 100,
-    balance, equity: Math.round(equity * 100) / 100,
-    margin: Math.round(margin * 100) / 100,
-    freeMargin: Math.round(freeMargin * 100) / 100,
-    marginLevel: Math.round(marginLevel * 10) / 10,
-    marginUsedPct: Math.round(marginUsedPct * 100) / 100,
-    currentDD: Math.round(currentDD * 100) / 100,
-    withSL, withTP, noSL: positions.length - withSL,
-    worstOpen: worstOpen ? { symbol: worstOpen.symbol, profit: Math.round((worstOpen.profit || 0) * 100) / 100, type: worstOpen.type } : null,
-    bestOpen: bestOpen ? { symbol: bestOpen.symbol, profit: Math.round((bestOpen.profit || 0) * 100) / 100, type: bestOpen.type } : null,
-    buyCount: buyPositions.length,
-    sellCount: sellPositions.length,
-    buyPnl: Math.round(buyPositions.reduce((a: number, p: any) => a + (p.profit || 0), 0) * 100) / 100,
-    sellPnl: Math.round(sellPositions.reduce((a: number, p: any) => a + (p.profit || 0), 0) * 100) / 100,
-    leverage: info.leverage || 0,
-  };
-}
