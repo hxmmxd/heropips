@@ -3853,3 +3853,53 @@ body {
   background: rgba(184,134,11,0.12);
   border-color: #B8860B; color: #D4A843;
 }
+
+/* ── Chart Trade Bar ── */
+.pos-chart-trade-bar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 12px;
+  background: #0c0c14;
+  border-top: 1px solid rgba(255,255,255,0.04);
+  flex-shrink: 0;
+}
+.pos-chart-sell-btn,
+.pos-chart-buy-btn {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 12px 8px; border-radius: 12px;
+  border: none; cursor: pointer;
+  font-family: 'SF Mono', 'JetBrains Mono', monospace;
+  transition: all 0.15s; min-height: 52px;
+}
+.pos-chart-sell-btn {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  box-shadow: 0 2px 12px rgba(239,68,68,0.3);
+}
+.pos-chart-sell-btn:hover { box-shadow: 0 4px 20px rgba(239,68,68,0.4); transform: translateY(-1px); }
+.pos-chart-sell-btn:active { transform: translateY(0); }
+.pos-chart-sell-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.pos-chart-buy-btn {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  box-shadow: 0 2px 12px rgba(34,197,94,0.3);
+}
+.pos-chart-buy-btn:hover { box-shadow: 0 4px 20px rgba(34,197,94,0.4); transform: translateY(-1px); }
+.pos-chart-buy-btn:active { transform: translateY(0); }
+.pos-chart-buy-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.pos-chart-btn-label {
+  font-size: 11px; font-weight: 800; color: #fff;
+  letter-spacing: 0.08em;
+}
+.pos-chart-btn-price {
+  font-size: 16px; font-weight: 900; color: #fff;
+  letter-spacing: -0.01em;
+}
+.pos-chart-spread-info {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 2px; min-width: 60px;
+}
+.pos-chart-spread-vol {
+  font-size: 10px; font-weight: 700; color: #555;
+  font-family: 'SF Mono', 'JetBrains Mono', monospace;
+}

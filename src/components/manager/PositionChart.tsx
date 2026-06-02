@@ -9,7 +9,10 @@ interface PositionChartProps {
   stopLoss?: number;
   takeProfit?: number;
   isBuy: boolean;
+  volume: number;
+  activeBrokerId: string;
   onClose: () => void;
+  onRefresh: () => void;
 }
 
 // ── Map MetaAPI symbols to TradingView symbols ──
@@ -81,18 +84,55 @@ export default function PositionChart({
   stopLoss,
   takeProfit,
   isBuy,
+  volume,
+  activeBrokerId,
   onClose,
+  onRefresh,
 }: PositionChartProps) {
   const widgetRef = useRef<HTMLDivElement>(null);
   const [timeframe, setTimeframe] = useState('15m');
   const [livePrice, setLivePrice] = useState(currentPrice);
   const [tickDirection, setTickDirection] = useState<'up' | 'down' | 'flat'>('flat');
+  const [executing, setExecuting] = useState<'buy' | 'sell' | null>(null);
 
   const tvSymbol = toTradingViewSymbol(symbol);
   const decimals = entryPrice > 100 ? 2 : 5;
   const pnlFromEntry = livePrice - entryPrice;
   const pnlPct = entryPrice > 0 ? ((pnlFromEntry / entryPrice) * 100) * (isBuy ? 1 : -1) : 0;
   const pnlValue = isBuy ? pnlFromEntry : -pnlFromEntry;
+
+  // Spread estimate for bid/ask
+  const spreadFactor = entryPrice > 100 ? 0.3 : 0.00015;
+  const bidPrice = livePrice - spreadFactor / 2;
+  const askPrice = livePrice + spreadFactor / 2;
+
+  const handleOrder = async (direction: 'BUY' | 'SELL') => {
+    if (!activeBrokerId || activeBrokerId === 'none') return;
+    setExecuting(direction === 'BUY' ? 'buy' : 'sell');
+    try {
+      const res = await fetch('/api/broker/order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'place',
+          brokerId: activeBrokerId,
+          symbol,
+          direction,
+          volume: volume || 0.01,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        onRefresh();
+      } else {
+        alert(data.error || 'Order failed');
+      }
+    } catch (err: any) {
+      alert('Order failed: ' + err.message);
+    } finally {
+      setExecuting(null);
+    }
+  };
 
   // ── Embed TradingView Widget ──
   useEffect(() => {
@@ -264,6 +304,41 @@ export default function PositionChart({
             className="tradingview-widget-container"
             style={{ height: '100%', width: '100%' }}
           />
+        </div>
+
+        {/* ── Buy / Sell Bar ── */}
+        <div className="pos-chart-trade-bar">
+          <button
+            className="pos-chart-sell-btn"
+            onClick={() => handleOrder('SELL')}
+            disabled={!!executing}
+          >
+            {executing === 'sell' ? (
+              <span className="mgr-btn-spinner" />
+            ) : (
+              <>
+                <span className="pos-chart-btn-label">SELL</span>
+                <span className="pos-chart-btn-price">{bidPrice.toFixed(decimals)}</span>
+              </>
+            )}
+          </button>
+          <div className="pos-chart-spread-info">
+            <span className="pos-chart-spread-vol">{volume.toFixed(2)} lot</span>
+          </div>
+          <button
+            className="pos-chart-buy-btn"
+            onClick={() => handleOrder('BUY')}
+            disabled={!!executing}
+          >
+            {executing === 'buy' ? (
+              <span className="mgr-btn-spinner" />
+            ) : (
+              <>
+                <span className="pos-chart-btn-label">BUY</span>
+                <span className="pos-chart-btn-price">{askPrice.toFixed(decimals)}</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
     </div>

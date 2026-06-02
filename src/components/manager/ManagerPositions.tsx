@@ -396,7 +396,10 @@ export default function ManagerPositions({ positions, pendingOrders, accountInfo
                           stopLoss={group.stopLoss}
                           takeProfit={group.takeProfit}
                           isBuy={isBuy}
+                          volume={group.totalVolume}
+                          activeBrokerId={activeBrokerId}
                           onClose={() => setChartKey(null)}
+                          onRefresh={onRefresh}
                         />
                       )}
                     </div>
@@ -494,7 +497,10 @@ export default function ManagerPositions({ positions, pendingOrders, accountInfo
                           stopLoss={pos.stopLoss}
                           takeProfit={pos.takeProfit}
                           isBuy={isBuy}
+                          volume={pos.volume}
+                          activeBrokerId={activeBrokerId}
                           onClose={() => setChartKey(null)}
+                          onRefresh={onRefresh}
                         />
                       )}
                     </div>
