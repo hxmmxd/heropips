@@ -5,6 +5,7 @@ import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
 import ModalNode from '@/components/ModalNode';
 import TerminalTab from '@/components/TerminalTab';
+import ManagerTab from '@/components/ManagerTab';
 import BrokersTab from '@/components/BrokersTab';
 import HistoryTab from '@/components/HistoryTab';
 import ReferralTab from '@/components/ReferralTab';
@@ -325,6 +326,7 @@ export default function Home() {
               onSendMessage={handleSendMessage}
               onGenerateSignal={handleGenerateSignal}
               activeBrokerId={activeBroker.acc}
+              onOpenManager={() => setCurrentTab('manager')}
               onTradeExecuted={(result) => {
                 const t = result.ticket;
                 // Prepend the new trade locally matching DB schema
@@ -370,6 +372,10 @@ export default function Home() {
                 );
               }}
             />
+          )}
+
+          {currentTab === 'manager' && (
+            <ManagerTab activeBrokerId={activeBroker.acc} />
           )}
 
           {currentTab === 'brokers' && (

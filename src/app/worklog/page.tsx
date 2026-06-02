@@ -35,6 +35,71 @@ const tagStyles: Record<string, { bg: string; color: string; label: string }> = 
 
 const worklog: WorkDay[] = [
   {
+    date: 'June 2, 2026',
+    dayLabel: 'Tuesday',
+    commitCount: 12,
+    blocks: [
+      { tag: 'major', time: '12:30 PM',
+        title: 'Manager Portal — Full Trading Dashboard',
+        summary: 'Built a complete Manager Portal accessible from the chat input button with 4 sub-tabs: Insights (live P&L, order execution), Positions (grouped cards, list view), Config (trading preferences), and Risk Analytics.',
+        items: [
+          { icon: '📊', title: 'Manager Tab Architecture', description: 'Created ManagerTab component with 4 sub-tabs (Insights, Positions, Config, Risk) and real-time account data fetching from MetaAPI broker endpoints.', files: ['ManagerTab.tsx', 'page.tsx'] },
+          { icon: '💹', title: 'Insights — Live Trading Dashboard', description: 'MTM P&L card, Lots & Positions counter, Market/Custom/Lots/Risk order modes, SELL/BUY execution buttons with live prices, Buy BE/Sell BE cards, Max Loss/Profit indicators, and Account Risk Summary.', files: ['manager/ManagerInsights.tsx', 'globals.css'] },
+          { icon: '🎯', title: 'Animated Manager Button', description: 'Replaced the + button in chat input with an animated audio waveform SVG that pulses to grab attention. Launches the full-screen Manager overlay.', files: ['TerminalTab.tsx', 'globals.css'] },
+        ]
+      },
+      { tag: 'feature', time: '02:00 PM',
+        title: 'Positions — Dual View Mode & Multi-Select',
+        summary: 'Built comprehensive position management with grouped card view, individual list view, and a batch multi-select system for closing multiple positions at once.',
+        items: [
+          { icon: '🃏', title: 'Grouped Card View', description: 'Positions grouped by symbol+direction showing aggregated P&L, ticket count, volume, SL/TP price bar visualization with entry/mark/TP indicators, and 5 action buttons (SL, TP, RF, Flash, Close).', files: ['manager/ManagerPositions.tsx', 'globals.css'] },
+          { icon: '📋', title: 'Individual List View', description: 'Per-position compact cards with symbol, BUY/SELL badge, lots, P&L, points, SL-to-TP progress bar with dot indicator, Entry/SL/TP/R:R info row, and individual close button.', files: ['manager/ManagerPositions.tsx', 'globals.css'] },
+          { icon: '☑️', title: 'Multi-Select Mode', description: 'Tap "Select" to enter batch mode. Gold circular checkboxes appear on each card. Header transforms to show All pill toggle, selection counter (2/6 XAGUSD Long), All/Done buttons. Sticky red "Close Selected (N)" bar for batch position closure.', files: ['manager/ManagerPositions.tsx', 'globals.css'] },
+          { icon: '📊', title: 'Summary Header', description: 'Dynamic header showing "Open Positions" with net direction (NET LONG/SHORT), total P&L, and All/Select toggle buttons.', files: ['manager/ManagerPositions.tsx'] },
+        ]
+      },
+      { tag: 'major', time: '03:30 PM',
+        title: 'Risk Analytics Dashboard',
+        summary: 'Full risk analytics page with period selectors, performance trio cards, trade statistics grid, closed deals leaderboard, and trade history timeline.',
+        items: [
+          { icon: '📈', title: 'Risk Performance Metrics', description: 'Win Rate / Profit Factor / Avg R:R trio cards with color-coded values. Trade statistics grid showing total trades, winners/losers, avg win/loss amounts, and recovery factor.', files: ['manager/ManagerRisk.tsx', 'globals.css'] },
+          { icon: '📅', title: 'Period Selectors & Net P&L', description: 'Today/Week/Month/All period filter chips with large Net P&L display and deal count badge.', files: ['manager/ManagerRisk.tsx'] },
+          { icon: '🏆', title: 'Closed Deals Leaderboard', description: 'Top performers table showing symbol, trade count, total P&L, and win rate with color-coded profit/loss indicators.', files: ['manager/ManagerRisk.tsx'] },
+          { icon: '📜', title: 'Trade History Timeline', description: 'Chronological list of closed deals with win/loss card styling, green/red left border, symbol badges, entry→exit prices, P&L, duration, and lot size.', files: ['manager/ManagerRisk.tsx'] },
+          { icon: '🔌', title: 'Deals API Endpoint', description: 'Built /api/broker/deals route fetching closed trade history from MetaAPI with date range filtering.', files: ['api/broker/deals/route.ts'] },
+        ]
+      },
+      { tag: 'improvement', time: '05:00 PM',
+        title: 'Compact UI Optimization — All Tabs',
+        summary: 'Applied comprehensive spacing and density optimizations across all 4 Manager tabs, reducing padding, gap sizes, font sizes, and element dimensions for a professional high-density trading dashboard feel.',
+        items: [
+          { icon: '📐', title: 'Insights Tab Compact', description: 'Reduced card padding 16→12px, value font 20→18px, SELL/BUY button padding, BE card spacing, and Risk Summary section gaps.', files: ['globals.css'] },
+          { icon: '📐', title: 'Positions Tab Compact', description: 'Cards 16→12px padding, PnL font 28→22px, badge 40→34px, price bar 8→6px height, action buttons 8→6px padding, position list gap 12→8px.', files: ['globals.css'] },
+          { icon: '📐', title: 'Config Tab Compact', description: 'Sections gap 16→10px, padding 16→12px, toggle 44×24→40×22px, row padding 12→8px, field margins reduced.', files: ['globals.css'] },
+          { icon: '📐', title: 'Risk Tab Compact', description: 'Page gap 12→8px, trio cards 16→12px padding, stats row 10→7px padding, trade cards 14→10px, bottom bar 10→8px padding.', files: ['globals.css'] },
+        ]
+      },
+    ]
+  },
+  {
+    date: 'June 1, 2026',
+    dayLabel: 'Monday',
+    commitCount: 8,
+    blocks: [
+      { tag: 'major', time: '11:15 PM',
+        title: 'Advanced Global Rebates & Risk Safeguards',
+        summary: 'Designed and implemented advanced anti-gaming controls, promotions schedules, and monthly volume bracket scaling for the rebate calculation engine.',
+        items: [
+          { icon: '🛡️', title: 'Multi-Account Hedge Correlation', description: 'Implemented dynamic filters to automatically exclude overlapping opposing trade positions on identical symbols within a 15-second entry window.', files: ['sync-rebates/route.ts'] },
+          { icon: '📈', title: 'Sliding Volume Tier Multipliers', description: 'Integrated dynamic monthly lot summation to scale user payout percentages automatically based on volume brackets.', files: ['sync-rebates/route.ts', '20260603_global_rebate_controls.sql'] },
+          { icon: '⏰', title: 'Happy Hour Promo Scheduler', description: 'Added scheduled promotion boosts for specific symbols with active calendar time-range checks during rebate resolution.', files: ['sync-rebates/route.ts', '20260603_global_rebate_controls.sql'] },
+          { icon: '🔒', title: 'Drawdown Caps & Revenue Guards', description: 'Implemented account-level maximum drawdown triggers (35%) and revenue caps (70% of broker commission) to protect platform margins.', files: ['sync-rebates/route.ts'] },
+          { icon: '⚙️', title: 'Admin Controls Dashboard Sub-Tabs', description: 'Created 4 interactive setting sub-tabs (Rate Rules, Risk, Promotions, Tiers) in the admin console to modify parameters dynamically.', files: ['AdminSettings.tsx', 'admin/route.ts'] }
+        ]
+      }
+    ]
+  },
+  {
     date: 'May 31, 2026',
     dayLabel: 'Sunday',
     commitCount: 17,

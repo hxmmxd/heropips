@@ -81,26 +81,26 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: `Unsupported currency: ${currency}` }, { status: 400 });
     }
 
-    // Check wallet balance
-    const { data: wallet } = await supabaseAdmin
-      .from('referral_wallets')
-      .select('available_balance')
-      .eq('user_id', user.id)
+    // Check wallet balance from profiles
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('wallet_balance')
+      .eq('id', user.id)
       .single();
 
-    const available = wallet?.available_balance ?? 0;
+    const available = profile?.wallet_balance ?? 0;
     if (available < amount) {
       return NextResponse.json({ error: 'Insufficient balance' }, { status: 400 });
     }
 
     // Deduct balance immediately (held until approved/rejected)
     await supabaseAdmin
-      .from('referral_wallets')
+      .from('profiles')
       .update({
-        available_balance: available - amount,
+        wallet_balance: available - amount,
         updated_at: new Date().toISOString(),
       })
-      .eq('user_id', user.id);
+      .eq('id', user.id);
 
     // Create withdrawal request — just a DB record, NO NOWPayments call
     const { data: record, error: insertErr } = await supabaseAdmin
@@ -120,11 +120,28 @@ export async function POST(request: Request) {
     if (insertErr) {
       // Refund on insert failure
       await supabaseAdmin
-        .from('referral_wallets')
-        .update({ available_balance: available, updated_at: new Date().toISOString() })
-        .eq('user_id', user.id);
+        .from('profiles')
+        .update({ wallet_balance: available, updated_at: new Date().toISOString() })
+        .eq('id', user.id);
       return NextResponse.json({ error: insertErr.message }, { status: 500 });
     }
+
+    // Create ledger entry in wallet_transactions
+    await supabaseAdmin
+      .from('wallet_transactions')
+      .insert({
+        user_id: user.id,
+        amount: -amount,
+        tx_type: 'withdrawal_request',
+        status: 'pending',
+        reference_id: record.id,
+        metadata: {
+          currency,
+          address,
+          nowpayments_currency: nowCurrency,
+        },
+        created_at: new Date().toISOString(),
+      });
 
     return NextResponse.json({
       success: true,
@@ -185,6 +202,21 @@ export async function POST(request: Request) {
         })
         .eq('id', withdrawalId);
 
+      // Update wallet_transactions reference to withdrawal_payout
+      await supabaseAdmin
+        .from('wallet_transactions')
+        .update({
+          status: 'completed',
+          tx_type: 'withdrawal_payout',
+          metadata: {
+            nowpayments_id: payout.id,
+            batch_withdrawal_id: payout.batch_withdrawal_id,
+            approved_at: new Date().toISOString(),
+            approved_by: user.id,
+          }
+        })
+        .eq('reference_id', withdrawalId);
+
       return NextResponse.json({
         success: true,
         withdrawalId,
@@ -228,22 +260,36 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: `Cannot reject — current status is "${record.status}"` }, { status: 400 });
     }
 
-    // Refund balance
-    const { data: wallet } = await supabaseAdmin
-      .from('referral_wallets')
-      .select('available_balance')
-      .eq('user_id', record.user_id)
+    // Refund balance to profile
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('wallet_balance')
+      .eq('id', record.user_id)
       .single();
 
-    if (wallet) {
+    if (profile) {
       await supabaseAdmin
-        .from('referral_wallets')
+        .from('profiles')
         .update({
-          available_balance: (wallet.available_balance || 0) + record.amount_usd,
+          wallet_balance: (profile.wallet_balance || 0) + record.amount_usd,
           updated_at: new Date().toISOString(),
         })
-        .eq('user_id', record.user_id);
+        .eq('id', record.user_id);
     }
+
+    // Update wallet transaction status to failed/declined
+    await supabaseAdmin
+      .from('wallet_transactions')
+      .update({
+        status: 'failed',
+        tx_type: 'withdrawal_declined',
+        metadata: {
+          reason: reason || 'Rejected by admin',
+          rejected_at: new Date().toISOString(),
+          rejected_by: user.id,
+        }
+      })
+      .eq('reference_id', withdrawalId);
 
     // Update withdrawal status
     await supabaseAdmin

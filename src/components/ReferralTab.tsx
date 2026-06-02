@@ -89,18 +89,22 @@ function countAll(nodes: Partner[]) {
 }
 
 // Animated counter hook
-function useCounter(target: number, duration = 1200) {
+function useCounter(target: number, duration = 1200, isFloat = false) {
   const [val, setVal] = useState(0);
   useEffect(() => {
     let start = 0;
     const step = target / (duration / 16);
     const timer = setInterval(() => {
       start += step;
-      if (start >= target) { setVal(target); clearInterval(timer); }
-      else setVal(Math.floor(start));
+      if (start >= target) { 
+        setVal(target); 
+        clearInterval(timer); 
+      } else {
+        setVal(isFloat ? Number(start.toFixed(2)) : Math.floor(start));
+      }
     }, 16);
     return () => clearInterval(timer);
-  }, [target, duration]);
+  }, [target, duration, isFloat]);
   return val;
 }
 
@@ -152,7 +156,7 @@ function NetworkNode({ partner, depth = 0 }: { partner: Partner; depth?: number 
   );
 }
 
-type Tab = 'network' | 'milestones' | 'rates';
+type Tab = 'network' | 'milestones' | 'rates' | 'ledger';
 
 export default function ReferralTab({ partners = mockNetwork }: ReferralTabProps) {
   const [copied, setCopied]   = useState<'code' | 'link' | null>(null);
@@ -168,21 +172,68 @@ export default function ReferralTab({ partners = mockNetwork }: ReferralTabProps
   const [withdrawError, setWithdrawError] = useState<string|null>(null);
   const [withdrawResult, setWithdrawResult] = useState<{withdrawalId?:string;nowpaymentsId?:string}|null>(null);
 
-  // Wallet state (mock — would come from Supabase)
-  const wallet = {
-    available: 4820.50,
-    pending:   312.00,
-    lifetime:  6060.70,
+  // Dynamic wallet & transactions state
+  const [wallet, setWallet] = useState({
+    available: 0,
+    pending:   0,
+    lifetime:  0,
     minWithdrawal: 50,
-    nextPayout: 'Jun 1, 2026',
+    nextPayout: 'Dynamic Sync',
+    totalLots: 0,
+  });
+  const [transactions, setTransactions] = useState<any[]>([]);
+
+  const fetchWallet = async () => {
+    try {
+      const res = await fetch('/api/wallet');
+      const data = await res.json();
+      if (data.success && data.wallet) {
+        setWallet(data.wallet);
+        setTransactions(data.transactions || []);
+      }
+    } catch (err) {
+      console.error('Failed to load wallet stats:', err);
+    }
   };
+
+  useEffect(() => {
+    fetchWallet();
+  }, []);
 
   const { total, byLevel } = countAll(partners);
   const progressPct = Math.min((total / 10) * 100, 100);
 
+  // Lot milestones calculations
+  const totalLots = wallet.totalLots || 0;
+  
+  const LOT_MILESTONES = [
+    { label: 'Bronze Trader', targetLots: 5,   reward: '$50 bonus',   reached: false },
+    { label: 'Silver Trader', targetLots: 20,  reward: '$200 bonus',  reached: false },
+    { label: 'Gold Trader',   targetLots: 50,  reward: '$500 bonus',  reached: false },
+    { label: 'Platinum VIP',  targetLots: 100, reward: '$1,200 bonus', reached: false },
+    { label: 'Diamond Elite', targetLots: 250, reward: '$3,000 bonus', reached: false },
+  ];
+  
+  const currentLotMilestoneIndex = LOT_MILESTONES.findIndex(m => totalLots < m.targetLots);
+  const nextLotMilestone = currentLotMilestoneIndex !== -1 ? LOT_MILESTONES[currentLotMilestoneIndex] : LOT_MILESTONES[LOT_MILESTONES.length - 1];
+  const prevLotMilestoneTarget = currentLotMilestoneIndex > 0 ? LOT_MILESTONES[currentLotMilestoneIndex - 1].targetLots : 0;
+  
+  const lotProgressPct = Math.min(
+    ((totalLots - prevLotMilestoneTarget) / Math.max(1, nextLotMilestone.targetLots - prevLotMilestoneTarget)) * 100,
+    100
+  );
+
+  // Animation triggers for progress fills
+  const [barAnimated, setBarAnimated] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setBarAnimated(true), 150);
+    return () => clearTimeout(t);
+  }, []);
+
   const animTotal     = useCounter(total);
-  const animRebate    = useCounter(4820);
-  const animComm      = useCounter(1240);
+  const animRebate    = useCounter(Math.round(wallet.available));
+  const animComm      = useCounter(Math.round(wallet.lifetime));
+  const animLots      = useCounter(totalLots, 1200, true);
 
   const copy = (text: string, type: 'code' | 'link') => {
     navigator.clipboard.writeText(text);
@@ -204,6 +255,7 @@ export default function ReferralTab({ partners = mockNetwork }: ReferralTabProps
     { id: 'network',    icon: '🌐', label: 'Network'    },
     { id: 'milestones', icon: '🏆', label: 'Milestones' },
     { id: 'rates',      icon: '📊', label: 'Rates'      },
+    { id: 'ledger',     icon: '📜', label: 'Ledger'     },
   ];
 
   return (
@@ -241,7 +293,7 @@ export default function ReferralTab({ partners = mockNetwork }: ReferralTabProps
           { label: 'Total Rebates',   value: `$${animRebate.toLocaleString()}`, sub: '↑ 12.4% this month', color: '#10b981', icon: '💰' },
           { label: 'Commissions',     value: `$${animComm.toLocaleString()}`,   sub: '↑ 8.1% this month',  color: '#6366f1', icon: '📈' },
           { label: 'Network Size',    value: animTotal,                          sub: `${byLevel.filter(Boolean).length} active levels`, color: '#3b82f6', icon: '👥' },
-          { label: 'Network Volume',  value: '$1.2M',                            sub: 'Combined portfolios', color: '#f59e0b', icon: '🌐' },
+          { label: 'Lots Traded',     value: `${animLots} lots`,                 sub: 'Personal closed volume', color: '#f59e0b', icon: '⚡' },
         ].map((s, i) => (
           <div key={i} className="ref2-stat-card">
             <div className="ref2-stat-icon">{s.icon}</div>
@@ -317,23 +369,48 @@ export default function ReferralTab({ partners = mockNetwork }: ReferralTabProps
         ))}
       </div>
 
-      {/* ── MILESTONE PROGRESS ── */}
-      <div className="ref2-progress-card">
-        <div className="ref2-progress-header">
-          <div>
-            <span className="ref2-progress-title">Next Milestone</span>
-            <span className="ref2-progress-sub">{total} / 10 referrals · Earn $250</span>
+      {/* ── MILESTONE PROGRESS GRID ── */}
+      <div className="ref2-progress-grid">
+        {/* Track 1: Network Referrals */}
+        <div className="ref2-progress-card">
+          <div className="ref2-progress-header">
+            <div>
+              <span className="ref2-progress-title">Referrals Milestone</span>
+              <span className="ref2-progress-sub">{total} / 10 referrals · Earn $250</span>
+            </div>
+            <span className="ref2-progress-pct">{Math.round(progressPct)}%</span>
           </div>
-          <span className="ref2-progress-pct">{Math.round(progressPct)}%</span>
+          <div className="ref2-track">
+            <div className="ref2-fill" style={{ width: barAnimated ? `${progressPct}%` : '0%', transition: 'width 1.5s cubic-bezier(0.34, 1.56, 0.64, 1)' }} />
+            <div className="ref2-thumb" style={{ left: barAnimated ? `${progressPct}%` : '0%', transition: 'left 1.5s cubic-bezier(0.34, 1.56, 0.64, 1)' }} />
+          </div>
+          <div className="ref2-track-labels">
+            <span>0</span>
+            <span>5 · $100</span>
+            <span>10 · $250 🎯</span>
+          </div>
         </div>
-        <div className="ref2-track">
-          <div className="ref2-fill" style={{ width: `${progressPct}%` }} />
-          <div className="ref2-thumb" style={{ left: `${progressPct}%` }} />
-        </div>
-        <div className="ref2-track-labels">
-          <span>0</span>
-          <span>5 · $100</span>
-          <span>10 · $250 🎯</span>
+
+        {/* Track 2: Trading Lot Volume */}
+        <div className="ref2-progress-card ref2-progress-card--lots">
+          <div className="ref2-progress-header">
+            <div>
+              <span className="ref2-progress-title">Next Lot Milestone</span>
+              <span className="ref2-progress-sub">
+                {totalLots.toFixed(2)} / {nextLotMilestone.targetLots.toFixed(1)} lots · {nextLotMilestone.reward}
+              </span>
+            </div>
+            <span className="ref2-progress-pct">{Math.round(lotProgressPct)}%</span>
+          </div>
+          <div className="ref2-track">
+            <div className="ref2-fill ref2-fill--lots" style={{ width: barAnimated ? `${lotProgressPct}%` : '0%', transition: 'width 1.5s cubic-bezier(0.34, 1.56, 0.64, 1)' }} />
+            <div className="ref2-thumb ref2-thumb--lots" style={{ left: barAnimated ? `${lotProgressPct}%` : '0%', transition: 'left 1.5s cubic-bezier(0.34, 1.56, 0.64, 1)' }} />
+          </div>
+          <div className="ref2-track-labels">
+            <span>{prevLotMilestoneTarget.toFixed(1)}</span>
+            <span>{nextLotMilestone.label}</span>
+            <span>{nextLotMilestone.targetLots.toFixed(1)} lots 🎯</span>
+          </div>
         </div>
       </div>
 
@@ -368,24 +445,58 @@ export default function ReferralTab({ partners = mockNetwork }: ReferralTabProps
       {activeTab === 'milestones' && (
         <div className="ref2-section">
           <div className="ref2-section-header">
-            <span className="ref2-section-title">Milestone Rewards</span>
-            <span className="ref2-section-hint">2 of 5 unlocked</span>
+            <span className="ref2-section-title">Milestone Rewards & Targets</span>
+            <span className="ref2-section-hint">Unlocked dynamically as metrics grow</span>
           </div>
-          <div className="ref2-milestones">
-            {MILESTONES.map((m, i) => (
-              <div key={i} className={`ref2-milestone ${m.reached ? 'ref2-milestone--done' : ''}`}>
-                <div className="ref2-milestone-icon">
-                  {m.reached ? '✓' : <span style={{ opacity: 0.4 }}>{i + 1}</span>}
-                </div>
-                <div className="ref2-milestone-body">
-                  <span className="ref2-milestone-label">{m.label}</span>
-                  <span className="ref2-milestone-status">{m.reached ? '🎉 Unlocked & paid' : `${m.refs - total > 0 ? m.refs - total : 0} more referrals needed`}</span>
-                </div>
-                <div className="ref2-milestone-reward" style={{ color: m.reached ? '#10b981' : 'var(--subtext)' }}>
-                  {m.reward}
-                </div>
+          
+          <div className="ref2-milestones-split">
+            <div>
+              <h4 style={{ margin: '0 0 16px', fontSize: 13, fontWeight: 800, color: '#10b981', display: 'flex', alignItems: 'center', gap: 6 }}>
+                👥 Referral Milestones
+              </h4>
+              <div className="ref2-milestones">
+                {MILESTONES.map((m, i) => (
+                  <div key={i} className={`ref2-milestone ${m.reached ? 'ref2-milestone--done' : ''}`}>
+                    <div className="ref2-milestone-icon">
+                      {m.reached ? '✓' : <span style={{ opacity: 0.4 }}>{i + 1}</span>}
+                    </div>
+                    <div className="ref2-milestone-body">
+                      <span className="ref2-milestone-label">{m.label}</span>
+                      <span className="ref2-milestone-status">{m.reached ? '🎉 Unlocked & paid' : `${m.refs - total > 0 ? m.refs - total : 0} more referrals needed`}</span>
+                    </div>
+                    <div className="ref2-milestone-reward" style={{ color: m.reached ? '#10b981' : 'var(--subtext)' }}>
+                      {m.reward}
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
+
+            <div>
+              <h4 style={{ margin: '0 0 16px', fontSize: 13, fontWeight: 800, color: '#6366f1', display: 'flex', alignItems: 'center', gap: 6 }}>
+                ⚡ Lot Trading Milestones
+              </h4>
+              <div className="ref2-milestones">
+                {LOT_MILESTONES.map((m, i) => {
+                  const reached = totalLots >= m.targetLots;
+                  const needed = Math.max(0, m.targetLots - totalLots);
+                  return (
+                    <div key={i} className={`ref2-milestone ${reached ? 'ref2-milestone--done ref2-milestone--lots-done' : ''}`}>
+                      <div className="ref2-milestone-icon" style={{ borderColor: reached ? '#6366f1' : 'var(--border)' }}>
+                        {reached ? '✓' : <span style={{ opacity: 0.4 }}>{i + 1}</span>}
+                      </div>
+                      <div className="ref2-milestone-body">
+                        <span className="ref2-milestone-label">{m.label}</span>
+                        <span className="ref2-milestone-status">{reached ? '🎉 Unlocked & paid' : `${needed.toFixed(2)} more lots needed`}</span>
+                      </div>
+                      <div className="ref2-milestone-reward" style={{ color: reached ? '#6366f1' : 'var(--subtext)' }}>
+                        {m.reward}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -422,6 +533,79 @@ export default function ReferralTab({ partners = mockNetwork }: ReferralTabProps
             ))}
           </div>
           <p className="ref2-rates-note">Rates configured by admin · Applied to trade volume · Paid monthly</p>
+        </div>
+      )}
+
+      {/* ── WALLET LEDGER ── */}
+      {activeTab === 'ledger' && (
+        <div className="ref2-section">
+          <div className="ref2-section-header">
+            <span className="ref2-section-title">Wallet Ledger</span>
+            <span className="ref2-section-hint">Audited transactions</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {transactions.length === 0 ? (
+              <div style={{ padding: 20, textAlign: 'center', color: 'var(--subtext)' }}>
+                No transactions recorded yet.
+              </div>
+            ) : (
+              transactions.map((tx) => (
+                <div key={tx.id} style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '12px 16px',
+                  background: 'var(--card-bg, #fff)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 12,
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{
+                      width: 32, height: 32,
+                      borderRadius: '50%',
+                      background: tx.amount >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 14,
+                      color: tx.amount >= 0 ? '#10b981' : '#ef4444'
+                    }}>
+                      {tx.amount >= 0 ? '↓' : '↑'}
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', textTransform: 'capitalize' }}>
+                        {tx.tx_type.replace('_', ' ')}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--subtext)' }}>
+                        {new Date(tx.created_at).toLocaleDateString(undefined, {
+                          month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{
+                      fontSize: 14,
+                      fontWeight: 800,
+                      color: tx.amount >= 0 ? '#10b981' : '#ef4444'
+                    }}>
+                      {tx.amount >= 0 ? '+' : ''}${Number(tx.amount).toFixed(2)}
+                    </div>
+                    <div style={{
+                      fontSize: 9,
+                      fontWeight: 600,
+                      padding: '2px 6px',
+                      borderRadius: 6,
+                      display: 'inline-block',
+                      textTransform: 'uppercase',
+                      background: tx.status === 'completed' ? 'rgba(16, 185, 129, 0.1)' : tx.status === 'pending' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                      color: tx.status === 'completed' ? '#10b981' : tx.status === 'pending' ? '#f59e0b' : '#ef4444'
+                    }}>
+                      {tx.status}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       )}
 
@@ -635,6 +819,7 @@ export default function ReferralTab({ partners = mockNetwork }: ReferralTabProps
                         if (!res.ok || data.error) throw new Error(data.error || 'Withdrawal failed');
                         setWithdrawResult({ withdrawalId: data.withdrawalId, nowpaymentsId: data.nowpaymentsId });
                         setWithdrawStep('success');
+                        fetchWallet();
                       } catch (e: any) {
                         setWithdrawError(e.message);
                       }

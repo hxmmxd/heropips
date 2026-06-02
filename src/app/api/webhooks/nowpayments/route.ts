@@ -117,23 +117,36 @@ export async function POST(request: Request) {
       })
       .eq('id', record.id);
 
-    // If payout failed or rejected, refund user's balance
+    // If payout failed or rejected, refund user's balance to profile
     if (internalStatus === 'failed' || internalStatus === 'rejected') {
-      const { data: wallet } = await supabaseAdmin
-        .from('referral_wallets')
-        .select('available_balance')
-        .eq('user_id', record.user_id)
+      const { data: profile } = await supabaseAdmin
+        .from('profiles')
+        .select('wallet_balance')
+        .eq('id', record.user_id)
         .single();
 
-      if (wallet) {
+      if (profile) {
         await supabaseAdmin
-          .from('referral_wallets')
+          .from('profiles')
           .update({
-            available_balance: (wallet.available_balance || 0) + record.amount_usd,
+            wallet_balance: (profile.wallet_balance || 0) + record.amount_usd,
             updated_at: new Date().toISOString(),
           })
-          .eq('user_id', record.user_id);
+          .eq('id', record.user_id);
       }
+
+      // Update wallet transaction status to failed/declined
+      await supabaseAdmin
+        .from('wallet_transactions')
+        .update({
+          status: 'failed',
+          tx_type: 'withdrawal_declined',
+          metadata: {
+            webhook_payout_status: internalStatus,
+            failed_at: new Date().toISOString(),
+          }
+        })
+        .eq('reference_id', record.id);
     }
 
     return NextResponse.json({ received: true });
@@ -201,23 +214,36 @@ export async function POST(request: Request) {
     })
     .eq('id', record.id);
 
-  // Refund balance on failure
+  // Refund balance on failure to profile
   if (internalStatus === 'failed' || internalStatus === 'expired') {
-    const { data: wallet } = await supabaseAdmin
-      .from('referral_wallets')
-      .select('available_balance')
-      .eq('user_id', record.user_id)
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('wallet_balance')
+      .eq('id', record.user_id)
       .single();
 
-    if (wallet) {
+    if (profile) {
       await supabaseAdmin
-        .from('referral_wallets')
+        .from('profiles')
         .update({
-          available_balance: (wallet.available_balance || 0) + record.amount_usd,
+          wallet_balance: (profile.wallet_balance || 0) + record.amount_usd,
           updated_at: new Date().toISOString(),
         })
-        .eq('user_id', record.user_id);
+        .eq('id', record.user_id);
     }
+
+    // Update wallet transaction status to failed/declined
+    await supabaseAdmin
+      .from('wallet_transactions')
+      .update({
+        status: 'failed',
+        tx_type: 'withdrawal_declined',
+        metadata: {
+          webhook_payment_status: internalStatus,
+          failed_at: new Date().toISOString(),
+        }
+      })
+      .eq('reference_id', record.id);
   }
 
   return NextResponse.json({ received: true });

@@ -11,14 +11,43 @@ const supabaseAdmin = createClient(
 
 export async function GET(request: Request) {
   try {
-    // 1. Verify cron authorization token (protect from public invocations)
+    // 1. Verify cron authorization token
     const { searchParams } = new URL(request.url);
     const secret = searchParams.get('secret');
     if (secret !== process.env.CRON_SECRET && process.env.NODE_ENV === 'production') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // 2. Fetch all online/connected broker accounts
+    // 2. Fetch global risk settings
+    const { data: riskSettingsRow } = await supabaseAdmin
+      .from('rebate_risk_settings')
+      .select('*')
+      .limit(1)
+      .maybeSingle();
+
+    const riskSettings = riskSettingsRow || {
+      exclude_hedged_positions: true,
+      hedge_time_buffer_seconds: 15,
+      max_drawdown_limit: 35.00,
+      spread_protection_multiplier: 0.70,
+      clawback_grace_period_days: 14,
+    };
+
+    // 3. Fetch active promotions
+    const nowStr = new Date().toISOString();
+    const { data: promotions } = await supabaseAdmin
+      .from('rebate_promotions')
+      .select('*')
+      .lte('start_time', nowStr)
+      .gte('end_time', nowStr);
+
+    // 4. Fetch volume tiers
+    const { data: volumeTiers } = await supabaseAdmin
+      .from('rebate_volume_tiers')
+      .select('*')
+      .order('min_monthly_lots', { ascending: true });
+
+    // 5. Fetch all online connected broker accounts
     const { data: accounts, error: fetchErr } = await supabaseAdmin
       .from('broker_accounts')
       .select('*')
@@ -34,13 +63,57 @@ export async function GET(request: Request) {
     let totalRebatesCredited = 0;
 
     for (const account of accounts) {
-      // Fallback to last 3 days if account was never synced
+      // 6. Drawdown safeguard limit check
+      let inDrawdownLimit = true;
+      try {
+        const infoRes = await fetch(`${MT_CLIENT_BASE}/users/current/accounts/${account.metaapi_id || account.id}`, { headers });
+        if (infoRes.ok) {
+          const info = await infoRes.json();
+          const state = info.state || {};
+          const balance = state.balance || info.balance || 0;
+          const equity = state.equity || info.equity || 0;
+          if (balance > 0) {
+            const drawdownPercent = ((balance - equity) / balance) * 100;
+            if (drawdownPercent > riskSettings.max_drawdown_limit) {
+              console.warn(`[Rebate Sync] Account ${account.id} in extreme drawdown: ${drawdownPercent.toFixed(2)}% > ${riskSettings.max_drawdown_limit}%`);
+              inDrawdownLimit = false;
+            }
+          }
+        }
+      } catch (e) {
+        console.error(`[Rebate Sync] Drawdown check failed for account ${account.id}:`, e);
+      }
+
+      if (!inDrawdownLimit) {
+        console.warn(`[Rebate Sync] Skipping account ${account.id} due to drawdown limits.`);
+        continue;
+      }
+
+      // 7. Calculate monthly lot volume for user tier scale
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+
+      const { data: monthTxs } = await supabaseAdmin
+        .from('wallet_transactions')
+        .select('metadata')
+        .eq('user_id', account.user_id)
+        .eq('tx_type', 'rebate')
+        .eq('status', 'completed')
+        .gte('created_at', startOfMonth.toISOString());
+
+      const monthlyLots = (monthTxs || []).reduce((sum: number, tx: any) => sum + (tx.metadata?.volume || 0), 0);
+      const matchingTier = volumeTiers?.find(
+        (t: any) => monthlyLots >= Number(t.min_monthly_lots) && monthlyLots < Number(t.max_monthly_lots)
+      );
+      const tierMultiplier = matchingTier ? Number(matchingTier.payout_multiplier) : 1.00;
+
+      // Sync deals timeframe
       const startTime = account.last_rebate_sync_at 
         ? new Date(account.last_rebate_sync_at).toISOString() 
         : new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
       const endTime = new Date().toISOString();
 
-      // Fetch deals for this account
       const url = `${MT_CLIENT_BASE}/users/current/accounts/${account.metaapi_id || account.id}/history-deals/time/${startTime}/${endTime}`;
       const res = await fetch(url, { headers });
       if (!res.ok) {
@@ -71,14 +144,14 @@ export async function GET(request: Request) {
         // Only credit deals that close positions (DEAL_ENTRY_OUT / DEAL_ENTRY_INOUT)
         if (deal.entryType !== 'DEAL_ENTRY_OUT' && deal.entryType !== 'DEAL_ENTRY_INOUT') continue;
 
-        // Double-spend check: check if deal.id is already in the ledger
+        // Double-spend check
         const { data: existingTx } = await supabaseAdmin
           .from('wallet_transactions')
           .select('id')
           .eq('reference_id', deal.id)
           .maybeSingle();
 
-        if (existingTx) continue; // Skip already credited deals
+        if (existingTx) continue;
 
         // MTP check: Get opening deal to compute hold time
         let holdTimeSeconds = 99999;
@@ -100,12 +173,12 @@ export async function GET(request: Request) {
           console.error(`[Rebate Sync] Hold time fetch failed:`, e);
         }
 
-        // Match rate (Symbol-specific rule or fallback to generic '*' rule)
+        // Match rate
         const matchingRule = rules?.find(r => r.symbol === deal.symbol) 
           || rules?.find(r => r.symbol === '*');
 
-        const baseRate = matchingRule ? matchingRule.rebate_per_lot : 1.50; // Fallback default
-        const minHoldTime = matchingRule ? matchingRule.min_hold_time_seconds : 120; // 2 minutes
+        const baseRate = matchingRule ? Number(matchingRule.rebate_per_lot) : 2.00;
+        const minHoldTime = matchingRule ? matchingRule.min_hold_time_seconds : 120;
 
         // MTP Hold time validation
         if (holdTimeSeconds < minHoldTime) {
@@ -117,19 +190,59 @@ export async function GET(request: Request) {
         let planMultiplier = 0.60;
         if (matchingRule) {
           planMultiplier = userPlan === 'enterprise' 
-            ? matchingRule.enterprise_multiplier 
+            ? Number(matchingRule.enterprise_multiplier) 
             : userPlan === 'pro' 
-              ? matchingRule.pro_multiplier 
-              : matchingRule.free_multiplier;
+              ? Number(matchingRule.pro_multiplier) 
+              : Number(matchingRule.free_multiplier);
         } else {
           planMultiplier = userPlan === 'enterprise' ? 1.00 : userPlan === 'pro' ? 0.80 : 0.60;
         }
 
-        const finalRebateAmount = Number((deal.volume * baseRate * planMultiplier).toFixed(2));
+        // Apply dynamic promotion boosts
+        const activePromo = promotions?.find((p: any) => p.symbol === deal.symbol || p.symbol === '*');
+        const promoMultiplier = activePromo ? Number(activePromo.multiplier) : 1.00;
+
+        // Multi-Account Hedge correlation check
+        if (riskSettings.exclude_hedged_positions) {
+          const dealTime = new Date(deal.time);
+          const timeBuffer = riskSettings.hedge_time_buffer_seconds * 1000;
+          const minTime = new Date(dealTime.getTime() - timeBuffer).toISOString();
+          const maxTime = new Date(dealTime.getTime() + timeBuffer).toISOString();
+          const opposingType = deal.type === 'DEAL_TYPE_BUY' ? 'DEAL_TYPE_SELL' : 'DEAL_TYPE_BUY';
+
+          const { data: hedgeTx } = await supabaseAdmin
+            .from('wallet_transactions')
+            .select('id')
+            .eq('user_id', account.user_id)
+            .eq('tx_type', 'rebate')
+            .eq('metadata->>symbol', deal.symbol)
+            .eq('metadata->>deal_type', opposingType)
+            .gte('metadata->>deal_time', minTime)
+            .lte('metadata->>deal_time', maxTime)
+            .limit(1)
+            .maybeSingle();
+
+          if (hedgeTx) {
+            console.warn(`[Rebate Sync] Deal ${deal.id} flagged as hedge. Rebate disqualified.`);
+            continue;
+          }
+        }
+
+        // Calculate final rebate amount
+        let finalRebateAmount = Number((deal.volume * baseRate * planMultiplier * tierMultiplier * promoMultiplier).toFixed(2));
         if (finalRebateAmount <= 0) continue;
 
-        // Database write operations
-        // A. Insert wallet_transaction ledger record
+        // Apply revenue protection cap based on broker commission charges
+        if (deal.commission) {
+          const brokerCharges = Math.abs(Number(deal.commission));
+          const maxAllowed = brokerCharges * Number(riskSettings.spread_protection_multiplier);
+          if (finalRebateAmount > maxAllowed) {
+            console.log(`[Rebate Sync] Deal ${deal.id} payout capped to revenue guard: $${maxAllowed.toFixed(2)} (originally $${finalRebateAmount.toFixed(2)})`);
+            finalRebateAmount = Number(maxAllowed.toFixed(2));
+          }
+        }
+
+        // Write ledger transaction
         const { error: txErr } = await supabaseAdmin
           .from('wallet_transactions')
           .insert({
@@ -144,7 +257,10 @@ export async function GET(request: Request) {
               hold_time_seconds: holdTimeSeconds,
               rate: baseRate,
               plan_multiplier: planMultiplier,
+              tier_multiplier: tierMultiplier,
+              promo_multiplier: promoMultiplier,
               deal_time: deal.time,
+              deal_type: deal.type,
               broker_account_id: account.id
             }
           });
@@ -154,7 +270,7 @@ export async function GET(request: Request) {
           continue;
         }
 
-        // B. Credit user's wallet_balance
+        // Credit user profile balance
         const { error: balErr } = await supabaseAdmin
           .from('profiles')
           .update({ wallet_balance: currentBalance + finalRebateAmount })
@@ -168,7 +284,7 @@ export async function GET(request: Request) {
         }
       }
 
-      // Update account's sync timestamp to current end time
+      // Update sync time
       await supabaseAdmin
         .from('broker_accounts')
         .update({ last_rebate_sync_at: endTime })

@@ -35,7 +35,7 @@ export async function GET() {
   }
 
   // Fetch all data
-  const [usersRes, brokersRes, tradesRes, announcementsRes, configRes, auditRes, riskRes, providersRes, tradeCountsRes] = await Promise.all([
+  const [usersRes, brokersRes, tradesRes, announcementsRes, configRes, auditRes, riskRes, providersRes, tradeCountsRes, rebateRulesRes, rebateRiskRes, rebatePromosRes, rebateTiersRes] = await Promise.all([
     supabaseAdmin.from('profiles').select('*').order('created_at', { ascending: false }),
     supabaseAdmin.from('broker_accounts').select('*').order('created_at', { ascending: false }),
     supabaseAdmin.from('trades').select('*').order('created_at', { ascending: false }).limit(200),
@@ -45,6 +45,10 @@ export async function GET() {
     supabaseAdmin.from('risk_rules').select('*').order('created_at', { ascending: true }),
     supabaseAdmin.from('broker_providers').select('*').order('created_at', { ascending: true }),
     supabaseAdmin.from('trades').select('broker_id'),
+    supabaseAdmin.from('rebate_rules').select('*').order('created_at', { ascending: true }),
+    supabaseAdmin.from('rebate_risk_settings').select('*').limit(1).maybeSingle(),
+    supabaseAdmin.from('rebate_promotions').select('*').order('created_at', { ascending: false }),
+    supabaseAdmin.from('rebate_volume_tiers').select('*').order('min_monthly_lots', { ascending: true }),
   ]);
 
   const users: any[] = usersRes.data || [];
@@ -132,7 +136,12 @@ export async function GET() {
     }, 0),
   };
 
-  return NextResponse.json({ stats, users, brokers, trades, announcements, config, auditLog, riskRules, signupTrends, revenueTrends, topSymbols, brokerProviders });
+  const rebateRules = rebateRulesRes.data || [];
+  const rebateRiskSettings = rebateRiskRes.data || null;
+  const rebatePromotions = rebatePromosRes.data || [];
+  const rebateVolumeTiers = rebateTiersRes.data || [];
+
+  return NextResponse.json({ stats, users, brokers, trades, announcements, config, auditLog, riskRules, signupTrends, revenueTrends, topSymbols, brokerProviders, rebateRules, rebateRiskSettings, rebatePromotions, rebateVolumeTiers });
 }
 
 // Update user plan or admin status
@@ -155,7 +164,55 @@ export async function PATCH(request: Request) {
   }
 
   const body = await request.json();
-  const { userId, plan, is_admin, full_name, email, status, suspended_reason, configKey, configValue, announcement, riskRule, brokerProvider } = body;
+  const { userId, plan, is_admin, full_name, email, status, suspended_reason, configKey, configValue, announcement, riskRule, brokerProvider, rebateRule, rebateRiskRule, rebatePromotion, rebateVolumeTier } = body;
+
+  // -- Rebate risk settings update
+  if (rebateRiskRule !== undefined) {
+    const { id, exclude_hedged_positions, hedge_time_buffer_seconds, max_drawdown_limit, spread_protection_multiplier, clawback_grace_period_days } = rebateRiskRule;
+    const { error } = await supabaseAdmin
+      .from('rebate_risk_settings')
+      .update({
+        exclude_hedged_positions,
+        hedge_time_buffer_seconds: Number(hedge_time_buffer_seconds),
+        max_drawdown_limit: Number(max_drawdown_limit),
+        spread_protection_multiplier: Number(spread_protection_multiplier),
+        clawback_grace_period_days: Number(clawback_grace_period_days),
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    await supabaseAdmin.from('audit_log').insert({ admin_id: user.id, action: 'rebate_risk_updated', target_type: 'rebate_risk_settings', target_id: id, details: rebateRiskRule });
+    return NextResponse.json({ success: true });
+  }
+
+  // -- Rebate promotions CRUD
+  if (rebatePromotion !== undefined) {
+    const { action, data } = rebatePromotion;
+    if (action === 'create') {
+      const { error } = await supabaseAdmin.from('rebate_promotions').insert(data);
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      await supabaseAdmin.from('audit_log').insert({ admin_id: user.id, action: 'rebate_promo_created', target_type: 'rebate_promotion', details: data });
+    } else if (action === 'delete') {
+      const { error } = await supabaseAdmin.from('rebate_promotions').delete().eq('id', data.id);
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      await supabaseAdmin.from('audit_log').insert({ admin_id: user.id, action: 'rebate_promo_deleted', target_type: 'rebate_promotion', target_id: data.id, details: data });
+    }
+    return NextResponse.json({ success: true });
+  }
+
+  // -- Rebate volume tier update
+  if (rebateVolumeTier !== undefined) {
+    const { action, data } = rebateVolumeTier;
+    if (action === 'update') {
+      const { error } = await supabaseAdmin
+        .from('rebate_volume_tiers')
+        .update({ payout_multiplier: Number(data.payout_multiplier) })
+        .eq('id', data.id);
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      await supabaseAdmin.from('audit_log').insert({ admin_id: user.id, action: 'rebate_tier_updated', target_type: 'rebate_volume_tier', target_id: data.id, details: data });
+    }
+    return NextResponse.json({ success: true });
+  }
 
   // -- Broker provider CRUD
   if (brokerProvider !== undefined) {
@@ -219,6 +276,28 @@ export async function PATCH(request: Request) {
   if (configKey !== undefined) {
     await supabaseAdmin.from('platform_config').upsert({ key: configKey, value: configValue, updated_by: user.id, updated_at: new Date().toISOString() });
     await supabaseAdmin.from('audit_log').insert({ admin_id: user.id, action: 'config_update', target_type: 'config', details: { key: configKey, value: configValue } });
+    return NextResponse.json({ success: true });
+  }
+
+  // -- Rebate rule create/update/delete
+  if (rebateRule !== undefined) {
+    const { action, data } = rebateRule;
+    if (action === 'create') {
+      const { error } = await supabaseAdmin.from('rebate_rules').insert(data);
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      await supabaseAdmin.from('audit_log').insert({ admin_id: user.id, action: 'rebate_rule_created', target_type: 'rebate_rule', details: data });
+    } else if (action === 'update') {
+      const updateData = { ...data };
+      const ruleId = updateData.id;
+      delete updateData.id;
+      const { error } = await supabaseAdmin.from('rebate_rules').update(updateData).eq('id', ruleId);
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      await supabaseAdmin.from('audit_log').insert({ admin_id: user.id, action: 'rebate_rule_updated', target_type: 'rebate_rule', target_id: ruleId, details: data });
+    } else if (action === 'delete') {
+      const { error } = await supabaseAdmin.from('rebate_rules').delete().eq('id', data.id);
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      await supabaseAdmin.from('audit_log').insert({ admin_id: user.id, action: 'rebate_rule_deleted', target_type: 'rebate_rule', target_id: data.id, details: data });
+    }
     return NextResponse.json({ success: true });
   }
 

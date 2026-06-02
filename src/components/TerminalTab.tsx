@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Plus, Mic, ArrowUp, Zap } from 'lucide-react';
+import { Mic, ArrowUp, Zap } from 'lucide-react';
 import { ChatMessage } from '../types';
 import TradeTicket from './TradeTicket';
 import dynamic from 'next/dynamic';
@@ -15,6 +15,7 @@ interface TerminalTabProps {
   onGenerateSignal?: (symbol: string) => void;
   activeBrokerId: string;
   onTradeExecuted?: (result: { orderId: string; fillPrice?: number; ticket: any }) => void;
+  onOpenManager?: () => void;
 }
 
 // Coin/Asset icons for analysis cards (larger versions of WatchIcon)
@@ -104,7 +105,7 @@ const WATCHLIST_ASSETS = [
   { symbol: 'SPY', label: 'SP500', iconType: 'spy' },
 ];
 
-export default function TerminalTab({ messages, onSendMessage, onGenerateSignal, activeBrokerId, onTradeExecuted }: TerminalTabProps) {
+export default function TerminalTab({ messages, onSendMessage, onGenerateSignal, activeBrokerId, onTradeExecuted, onOpenManager }: TerminalTabProps) {
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -581,10 +582,15 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
           <form onSubmit={handleSend} className="chat-input-container shadow-sm">
             <button
               type="button"
-              className="w-10 h-10 flex items-center justify-center text-[var(--subtext)] hover:opacity-80 transition"
-              aria-label="Add file"
+              onClick={onOpenManager}
+              className="mgr-chat-btn"
+              aria-label="Open Manager"
             >
-              <Plus className="w-5 h-5" />
+              <svg className="mgr-chat-icon" width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <rect className="mgr-bar mgr-bar-1" x="3" y="14" width="4" height="7" rx="1.5" fill="currentColor" />
+                <rect className="mgr-bar mgr-bar-2" x="10" y="8" width="4" height="13" rx="1.5" fill="currentColor" />
+                <rect className="mgr-bar mgr-bar-3" x="17" y="3" width="4" height="18" rx="1.5" fill="currentColor" />
+              </svg>
             </button>
             <textarea
               ref={textareaRef}
