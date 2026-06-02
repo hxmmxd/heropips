@@ -104,29 +104,64 @@ export default function ManagerInsights({ accountInfo, positions, activeBrokerId
 
   return (
     <div className="mgr-insights">
-      {/* ── Account Stats Strip ── */}
-      <div className="ins-stats-strip">
-        <div className="ins-stat">
-          <span className="ins-stat-label">Balance</span>
-          <span className="ins-stat-value">{fmtUsd(accountInfo.balance)}</span>
+      {/* Account Info Cards — 2×2 Grid */}
+      <div className="mgr-cards-grid">
+        <div className="mgr-card">
+          <div className="mgr-card-label">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 21h18M3 7v14M9 3v18M15 7v14M21 3v18" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            Balance
+          </div>
+          <div className="mgr-card-value">${accountInfo.balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
         </div>
-        <div className="ins-stat">
-          <span className="ins-stat-label">Equity</span>
-          <span className="ins-stat-value">{fmtUsd(accountInfo.equity)}</span>
+
+        <div className="mgr-card">
+          <div className="mgr-card-label">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            Equity
+          </div>
+          <div className="mgr-card-value">${accountInfo.equity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+          <div className="mgr-card-sub">
+            <span className="mgr-guard-dot" />
+            Guard Off
+          </div>
         </div>
-        <div className="ins-stat">
-          <span className="ins-stat-label">MTM P&L</span>
-          <span className={`ins-stat-value ${accountInfo.mtmPnl >= 0 ? 'mgr-positive' : 'mgr-negative'}`}>
-            {accountInfo.mtmPnl >= 0 ? '+' : '-'}{fmtUsd(accountInfo.mtmPnl)}
-          </span>
+
+        <div className="mgr-card">
+          <div className="mgr-card-label">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M7 17l-4-4m0 0l4-4m-4 4h18" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            MTM P&L
+          </div>
+          <div className={`mgr-card-value ${accountInfo.mtmPnl >= 0 ? 'mgr-positive' : 'mgr-negative'}`}>
+            {accountInfo.mtmPnl >= 0 ? '+' : ''}{accountInfo.mtmPnl < 0 ? '-' : ''}${Math.abs(accountInfo.mtmPnl).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </div>
+          <div className="mgr-card-sub">
+            <span className="mgr-pnl-dot" /> {accountInfo.mtmPnlPercent.toFixed(4)}%
+            <span className="mgr-guard-label">Guard Off</span>
+          </div>
         </div>
-        <div className="ins-stat">
-          <span className="ins-stat-label">Lots</span>
-          <span className="ins-stat-value">{accountInfo.totalLots}</span>
-        </div>
-        <div className="ins-stat">
-          <span className="ins-stat-label">Pos</span>
-          <span className="ins-stat-value">{accountInfo.positionCount}</span>
+
+        <div className="mgr-card">
+          <div className="mgr-card-label">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M12 2v4m0 12v4m10-10h-4M6 12H2m15.07-5.07l-2.83 2.83M9.76 14.24l-2.83 2.83m0-10.14l2.83 2.83m4.48 4.48l2.83 2.83"/>
+            </svg>
+            Lots & Positions
+          </div>
+          <div className="mgr-card-value-split">
+            <span className="mgr-card-value">{accountInfo.totalLots}</span>
+            <span className="mgr-card-value" style={{ marginLeft: '12px' }}>{accountInfo.positionCount}</span>
+          </div>
+          <div className="mgr-card-sub-split">
+            <span>Total Lots</span>
+            <span>Positions</span>
+          </div>
         </div>
       </div>
 
