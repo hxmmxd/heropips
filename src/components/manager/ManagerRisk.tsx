@@ -41,12 +41,13 @@ function formatTime(t: string): string {
 }
 
 export default function ManagerRisk({ accountInfo, positions, activeBrokerId }: ManagerRiskProps) {
-  const [period, setPeriod] = useState<'24h' | '3d' | '7d'>('7d');
+  const [period, setPeriod] = useState<'24h' | '3d' | '7d' | '30d' | 'all'>('7d');
   const [deals, setDeals] = useState<ClosedDeal[]>([]);
   const [stats, setStats] = useState<RiskStats>(emptyStats);
   const [equityCurve, setEquityCurve] = useState<{ time: string; equity: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [lbMode, setLbMode] = useState<'net' | 'pnl'>('net');
+  const [liveRisk, setLiveRisk] = useState<any>(null);
 
   const fetchDeals = useCallback(async () => {
     if (!activeBrokerId || activeBrokerId === 'none') return;
@@ -56,6 +57,7 @@ export default function ManagerRisk({ accountInfo, positions, activeBrokerId }: 
       if (data.deals) setDeals(data.deals);
       if (data.stats) setStats(data.stats);
       if (data.equityCurve) setEquityCurve(data.equityCurve);
+      if (data.liveRisk) setLiveRisk(data.liveRisk);
     } catch (err) {
       console.error('[Risk] Failed to fetch deals:', err);
     } finally {
@@ -105,13 +107,13 @@ export default function ManagerRisk({ accountInfo, positions, activeBrokerId }: 
       {/* ── 1. Period Selector + Net P&L ── */}
       <div className="rsk-header">
         <div className="rsk-period-pills">
-          {(['24h', '3d', '7d'] as const).map(p => (
+          {(['24h', '3d', '7d', '30d', 'all'] as const).map(p => (
             <button
               key={p}
               onClick={() => setPeriod(p)}
               className={`rsk-period-pill ${period === p ? 'rsk-period-pill-active' : ''}`}
             >
-              {p.toUpperCase()}
+              {p === 'all' ? 'ALL' : p.toUpperCase()}
             </button>
           ))}
         </div>
@@ -130,6 +132,67 @@ export default function ManagerRisk({ accountInfo, positions, activeBrokerId }: 
           label={`EQUITY CURVE (${period.toUpperCase()})`}
         />
       </div>
+
+      {/* ── Live Risk Exposure ── */}
+      {liveRisk && (
+        <div className="rsk-section">
+          <div className="rsk-section-header">
+            <span className="rsk-section-title">LIVE EXPOSURE</span>
+            <span className="rsk-section-meta">{liveRisk.openPositions} positions · {liveRisk.totalLots} lots</span>
+          </div>
+          <div className="rsk-trio-cards">
+            <div className="rsk-trio-card">
+              <div className="rsk-trio-label">OPEN P&L</div>
+              <div className={`rsk-trio-value ${liveRisk.openPnl >= 0 ? 'mgr-positive' : 'mgr-negative'}`}>
+                {liveRisk.openPnl >= 0 ? '+' : ''}{liveRisk.openPnl.toFixed(2)}
+              </div>
+              <div className="rsk-trio-sub">{liveRisk.openPnlPct >= 0 ? '+' : ''}{liveRisk.openPnlPct.toFixed(2)}%</div>
+            </div>
+            <div className="rsk-trio-card">
+              <div className="rsk-trio-label">MARGIN LVL</div>
+              <div className={`rsk-trio-value ${liveRisk.marginLevel > 500 ? 'mgr-positive' : liveRisk.marginLevel > 200 ? '' : 'mgr-negative'}`}>
+                {liveRisk.marginLevel > 0 ? `${liveRisk.marginLevel.toFixed(0)}%` : '—'}
+              </div>
+              <div className="rsk-trio-sub">{liveRisk.marginUsedPct.toFixed(1)}% used</div>
+            </div>
+            <div className="rsk-trio-card">
+              <div className="rsk-trio-label">DRAWDOWN</div>
+              <div className={`rsk-trio-value ${liveRisk.currentDD > 5 ? 'mgr-negative' : liveRisk.currentDD > 0 ? '' : 'mgr-positive'}`}>
+                {liveRisk.currentDD > 0 ? '-' : ''}{liveRisk.currentDD.toFixed(2)}%
+              </div>
+              <div className="rsk-trio-sub">from balance</div>
+            </div>
+          </div>
+          <div className="rsk-stats-grid">
+            <div className="rsk-stat-row">
+              <span className="rsk-stat-label">No SL</span>
+              <span className={`rsk-stat-value ${liveRisk.noSL > 0 ? 'mgr-negative' : 'mgr-positive'}`}>{liveRisk.noSL} / {liveRisk.openPositions}</span>
+              <span className="rsk-stat-label">With TP</span>
+              <span className="rsk-stat-value">{liveRisk.withTP} / {liveRisk.openPositions}</span>
+            </div>
+            <div className="rsk-stat-row">
+              <span className="rsk-stat-label">Long / Short</span>
+              <span className="rsk-stat-value">{liveRisk.buyCount} / {liveRisk.sellCount}</span>
+              <span className="rsk-stat-label">Leverage</span>
+              <span className="rsk-stat-value">1:{liveRisk.leverage}</span>
+            </div>
+            {liveRisk.worstOpen && (
+              <div className="rsk-stat-row">
+                <span className="rsk-stat-label">Worst Open</span>
+                <span className="rsk-stat-value mgr-negative">{liveRisk.worstOpen.symbol} {formatPnl(liveRisk.worstOpen.profit)}</span>
+                <span className="rsk-stat-label">Best Open</span>
+                <span className={`rsk-stat-value ${(liveRisk.bestOpen?.profit || 0) >= 0 ? 'mgr-positive' : 'mgr-negative'}`}>{liveRisk.bestOpen?.symbol} {formatPnl(liveRisk.bestOpen?.profit || 0)}</span>
+              </div>
+            )}
+            <div className="rsk-stat-row">
+              <span className="rsk-stat-label">Free Margin</span>
+              <span className="rsk-stat-value">${liveRisk.freeMargin.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+              <span className="rsk-stat-label">Used Margin</span>
+              <span className="rsk-stat-value">${liveRisk.margin.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── 3. Win Rate / P.Factor / Avg R:R ── */}
       <div className="rsk-trio-cards">

@@ -120,29 +120,38 @@ export async function GET(request: Request) {
     const period = searchParams.get('period') || '7d';
 
     if (!brokerId || !token) {
-      return NextResponse.json({ deals: [], equityCurve: [], stats: computeStats([]) });
+      return NextResponse.json({ deals: [], equityCurve: [], stats: computeStats([]), liveRisk: null });
     }
 
     const metaApiId = await resolveMetaApiId(brokerId);
     const headers = { 'auth-token': token };
     const base = `${MT_CLIENT_BASE}/users/current/accounts/${metaApiId}`;
 
-    // Calculate time range
+    // Calculate time range — expanded options
     const now = new Date();
-    const periodMs = period === '24h' ? 86400000 : period === '3d' ? 259200000 : 604800000;
+    const periodMap: Record<string, number> = {
+      '24h': 86400000,
+      '3d': 259200000,
+      '7d': 604800000,
+      '30d': 2592000000,
+      'all': 7776000000, // 90 days
+    };
+    const periodMs = periodMap[period] || 604800000;
     const startTime = new Date(now.getTime() - periodMs).toISOString();
     const endTime = now.toISOString();
 
-    // Fetch deals and account info in parallel
-    const [dealsRes, infoRes] = await Promise.all([
+    // Fetch deals, positions, and account info in parallel
+    const [dealsRes, infoRes, posRes] = await Promise.all([
       fetch(`${base}/history-deals-by-time-range?startTime=${startTime}&endTime=${endTime}`, {
-        headers, signal: AbortSignal.timeout(10000),
+        headers, signal: AbortSignal.timeout(12000),
       }),
       fetch(`${base}/account-information`, { headers, signal: AbortSignal.timeout(8000) }),
+      fetch(`${base}/positions`, { headers, signal: AbortSignal.timeout(8000) }),
     ]);
 
     const rawDeals = dealsRes.ok ? await dealsRes.json() : [];
     const info = infoRes.ok ? await infoRes.json() : {};
+    const rawPositions = posRes.ok ? await posRes.json() : [];
 
     // Filter to only balance-affecting deals (exclude deposits, etc.)
     const allDeals = Array.isArray(rawDeals) ? rawDeals : [];
@@ -151,7 +160,6 @@ export async function GET(request: Request) {
     );
 
     // Group entry+exit deals into pairs for closed trades
-    // MetaAPI returns individual deals; we pair them by positionId
     const positionDeals: Record<string, any[]> = {};
     for (const d of tradingDeals) {
       const posId = d.positionId || d.id;
@@ -161,7 +169,6 @@ export async function GET(request: Request) {
 
     const closedTrades: any[] = [];
     for (const [, deals] of Object.entries(positionDeals)) {
-      // A closed trade has entry (IN) + exit (OUT) deals
       const entryDeal = deals.find((d: any) => d.entryType === 'DEAL_ENTRY_IN') || deals[0];
       const exitDeal = deals.find((d: any) => d.entryType === 'DEAL_ENTRY_OUT') || deals[deals.length - 1];
 
@@ -187,6 +194,7 @@ export async function GET(request: Request) {
 
     // Build equity curve from deals (cumulative P&L)
     const balance = info.balance || 0;
+    const equity = info.equity || balance;
     const sortedByTime = [...closedTrades].sort((a, b) =>
       new Date(a.closeTime).getTime() - new Date(b.closeTime).getTime()
     );
@@ -197,11 +205,114 @@ export async function GET(request: Request) {
       cumPnl += deal.profit;
       equityCurve.push({ time: deal.closeTime, equity: startEquity + cumPnl });
     }
-    equityCurve.push({ time: endTime, equity: balance });
+    // Add current equity (includes open P&L)
+    equityCurve.push({ time: endTime, equity: equity });
 
     const stats = computeStats(closedTrades);
 
-    return NextResponse.json({ deals: closedTrades, equityCurve, stats });
+    // ── Live Risk Metrics from open positions ──
+    const positions = Array.isArray(rawPositions) ? rawPositions : [];
+    let liveRisk = null;
+
+    if (positions.length > 0) {
+      const totalLots = positions.reduce((a: number, p: any) => a + (p.volume || 0), 0);
+      const openPnl = positions.reduce((a: number, p: any) => a + (p.profit || 0), 0);
+      const openPnlPct = balance > 0 ? (openPnl / balance) * 100 : 0;
+
+      // Count positions with/without SL and TP
+      const withSL = positions.filter((p: any) => p.stopLoss && p.stopLoss > 0).length;
+      const withTP = positions.filter((p: any) => p.takeProfit && p.takeProfit > 0).length;
+      const noSL = positions.length - withSL;
+
+      // Margin usage
+      const margin = info.margin || 0;
+      const freeMargin = info.freeMargin || 0;
+      const marginLevel = margin > 0 ? (equity / margin) * 100 : 0;
+      const marginUsedPct = equity > 0 ? (margin / equity) * 100 : 0;
+
+      // Drawdown from balance
+      const currentDD = balance > 0 ? ((balance - equity) / balance) * 100 : 0;
+
+      // Worst open position
+      const worstOpen = positions.reduce((worst: any, p: any) => {
+        return (!worst || p.profit < worst.profit) ? p : worst;
+      }, null);
+
+      // Best open position
+      const bestOpen = positions.reduce((best: any, p: any) => {
+        return (!best || p.profit > best.profit) ? p : best;
+      }, null);
+
+      // Max potential loss if all SLs hit
+      let maxSlLoss = 0;
+      for (const p of positions) {
+        if (p.stopLoss && p.stopLoss > 0) {
+          const isBuy = p.type === 'POSITION_TYPE_BUY';
+          const slDist = isBuy ? p.openPrice - p.stopLoss : p.stopLoss - p.openPrice;
+          // Approximate: use current profit projection
+          const pointValue = p.volume * (p.openPrice > 100 ? 10 : 100000);
+          maxSlLoss += slDist * pointValue * (isBuy ? -1 : -1);
+        }
+      }
+
+      // Exposure by symbol
+      const symbolExposure: Record<string, { lots: number; pnl: number; count: number }> = {};
+      for (const p of positions) {
+        const sym = p.symbol || 'Unknown';
+        if (!symbolExposure[sym]) symbolExposure[sym] = { lots: 0, pnl: 0, count: 0 };
+        symbolExposure[sym].lots += p.volume || 0;
+        symbolExposure[sym].pnl += p.profit || 0;
+        symbolExposure[sym].count++;
+      }
+
+      // Direction breakdown
+      const buyPositions = positions.filter((p: any) => p.type === 'POSITION_TYPE_BUY');
+      const sellPositions = positions.filter((p: any) => p.type === 'POSITION_TYPE_SELL');
+      const buyPnl = buyPositions.reduce((a: number, p: any) => a + (p.profit || 0), 0);
+      const sellPnl = sellPositions.reduce((a: number, p: any) => a + (p.profit || 0), 0);
+
+      liveRisk = {
+        openPositions: positions.length,
+        totalLots: Math.round(totalLots * 100) / 100,
+        openPnl: Math.round(openPnl * 100) / 100,
+        openPnlPct: Math.round(openPnlPct * 100) / 100,
+        balance,
+        equity: Math.round(equity * 100) / 100,
+        margin: Math.round(margin * 100) / 100,
+        freeMargin: Math.round(freeMargin * 100) / 100,
+        marginLevel: Math.round(marginLevel * 10) / 10,
+        marginUsedPct: Math.round(marginUsedPct * 100) / 100,
+        currentDD: Math.round(currentDD * 100) / 100,
+        withSL,
+        withTP,
+        noSL,
+        worstOpen: worstOpen ? {
+          symbol: worstOpen.symbol,
+          profit: Math.round((worstOpen.profit || 0) * 100) / 100,
+          type: worstOpen.type,
+        } : null,
+        bestOpen: bestOpen ? {
+          symbol: bestOpen.symbol,
+          profit: Math.round((bestOpen.profit || 0) * 100) / 100,
+          type: bestOpen.type,
+        } : null,
+        symbolExposure,
+        buyCount: buyPositions.length,
+        sellCount: sellPositions.length,
+        buyPnl: Math.round(buyPnl * 100) / 100,
+        sellPnl: Math.round(sellPnl * 100) / 100,
+        leverage: info.leverage || 0,
+      };
+    }
+
+    return NextResponse.json({
+      deals: closedTrades,
+      equityCurve,
+      stats,
+      liveRisk,
+      rawDealCount: allDeals.length,
+      tradingDealCount: tradingDeals.length,
+    });
   } catch (error: any) {
     console.error('[Deals API] Error:', error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
