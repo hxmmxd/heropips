@@ -1,10 +1,23 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createAdminClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
 
 const MT_CLIENT_BASE = 'https://mt-client-api-v1.london.agiliumtrade.ai';
 const token = process.env.META_API_TOKEN || '';
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+let _admin: any = null;
+function getAdmin() {
+  if (!_admin) {
+    _admin = createAdminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+  }
+  return _admin;
+}
 
 async function resolveMetaApiId(brokerId: string): Promise<string> {
   try {
@@ -47,7 +60,6 @@ function computeStats(deals: any[]) {
   const bestTrade = profits.length > 0 ? Math.max(...profits) : 0;
   const worstTrade = profits.length > 0 ? Math.min(...profits) : 0;
 
-  // Streaks
   let maxWinStreak = 0, maxLossStreak = 0, curWin = 0, curLoss = 0;
   for (const p of profits) {
     if (p > 0) { curWin++; curLoss = 0; maxWinStreak = Math.max(maxWinStreak, curWin); }
@@ -59,9 +71,7 @@ function computeStats(deals: any[]) {
   const grossLoss = Math.abs(losses.reduce((a, b) => a + b, 0));
   const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : (grossProfit > 0 ? Infinity : 0);
   const expectancy = deals.length > 0 ? netProfit / deals.length : 0;
-  const avgTrade = expectancy;
 
-  // Sharpe & Sortino (using per-trade returns)
   const mean = profits.reduce((a, b) => a + b, 0) / profits.length;
   const variance = profits.reduce((a, p) => a + Math.pow(p - mean, 2), 0) / profits.length;
   const stdDev = Math.sqrt(variance);
@@ -71,10 +81,8 @@ function computeStats(deals: any[]) {
     const diff = Math.min(0, p - mean);
     return a + diff * diff;
   }, 0) / profits.length;
-  const downsideDev = Math.sqrt(downsideVariance);
-  const sortino = downsideDev > 0 ? mean / downsideDev : 0;
+  const sortino = Math.sqrt(downsideVariance) > 0 ? mean / Math.sqrt(downsideVariance) : 0;
 
-  // Max Drawdown (from cumulative P&L curve)
   let peak = 0, maxDD = 0, cumulative = 0;
   for (const p of profits) {
     cumulative += p;
@@ -104,9 +112,153 @@ function computeStats(deals: any[]) {
     sortino: Math.round(sortino * 100) / 100,
     maxDrawdown: Math.round(maxDD * 10) / 10,
     recoveryFactor: Math.round(recoveryFactor * 100) / 100,
-    avgTrade: Math.round(avgTrade * 100) / 100,
+    avgTrade: Math.round(expectancy * 100) / 100,
     samples: profits.length,
   };
+}
+
+// ── Sync deals to Supabase ──
+async function syncDealsToDb(userId: string, brokerId: string, closedTrades: any[]) {
+  if (closedTrades.length === 0) return;
+  const admin = getAdmin();
+
+  const rows = closedTrades.map(d => ({
+    user_id: userId,
+    broker_id: brokerId,
+    deal_id: d.id,
+    symbol: d.symbol,
+    type: d.type,
+    volume: d.volume,
+    profit: d.profit,
+    commission: d.commission,
+    swap: d.swap,
+    entry_price: d.entryPrice,
+    exit_price: d.exitPrice,
+    open_time: d.openTime || null,
+    close_time: d.closeTime || null,
+    position_id: d.positionId || null,
+  }));
+
+  // Upsert — skip duplicates based on deal_id
+  const { error } = await admin
+    .from('closed_deals')
+    .upsert(rows, { onConflict: 'deal_id', ignoreDuplicates: true });
+
+  if (error) console.error('[Deals Sync] Upsert error:', error.message);
+}
+
+// ── Save daily snapshot ──
+async function saveDailySnapshot(userId: string, brokerId: string, info: any, positions: any[], closedDeals: any[]) {
+  const admin = getAdmin();
+  const today = new Date().toISOString().split('T')[0];
+  
+  const openPnl = positions.reduce((a: number, p: any) => a + (p.profit || 0), 0);
+  const netProfit = closedDeals.reduce((a: number, d: any) => a + (d.profit || 0), 0);
+  const winsCount = closedDeals.filter((d: any) => d.profit > 0).length;
+  const winRate = closedDeals.length > 0 ? (winsCount / closedDeals.length) * 100 : 0;
+
+  const { error } = await admin
+    .from('daily_snapshots')
+    .upsert({
+      user_id: userId,
+      broker_id: brokerId,
+      date: today,
+      balance: info.balance || 0,
+      equity: info.equity || info.balance || 0,
+      margin: info.margin || 0,
+      open_positions: positions.length,
+      open_pnl: Math.round(openPnl * 100) / 100,
+      net_profit_closed: Math.round(netProfit * 100) / 100,
+      total_trades: closedDeals.length,
+      win_rate: Math.round(winRate * 10) / 10,
+    }, { onConflict: 'user_id,broker_id,date' });
+
+  if (error) console.error('[Snapshot] Error:', error.message);
+}
+
+// ── Cache stats ──
+async function cacheStats(userId: string, brokerId: string, period: string, stats: any, dealsCount: number) {
+  const admin = getAdmin();
+  const { error } = await admin
+    .from('risk_stats_cache')
+    .upsert({
+      user_id: userId,
+      broker_id: brokerId,
+      period,
+      stats_json: stats,
+      deals_count: dealsCount,
+      last_synced: new Date().toISOString(),
+    }, { onConflict: 'user_id,broker_id,period' });
+
+  if (error) console.error('[Cache] Error:', error.message);
+}
+
+// ── Check cache freshness ──
+async function getCachedStats(userId: string, brokerId: string, period: string) {
+  const admin = getAdmin();
+  const { data } = await admin
+    .from('risk_stats_cache')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('broker_id', brokerId)
+    .eq('period', period)
+    .single();
+
+  if (!data) return null;
+
+  const age = Date.now() - new Date(data.last_synced).getTime();
+  if (age > CACHE_TTL_MS) return null; // stale
+
+  return data;
+}
+
+// ── Get deals from DB ──
+async function getDealsFromDb(userId: string, brokerId: string, startTime: string) {
+  const admin = getAdmin();
+  const { data, error } = await admin
+    .from('closed_deals')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('broker_id', brokerId)
+    .gte('close_time', startTime)
+    .order('close_time', { ascending: false });
+
+  if (error) {
+    console.error('[DB Deals] Error:', error.message);
+    return [];
+  }
+
+  return (data || []).map((d: any) => ({
+    id: d.deal_id,
+    symbol: d.symbol,
+    type: d.type,
+    volume: d.volume,
+    profit: d.profit,
+    commission: d.commission,
+    swap: d.swap,
+    entryPrice: d.entry_price,
+    exitPrice: d.exit_price,
+    openTime: d.open_time,
+    closeTime: d.close_time,
+    positionId: d.position_id,
+  }));
+}
+
+// ── Get equity curve from daily snapshots ──
+async function getEquityCurveFromDb(userId: string, brokerId: string, startDate: string) {
+  const admin = getAdmin();
+  const { data } = await admin
+    .from('daily_snapshots')
+    .select('date, equity, balance')
+    .eq('user_id', userId)
+    .eq('broker_id', brokerId)
+    .gte('date', startDate)
+    .order('date', { ascending: true });
+
+  return (data || []).map((d: any) => ({
+    time: d.date + 'T00:00:00Z',
+    equity: d.equity,
+  }));
 }
 
 export async function GET(request: Request) {
@@ -124,25 +276,55 @@ export async function GET(request: Request) {
     }
 
     const metaApiId = await resolveMetaApiId(brokerId);
-    const headers = { 'auth-token': token };
-    const base = `${MT_CLIENT_BASE}/users/current/accounts/${metaApiId}`;
 
-    // Calculate time range — expanded options
+    // ── Time range ──
     const now = new Date();
     const periodMap: Record<string, number> = {
       '24h': 86400000,
       '3d': 259200000,
       '7d': 604800000,
       '30d': 2592000000,
-      'all': 7776000000, // 90 days
+      'all': 7776000000,
     };
     const periodMs = periodMap[period] || 604800000;
     const startTime = new Date(now.getTime() - periodMs).toISOString();
     const endTime = now.toISOString();
 
+    // ── 1. Check cache first for instant response ──
+    const cached = await getCachedStats(user.id, brokerId, period);
+    if (cached) {
+      // Return cached data immediately, but still fetch fresh in background
+      const dbDeals = await getDealsFromDb(user.id, brokerId, startTime);
+      const dbEquity = await getEquityCurveFromDb(user.id, brokerId, startTime.split('T')[0]);
+
+      // Still fetch live positions for liveRisk (fast call)
+      let liveRisk = null;
+      try {
+        const headers = { 'auth-token': token };
+        const base = `${MT_CLIENT_BASE}/users/current/accounts/${metaApiId}`;
+        const [infoRes, posRes] = await Promise.all([
+          fetch(`${base}/account-information`, { headers, signal: AbortSignal.timeout(5000) }),
+          fetch(`${base}/positions`, { headers, signal: AbortSignal.timeout(5000) }),
+        ]);
+        const info = infoRes.ok ? await infoRes.json() : {};
+        const positions = posRes.ok ? await posRes.json() : [];
+        liveRisk = buildLiveRisk(info, Array.isArray(positions) ? positions : []);
+      } catch {}
+
+      return NextResponse.json({
+        deals: dbDeals,
+        equityCurve: dbEquity.length > 0 ? dbEquity : buildEquityCurveFromDeals(dbDeals, 0, startTime, endTime),
+        stats: cached.stats_json,
+        liveRisk,
+        source: 'cache',
+      });
+    }
+
+    // ── 2. Full MetaAPI sync ──
+    const headers = { 'auth-token': token };
+    const base = `${MT_CLIENT_BASE}/users/current/accounts/${metaApiId}`;
     const dealsUrl = `${base}/history-deals/time/${startTime}/${endTime}`;
 
-    // Fetch deals, positions, and account info in parallel
     const [dealsRes, infoRes, posRes] = await Promise.all([
       fetch(dealsUrl, { headers, signal: AbortSignal.timeout(12000) }),
       fetch(`${base}/account-information`, { headers, signal: AbortSignal.timeout(8000) }),
@@ -153,13 +335,12 @@ export async function GET(request: Request) {
     const info = infoRes.ok ? await infoRes.json() : {};
     const rawPositions = posRes.ok ? await posRes.json() : [];
 
-    // Filter to only balance-affecting deals (exclude deposits, etc.)
     const allDeals = Array.isArray(rawDeals) ? rawDeals : [];
     const tradingDeals = allDeals.filter((d: any) =>
       d.type === 'DEAL_TYPE_BUY' || d.type === 'DEAL_TYPE_SELL'
     );
 
-    // Group entry+exit deals into pairs for closed trades
+    // Group deals into closed trades
     const positionDeals: Record<string, any[]> = {};
     for (const d of tradingDeals) {
       const posId = d.positionId || d.id;
@@ -185,136 +366,110 @@ export async function GET(request: Request) {
           exitPrice: exitDeal.price || 0,
           openTime: entryDeal.time || '',
           closeTime: exitDeal.time || '',
+          positionId: exitDeal.positionId || entryDeal.positionId || '',
         });
       }
     }
 
-    // Sort by close time descending
     closedTrades.sort((a, b) => new Date(b.closeTime).getTime() - new Date(a.closeTime).getTime());
 
-    // Build equity curve from deals (cumulative P&L)
+    // ── 3. Sync to database (fire-and-forget) ──
+    const positions = Array.isArray(rawPositions) ? rawPositions : [];
+
+    // Run DB operations in parallel (non-blocking)
+    Promise.all([
+      syncDealsToDb(user.id, brokerId, closedTrades),
+      saveDailySnapshot(user.id, brokerId, info, positions, closedTrades),
+    ]).catch(err => console.error('[Deals API] DB sync error:', err));
+
+    // ── 4. Compute stats and cache ──
+    const stats = computeStats(closedTrades);
+    
+    // Cache in background
+    cacheStats(user.id, brokerId, period, stats, closedTrades.length)
+      .catch(err => console.error('[Deals API] Cache error:', err));
+
+    // ── 5. Build response ──
     const balance = info.balance || 0;
     const equity = info.equity || balance;
-    const sortedByTime = [...closedTrades].sort((a, b) =>
-      new Date(a.closeTime).getTime() - new Date(b.closeTime).getTime()
-    );
-    let cumPnl = 0;
-    const startEquity = balance - closedTrades.reduce((a, d) => a + d.profit, 0);
-    const equityCurve = [{ time: startTime, equity: startEquity }];
-    for (const deal of sortedByTime) {
-      cumPnl += deal.profit;
-      equityCurve.push({ time: deal.closeTime, equity: startEquity + cumPnl });
+    const equityCurve = buildEquityCurveFromDeals(closedTrades, balance, startTime, endTime);
+    // Add current equity
+    if (equityCurve.length > 0) {
+      equityCurve[equityCurve.length - 1].equity = equity;
     }
-    // Add current equity (includes open P&L)
-    equityCurve.push({ time: endTime, equity: equity });
 
-    const stats = computeStats(closedTrades);
-
-    // ── Live Risk Metrics from open positions ──
-    const positions = Array.isArray(rawPositions) ? rawPositions : [];
-    let liveRisk = null;
-
-    if (positions.length > 0) {
-      const totalLots = positions.reduce((a: number, p: any) => a + (p.volume || 0), 0);
-      const openPnl = positions.reduce((a: number, p: any) => a + (p.profit || 0), 0);
-      const openPnlPct = balance > 0 ? (openPnl / balance) * 100 : 0;
-
-      // Count positions with/without SL and TP
-      const withSL = positions.filter((p: any) => p.stopLoss && p.stopLoss > 0).length;
-      const withTP = positions.filter((p: any) => p.takeProfit && p.takeProfit > 0).length;
-      const noSL = positions.length - withSL;
-
-      // Margin usage
-      const margin = info.margin || 0;
-      const freeMargin = info.freeMargin || 0;
-      const marginLevel = margin > 0 ? (equity / margin) * 100 : 0;
-      const marginUsedPct = equity > 0 ? (margin / equity) * 100 : 0;
-
-      // Drawdown from balance
-      const currentDD = balance > 0 ? ((balance - equity) / balance) * 100 : 0;
-
-      // Worst open position
-      const worstOpen = positions.reduce((worst: any, p: any) => {
-        return (!worst || p.profit < worst.profit) ? p : worst;
-      }, null);
-
-      // Best open position
-      const bestOpen = positions.reduce((best: any, p: any) => {
-        return (!best || p.profit > best.profit) ? p : best;
-      }, null);
-
-      // Max potential loss if all SLs hit
-      let maxSlLoss = 0;
-      for (const p of positions) {
-        if (p.stopLoss && p.stopLoss > 0) {
-          const isBuy = p.type === 'POSITION_TYPE_BUY';
-          const slDist = isBuy ? p.openPrice - p.stopLoss : p.stopLoss - p.openPrice;
-          // Approximate: use current profit projection
-          const pointValue = p.volume * (p.openPrice > 100 ? 10 : 100000);
-          maxSlLoss += slDist * pointValue * (isBuy ? -1 : -1);
-        }
-      }
-
-      // Exposure by symbol
-      const symbolExposure: Record<string, { lots: number; pnl: number; count: number }> = {};
-      for (const p of positions) {
-        const sym = p.symbol || 'Unknown';
-        if (!symbolExposure[sym]) symbolExposure[sym] = { lots: 0, pnl: 0, count: 0 };
-        symbolExposure[sym].lots += p.volume || 0;
-        symbolExposure[sym].pnl += p.profit || 0;
-        symbolExposure[sym].count++;
-      }
-
-      // Direction breakdown
-      const buyPositions = positions.filter((p: any) => p.type === 'POSITION_TYPE_BUY');
-      const sellPositions = positions.filter((p: any) => p.type === 'POSITION_TYPE_SELL');
-      const buyPnl = buyPositions.reduce((a: number, p: any) => a + (p.profit || 0), 0);
-      const sellPnl = sellPositions.reduce((a: number, p: any) => a + (p.profit || 0), 0);
-
-      liveRisk = {
-        openPositions: positions.length,
-        totalLots: Math.round(totalLots * 100) / 100,
-        openPnl: Math.round(openPnl * 100) / 100,
-        openPnlPct: Math.round(openPnlPct * 100) / 100,
-        balance,
-        equity: Math.round(equity * 100) / 100,
-        margin: Math.round(margin * 100) / 100,
-        freeMargin: Math.round(freeMargin * 100) / 100,
-        marginLevel: Math.round(marginLevel * 10) / 10,
-        marginUsedPct: Math.round(marginUsedPct * 100) / 100,
-        currentDD: Math.round(currentDD * 100) / 100,
-        withSL,
-        withTP,
-        noSL,
-        worstOpen: worstOpen ? {
-          symbol: worstOpen.symbol,
-          profit: Math.round((worstOpen.profit || 0) * 100) / 100,
-          type: worstOpen.type,
-        } : null,
-        bestOpen: bestOpen ? {
-          symbol: bestOpen.symbol,
-          profit: Math.round((bestOpen.profit || 0) * 100) / 100,
-          type: bestOpen.type,
-        } : null,
-        symbolExposure,
-        buyCount: buyPositions.length,
-        sellCount: sellPositions.length,
-        buyPnl: Math.round(buyPnl * 100) / 100,
-        sellPnl: Math.round(sellPnl * 100) / 100,
-        leverage: info.leverage || 0,
-      };
-    }
+    const liveRisk = buildLiveRisk(info, positions);
 
     return NextResponse.json({
       deals: closedTrades,
       equityCurve,
       stats,
       liveRisk,
-      rawDealCount: allDeals.length,
-      tradingDealCount: tradingDeals.length,
+      source: 'live',
     });
   } catch (error: any) {
     console.error('[Deals API] Error:', error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+}
+
+// ── Helper: Build equity curve from deals ──
+function buildEquityCurveFromDeals(closedTrades: any[], balance: number, startTime: string, endTime: string) {
+  const sortedByTime = [...closedTrades].sort((a, b) =>
+    new Date(a.closeTime).getTime() - new Date(b.closeTime).getTime()
+  );
+  let cumPnl = 0;
+  const startEquity = balance - closedTrades.reduce((a, d) => a + d.profit, 0);
+  const curve = [{ time: startTime, equity: startEquity }];
+  for (const deal of sortedByTime) {
+    cumPnl += deal.profit;
+    curve.push({ time: deal.closeTime, equity: startEquity + cumPnl });
+  }
+  curve.push({ time: endTime, equity: balance });
+  return curve;
+}
+
+// ── Helper: Build live risk from positions ──
+function buildLiveRisk(info: any, positions: any[]) {
+  if (positions.length === 0) return null;
+
+  const balance = info.balance || 0;
+  const equity = info.equity || balance;
+  const totalLots = positions.reduce((a: number, p: any) => a + (p.volume || 0), 0);
+  const openPnl = positions.reduce((a: number, p: any) => a + (p.profit || 0), 0);
+  const openPnlPct = balance > 0 ? (openPnl / balance) * 100 : 0;
+  const withSL = positions.filter((p: any) => p.stopLoss && p.stopLoss > 0).length;
+  const withTP = positions.filter((p: any) => p.takeProfit && p.takeProfit > 0).length;
+  const margin = info.margin || 0;
+  const freeMargin = info.freeMargin || 0;
+  const marginLevel = margin > 0 ? (equity / margin) * 100 : 0;
+  const marginUsedPct = equity > 0 ? (margin / equity) * 100 : 0;
+  const currentDD = balance > 0 ? ((balance - equity) / balance) * 100 : 0;
+
+  const worstOpen = positions.reduce((w: any, p: any) => (!w || p.profit < w.profit) ? p : w, null);
+  const bestOpen = positions.reduce((b: any, p: any) => (!b || p.profit > b.profit) ? p : b, null);
+
+  const buyPositions = positions.filter((p: any) => p.type === 'POSITION_TYPE_BUY');
+  const sellPositions = positions.filter((p: any) => p.type === 'POSITION_TYPE_SELL');
+
+  return {
+    openPositions: positions.length,
+    totalLots: Math.round(totalLots * 100) / 100,
+    openPnl: Math.round(openPnl * 100) / 100,
+    openPnlPct: Math.round(openPnlPct * 100) / 100,
+    balance, equity: Math.round(equity * 100) / 100,
+    margin: Math.round(margin * 100) / 100,
+    freeMargin: Math.round(freeMargin * 100) / 100,
+    marginLevel: Math.round(marginLevel * 10) / 10,
+    marginUsedPct: Math.round(marginUsedPct * 100) / 100,
+    currentDD: Math.round(currentDD * 100) / 100,
+    withSL, withTP, noSL: positions.length - withSL,
+    worstOpen: worstOpen ? { symbol: worstOpen.symbol, profit: Math.round((worstOpen.profit || 0) * 100) / 100, type: worstOpen.type } : null,
+    bestOpen: bestOpen ? { symbol: bestOpen.symbol, profit: Math.round((bestOpen.profit || 0) * 100) / 100, type: bestOpen.type } : null,
+    buyCount: buyPositions.length,
+    sellCount: sellPositions.length,
+    buyPnl: Math.round(buyPositions.reduce((a: number, p: any) => a + (p.profit || 0), 0) * 100) / 100,
+    sellPnl: Math.round(sellPositions.reduce((a: number, p: any) => a + (p.profit || 0), 0) * 100) / 100,
+    leverage: info.leverage || 0,
+  };
 }

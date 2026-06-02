@@ -1,0 +1,169 @@
+import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+
+export const dynamic = 'force-dynamic';
+
+const MT_CLIENT_BASE = 'https://mt-client-api-v1.london.agiliumtrade.ai';
+const token = process.env.META_API_TOKEN || '';
+const CRON_SECRET = process.env.CRON_SECRET || '';
+
+function getAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
+
+export async function GET(request: Request) {
+  // Verify cron secret
+  const { searchParams } = new URL(request.url);
+  const secret = searchParams.get('secret') || request.headers.get('authorization')?.replace('Bearer ', '');
+  if (CRON_SECRET && secret !== CRON_SECRET) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const admin = getAdmin();
+  const results: any[] = [];
+
+  try {
+    // Get all brokers from the brokers_db
+    let brokers: any[] = [];
+    try {
+      const fs = await import('fs');
+      const path = await import('path');
+      const os = await import('os');
+      const DB_FILE = process.env.VERCEL || process.env.NODE_ENV === 'production'
+        ? path.join(os.tmpdir(), 'brokers_db.json')
+        : path.join(process.cwd(), 'src/lib/brokers_db.json');
+      if (fs.existsSync(DB_FILE)) {
+        brokers = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+      }
+    } catch {}
+
+    if (brokers.length === 0) {
+      return NextResponse.json({ message: 'No brokers found', results: [] });
+    }
+
+    // Process each broker
+    for (const broker of brokers) {
+      const metaApiId = broker.id;
+      const brokerId = broker.id;
+      const userId = broker.userId;
+
+      if (!userId || !metaApiId) continue;
+
+      try {
+        const headers = { 'auth-token': token };
+        const base = `${MT_CLIENT_BASE}/users/current/accounts/${metaApiId}`;
+
+        // Fetch last 24h of deals
+        const now = new Date();
+        const startTime = new Date(now.getTime() - 86400000).toISOString();
+        const endTime = now.toISOString();
+
+        const [dealsRes, infoRes, posRes] = await Promise.all([
+          fetch(`${base}/history-deals/time/${startTime}/${endTime}`, {
+            headers, signal: AbortSignal.timeout(12000),
+          }),
+          fetch(`${base}/account-information`, { headers, signal: AbortSignal.timeout(8000) }),
+          fetch(`${base}/positions`, { headers, signal: AbortSignal.timeout(8000) }),
+        ]);
+
+        const rawDeals = dealsRes.ok ? await dealsRes.json() : [];
+        const info = infoRes.ok ? await infoRes.json() : {};
+        const rawPositions = posRes.ok ? await posRes.json() : [];
+
+        const allDeals = Array.isArray(rawDeals) ? rawDeals : [];
+        const tradingDeals = allDeals.filter((d: any) =>
+          d.type === 'DEAL_TYPE_BUY' || d.type === 'DEAL_TYPE_SELL'
+        );
+
+        // Group and pair deals
+        const positionDeals: Record<string, any[]> = {};
+        for (const d of tradingDeals) {
+          const posId = d.positionId || d.id;
+          if (!positionDeals[posId]) positionDeals[posId] = [];
+          positionDeals[posId].push(d);
+        }
+
+        const closedTrades: any[] = [];
+        for (const [, deals] of Object.entries(positionDeals)) {
+          const entryDeal = deals.find((d: any) => d.entryType === 'DEAL_ENTRY_IN') || deals[0];
+          const exitDeal = deals.find((d: any) => d.entryType === 'DEAL_ENTRY_OUT') || deals[deals.length - 1];
+          if (exitDeal && exitDeal.profit !== undefined) {
+            closedTrades.push({
+              user_id: userId,
+              broker_id: brokerId,
+              deal_id: exitDeal.id || entryDeal.id,
+              symbol: exitDeal.symbol || entryDeal.symbol,
+              type: entryDeal.type || 'DEAL_TYPE_BUY',
+              volume: entryDeal.volume || exitDeal.volume || 0,
+              profit: exitDeal.profit || 0,
+              commission: (entryDeal.commission || 0) + (exitDeal.commission || 0),
+              swap: exitDeal.swap || 0,
+              entry_price: entryDeal.price || 0,
+              exit_price: exitDeal.price || 0,
+              open_time: entryDeal.time || null,
+              close_time: exitDeal.time || null,
+              position_id: exitDeal.positionId || entryDeal.positionId || null,
+            });
+          }
+        }
+
+        // Upsert deals
+        let dealsUpserted = 0;
+        if (closedTrades.length > 0) {
+          const { error } = await admin
+            .from('closed_deals')
+            .upsert(closedTrades, { onConflict: 'deal_id', ignoreDuplicates: true });
+          if (!error) dealsUpserted = closedTrades.length;
+        }
+
+        // Save daily snapshot
+        const positions = Array.isArray(rawPositions) ? rawPositions : [];
+        const today = new Date().toISOString().split('T')[0];
+        const openPnl = positions.reduce((a: number, p: any) => a + (p.profit || 0), 0);
+        const netProfit = closedTrades.reduce((a: number, d: any) => a + (d.profit || 0), 0);
+
+        await admin.from('daily_snapshots').upsert({
+          user_id: userId,
+          broker_id: brokerId,
+          date: today,
+          balance: info.balance || 0,
+          equity: info.equity || info.balance || 0,
+          margin: info.margin || 0,
+          open_positions: positions.length,
+          open_pnl: Math.round(openPnl * 100) / 100,
+          net_profit_closed: Math.round(netProfit * 100) / 100,
+          total_trades: closedTrades.length,
+          win_rate: closedTrades.length > 0
+            ? Math.round((closedTrades.filter(d => d.profit > 0).length / closedTrades.length) * 1000) / 10
+            : 0,
+        }, { onConflict: 'user_id,broker_id,date' });
+
+        results.push({
+          broker: broker.login || brokerId,
+          rawDeals: allDeals.length,
+          closedTrades: closedTrades.length,
+          dealsUpserted,
+          snapshotSaved: true,
+          balance: info.balance,
+        });
+      } catch (err: any) {
+        results.push({
+          broker: broker.login || brokerId,
+          error: err.message,
+        });
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      brokersProcessed: results.length,
+      results,
+    });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
