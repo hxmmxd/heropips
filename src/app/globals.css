@@ -2919,6 +2919,73 @@ body {
   width: 4px; height: 4px; border-radius: 50%; background: currentColor; flex-shrink: 0;
 }
 
+/* ── Insights Stats Strip ── */
+.ins-stats-strip {
+  display: flex; gap: 0; margin-bottom: 10px;
+  background: var(--sidebar-bg); border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden;
+}
+.ins-stat {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  padding: 8px 4px; border-right: 1px solid var(--border);
+}
+.ins-stat:last-child { border-right: none; }
+.ins-stat-label { font-size: 9px; font-weight: 700; color: var(--subtext); letter-spacing: 0.04em; text-transform: uppercase; }
+.ins-stat-value { font-size: 13px; font-weight: 800; color: var(--text); font-family: monospace; }
+
+/* Controls row */
+.ins-controls-row {
+  display: flex; gap: 6px; align-items: center;
+  flex-wrap: wrap; margin-bottom: 10px;
+}
+.ins-mult-group { display: flex; gap: 3px; }
+.ins-vol-summary {
+  font-size: 11px; font-weight: 700; color: var(--subtext);
+  font-family: monospace; margin-left: auto;
+}
+
+/* Buy/Sell buttons */
+.ins-trade-btns { display: flex; gap: 6px; }
+.ins-sell-btn, .ins-buy-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 10px 6px; border-radius: 10px;
+  border: none; cursor: pointer; min-height: 48px;
+  font-family: 'SF Mono', 'JetBrains Mono', monospace;
+  transition: all 0.15s;
+}
+.ins-sell-btn {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  box-shadow: 0 2px 8px rgba(239,68,68,0.25);
+}
+.ins-sell-btn:hover { box-shadow: 0 3px 14px rgba(239,68,68,0.35); transform: translateY(-1px); }
+.ins-sell-btn:active { transform: translateY(0); }
+.ins-sell-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.ins-buy-btn {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  box-shadow: 0 2px 8px rgba(34,197,94,0.25);
+}
+.ins-buy-btn:hover { box-shadow: 0 3px 14px rgba(34,197,94,0.35); transform: translateY(-1px); }
+.ins-buy-btn:active { transform: translateY(0); }
+.ins-buy-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.ins-btn-label { font-size: 10px; font-weight: 800; color: rgba(255,255,255,0.8); letter-spacing: 0.06em; }
+.ins-btn-price { font-size: 16px; font-weight: 900; color: #fff; letter-spacing: -0.01em; }
+
+/* Quick Stats */
+.ins-quick-stats {
+  display: flex; gap: 0;
+  background: var(--sidebar-bg); border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden; margin-top: 10px;
+}
+.ins-qs-item {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  padding: 8px 4px; border-right: 1px solid var(--border);
+  gap: 1px;
+}
+.ins-qs-item:last-child { border-right: none; }
+.ins-qs-label { font-size: 9px; font-weight: 700; color: var(--subtext); letter-spacing: 0.04em; }
+.ins-qs-value { font-size: 13px; font-weight: 800; color: var(--text); font-family: monospace; }
+.ins-qs-sub { font-size: 9px; color: var(--subtext); font-family: monospace; }
+
 /* ── Trading Panel ─────────────────────────────── */
 .mgr-trading-panel {
   padding: 12px; border-radius: 12px; border: 1px solid var(--border);

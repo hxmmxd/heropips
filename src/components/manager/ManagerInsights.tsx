@@ -36,13 +36,12 @@ export default function ManagerInsights({ accountInfo, positions, activeBrokerId
 
   const { getPrice } = useLivePrices();
 
-  // Get live bid/ask prices (rough spread simulation)
+  // Get live bid/ask prices
   const livePrice = getPrice(symbol.replace('.sc', '').replace('USD', '')) || getPrice(symbol);
   const spread = livePrice ? (livePrice > 100 ? 0.5 : 0.0003) : 0;
   const bidPrice = livePrice ? livePrice - spread / 2 : 0;
   const askPrice = livePrice ? livePrice + spread / 2 : 0;
 
-  // Calculate effective volume based on multiplier
   const effectiveVolume = (parseFloat(volume) * multiplier).toFixed(2);
 
   // Risk-based lot calculation
@@ -89,16 +88,15 @@ export default function ManagerInsights({ accountInfo, positions, activeBrokerId
       : p.toFixed(p > 10 ? 2 : 5);
   };
 
-  // Compute risk stats
+  const fmtUsd = (v: number) => '$' + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  // Stats
   const positionsWithoutSL = positions.filter(p => !p.stopLoss).length;
   const buyPositions = positions.filter(p => p.type === 'POSITION_TYPE_BUY');
   const sellPositions = positions.filter(p => p.type === 'POSITION_TYPE_SELL');
-
-  // Win rate (based on profitable positions)
   const profitableCount = positions.filter(p => p.profit > 0).length;
   const winRate = positions.length > 0 ? Math.round((profitableCount / positions.length) * 100) : 0;
 
-  // Nearest SL/TP in points
   const nearestTP = positions
     .filter(p => p.takeProfit && p.currentPrice)
     .map(p => Math.abs((p.takeProfit! - p.currentPrice) * (p.currentPrice > 100 ? 10 : 100000)))
@@ -106,72 +104,37 @@ export default function ManagerInsights({ accountInfo, positions, activeBrokerId
 
   return (
     <div className="mgr-insights">
-      {/* Account Info Cards — 2×2 Grid */}
-      <div className="mgr-cards-grid">
-        <div className="mgr-card">
-          <div className="mgr-card-label">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M3 21h18M3 7v14M9 3v18M15 7v14M21 3v18" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            Balance
-          </div>
-          <div className="mgr-card-value">${accountInfo.balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+      {/* ── Account Stats Strip ── */}
+      <div className="ins-stats-strip">
+        <div className="ins-stat">
+          <span className="ins-stat-label">Balance</span>
+          <span className="ins-stat-value">{fmtUsd(accountInfo.balance)}</span>
         </div>
-
-        <div className="mgr-card">
-          <div className="mgr-card-label">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            Equity
-          </div>
-          <div className="mgr-card-value">${accountInfo.equity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-          <div className="mgr-card-sub">
-            <span className="mgr-guard-dot" />
-            Guard Off
-          </div>
+        <div className="ins-stat">
+          <span className="ins-stat-label">Equity</span>
+          <span className="ins-stat-value">{fmtUsd(accountInfo.equity)}</span>
         </div>
-
-        <div className="mgr-card">
-          <div className="mgr-card-label">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M7 17l-4-4m0 0l4-4m-4 4h18" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            MTM P&L
-          </div>
-          <div className={`mgr-card-value ${accountInfo.mtmPnl >= 0 ? 'mgr-positive' : 'mgr-negative'}`}>
-            {accountInfo.mtmPnl >= 0 ? '+' : ''}{accountInfo.mtmPnl < 0 ? '-' : ''}${Math.abs(accountInfo.mtmPnl).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </div>
-          <div className="mgr-card-sub">
-            <span className="mgr-pnl-dot" /> {accountInfo.mtmPnlPercent.toFixed(4)}%
-            <span className="mgr-guard-label">Guard Off</span>
-          </div>
+        <div className="ins-stat">
+          <span className="ins-stat-label">MTM P&L</span>
+          <span className={`ins-stat-value ${accountInfo.mtmPnl >= 0 ? 'mgr-positive' : 'mgr-negative'}`}>
+            {accountInfo.mtmPnl >= 0 ? '+' : '-'}{fmtUsd(accountInfo.mtmPnl)}
+          </span>
         </div>
-
-        <div className="mgr-card">
-          <div className="mgr-card-label">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="3"/>
-              <path d="M12 2v4m0 12v4m10-10h-4M6 12H2m15.07-5.07l-2.83 2.83M9.76 14.24l-2.83 2.83m0-10.14l2.83 2.83m4.48 4.48l2.83 2.83"/>
-            </svg>
-            Lots & Positions
-          </div>
-          <div className="mgr-card-value-split">
-            <span className="mgr-card-value">{accountInfo.totalLots}</span>
-            <span className="mgr-card-value" style={{ marginLeft: '12px' }}>{accountInfo.positionCount}</span>
-          </div>
-          <div className="mgr-card-sub-split">
-            <span>Total Lots</span>
-            <span>Positions</span>
-          </div>
+        <div className="ins-stat">
+          <span className="ins-stat-label">Lots</span>
+          <span className="ins-stat-value">{accountInfo.totalLots}</span>
+        </div>
+        <div className="ins-stat">
+          <span className="ins-stat-label">Pos</span>
+          <span className="ins-stat-value">{accountInfo.positionCount}</span>
         </div>
       </div>
 
-      {/* Trading Controls */}
+      {/* ── Trading Panel ── */}
       <div className="mgr-trading-panel">
         {/* Mode Tabs */}
         <div className="mgr-mode-tabs">
-          {(['market', 'custom', 'lots', 'risk'] as TradingMode[]).map((mode) => (
+          {(['lots', 'risk', 'market', 'custom'] as TradingMode[]).map((mode) => (
             <button
               key={mode}
               onClick={() => setTradingMode(mode)}
@@ -182,10 +145,9 @@ export default function ManagerInsights({ accountInfo, positions, activeBrokerId
           ))}
         </div>
 
-        {/* Custom Price Input (only for custom & risk modes) */}
+        {/* Custom/Risk inputs */}
         {(tradingMode === 'custom' || tradingMode === 'risk') && (
           <div className="mgr-custom-price">
-            {tradingMode === 'custom' && <span className="mgr-price-label">Price</span>}
             {tradingMode === 'risk' && (
               <>
                 <div className="mgr-risk-input-group">
@@ -250,8 +212,8 @@ export default function ManagerInsights({ accountInfo, positions, activeBrokerId
           </div>
         )}
 
-        {/* Symbol & Volume Selector */}
-        <div className="mgr-symbol-row">
+        {/* Symbol + Volume + Multiplier — single compact row */}
+        <div className="ins-controls-row">
           <div className="mgr-dropdown-wrap" style={{ position: 'relative' }}>
             <button
               className="mgr-dropdown-btn"
@@ -272,6 +234,7 @@ export default function ManagerInsights({ accountInfo, positions, activeBrokerId
               </>
             )}
           </div>
+
           <div className="mgr-dropdown-wrap" style={{ position: 'relative' }}>
             <button
               className="mgr-dropdown-btn"
@@ -292,106 +255,82 @@ export default function ManagerInsights({ accountInfo, positions, activeBrokerId
               </>
             )}
           </div>
+
+          {tradingMode !== 'risk' && (
+            <div className="ins-mult-group">
+              {[1, 5, 10].map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setMultiplier(m)}
+                  className={`mgr-mult-pill ${multiplier === m ? 'mgr-mult-pill-active' : ''}`}
+                >
+                  x{m}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {tradingMode !== 'risk' && (
+            <span className="ins-vol-summary">= {effectiveVolume}</span>
+          )}
         </div>
 
-        {/* Multiplier Pills */}
-        {tradingMode !== 'risk' && (
-          <div className="mgr-multiplier-row">
-            {[1, 5, 10].map((m) => (
-              <button
-                key={m}
-                onClick={() => setMultiplier(m)}
-                className={`mgr-mult-pill ${multiplier === m ? 'mgr-mult-pill-active' : ''}`}
-              >
-                x{m}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Buy/Sell Buttons */}
-        <div className="mgr-action-btns">
+        {/* Buy / Sell Buttons */}
+        <div className="ins-trade-btns">
           <button
-            className="mgr-sell-btn"
+            className="ins-sell-btn"
             onClick={() => handleOrder('SELL')}
             disabled={!!executing}
           >
-            <span className="mgr-action-label">
-              {tradingMode === 'custom' || tradingMode === 'risk' ? 'SELL CUSTOM' : 'SELL'}
-            </span>
-            <span className="mgr-action-price">{bidPrice ? formatPrice(bidPrice) : '—'}</span>
-            {executing === 'sell' && <span className="mgr-btn-spinner" />}
+            {executing === 'sell' ? (
+              <span className="mgr-btn-spinner" />
+            ) : (
+              <>
+                <span className="ins-btn-label">SELL</span>
+                <span className="ins-btn-price">{bidPrice ? formatPrice(bidPrice) : '—'}</span>
+              </>
+            )}
           </button>
           <button
-            className="mgr-buy-btn"
+            className="ins-buy-btn"
             onClick={() => handleOrder('BUY')}
             disabled={!!executing}
           >
-            <span className="mgr-action-label">
-              {tradingMode === 'custom' || tradingMode === 'risk' ? 'BUY CUSTOM' : 'BUY'}
-            </span>
-            <span className="mgr-action-price">{askPrice ? formatPrice(askPrice) : '—'}</span>
-            {executing === 'buy' && <span className="mgr-btn-spinner" />}
+            {executing === 'buy' ? (
+              <span className="mgr-btn-spinner" />
+            ) : (
+              <>
+                <span className="ins-btn-label">BUY</span>
+                <span className="ins-btn-price">{askPrice ? formatPrice(askPrice) : '—'}</span>
+              </>
+            )}
           </button>
         </div>
       </div>
 
-      {/* Break-Even & Max Cards */}
-      <div className="mgr-be-grid">
-        <div className="mgr-be-card">
-          <div className="mgr-be-label">Buy BE</div>
-          <div className="mgr-be-value">—</div>
-          <div className="mgr-be-sub">{buyPositions.reduce((a, p) => a + p.volume, 0).toFixed(2)}L</div>
+      {/* ── Quick Stats Row ── */}
+      <div className="ins-quick-stats">
+        <div className="ins-qs-item">
+          <span className="ins-qs-label">Buy BE</span>
+          <span className="ins-qs-value">—</span>
+          <span className="ins-qs-sub">{buyPositions.reduce((a, p) => a + p.volume, 0).toFixed(2)}L</span>
         </div>
-        <div className="mgr-be-card">
-          <div className="mgr-be-label">Sell BE</div>
-          <div className="mgr-be-value">—</div>
-          <div className="mgr-be-sub">{sellPositions.reduce((a, p) => a + p.volume, 0).toFixed(2)}L</div>
+        <div className="ins-qs-item">
+          <span className="ins-qs-label">Sell BE</span>
+          <span className="ins-qs-value">—</span>
+          <span className="ins-qs-sub">{sellPositions.reduce((a, p) => a + p.volume, 0).toFixed(2)}L</span>
         </div>
-        <div className="mgr-be-card">
-          <div className="mgr-be-label">Max Loss</div>
-          <div className="mgr-be-value mgr-negative">—</div>
+        <div className="ins-qs-item">
+          <span className="ins-qs-label">Win %</span>
+          <span className="ins-qs-value mgr-positive">{winRate}%</span>
         </div>
-        <div className="mgr-be-card">
-          <div className="mgr-be-label">Max Profit</div>
-          <div className="mgr-be-value">∞</div>
+        <div className="ins-qs-item">
+          <span className="ins-qs-label">No SL</span>
+          <span className={`ins-qs-value ${positionsWithoutSL > 0 ? 'mgr-warn' : ''}`}>{positionsWithoutSL}</span>
         </div>
-      </div>
-
-      {/* Account Risk Summary */}
-      <div className="mgr-risk-summary">
-        <div className="mgr-risk-header">
-          <div className="mgr-risk-title">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M18 20V10M12 20V4M6 20v-6" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            Account Risk Summary
-          </div>
-          <button className="mgr-details-link">Details &gt;</button>
-        </div>
-        <div className="mgr-risk-stats">
-          <div className="mgr-risk-stat">
-            <span className="mgr-risk-stat-label">Win Rate</span>
-            <span className="mgr-risk-stat-value mgr-positive">{winRate}%</span>
-          </div>
-          <div className="mgr-risk-stat">
-            <span className="mgr-risk-stat-label">Avg R:R</span>
-            <span className="mgr-risk-stat-value">N/A</span>
-          </div>
-          <div className="mgr-risk-stat">
-            <span className="mgr-risk-stat-label">No SL</span>
-            <span className="mgr-risk-stat-value mgr-warn">{positionsWithoutSL}</span>
-          </div>
-        </div>
-        <div className="mgr-risk-stats mgr-risk-stats-2">
-          <div className="mgr-risk-stat">
-            <span className="mgr-risk-stat-label">Nearest SL</span>
-            <span className="mgr-risk-stat-value">{positionsWithoutSL === positions.length ? 'No SL' : '—'}</span>
-          </div>
-          <div className="mgr-risk-stat">
-            <span className="mgr-risk-stat-label">Nearest TP</span>
-            <span className="mgr-risk-stat-value mgr-positive">{nearestTP ? `${Math.round(nearestTP)} pts` : '—'}</span>
-          </div>
+        <div className="ins-qs-item">
+          <span className="ins-qs-label">Near TP</span>
+          <span className="ins-qs-value mgr-positive">{nearestTP ? `${Math.round(nearestTP)}` : '—'}</span>
         </div>
       </div>
     </div>
