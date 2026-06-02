@@ -16,13 +16,13 @@ import { NextResponse } from 'next/server';
 import { createClient as createServerClient } from '@/lib/supabase/server';
 import { createClient } from '@supabase/supabase-js';
 import {
-
-export const dynamic = 'force-dynamic';
   createPayout,
   testConnection,
   getPayoutStatus,
   type CreatePayoutInput,
 } from '@/lib/nowpayments';
+
+export const dynamic = 'force-dynamic';
 
 let _supabaseAdmin: any = null;
 function getSupabaseAdmin() {

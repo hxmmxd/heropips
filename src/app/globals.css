@@ -3524,17 +3524,57 @@ body {
 }
 .rsk-section-meta { font-size: 11px; color: var(--subtext); }
 
-/* ── Equity Curve Chart ── */
-.rsk-chart-wrap { }
-.rsk-chart-title {
-  font-size: 11px; font-weight: 800; text-transform: uppercase;
-  letter-spacing: 0.08em; color: var(--subtext); margin-bottom: 8px;
+/* ── Equity Curve — Lightweight Charts ── */
+.eq-wrap {
+  border-radius: 14px; border: 1px solid var(--border);
+  background: var(--sidebar-bg); overflow: hidden;
 }
-.rsk-chart-svg { width: 100%; height: auto; display: block; }
-.rsk-chart-label { font-size: 8px; fill: var(--subtext); font-family: monospace; }
-.rsk-chart-empty {
-  padding: 40px; text-align: center; color: var(--subtext); font-size: 13px;
+.eq-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  padding: 12px 14px 4px; gap: 8px;
 }
+.eq-header-left { display: flex; flex-direction: column; gap: 2px; }
+.eq-label {
+  font-size: 10px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.1em; color: var(--subtext);
+}
+.eq-pts {
+  font-size: 9px; color: var(--subtext); opacity: 0.6;
+}
+.eq-header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+.eq-val {
+  font-size: 16px; font-weight: 900; color: var(--text);
+  letter-spacing: -0.02em; font-variant-numeric: tabular-nums;
+}
+.eq-chg {
+  font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.eq-chart-container {
+  position: relative; width: 100%; height: 220px;
+  padding: 0 2px 2px;
+}
+.eq-chart-container > div:first-child { border-radius: 0 0 12px 12px; }
+
+/* Tooltip */
+.eq-tooltip {
+  display: none; position: absolute; z-index: 10;
+  padding: 8px 12px; border-radius: 10px;
+  background: rgba(10, 14, 20, 0.88); backdrop-filter: blur(12px);
+  border: 1px solid rgba(139, 105, 20, 0.25);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  pointer-events: none; min-width: 140px;
+  font-family: 'Inter', -apple-system, sans-serif;
+}
+.eq-tt-date { font-size: 9px; color: rgba(255,255,255,0.5); margin-bottom: 3px; }
+.eq-tt-val { font-size: 14px; font-weight: 800; color: #fff; letter-spacing: -0.01em; }
+.eq-tt-chg { font-size: 11px; font-weight: 700; margin-top: 1px; }
+
+/* Empty State */
+.eq-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: 180px; gap: 8px; color: var(--subtext); font-size: 12px;
+}
+
 
 /* ── Trio Cards (Win Rate / P.Factor / Avg R:R) ── */
 .rsk-trio-cards { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
