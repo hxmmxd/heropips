@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { executeBrokerOrder } from '@/lib/broker';
 import { createClient as createServerClient } from '@/lib/supabase/server';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * POST /api/execute
  * Manually execute a trade on the selected broker account.

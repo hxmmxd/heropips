@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { fullScan, type Candle } from '@/lib/scanner';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * POST /api/scan
  * Body: { symbol, timeframe, candles: Candle[] }

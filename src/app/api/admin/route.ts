@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { createClient as createServerClient } from '@/lib/supabase/server';
 
+export const dynamic = 'force-dynamic';
+
 // Admin API — uses service role to bypass RLS (lazy init to avoid build-time crash)
 let _supabaseAdmin: any = null;
 function getSupabaseAdmin() {

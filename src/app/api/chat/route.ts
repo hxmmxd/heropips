@@ -10,6 +10,8 @@ import {
 import { getPlatformConfig } from '@/lib/platformConfig';
 import { recordApiCall, markUnconfigured } from '@/lib/apiStats';
 
+export const dynamic = 'force-dynamic';
+
 // ── NVIDIA API Key Round-Robin Rotation ─────────────────────
 // Keys are read from Supabase platform_config first, then env vars
 let keyIndex = 0;

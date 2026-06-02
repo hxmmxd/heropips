@@ -3,6 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 import { createClient as createServerClient } from '@/lib/supabase/server';
 import { getApiStats } from '@/lib/apiStats';
 
+export const dynamic = 'force-dynamic';
+
 let _admin: any = null;
 function getAdmin() {
   if (!_admin) {

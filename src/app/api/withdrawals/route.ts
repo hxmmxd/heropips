@@ -16,6 +16,8 @@ import { NextResponse } from 'next/server';
 import { createClient as createServerClient } from '@/lib/supabase/server';
 import { createClient } from '@supabase/supabase-js';
 import {
+
+export const dynamic = 'force-dynamic';
   createPayout,
   testConnection,
   getPayoutStatus,
