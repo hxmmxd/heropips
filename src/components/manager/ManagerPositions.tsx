@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Position, PendingOrder, AccountInfo } from '@/types';
+import PositionChart from './PositionChart';
 
 interface ManagerPositionsProps {
   positions: Position[];
@@ -83,6 +84,7 @@ export default function ManagerPositions({ positions, pendingOrders, accountInfo
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [batchClosing, setBatchClosing] = useState(false);
   const [menuGroupKey, setMenuGroupKey] = useState<string | null>(null);
+  const [chartKey, setChartKey] = useState<string | null>(null);
 
   const grouped = groupPositions(positions);
 
@@ -373,7 +375,12 @@ export default function ManagerPositions({ positions, pendingOrders, accountInfo
                         <button className="mgr-pos-action mgr-pos-action-tp" onClick={() => { setModifyingId(firstPositionId); setModifySL(group.stopLoss?.toString() || ''); setModifyTP(group.takeProfit?.toString() || ''); }}>
                           <span className="mgr-pos-action-icon">🚩</span> TP
                         </button>
-                        <button className="mgr-pos-action mgr-pos-action-rf" disabled><span className="mgr-pos-action-icon">🔒</span> RF</button>
+                        <button
+                          className={`mgr-pos-action mgr-pos-action-chart ${chartKey === `${group.symbol}-${group.type}` ? 'mgr-pos-action-chart-active' : ''}`}
+                          onClick={() => setChartKey(chartKey === `${group.symbol}-${group.type}` ? null : `${group.symbol}-${group.type}`)}
+                        >
+                          <span className="mgr-pos-action-icon">📊</span>
+                        </button>
                         <button className="mgr-pos-action mgr-pos-action-flash" onClick={() => handleCloseGroup(group.positions)} disabled={closingGroup === `${group.symbol}-${group.type}`}>
                           {closingGroup === `${group.symbol}-${group.type}` ? <span className="mgr-btn-spinner" /> : <span className="mgr-pos-action-icon">⚡</span>}
                         </button>
@@ -381,6 +388,17 @@ export default function ManagerPositions({ positions, pendingOrders, accountInfo
                           {closingId === firstPositionId ? <span className="mgr-btn-spinner" /> : <span className="mgr-pos-action-icon">✕</span>}
                         </button>
                       </div>
+                      {chartKey === `${group.symbol}-${group.type}` && (
+                        <PositionChart
+                          symbol={group.symbol}
+                          entryPrice={group.avgEntryPrice}
+                          currentPrice={group.latestCurrentPrice}
+                          stopLoss={group.stopLoss}
+                          takeProfit={group.takeProfit}
+                          isBuy={isBuy}
+                          onClose={() => setChartKey(null)}
+                        />
+                      )}
                     </div>
                   );
                 })
@@ -462,6 +480,23 @@ export default function ManagerPositions({ positions, pendingOrders, accountInfo
                         <span>TP <b className="mgr-positive">{hasTP ? (pos.takeProfit! > 100 ? pos.takeProfit!.toFixed(3) : pos.takeProfit!.toFixed(5)) : '—'}</b></span>
                         <span>R:R <b>{rrRatio}</b></span>
                       </div>
+                      <button
+                        className={`mgr-lv-chart-btn ${chartKey === pos.id ? 'mgr-lv-chart-btn-active' : ''}`}
+                        onClick={(e) => { e.stopPropagation(); setChartKey(chartKey === pos.id ? null : pos.id); }}
+                      >
+                        📊 Chart
+                      </button>
+                      {chartKey === pos.id && (
+                        <PositionChart
+                          symbol={pos.symbol}
+                          entryPrice={pos.openPrice}
+                          currentPrice={pos.currentPrice}
+                          stopLoss={pos.stopLoss}
+                          takeProfit={pos.takeProfit}
+                          isBuy={isBuy}
+                          onClose={() => setChartKey(null)}
+                        />
+                      )}
                     </div>
                   );
                 })
