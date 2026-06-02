@@ -3754,22 +3754,63 @@ body {
 }
 .pos-chart-close:hover { background: rgba(255,255,255,0.06); color: #fff; }
 
-.pos-chart-prices {
-  display: flex; gap: 0; padding: 0 14px 10px;
+/* Live price ticker */
+.pos-chart-live-ticker {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 16px;
   border-bottom: 1px solid rgba(255,255,255,0.04);
+  background: rgba(255,255,255,0.01);
 }
-.pos-chart-price-item {
-  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+.pos-chart-live-price-wrap {
+  display: flex; align-items: center; gap: 10px;
 }
-.pos-chart-price-label {
-  font-size: 9px; font-weight: 700; color: #6E6E73;
-  letter-spacing: 0.08em;
+.pos-chart-live-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 8px rgba(34,197,94,0.5);
+  animation: posLivePulse 1.5s ease-in-out infinite;
+  flex-shrink: 0;
 }
-.pos-chart-price-val {
-  font-size: 11px; font-weight: 800; color: #fff;
+@keyframes posLivePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
+}
+.pos-chart-live-price {
+  font-size: 22px; font-weight: 900; color: #fff;
+  font-family: 'SF Mono', 'JetBrains Mono', monospace;
+  letter-spacing: -0.02em;
+  transition: color 0.15s;
+}
+.pos-chart-tick-up {
+  color: #22c55e !important;
+  animation: posTickFlash 0.4s ease-out;
+}
+.pos-chart-tick-down {
+  color: #ef4444 !important;
+  animation: posTickFlash 0.4s ease-out;
+}
+@keyframes posTickFlash {
+  0% { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+.pos-chart-live-change {
+  font-size: 12px; font-weight: 700;
   font-family: 'SF Mono', 'JetBrains Mono', monospace;
 }
-
+.pos-chart-levels {
+  display: flex; gap: 14px;
+}
+.pos-chart-level {
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+}
+.pos-chart-level-label {
+  font-size: 8px; font-weight: 700; color: #555;
+  letter-spacing: 0.1em;
+}
+.pos-chart-level-val {
+  font-size: 11px; font-weight: 700; color: #888;
+  font-family: 'SF Mono', 'JetBrains Mono', monospace;
+}
 .pos-chart-container {
   position: relative; flex: 1; min-height: 0;
 }
