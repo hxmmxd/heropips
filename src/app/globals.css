@@ -3599,15 +3599,20 @@ body {
 .rsk-attr-dot-long { background: #16a34a; }
 .rsk-attr-dot-short { background: #dc2626; }
 .rsk-attr-bar {
-  display: flex; border-radius: 10px; overflow: hidden; margin-bottom: 14px; min-height: 36px;
+  display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px;
+}
+.rsk-attr-bar-long,
+.rsk-attr-bar-short {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 12px; font-weight: 700;
+  padding: 8px 14px; border-radius: 10px;
+  min-height: 36px;
 }
 .rsk-attr-bar-long {
-  background: rgba(22,163,74,0.15); color: #16a34a; font-size: 12px; font-weight: 700;
-  padding: 8px 14px; display: flex; align-items: center; border-radius: 10px 0 0 10px;
+  background: rgba(22,163,74,0.12); color: #16a34a;
 }
 .rsk-attr-bar-short {
-  background: rgba(220,38,38,0.15); color: #dc2626; font-size: 12px; font-weight: 700;
-  padding: 8px 14px; display: flex; align-items: center; border-radius: 0 10px 10px 0;
+  background: rgba(220,38,38,0.12); color: #dc2626;
 }
 .rsk-attr-bar-empty {
   flex: 1; background: var(--input-bg); padding: 8px 14px; border-radius: 10px;

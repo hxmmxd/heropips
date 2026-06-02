@@ -363,19 +363,15 @@ export default function ManagerRisk({ accountInfo, positions, activeBrokerId }: 
         {/* Bar */}
         <div className="rsk-attr-bar">
           {longPnl !== 0 && (
-            <div
-              className="rsk-attr-bar-long"
-              style={{ width: `${Math.max(longBarPct, 5)}%` }}
-            >
-              Long {formatPnl(longPnl)}
+            <div className="rsk-attr-bar-long">
+              <span>Long</span>
+              <span>{formatPnl(longPnl)}</span>
             </div>
           )}
           {shortPnl !== 0 && (
-            <div
-              className="rsk-attr-bar-short"
-              style={{ width: `${Math.max(100 - longBarPct, 5)}%` }}
-            >
-              Short {formatPnl(shortPnl)}
+            <div className="rsk-attr-bar-short">
+              <span>Short</span>
+              <span>{formatPnl(shortPnl)}</span>
             </div>
           )}
           {longPnl === 0 && shortPnl === 0 && (
