@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { distributeRebate } from '@/lib/rebateEngine';
 
 export const dynamic = 'force-dynamic';
 
@@ -283,6 +284,48 @@ export async function GET(request: Request) {
         } else {
           processedDealsCount++;
           totalRebatesCredited += finalRebateAmount;
+        }
+
+        // Log trade to trade_log for milestone tracking
+        await supabaseAdmin
+          .from('trade_log')
+          .upsert({
+            user_id: account.user_id,
+            broker_account_id: account.id,
+            deal_id: deal.id,
+            symbol: deal.symbol,
+            deal_type: deal.type,
+            volume: deal.volume,
+            profit: deal.profit || 0,
+            commission: deal.commission || 0,
+            swap: deal.swap || 0,
+            entry_price: deal.entryPrice || 0,
+            exit_price: deal.exitPrice || 0,
+            hold_time_seconds: holdTimeSeconds,
+            opened_at: deal.brokerTime || deal.time,
+            closed_at: deal.time,
+            rebate_processed: true,
+          }, { onConflict: 'deal_id' });
+
+        // Multi-level distribution: walk upline and distribute referral rebates
+        try {
+          await distributeRebate(
+            {
+              id: deal.id,
+              user_id: account.user_id,
+              broker_account_id: account.id,
+              deal_id: deal.id,
+              symbol: deal.symbol,
+              deal_type: deal.type,
+              volume: deal.volume,
+              profit: deal.profit || 0,
+              commission: deal.commission || 0,
+              closed_at: deal.time,
+            },
+            finalRebateAmount
+          );
+        } catch (distErr: any) {
+          console.error(`[Rebate Sync] Multi-level distribution failed for deal ${deal.id}:`, distErr.message);
         }
       }
 
