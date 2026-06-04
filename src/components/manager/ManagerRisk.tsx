@@ -8,6 +8,7 @@ interface ManagerRiskProps {
   accountInfo: AccountInfo;
   positions: Position[];
   activeBrokerId: string;
+  isSticky?: boolean;
 }
 
 const emptyStats: RiskStats = {
@@ -40,7 +41,7 @@ function formatTime(t: string): string {
   return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
 }
 
-export default function ManagerRisk({ accountInfo, positions, activeBrokerId }: ManagerRiskProps) {
+export default function ManagerRisk({ accountInfo, positions, activeBrokerId, isSticky = true }: ManagerRiskProps) {
   const [period, setPeriod] = useState<'24h' | '3d' | '7d' | '30d' | 'all'>('7d');
   const [deals, setDeals] = useState<ClosedDeal[]>([]);
   const [stats, setStats] = useState<RiskStats>(emptyStats);
@@ -463,7 +464,7 @@ export default function ManagerRisk({ accountInfo, positions, activeBrokerId }: 
       </div>
 
       {/* ── 8. Sticky Bottom Bar ── */}
-      <div className="rsk-bottom-bar">
+      <div className={`rsk-bottom-bar ${isSticky ? 'rsk-bottom-bar-sticky' : 'rsk-bottom-bar-inline'}`}>
         <div className="rsk-bottom-item">
           <span className="rsk-bottom-label">NET</span>
           <span className={`rsk-bottom-value ${stats.netProfit >= 0 ? 'mgr-positive' : 'mgr-negative'}`}>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Position, AccountInfo, PendingOrder } from '@/types';
 import ManagerInsights from './manager/ManagerInsights';
 import ManagerPositions from './manager/ManagerPositions';
@@ -28,6 +28,34 @@ export default function ManagerTab({ activeBrokerId, onNavigateToTerminal }: Man
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [dockChartSymbol, setDockChartSymbol] = useState<string | null>(null);
   const [sliderVal, setSliderVal] = useState(0);
+  const [isAtBottom, setIsAtBottom] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  const handleContentScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (activeSubTab !== 'risk') return;
+    const target = e.currentTarget;
+    const threshold = 25;
+    const isBottom = target.scrollHeight - target.clientHeight - target.scrollTop <= threshold;
+    setIsAtBottom(isBottom);
+  };
+
+  useEffect(() => {
+    setIsAtBottom(false);
+  }, [activeSubTab]);
+
+  useEffect(() => {
+    if (activeSubTab !== 'risk') return;
+    const checkScroll = () => {
+      const el = contentRef.current;
+      if (el) {
+        const isBottom = el.scrollHeight - el.clientHeight - el.scrollTop <= 25;
+        setIsAtBottom(isBottom);
+      }
+    };
+    checkScroll();
+    const timer = setTimeout(checkScroll, 300);
+    return () => clearTimeout(timer);
+  }, [activeSubTab, positions, loading]);
 
   const fetchData = useCallback(async () => {
     if (!activeBrokerId || activeBrokerId === 'none') return;
@@ -117,7 +145,7 @@ export default function ManagerTab({ activeBrokerId, onNavigateToTerminal }: Man
       </div>
 
       {/* Sub-tab Content */}
-      <div className="mgr-content">
+      <div className="mgr-content" ref={contentRef} onScroll={handleContentScroll}>
         {loading ? (
           <div className="mgr-loading">
             <div className="mgr-spinner" />
@@ -149,6 +177,7 @@ export default function ManagerTab({ activeBrokerId, onNavigateToTerminal }: Man
                 accountInfo={accountInfo}
                 positions={positions}
                 activeBrokerId={activeBrokerId}
+                isSticky={!isAtBottom}
               />
             )}
           </>
@@ -156,7 +185,7 @@ export default function ManagerTab({ activeBrokerId, onNavigateToTerminal }: Man
       </div>
 
       {/* Floating Footer Dock */}
-      {activeSubTab !== 'risk' && (
+      {(activeSubTab !== 'risk' || isAtBottom) && (
         <div className="mgr-floating-dock">
           <button className="mgr-dock-btn" onClick={onNavigateToTerminal} title="AI Chat Terminal">
             <svg className="mgr-dock-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
