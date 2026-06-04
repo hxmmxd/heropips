@@ -124,8 +124,7 @@ export default function ManagerReports({ accountInfo, positions, activeBrokerId 
       container.innerHTML = html;
       document.body.appendChild(container);
 
-      // Output as blob then trigger download manually to guarantee .pdf extension
-      const blob: Blob = await (html2pdf as any)()
+      await (html2pdf as any)()
         .set({
           margin: 0,
           filename,
@@ -135,19 +134,9 @@ export default function ManagerReports({ accountInfo, positions, activeBrokerId 
           pagebreak: { mode: ['css', 'legacy'] },
         })
         .from(container)
-        .outputPdf('blob');
+        .save();
 
       document.body.removeChild(container);
-
-      // Force download with explicit .pdf extension via anchor
-      const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
     } catch (e) {
       console.error('[Reports] PDF generation failed:', e);
       alert('Failed to generate PDF. Please try again.');
