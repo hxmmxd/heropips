@@ -166,6 +166,12 @@ export default function ManagerTab({ activeBrokerId, onNavigateToTerminal }: Man
             </svg>
           </button>
           <div className="mgr-dock-divider" />
+          <button className="mgr-dock-btn mgr-dock-btn-accent" onClick={() => setShortcutsOpen(true)} title="Quick Shortcuts">
+            <svg className="mgr-dock-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            </svg>
+          </button>
+          <div className="mgr-dock-divider" />
           <button className="mgr-dock-btn" onClick={() => {
             const sym = positions.length > 0 ? positions[0].symbol : 'XAUUSD';
             setDockChartSymbol(sym);
@@ -174,12 +180,6 @@ export default function ManagerTab({ activeBrokerId, onNavigateToTerminal }: Man
               <line x1="18" y1="20" x2="18" y2="10"/>
               <line x1="12" y1="20" x2="12" y2="4"/>
               <line x1="6" y1="20" x2="6" y2="14"/>
-            </svg>
-          </button>
-          <div className="mgr-dock-divider" />
-          <button className="mgr-dock-btn mgr-dock-btn-accent" onClick={() => setShortcutsOpen(true)} title="Quick Shortcuts">
-            <svg className="mgr-dock-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
             </svg>
           </button>
         </div>
