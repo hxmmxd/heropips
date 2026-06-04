@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import MilestoneProgress from '@/components/referral/MilestoneProgress';
 
 interface Partner {
   name: string;
@@ -474,28 +475,9 @@ export default function ReferralTab({ partners = mockNetwork }: ReferralTabProps
 
             <div>
               <h4 style={{ margin: '0 0 16px', fontSize: 13, fontWeight: 800, color: '#6366f1', display: 'flex', alignItems: 'center', gap: 6 }}>
-                ⚡ Lot Trading Milestones
+                ⚡ Team Volume Milestones (40/40/20)
               </h4>
-              <div className="ref2-milestones">
-                {LOT_MILESTONES.map((m, i) => {
-                  const reached = totalLots >= m.targetLots;
-                  const needed = Math.max(0, m.targetLots - totalLots);
-                  return (
-                    <div key={i} className={`ref2-milestone ${reached ? 'ref2-milestone--done ref2-milestone--lots-done' : ''}`}>
-                      <div className="ref2-milestone-icon" style={{ borderColor: reached ? '#6366f1' : 'var(--border)' }}>
-                        {reached ? '✓' : <span style={{ opacity: 0.4 }}>{i + 1}</span>}
-                      </div>
-                      <div className="ref2-milestone-body">
-                        <span className="ref2-milestone-label">{m.label}</span>
-                        <span className="ref2-milestone-status">{reached ? '🎉 Unlocked & paid' : `${needed.toFixed(2)} more lots needed`}</span>
-                      </div>
-                      <div className="ref2-milestone-reward" style={{ color: reached ? '#6366f1' : 'var(--subtext)' }}>
-                        {m.reward}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+              <MilestoneProgress />
             </div>
           </div>
         </div>
