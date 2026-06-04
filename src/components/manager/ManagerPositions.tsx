@@ -400,22 +400,42 @@ export default function ManagerPositions({ positions, pendingOrders, accountInfo
                       )}
                       <div className="mgr-pos-actions">
                         <button className="mgr-pos-action mgr-pos-action-sl" onClick={() => { setModifyingId(firstPositionId); setModifySL(group.stopLoss?.toString() || ''); setModifyTP(group.takeProfit?.toString() || ''); }}>
-                          🛡 SL
+                          <svg className="mgr-action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                          </svg>
+                          SL
                         </button>
                         <button className="mgr-pos-action mgr-pos-action-tp" onClick={() => { setModifyingId(firstPositionId); setModifySL(group.stopLoss?.toString() || ''); setModifyTP(group.takeProfit?.toString() || ''); }}>
-                          🏳 TP
+                          <svg className="mgr-action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+                            <line x1="4" y1="22" x2="4" y2="15"/>
+                          </svg>
+                          TP
                         </button>
                         <button
                           className={`mgr-pos-action mgr-pos-action-chart ${chartKey === `${group.symbol}-${group.type}` ? 'mgr-pos-action-chart-active' : ''}`}
                           onClick={() => setChartKey(chartKey === `${group.symbol}-${group.type}` ? null : `${group.symbol}-${group.type}`)}
                         >
-                          📊
+                          <svg className="mgr-action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="18" y1="20" x2="18" y2="10"/>
+                            <line x1="12" y1="20" x2="12" y2="4"/>
+                            <line x1="6" y1="20" x2="6" y2="14"/>
+                          </svg>
                         </button>
                         <button className="mgr-pos-action mgr-pos-action-flash" onClick={() => handleCloseGroup(group.positions)} disabled={closingGroup === `${group.symbol}-${group.type}`}>
-                          {closingGroup === `${group.symbol}-${group.type}` ? <span className="mgr-btn-spinner" /> : '⚡'}
+                          {closingGroup === `${group.symbol}-${group.type}` ? <span className="mgr-btn-spinner" /> : (
+                            <svg className="mgr-action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                            </svg>
+                          )}
                         </button>
                         <button className="mgr-pos-action mgr-pos-action-close" onClick={() => handleClose(firstPositionId)} disabled={closingId === firstPositionId}>
-                          {closingId === firstPositionId ? <span className="mgr-btn-spinner" /> : '✕'}
+                          {closingId === firstPositionId ? <span className="mgr-btn-spinner" /> : (
+                            <svg className="mgr-action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <line x1="18" y1="6" x2="6" y2="18"/>
+                              <line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                          )}
                         </button>
                       </div>
                       {chartKey === `${group.symbol}-${group.type}` && (
