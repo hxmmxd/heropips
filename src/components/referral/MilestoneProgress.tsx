@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { createClient } from '@/lib/supabase/client';
 
 interface LegBreakdown {
   legUserId: string;
@@ -41,16 +42,30 @@ function getColor(name: string): string {
   return TIER_COLORS[name] || '#d4a843';
 }
 
-export default function MilestoneProgress({ userId }: { userId?: string }) {
+export default function MilestoneProgress({ userId: propUserId }: { userId?: string }) {
   const [milestones, setMilestones] = useState<MilestoneData[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [recalculating, setRecalculating] = useState(false);
+  const [resolvedUserId, setResolvedUserId] = useState<string | null>(propUserId || null);
+
+  // Auto-resolve userId from auth if not provided as prop
+  useEffect(() => {
+    if (propUserId) { setResolvedUserId(propUserId); return; }
+    (async () => {
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) setResolvedUserId(user.id);
+        else setLoading(false); // not logged in, stop loading
+      } catch { setLoading(false); }
+    })();
+  }, [propUserId]);
 
   const fetchMilestones = useCallback(async () => {
-    if (!userId) return;
+    if (!resolvedUserId) return;
     try {
-      const res = await fetch(`/api/milestones?userId=${userId}`);
+      const res = await fetch(`/api/milestones?userId=${resolvedUserId}`);
       const data = await res.json();
       if (data.success) setMilestones(data.milestones || []);
     } catch (e) {
@@ -58,18 +73,18 @@ export default function MilestoneProgress({ userId }: { userId?: string }) {
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, [resolvedUserId]);
 
   useEffect(() => { fetchMilestones(); }, [fetchMilestones]);
 
   const recalculate = async () => {
-    if (!userId) return;
+    if (!resolvedUserId) return;
     setRecalculating(true);
     try {
       await fetch('/api/milestones', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId }),
+        body: JSON.stringify({ userId: resolvedUserId }),
       });
       await fetchMilestones();
     } catch (e) {
