@@ -105,42 +105,74 @@ export default function ManagerReports({ accountInfo, positions, activeBrokerId 
     return a ? `${a.name} · ${a.login}` : 'TradeGPT Account';
   };
 
-  // PDF download via server-side puppeteer
+  // Client-side PDF via html2pdf.js — container rendered behind a loading overlay
   const handleDownload = async () => {
     if (selectedAccounts.length === 0) return;
     setGenerating(true);
+
+    // Dark overlay so user sees a spinner while html2canvas renders the report
+    const overlay = document.createElement('div');
+    overlay.style.cssText = [
+      'position:fixed', 'inset:0', 'z-index:9998',
+      'background:rgba(0,0,0,0.75)',
+      'display:flex', 'align-items:center', 'justify-content:center',
+      'flex-direction:column', 'gap:12px',
+    ].join(';');
+    overlay.innerHTML = `
+      <div style="width:36px;height:36px;border:3px solid rgba(212,168,67,0.3);border-top-color:#D4A843;border-radius:50%;animation:spin 0.9s linear infinite"></div>
+      <div style="color:#D4A843;font-family:sans-serif;font-size:14px;font-weight:600;letter-spacing:1px">GENERATING PDF…</div>
+    `;
+    document.body.appendChild(overlay);
+
+    // Report container — fully visible (z-index below overlay) so html2canvas can capture it
+    const container = document.createElement('div');
+    container.style.cssText = [
+      'position:fixed', 'top:0', 'left:0',
+      'width:794px',        // 210mm @ 96dpi
+      'background:#fffdf7',
+      'z-index:9997',
+      'overflow:visible',
+    ].join(';');
+
     try {
-      // Send data to server — puppeteer renders HTML and returns a PDF blob
-      const res = await fetch('/api/reports/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          accountInfo,
-          period,
-          stats,
-          deals,
-          brokerName: getBrokerName(),
-        }),
-      });
+      const [{ generateReportHTML }, html2pdfMod] = await Promise.all([
+        import('@/utils/reportTemplate'),
+        import('html2pdf.js'),
+      ]);
+      const html2pdf = (html2pdfMod as any).default ?? html2pdfMod;
 
-      if (!res.ok) {
-        const msg = await res.text();
-        throw new Error(`Server error ${res.status}: ${msg}`);
-      }
+      container.innerHTML = generateReportHTML(accountInfo, period, stats, deals, getBrokerName());
+      document.body.appendChild(container);
 
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `TradeGPT_Report_${period}_${new Date().toISOString().split('T')[0]}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      // Wait for browser to fully paint the container
+      await new Promise(r => setTimeout(r, 900));
+
+      const filename = `TradeGPT_Report_${period}_${new Date().toISOString().split('T')[0]}.pdf`;
+
+      await html2pdf()
+        .set({
+          margin: 0,
+          filename,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: {
+            scale: 2,
+            useCORS: true,
+            allowTaint: true,
+            logging: false,
+            backgroundColor: '#fffdf7',
+          },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+          pagebreak: { mode: ['css', 'legacy'] },
+        })
+        .from(container)
+        .save();
+
     } catch (e) {
       console.error('[Reports] PDF generation failed:', e);
       alert(`Failed to generate PDF: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
+      if (document.body.contains(container)) document.body.removeChild(container);
+      if (document.body.contains(overlay)) document.body.removeChild(overlay);
       setGenerating(false);
     }
   };

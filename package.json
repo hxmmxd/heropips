@@ -18,7 +18,6 @@
     "metaapi.cloud-sdk": "^29.3.3",
     "next": "^14.2.35",
     "nodemailer": "^8.0.10",
-    "puppeteer": "^24.43.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
