@@ -163,6 +163,7 @@ export default function ManagerTab({ activeBrokerId, onNavigateToTerminal }: Man
               <path d="M12 7h.01M9 10h.01M15 10h.01M9 13h.01M15 13h.01M12 13h.01"/>
             </svg>
           </button>
+          <div className="mgr-dock-divider" />
           <button className="mgr-dock-btn mgr-dock-btn-accent" onClick={() => setShortcutsOpen(true)} title="Quick Shortcuts">
             <svg className="mgr-dock-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
