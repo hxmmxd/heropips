@@ -61,44 +61,152 @@ function groupPositions(positions: Position[]) {
 // Get short symbol badge (e.g., XAG, XAU, BTC)
 function getSymbolBadge(symbol: string): { text: string; color: string; bg: string } {
   const s = symbol.toUpperCase();
-  if (s.includes('XAG')) return { text: 'XAG', color: '#4A3E3D', bg: 'linear-gradient(135deg, #EAD196, #C5A880)' };
-  if (s.includes('XAU') || s.includes('GOLD')) return { text: 'XAU', color: '#4A3E3D', bg: 'linear-gradient(135deg, #F3E5AB, #D4AF37)' };
-  if (s.includes('BTC')) return { text: 'BTC', color: '#FFFFFF', bg: 'linear-gradient(135deg, #F7931A, #D67A10)' };
-  if (s.includes('ETH')) return { text: 'ETH', color: '#FFFFFF', bg: 'linear-gradient(135deg, #8C8C8C, #627EEA)' };
-  if (s.includes('EUR')) return { text: 'EUR', color: '#FFFFFF', bg: 'linear-gradient(135deg, #4A90E2, #003399)' };
-  if (s.includes('GBP')) return { text: 'GBP', color: '#FFFFFF', bg: 'linear-gradient(135deg, #5C6BC0, #1A237E)' };
-  if (s.includes('NAS') || s.includes('NDX')) return { text: 'NAS', color: '#FFFFFF', bg: 'linear-gradient(135deg, #1E88E5, #0D47A1)' };
-  if (s.includes('US30') || s.includes('DOW')) return { text: 'DOW', color: '#FFFFFF', bg: 'linear-gradient(135deg, #42A5F5, #1565C0)' };
-  return { text: s.slice(0, 3), color: '#3C3935', bg: 'linear-gradient(135deg, #FAF9F6, #D4CEB8)' };
+  if (s.includes('XAG')) return { text: 'XAG', color: '#8B6914', bg: 'rgba(139,105,20,0.15)' };
+  if (s.includes('XAU') || s.includes('GOLD')) return { text: 'XAU', color: '#B8860B', bg: 'rgba(184,134,11,0.15)' };
+  if (s.includes('BTC')) return { text: 'BTC', color: '#F7931A', bg: 'rgba(247,147,26,0.15)' };
+  if (s.includes('ETH')) return { text: 'ETH', color: '#627EEA', bg: 'rgba(98,126,234,0.15)' };
+  if (s.includes('EUR')) return { text: 'EUR', color: '#003399', bg: 'rgba(0,51,153,0.15)' };
+  if (s.includes('GBP')) return { text: 'GBP', color: '#1A237E', bg: 'rgba(26,35,126,0.15)' };
+  if (s.includes('NAS') || s.includes('NDX')) return { text: 'NAS', color: '#0D47A1', bg: 'rgba(13,71,161,0.15)' };
+  if (s.includes('US30') || s.includes('DOW')) return { text: 'DOW', color: '#1565C0', bg: 'rgba(21,101,192,0.15)' };
+  return { text: s.slice(0, 3), color: '#666', bg: 'rgba(102,102,102,0.15)' };
 }
 
-function getOpenTimeFormatted(timeStr?: string) {
-  if (!timeStr) return '—';
-  try {
-    const d = new Date(timeStr);
-    if (isNaN(d.getTime())) return '—';
-    return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
-  } catch {
-    return '—';
+// Dynamic TradingView Symbol Logo Component
+function SymbolLogo({ symbol }: { symbol: string }) {
+  const [errorFirst, setErrorFirst] = useState(false);
+  const [errorSecond, setErrorSecond] = useState(false);
+  
+  const sym = symbol.toUpperCase();
+  let base = '';
+  let quote = '';
+  
+  if (sym.startsWith('XAU') || sym.includes('GOLD')) {
+    base = 'XAU';
+    quote = sym.replace('XAU', '').replace('GOLD', '') || 'USD';
+  } else if (sym.startsWith('XAG') || sym.includes('SILVER')) {
+    base = 'XAG';
+    quote = sym.replace('XAG', '').replace('SILVER', '') || 'USD';
+  } else if (sym.startsWith('BTC')) {
+    base = 'BTC';
+    quote = sym.replace('BTC', '') || 'USD';
+  } else if (sym.startsWith('ETH')) {
+    base = 'ETH';
+    quote = sym.replace('ETH', '') || 'USD';
+  } else if (sym.startsWith('LTC')) {
+    base = 'LTC';
+    quote = sym.replace('LTC', '') || 'USD';
+  } else if (sym.startsWith('XRP')) {
+    base = 'XRP';
+    quote = sym.replace('XRP', '') || 'USD';
+  } else if (sym.startsWith('SOL')) {
+    base = 'SOL';
+    quote = sym.replace('SOL', '') || 'USD';
+  } else if (sym.startsWith('ADA')) {
+    base = 'ADA';
+    quote = sym.replace('ADA', '') || 'USD';
+  } else if (sym.startsWith('DOT')) {
+    base = 'DOT';
+    quote = sym.replace('DOT', '') || 'USD';
+  } else if (sym.length === 6) {
+    base = sym.slice(0, 3);
+    quote = sym.slice(3, 6);
+  } else {
+    base = sym;
   }
-}
-
-function getHeldDuration(timeStr?: string) {
-  if (!timeStr) return '';
-  try {
-    const d = new Date(timeStr);
-    if (isNaN(d.getTime())) return '';
-    const diffMs = Date.now() - d.getTime();
-    const diffMins = Math.max(0, Math.floor(diffMs / 60000));
-    if (diffMins < 60) {
-      return `held ${diffMins}m`;
+  
+  const getLogoUrl = (asset: string) => {
+    const a = asset.toUpperCase();
+    if (a === 'EUR') return 'https://s3-symbol-logo.tradingview.com/country/EU.svg';
+    if (a === 'USD') return 'https://s3-symbol-logo.tradingview.com/country/US.svg';
+    if (a === 'GBP') return 'https://s3-symbol-logo.tradingview.com/country/GB.svg';
+    if (a === 'JPY') return 'https://s3-symbol-logo.tradingview.com/country/JP.svg';
+    if (a === 'CAD') return 'https://s3-symbol-logo.tradingview.com/country/CA.svg';
+    if (a === 'AUD') return 'https://s3-symbol-logo.tradingview.com/country/AU.svg';
+    if (a === 'NZD') return 'https://s3-symbol-logo.tradingview.com/country/NZ.svg';
+    if (a === 'CHF') return 'https://s3-symbol-logo.tradingview.com/country/CH.svg';
+    if (a === 'CNH' || a === 'CNY') return 'https://s3-symbol-logo.tradingview.com/country/CN.svg';
+    if (a === 'HKD') return 'https://s3-symbol-logo.tradingview.com/country/HK.svg';
+    if (a === 'SGD') return 'https://s3-symbol-logo.tradingview.com/country/SG.svg';
+    if (a === 'TRY') return 'https://s3-symbol-logo.tradingview.com/country/TR.svg';
+    if (a === 'ZAR') return 'https://s3-symbol-logo.tradingview.com/country/ZA.svg';
+    if (a === 'MXN') return 'https://s3-symbol-logo.tradingview.com/country/MX.svg';
+    if (a === 'NOK') return 'https://s3-symbol-logo.tradingview.com/country/NO.svg';
+    if (a === 'SEK') return 'https://s3-symbol-logo.tradingview.com/country/SE.svg';
+    if (a === 'DKK') return 'https://s3-symbol-logo.tradingview.com/country/DK.svg';
+    
+    if (a === 'XAU') return 'https://s3-symbol-logo.tradingview.com/metal/gold.svg';
+    if (a === 'XAG') return 'https://s3-symbol-logo.tradingview.com/metal/silver.svg';
+    
+    if (a === 'BTC' || a === 'XBT') return 'https://s3-symbol-logo.tradingview.com/crypto/XTVCBTC.svg';
+    if (a === 'ETH') return 'https://s3-symbol-logo.tradingview.com/crypto/XTVCETH.svg';
+    if (a === 'LTC') return 'https://s3-symbol-logo.tradingview.com/crypto/XTVCLTC.svg';
+    if (a === 'XRP') return 'https://s3-symbol-logo.tradingview.com/crypto/XTVCXRP.svg';
+    if (a === 'SOL') return 'https://s3-symbol-logo.tradingview.com/crypto/XTVCSOL.svg';
+    if (a === 'ADA') return 'https://s3-symbol-logo.tradingview.com/crypto/XTVCADA.svg';
+    if (a === 'DOT') return 'https://s3-symbol-logo.tradingview.com/crypto/XTVCDOT.svg';
+    
+    if (a.includes('NAS') || a.includes('NDX') || a.includes('US100')) {
+      return 'https://s3-symbol-logo.tradingview.com/indices/nasdaq-100.svg';
     }
-    const diffHours = Math.floor(diffMins / 60);
-    const remMins = diffMins % 60;
-    return `held ${diffHours}h ${remMins}m`;
-  } catch {
-    return '';
+    if (a.includes('US30') || a.includes('DOW') || a.includes('DJI')) {
+      return 'https://s3-symbol-logo.tradingview.com/indices/dow-30.svg';
+    }
+    if (a.includes('SPX') || a.includes('SP500') || a.includes('US500')) {
+      return 'https://s3-symbol-logo.tradingview.com/indices/s-and-p-500.svg';
+    }
+    if (a.includes('GER') || a.includes('DAX') || a.includes('DE30')) {
+      return 'https://s3-symbol-logo.tradingview.com/indices/dax.svg';
+    }
+    
+    return null;
+  };
+
+  const firstUrl = getLogoUrl(base);
+  const secondUrl = quote ? getLogoUrl(quote) : null;
+
+  const fallback = () => {
+    const badge = getSymbolBadge(symbol);
+    return (
+      <div className="mgr-pos-badge" style={{ background: badge.bg, color: badge.color }}>
+        {badge.text}
+      </div>
+    );
+  };
+
+  if (!firstUrl || errorFirst) {
+    return fallback();
   }
+
+  if (secondUrl && !errorSecond) {
+    return (
+      <div className="mgr-symbol-logo-double">
+        <img 
+          className="mgr-symbol-logo-first" 
+          src={firstUrl} 
+          alt={base} 
+          onError={() => setErrorFirst(true)} 
+        />
+        <img 
+          className="mgr-symbol-logo-second" 
+          src={secondUrl} 
+          alt={quote} 
+          onError={() => setErrorSecond(true)} 
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="mgr-symbol-logo-single">
+      <img 
+        className="mgr-symbol-logo-first" 
+        src={firstUrl} 
+        alt={base} 
+        onError={() => setErrorFirst(true)} 
+      />
+    </div>
+  );
 }
 
 export default function ManagerPositions({ positions, pendingOrders, accountInfo, activeBrokerId, onRefresh }: ManagerPositionsProps) {
@@ -336,9 +444,7 @@ export default function ManagerPositions({ positions, pendingOrders, accountInfo
                     <div key={`${group.symbol}-${group.type}`} className="mgr-pos-card">
                       <div className="mgr-pos-card-header">
                         <div className="mgr-pos-symbol-group">
-                          <div className="mgr-pos-badge" style={{ background: badge.bg, color: badge.color }}>
-                            {badge.text}
-                          </div>
+                          <SymbolLogo symbol={group.symbol} />
                           <div className="mgr-pos-symbol-info">
                             <span className="mgr-pos-symbol">{group.symbol}</span>
                             <span className={`mgr-pos-dir ${isBuy ? 'mgr-pos-dir-buy' : 'mgr-pos-dir-sell'}`}>
@@ -352,12 +458,11 @@ export default function ManagerPositions({ positions, pendingOrders, accountInfo
                         <div className="mgr-pos-context-menu">
                           <button onClick={() => { handleCloseGroup(group.positions); setMenuGroupKey(null); }}>Close All {group.symbol}</button>
                           <button onClick={() => { setModifyingId(firstPositionId); setModifySL(group.stopLoss?.toString() || ''); setModifyTP(group.takeProfit?.toString() || ''); setMenuGroupKey(null); }}>Set SL/TP All</button>
-                          <button onClick={() => { setChartKey(chartKey === `${group.symbol}-${group.type}` ? null : `${group.symbol}-${group.type}`); setMenuGroupKey(null); }}>Show Chart</button>
                           <button onClick={() => setMenuGroupKey(null)}>Cancel</button>
                         </div>
                       )}
                       <div className="mgr-pos-meta">
-                        <span>{group.positions.length} tickets · {group.totalVolume.toFixed(2)} lot</span>
+                        <span>{group.positions.length} ticket{group.positions.length > 1 ? 's' : ''} · {group.totalVolume.toFixed(2)} lot</span>
                         {!hasSL && <span className="mgr-pos-no-sl">⚠ NO SL</span>}
                       </div>
                       <div className="mgr-pos-pnl-section">
@@ -375,13 +480,13 @@ export default function ManagerPositions({ positions, pendingOrders, accountInfo
                           <div className="mgr-pos-bar-green" style={{ left: `${entryPos}%`, width: `${100 - entryPos}%` }} />
                           <div className="mgr-pos-bar-entry" style={{ left: `${entryPos}%` }} />
                           <div className="mgr-pos-bar-mark" style={{ left: `${markPos}%` }} />
-                          {tpPos !== null && <div className="mgr-pos-bar-tp">TP</div>}
+                          {tpPos !== null && <div className="mgr-pos-bar-tp" style={{ left: `${tpPos}%` }} />}
                         </div>
                         <div className="mgr-pos-bar-labels">
-                          <span>sl <strong>{hasSL ? group.stopLoss!.toFixed(3) : '—'}</strong></span>
-                          <span>entry <strong>{entry.toFixed(3)}</strong></span>
-                          <span>mark <strong>{mark.toFixed(3)}</strong></span>
-                          <span>tp <strong>{hasTP ? group.takeProfit!.toFixed(3) : '—'}</strong></span>
+                          <span>SL {hasSL ? group.stopLoss!.toFixed(3) : '—'}</span>
+                          <span>entry {entry.toFixed(3)}</span>
+                          <span>mark {mark.toFixed(3)}</span>
+                          <span>TP {hasTP ? group.takeProfit!.toFixed(3) : '—'}</span>
                         </div>
                       </div>
                       {isModifying && (
@@ -459,21 +564,32 @@ export default function ManagerPositions({ positions, pendingOrders, accountInfo
                 /* ── LIST VIEW (individual positions) ── */
                 positions.map((pos) => {
                   const isBuy = pos.type === 'POSITION_TYPE_BUY';
-                  const priceChangePct = ((pos.currentPrice - pos.openPrice) / pos.openPrice) * 100 * (isBuy ? 1 : -1);
+                  const hasSL = pos.stopLoss !== undefined && pos.stopLoss !== null;
+                  const hasTP = pos.takeProfit !== undefined && pos.takeProfit !== null;
+                  const pointMultiplier = pos.openPrice > 100 ? 10 : 100000;
+                  const pnlPts = Math.round((pos.currentPrice - pos.openPrice) * pointMultiplier * (isBuy ? 1 : -1));
+
+                  // SL progress bar (how close current price is to SL vs TP)
+                  const slProgress = hasSL && hasTP
+                    ? Math.max(0, Math.min(100, ((pos.currentPrice - pos.stopLoss!) / (pos.takeProfit! - pos.stopLoss!)) * 100))
+                    : hasSL ? 50 : 0;
+
+                  // R:R ratio
+                  const riskPts = hasSL ? Math.abs(pos.openPrice - pos.stopLoss!) * pointMultiplier : 0;
+                  const rewardPts = hasTP ? Math.abs(pos.takeProfit! - pos.openPrice) * pointMultiplier : 0;
+                  const rrRatio = riskPts > 0 && rewardPts > 0 ? (rewardPts / riskPts).toFixed(1) : '—';
 
                   return (
                     <div
                       key={pos.id}
-                      className={`mgr-lv-card ${selectMode ? 'mgr-lv-card-selectable' : ''} ${selectedIds.has(pos.id) ? 'mgr-lv-card-selected' : ''} ${pos.profit >= 0 ? 'mgr-lv-card-win' : 'mgr-lv-card-loss'}`}
-                      onClick={selectMode ? () => toggleSelect(pos.id) : () => setChartKey(chartKey === pos.id ? null : pos.id)}
-                      style={{ cursor: 'pointer' }}
+                      className={`mgr-lv-card ${selectMode ? 'mgr-lv-card-selectable' : ''} ${selectedIds.has(pos.id) ? 'mgr-lv-card-selected' : ''}`}
+                      onClick={selectMode ? () => toggleSelect(pos.id) : undefined}
                     >
-                      <div className="mgr-lv-main">
+                      <div className="mgr-lv-row1">
                         {selectMode && (
                           <button
                             className={`mgr-lv-checkbox ${selectedIds.has(pos.id) ? 'mgr-lv-checkbox-checked' : ''}`}
                             onClick={(e) => { e.stopPropagation(); toggleSelect(pos.id); }}
-                            style={{ marginRight: '10px' }}
                           >
                             {selectedIds.has(pos.id) && (
                               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3">
@@ -482,59 +598,68 @@ export default function ManagerPositions({ positions, pendingOrders, accountInfo
                             )}
                           </button>
                         )}
-                        <div className="mgr-lv-left">
-                          <div className="mgr-lv-row1-left">
-                            <span className={`mgr-lv-badge ${isBuy ? 'mgr-lv-badge-buy' : 'mgr-lv-badge-sell'}`}>
-                              {isBuy ? 'BUY' : 'SELL'}
-                            </span>
-                            <span className="mgr-lv-symbol">{pos.symbol}</span>
-                            <span className="mgr-lv-lots-dot">·</span>
-                            <span className="mgr-lv-lots-text">{pos.volume.toFixed(2)} lots</span>
-                          </div>
-                          <div className="mgr-lv-row2-left">
-                            <span className="mgr-lv-time">{getOpenTimeFormatted(pos.openTime)}</span>
-                            {pos.openTime && <span className="mgr-lv-dot">·</span>}
-                            {pos.openTime && <span className="mgr-lv-held">{getHeldDuration(pos.openTime)}</span>}
-                            <span className="mgr-lv-dot">·</span>
-                            <span className="mgr-lv-prices">
-                              {pos.openPrice.toFixed(pos.openPrice > 100 ? 3 : 5)} → {pos.currentPrice.toFixed(pos.openPrice > 100 ? 3 : 5)}
-                            </span>
-                          </div>
+                        <div className="mgr-lv-symbol-wrap">
+                          <SymbolLogo symbol={pos.symbol} />
+                          <span className="mgr-lv-symbol">{pos.symbol}</span>
                         </div>
-                        <div className="mgr-lv-right">
-                          <span className={`mgr-lv-pnl-val ${pos.profit >= 0 ? 'mgr-positive' : 'mgr-negative'}`}>
+                        <div className="mgr-lv-pnl-wrap">
+                          <span className={`mgr-lv-pnl ${pos.profit >= 0 ? 'mgr-positive' : 'mgr-negative'}`}>
                             {pos.profit >= 0 ? '+' : '-'}${Math.abs(pos.profit).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
-                          <span className={`mgr-lv-pnl-pct ${pos.profit >= 0 ? 'mgr-positive' : 'mgr-negative'}`}>
-                            {priceChangePct >= 0 ? '+' : ''}{priceChangePct.toFixed(2)}%
-                          </span>
-                        </div>
-                        {!selectMode && (
                           <button
                             className="mgr-lv-close"
                             onClick={(e) => { e.stopPropagation(); handleClose(pos.id); }}
                             disabled={closingId === pos.id}
-                            style={{ marginLeft: '12px' }}
                           >
                             {closingId === pos.id ? <span className="mgr-btn-spinner" /> : '×'}
                           </button>
-                        )}
-                      </div>
-                      {chartKey === pos.id && (
-                        <div style={{ marginTop: '12px' }} onClick={(e) => e.stopPropagation()}>
-                          <PositionChart
-                            symbol={pos.symbol}
-                            entryPrice={pos.openPrice}
-                            currentPrice={pos.currentPrice}
-                            stopLoss={pos.stopLoss}
-                            takeProfit={pos.takeProfit}
-                            isBuy={isBuy}
-                            volume={pos.volume}
-                            activeBrokerId={activeBrokerId}
-                            onClose={() => setChartKey(null)}
-                            onRefresh={onRefresh}
-                          />
                         </div>
+                      </div>
+
+                      <div className={`mgr-lv-row2 ${selectMode ? 'mgr-lv-row2-indent' : ''}`}>
+                        <span className={`mgr-lv-badge ${isBuy ? 'mgr-lv-badge-buy' : 'mgr-lv-badge-sell'}`}>
+                          {isBuy ? 'BUY' : 'SELL'}
+                        </span>
+                        <span className="mgr-lv-lots">{pos.volume} lots</span>
+                        <span className={`mgr-lv-pts ${pnlPts >= 0 ? 'mgr-positive' : 'mgr-negative'}`}>
+                          {pnlPts} pts
+                        </span>
+                      </div>
+
+                      <div className="mgr-lv-bar-row">
+                        <span className="mgr-lv-bar-label mgr-negative">SL</span>
+                        <div className="mgr-lv-bar">
+                          <div className="mgr-lv-bar-fill" style={{ width: `${Math.min(slProgress, 100)}%` }} />
+                          <div className="mgr-lv-bar-dot" style={{ left: `${Math.min(slProgress, 100)}%` }} />
+                        </div>
+                        <span className="mgr-lv-bar-label mgr-positive">TP</span>
+                      </div>
+
+                      <div className="mgr-lv-info">
+                        <span>Entry <b>{pos.openPrice > 100 ? pos.openPrice.toFixed(3) : pos.openPrice.toFixed(5)}</b></span>
+                        <span>{hasSL ? `SL ${pos.stopLoss!.toFixed(3)}` : 'No SL'}</span>
+                        <span>TP <b className="mgr-positive">{hasTP ? (pos.takeProfit! > 100 ? pos.takeProfit!.toFixed(3) : pos.takeProfit!.toFixed(5)) : '—'}</b></span>
+                        <span>R:R <b>{rrRatio}</b></span>
+                      </div>
+                      <button
+                        className={`mgr-lv-chart-btn ${chartKey === pos.id ? 'mgr-lv-chart-btn-active' : ''}`}
+                        onClick={(e) => { e.stopPropagation(); setChartKey(chartKey === pos.id ? null : pos.id); }}
+                      >
+                        📊 Chart
+                      </button>
+                      {chartKey === pos.id && (
+                        <PositionChart
+                          symbol={pos.symbol}
+                          entryPrice={pos.openPrice}
+                          currentPrice={pos.currentPrice}
+                          stopLoss={pos.stopLoss}
+                          takeProfit={pos.takeProfit}
+                          isBuy={isBuy}
+                          volume={pos.volume}
+                          activeBrokerId={activeBrokerId}
+                          onClose={() => setChartKey(null)}
+                          onRefresh={onRefresh}
+                        />
                       )}
                     </div>
                   );
@@ -578,9 +703,7 @@ export default function ManagerPositions({ positions, pendingOrders, accountInfo
                 <div key={order.id} className="mgr-pos-card">
                   <div className="mgr-pos-card-header">
                     <div className="mgr-pos-symbol-group">
-                      <div className="mgr-pos-badge" style={{ background: badge.bg, color: badge.color }}>
-                        {badge.text}
-                      </div>
+                      <SymbolLogo symbol={order.symbol} />
                       <div className="mgr-pos-symbol-info">
                         <span className="mgr-pos-symbol">{order.symbol}</span>
                         <span className={`mgr-pos-dir ${isBuy ? 'mgr-pos-dir-buy' : 'mgr-pos-dir-sell'}`}>

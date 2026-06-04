@@ -321,8 +321,15 @@ export default function ManagerInsights({ accountInfo, positions, activeBrokerId
               <span className="mgr-btn-spinner" />
             ) : (
               <>
-                <span className="ins-btn-label">SELL</span>
-                <span className="ins-btn-price">{bidPrice ? formatPrice(bidPrice) : '—'}</span>
+                <div className="ins-btn-icon-circle">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                    <path d="M12 5v14M19 12l-7 7-7-7" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+                <div className="ins-btn-text-group">
+                  <span className="ins-btn-label">SELL</span>
+                  <span className="ins-btn-price">{bidPrice ? formatPrice(bidPrice) : '—'}</span>
+                </div>
               </>
             )}
           </button>
@@ -335,8 +342,15 @@ export default function ManagerInsights({ accountInfo, positions, activeBrokerId
               <span className="mgr-btn-spinner" />
             ) : (
               <>
-                <span className="ins-btn-label">BUY</span>
-                <span className="ins-btn-price">{askPrice ? formatPrice(askPrice) : '—'}</span>
+                <div className="ins-btn-icon-circle">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                    <path d="M12 19V5M5 12l7-7 7 7" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+                <div className="ins-btn-text-group">
+                  <span className="ins-btn-label">BUY</span>
+                  <span className="ins-btn-price">{askPrice ? formatPrice(askPrice) : '—'}</span>
+                </div>
               </>
             )}
           </button>

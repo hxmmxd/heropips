@@ -323,8 +323,15 @@ export default function PositionChart({
               <span className="mgr-btn-spinner" />
             ) : (
               <>
-                <span className="pos-chart-btn-label">SELL</span>
-                <span className="pos-chart-btn-price">{bidPrice.toFixed(decimals)}</span>
+                <div className="pos-chart-btn-icon-circle">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                    <path d="M12 5v14M19 12l-7 7-7-7" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+                <div className="pos-chart-btn-text-group">
+                  <span className="pos-chart-btn-label">SELL</span>
+                  <span className="pos-chart-btn-price">{bidPrice.toFixed(decimals)}</span>
+                </div>
               </>
             )}
           </button>
@@ -340,8 +347,15 @@ export default function PositionChart({
               <span className="mgr-btn-spinner" />
             ) : (
               <>
-                <span className="pos-chart-btn-label">BUY</span>
-                <span className="pos-chart-btn-price">{askPrice.toFixed(decimals)}</span>
+                <div className="pos-chart-btn-icon-circle">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                    <path d="M12 19V5M5 12l7-7 7 7" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+                <div className="pos-chart-btn-text-group">
+                  <span className="pos-chart-btn-label">BUY</span>
+                  <span className="pos-chart-btn-price">{askPrice.toFixed(decimals)}</span>
+                </div>
               </>
             )}
           </button>

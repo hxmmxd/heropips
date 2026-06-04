@@ -357,43 +357,50 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
           <div className="h-full flex flex-col items-center justify-center text-center space-y-8 py-10 my-auto">
             <div className="loader shrink-0" />
             <h2 className="text-2xl lg:text-3xl font-medium text-[var(--text)] px-8 leading-tight max-w-xl">
-              Ready to print some green charts, or are we testing your margin's heat tolerance today?
+              Ready to trade today?
             </h2>
           </div>
         ) : (
           /* Messages List */
-          <div className="max-w-2xl mx-auto w-full space-y-6 pb-10">
+          <div className="max-w-4xl mx-auto w-full space-y-6 pb-10 px-2">
             {messages.map((msg) => {
               if (msg.sender === 'user') {
                 return (
                   <div key={msg.id} className="flex flex-col items-end px-4 mb-6">
-                    <div className="bg-[var(--input-bg)] px-5 py-3 rounded-[20px] max-w-[85%] text-[15px] border border-[var(--border)] shadow-sm text-[var(--text)]">
+                    <div className="bg-[var(--input-bg)] px-5 py-3 rounded-[20px] max-w-[90%] text-[15px] border border-[var(--border)] shadow-sm text-[var(--text)]">
                       {msg.text}
                     </div>
                   </div>
                 );
               } else {
+                const isTyping = msg.text === '__TYPING__';
                 return (
-                  <div key={msg.id} className="flex space-x-3 px-4 mb-6 animate-in slide-in-from-bottom-2">
-                    {/* Bot Icon */}
-                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shrink-0 mt-0.5">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                        <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="white" opacity="0.95"/>
-                      </svg>
-                    </div>
-
+                  <div
+                    key={msg.id}
+                    className={`flex px-4 mb-6 animate-in slide-in-from-bottom-2 ${
+                      isTyping ? 'space-x-3 items-center' : 'flex-col items-start'
+                    }`}
+                  >
+                    {isTyping && (
+                      <div className="bot-typing-heartbeat-wrap">
+                        <svg className="bot-typing-heartbeat-svg" viewBox="0 0 64 48">
+                          <polyline className="bot-hb-back" points="0.157 23.954, 14 23.954, 21.843 48, 43 0, 50 24, 64 24" />
+                          <polyline className="bot-hb-front" points="0.157 23.954, 14 23.954, 21.843 48, 43 0, 50 24, 64 24" />
+                        </svg>
+                      </div>
+                    )}
                     {/* Bot Response Content */}
-                    <div className="flex-1 space-y-2">
+                    <div className="flex-1 space-y-2 w-full">
                       {/* Typing animation */}
-                      {msg.text === '__TYPING__' && (
-                        <div className="bg-[var(--sidebar-bg)] border border-[var(--border)] px-5 py-3 rounded-[20px] max-w-[85%] shadow-sm">
+                      {isTyping && (
+                        <div className="bg-[var(--sidebar-bg)] border border-[var(--border)] px-5 py-3 rounded-[20px] max-w-full shadow-sm">
                           <div className="typing-loader" />
                         </div>
                       )}
 
                       {/* Rich Market Analysis Card */}
                       {msg.marketData && msg.text && msg.text !== '__TYPING__' && (
-                        <div className="max-w-md border border-[var(--border)] bg-[var(--sidebar-bg)] rounded-[20px] overflow-hidden shadow-sm">
+                        <div className="max-w-full border border-[var(--border)] bg-[var(--sidebar-bg)] rounded-[20px] overflow-hidden shadow-sm">
                           {/* Card Header — Coin Icon + Symbol + Price */}
                           <div className="px-5 py-4 flex items-center justify-between border-b border-[var(--border)]">
                             <div className="flex items-center gap-3">
@@ -523,7 +530,7 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
 
                       {/* Plain text response (for general chat without market data) */}
                       {msg.text && msg.text !== '__TYPING__' && !msg.marketData && (
-                        <div className="bg-[var(--sidebar-bg)] border border-[var(--border)] px-5 py-3 rounded-[20px] max-w-[85%] text-[15px] shadow-sm text-[var(--text)]">
+                        <div className="bg-[var(--sidebar-bg)] border border-[var(--border)] px-5 py-3 rounded-[20px] max-w-full shadow-sm text-[var(--text)]">
                           {parseMarkdown(msg.text)}
                         </div>
                       )}
@@ -578,7 +585,7 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
 
       {/* Chat Input Footer */}
       <footer className="chat-input-wrapper shrink-0">
-        <div className="max-w-2xl mx-auto px-4 py-3">
+        <div className="max-w-4xl mx-auto px-4 py-3">
           <form onSubmit={handleSend} className="chat-input-container shadow-sm">
             <button
               type="button"
@@ -586,10 +593,8 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
               className="mgr-chat-btn"
               aria-label="Open Manager"
             >
-              <svg className="mgr-chat-icon" width="22" height="22" viewBox="0 0 24 24" fill="none">
-                <rect className="mgr-bar mgr-bar-1" x="3" y="14" width="4" height="7" rx="1.5" fill="currentColor" />
-                <rect className="mgr-bar mgr-bar-2" x="10" y="8" width="4" height="13" rx="1.5" fill="currentColor" />
-                <rect className="mgr-bar mgr-bar-3" x="17" y="3" width="4" height="18" rx="1.5" fill="currentColor" />
+              <svg className="mgr-chat-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
               </svg>
             </button>
             <textarea

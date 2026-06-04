@@ -6,6 +6,7 @@ import ManagerInsights from './manager/ManagerInsights';
 import ManagerPositions from './manager/ManagerPositions';
 import ManagerConfig from './manager/ManagerConfig';
 import ManagerRisk from './manager/ManagerRisk';
+import ManagerReports from './manager/ManagerReports';
 import PositionChart from './manager/PositionChart';
 
 interface ManagerTabProps {
@@ -20,7 +21,7 @@ const defaultAccountInfo: AccountInfo = {
 };
 
 export default function ManagerTab({ activeBrokerId, onNavigateToTerminal }: ManagerTabProps) {
-  const [activeSubTab, setActiveSubTab] = useState<'insights' | 'positions' | 'config' | 'risk'>('insights');
+  const [activeSubTab, setActiveSubTab] = useState<'insights' | 'positions' | 'config' | 'risk' | 'reports'>('insights');
   const [positions, setPositions] = useState<Position[]>([]);
   const [pendingOrders, setPendingOrders] = useState<PendingOrder[]>([]);
   const [accountInfo, setAccountInfo] = useState<AccountInfo>(defaultAccountInfo);
@@ -121,6 +122,7 @@ export default function ManagerTab({ activeBrokerId, onNavigateToTerminal }: Man
     { id: 'positions' as const, label: 'Positions', badge: accountInfo.positionCount },
     { id: 'config' as const, label: 'Config' },
     { id: 'risk' as const, label: 'Risk' },
+    { id: 'reports' as const, label: 'Reports' },
   ];
 
   return (
@@ -178,6 +180,13 @@ export default function ManagerTab({ activeBrokerId, onNavigateToTerminal }: Man
                 positions={positions}
                 activeBrokerId={activeBrokerId}
                 isSticky={!isAtBottom}
+              />
+            )}
+            {activeSubTab === 'reports' && (
+              <ManagerReports
+                accountInfo={accountInfo}
+                positions={positions}
+                activeBrokerId={activeBrokerId}
               />
             )}
           </>
