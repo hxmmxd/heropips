@@ -61,15 +61,44 @@ function groupPositions(positions: Position[]) {
 // Get short symbol badge (e.g., XAG, XAU, BTC)
 function getSymbolBadge(symbol: string): { text: string; color: string; bg: string } {
   const s = symbol.toUpperCase();
-  if (s.includes('XAG')) return { text: 'XAG', color: '#8B6914', bg: 'rgba(139,105,20,0.15)' };
-  if (s.includes('XAU') || s.includes('GOLD')) return { text: 'XAU', color: '#B8860B', bg: 'rgba(184,134,11,0.15)' };
-  if (s.includes('BTC')) return { text: 'BTC', color: '#F7931A', bg: 'rgba(247,147,26,0.15)' };
-  if (s.includes('ETH')) return { text: 'ETH', color: '#627EEA', bg: 'rgba(98,126,234,0.15)' };
-  if (s.includes('EUR')) return { text: 'EUR', color: '#003399', bg: 'rgba(0,51,153,0.15)' };
-  if (s.includes('GBP')) return { text: 'GBP', color: '#1A237E', bg: 'rgba(26,35,126,0.15)' };
-  if (s.includes('NAS') || s.includes('NDX')) return { text: 'NAS', color: '#0D47A1', bg: 'rgba(13,71,161,0.15)' };
-  if (s.includes('US30') || s.includes('DOW')) return { text: 'DOW', color: '#1565C0', bg: 'rgba(21,101,192,0.15)' };
-  return { text: s.slice(0, 3), color: '#666', bg: 'rgba(102,102,102,0.15)' };
+  if (s.includes('XAG')) return { text: 'XAG', color: '#4A3E3D', bg: 'linear-gradient(135deg, #EAD196, #C5A880)' };
+  if (s.includes('XAU') || s.includes('GOLD')) return { text: 'XAU', color: '#4A3E3D', bg: 'linear-gradient(135deg, #F3E5AB, #D4AF37)' };
+  if (s.includes('BTC')) return { text: 'BTC', color: '#FFFFFF', bg: 'linear-gradient(135deg, #F7931A, #D67A10)' };
+  if (s.includes('ETH')) return { text: 'ETH', color: '#FFFFFF', bg: 'linear-gradient(135deg, #8C8C8C, #627EEA)' };
+  if (s.includes('EUR')) return { text: 'EUR', color: '#FFFFFF', bg: 'linear-gradient(135deg, #4A90E2, #003399)' };
+  if (s.includes('GBP')) return { text: 'GBP', color: '#FFFFFF', bg: 'linear-gradient(135deg, #5C6BC0, #1A237E)' };
+  if (s.includes('NAS') || s.includes('NDX')) return { text: 'NAS', color: '#FFFFFF', bg: 'linear-gradient(135deg, #1E88E5, #0D47A1)' };
+  if (s.includes('US30') || s.includes('DOW')) return { text: 'DOW', color: '#FFFFFF', bg: 'linear-gradient(135deg, #42A5F5, #1565C0)' };
+  return { text: s.slice(0, 3), color: '#3C3935', bg: 'linear-gradient(135deg, #FAF9F6, #D4CEB8)' };
+}
+
+function getOpenTimeFormatted(timeStr?: string) {
+  if (!timeStr) return '—';
+  try {
+    const d = new Date(timeStr);
+    if (isNaN(d.getTime())) return '—';
+    return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+  } catch {
+    return '—';
+  }
+}
+
+function getHeldDuration(timeStr?: string) {
+  if (!timeStr) return '';
+  try {
+    const d = new Date(timeStr);
+    if (isNaN(d.getTime())) return '';
+    const diffMs = Date.now() - d.getTime();
+    const diffMins = Math.max(0, Math.floor(diffMs / 60000));
+    if (diffMins < 60) {
+      return `held ${diffMins}m`;
+    }
+    const diffHours = Math.floor(diffMins / 60);
+    const remMins = diffMins % 60;
+    return `held ${diffHours}h ${remMins}m`;
+  } catch {
+    return '';
+  }
 }
 
 export default function ManagerPositions({ positions, pendingOrders, accountInfo, activeBrokerId, onRefresh }: ManagerPositionsProps) {
@@ -323,11 +352,12 @@ export default function ManagerPositions({ positions, pendingOrders, accountInfo
                         <div className="mgr-pos-context-menu">
                           <button onClick={() => { handleCloseGroup(group.positions); setMenuGroupKey(null); }}>Close All {group.symbol}</button>
                           <button onClick={() => { setModifyingId(firstPositionId); setModifySL(group.stopLoss?.toString() || ''); setModifyTP(group.takeProfit?.toString() || ''); setMenuGroupKey(null); }}>Set SL/TP All</button>
+                          <button onClick={() => { setChartKey(chartKey === `${group.symbol}-${group.type}` ? null : `${group.symbol}-${group.type}`); setMenuGroupKey(null); }}>Show Chart</button>
                           <button onClick={() => setMenuGroupKey(null)}>Cancel</button>
                         </div>
                       )}
                       <div className="mgr-pos-meta">
-                        <span>{group.positions.length} ticket{group.positions.length > 1 ? 's' : ''} · {group.totalVolume.toFixed(2)} lot</span>
+                        <span>{group.positions.length} tickets · {group.totalVolume.toFixed(2)} lot</span>
                         {!hasSL && <span className="mgr-pos-no-sl">⚠ NO SL</span>}
                       </div>
                       <div className="mgr-pos-pnl-section">
@@ -345,13 +375,13 @@ export default function ManagerPositions({ positions, pendingOrders, accountInfo
                           <div className="mgr-pos-bar-green" style={{ left: `${entryPos}%`, width: `${100 - entryPos}%` }} />
                           <div className="mgr-pos-bar-entry" style={{ left: `${entryPos}%` }} />
                           <div className="mgr-pos-bar-mark" style={{ left: `${markPos}%` }} />
-                          {tpPos !== null && <div className="mgr-pos-bar-tp" style={{ left: `${tpPos}%` }} />}
+                          {tpPos !== null && <div className="mgr-pos-bar-tp">TP</div>}
                         </div>
                         <div className="mgr-pos-bar-labels">
-                          <span>SL {hasSL ? group.stopLoss!.toFixed(3) : '—'}</span>
-                          <span>entry {entry.toFixed(3)}</span>
-                          <span>mark {mark.toFixed(3)}</span>
-                          <span>TP {hasTP ? group.takeProfit!.toFixed(3) : '—'}</span>
+                          <span>sl <strong>{hasSL ? group.stopLoss!.toFixed(3) : '—'}</strong></span>
+                          <span>entry <strong>{entry.toFixed(3)}</strong></span>
+                          <span>mark <strong>{mark.toFixed(3)}</strong></span>
+                          <span>tp <strong>{hasTP ? group.takeProfit!.toFixed(3) : '—'}</strong></span>
                         </div>
                       </div>
                       {isModifying && (
@@ -370,22 +400,22 @@ export default function ManagerPositions({ positions, pendingOrders, accountInfo
                       )}
                       <div className="mgr-pos-actions">
                         <button className="mgr-pos-action mgr-pos-action-sl" onClick={() => { setModifyingId(firstPositionId); setModifySL(group.stopLoss?.toString() || ''); setModifyTP(group.takeProfit?.toString() || ''); }}>
-                          <span className="mgr-pos-action-icon">🟠</span> SL
+                          🛡 SL
                         </button>
                         <button className="mgr-pos-action mgr-pos-action-tp" onClick={() => { setModifyingId(firstPositionId); setModifySL(group.stopLoss?.toString() || ''); setModifyTP(group.takeProfit?.toString() || ''); }}>
-                          <span className="mgr-pos-action-icon">🚩</span> TP
+                          🏳 TP
                         </button>
                         <button
                           className={`mgr-pos-action mgr-pos-action-chart ${chartKey === `${group.symbol}-${group.type}` ? 'mgr-pos-action-chart-active' : ''}`}
                           onClick={() => setChartKey(chartKey === `${group.symbol}-${group.type}` ? null : `${group.symbol}-${group.type}`)}
                         >
-                          <span className="mgr-pos-action-icon">📊</span>
+                          📊
                         </button>
                         <button className="mgr-pos-action mgr-pos-action-flash" onClick={() => handleCloseGroup(group.positions)} disabled={closingGroup === `${group.symbol}-${group.type}`}>
-                          {closingGroup === `${group.symbol}-${group.type}` ? <span className="mgr-btn-spinner" /> : <span className="mgr-pos-action-icon">⚡</span>}
+                          {closingGroup === `${group.symbol}-${group.type}` ? <span className="mgr-btn-spinner" /> : '⚡'}
                         </button>
                         <button className="mgr-pos-action mgr-pos-action-close" onClick={() => handleClose(firstPositionId)} disabled={closingId === firstPositionId}>
-                          {closingId === firstPositionId ? <span className="mgr-btn-spinner" /> : <span className="mgr-pos-action-icon">✕</span>}
+                          {closingId === firstPositionId ? <span className="mgr-btn-spinner" /> : '✕'}
                         </button>
                       </div>
                       {chartKey === `${group.symbol}-${group.type}` && (
@@ -409,32 +439,21 @@ export default function ManagerPositions({ positions, pendingOrders, accountInfo
                 /* ── LIST VIEW (individual positions) ── */
                 positions.map((pos) => {
                   const isBuy = pos.type === 'POSITION_TYPE_BUY';
-                  const hasSL = pos.stopLoss !== undefined && pos.stopLoss !== null;
-                  const hasTP = pos.takeProfit !== undefined && pos.takeProfit !== null;
-                  const pointMultiplier = pos.openPrice > 100 ? 10 : 100000;
-                  const pnlPts = Math.round((pos.currentPrice - pos.openPrice) * pointMultiplier * (isBuy ? 1 : -1));
-
-                  // SL progress bar (how close current price is to SL vs TP)
-                  const slProgress = hasSL && hasTP
-                    ? Math.max(0, Math.min(100, ((pos.currentPrice - pos.stopLoss!) / (pos.takeProfit! - pos.stopLoss!)) * 100))
-                    : hasSL ? 50 : 0;
-
-                  // R:R ratio
-                  const riskPts = hasSL ? Math.abs(pos.openPrice - pos.stopLoss!) * pointMultiplier : 0;
-                  const rewardPts = hasTP ? Math.abs(pos.takeProfit! - pos.openPrice) * pointMultiplier : 0;
-                  const rrRatio = riskPts > 0 && rewardPts > 0 ? (rewardPts / riskPts).toFixed(1) : '—';
+                  const priceChangePct = ((pos.currentPrice - pos.openPrice) / pos.openPrice) * 100 * (isBuy ? 1 : -1);
 
                   return (
                     <div
                       key={pos.id}
-                      className={`mgr-lv-card ${selectMode ? 'mgr-lv-card-selectable' : ''} ${selectedIds.has(pos.id) ? 'mgr-lv-card-selected' : ''}`}
-                      onClick={selectMode ? () => toggleSelect(pos.id) : undefined}
+                      className={`mgr-lv-card ${selectMode ? 'mgr-lv-card-selectable' : ''} ${selectedIds.has(pos.id) ? 'mgr-lv-card-selected' : ''} ${pos.profit >= 0 ? 'mgr-lv-card-win' : 'mgr-lv-card-loss'}`}
+                      onClick={selectMode ? () => toggleSelect(pos.id) : () => setChartKey(chartKey === pos.id ? null : pos.id)}
+                      style={{ cursor: 'pointer' }}
                     >
-                      <div className="mgr-lv-row1">
+                      <div className="mgr-lv-main">
                         {selectMode && (
                           <button
                             className={`mgr-lv-checkbox ${selectedIds.has(pos.id) ? 'mgr-lv-checkbox-checked' : ''}`}
                             onClick={(e) => { e.stopPropagation(); toggleSelect(pos.id); }}
+                            style={{ marginRight: '10px' }}
                           >
                             {selectedIds.has(pos.id) && (
                               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3">
@@ -443,65 +462,59 @@ export default function ManagerPositions({ positions, pendingOrders, accountInfo
                             )}
                           </button>
                         )}
-                        <span className="mgr-lv-symbol">{pos.symbol}</span>
-                        <div className="mgr-lv-pnl-wrap">
-                          <span className={`mgr-lv-pnl ${pos.profit >= 0 ? 'mgr-positive' : 'mgr-negative'}`}>
+                        <div className="mgr-lv-left">
+                          <div className="mgr-lv-row1-left">
+                            <span className={`mgr-lv-badge ${isBuy ? 'mgr-lv-badge-buy' : 'mgr-lv-badge-sell'}`}>
+                              {isBuy ? 'BUY' : 'SELL'}
+                            </span>
+                            <span className="mgr-lv-symbol">{pos.symbol}</span>
+                            <span className="mgr-lv-lots-dot">·</span>
+                            <span className="mgr-lv-lots-text">{pos.volume.toFixed(2)} lots</span>
+                          </div>
+                          <div className="mgr-lv-row2-left">
+                            <span className="mgr-lv-time">{getOpenTimeFormatted(pos.openTime)}</span>
+                            {pos.openTime && <span className="mgr-lv-dot">·</span>}
+                            {pos.openTime && <span className="mgr-lv-held">{getHeldDuration(pos.openTime)}</span>}
+                            <span className="mgr-lv-dot">·</span>
+                            <span className="mgr-lv-prices">
+                              {pos.openPrice.toFixed(pos.openPrice > 100 ? 3 : 5)} → {pos.currentPrice.toFixed(pos.openPrice > 100 ? 3 : 5)}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="mgr-lv-right">
+                          <span className={`mgr-lv-pnl-val ${pos.profit >= 0 ? 'mgr-positive' : 'mgr-negative'}`}>
                             {pos.profit >= 0 ? '+' : '-'}${Math.abs(pos.profit).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
+                          <span className={`mgr-lv-pnl-pct ${pos.profit >= 0 ? 'mgr-positive' : 'mgr-negative'}`}>
+                            {priceChangePct >= 0 ? '+' : ''}{priceChangePct.toFixed(2)}%
+                          </span>
+                        </div>
+                        {!selectMode && (
                           <button
                             className="mgr-lv-close"
                             onClick={(e) => { e.stopPropagation(); handleClose(pos.id); }}
                             disabled={closingId === pos.id}
+                            style={{ marginLeft: '12px' }}
                           >
                             {closingId === pos.id ? <span className="mgr-btn-spinner" /> : '×'}
                           </button>
-                        </div>
+                        )}
                       </div>
-
-                      <div className={`mgr-lv-row2 ${selectMode ? 'mgr-lv-row2-indent' : ''}`}>
-                        <span className={`mgr-lv-badge ${isBuy ? 'mgr-lv-badge-buy' : 'mgr-lv-badge-sell'}`}>
-                          {isBuy ? 'BUY' : 'SELL'}
-                        </span>
-                        <span className="mgr-lv-lots">{pos.volume} lots</span>
-                        <span className={`mgr-lv-pts ${pnlPts >= 0 ? 'mgr-positive' : 'mgr-negative'}`}>
-                          {pnlPts} pts
-                        </span>
-                      </div>
-
-                      <div className="mgr-lv-bar-row">
-                        <span className="mgr-lv-bar-label mgr-negative">SL</span>
-                        <div className="mgr-lv-bar">
-                          <div className="mgr-lv-bar-fill" style={{ width: `${Math.min(slProgress, 100)}%` }} />
-                          <div className="mgr-lv-bar-dot" style={{ left: `${Math.min(slProgress, 100)}%` }} />
-                        </div>
-                        <span className="mgr-lv-bar-label mgr-positive">TP</span>
-                      </div>
-
-                      <div className="mgr-lv-info">
-                        <span>Entry <b>{pos.openPrice > 100 ? pos.openPrice.toFixed(3) : pos.openPrice.toFixed(5)}</b></span>
-                        <span>{hasSL ? `SL ${pos.stopLoss!.toFixed(3)}` : 'No SL'}</span>
-                        <span>TP <b className="mgr-positive">{hasTP ? (pos.takeProfit! > 100 ? pos.takeProfit!.toFixed(3) : pos.takeProfit!.toFixed(5)) : '—'}</b></span>
-                        <span>R:R <b>{rrRatio}</b></span>
-                      </div>
-                      <button
-                        className={`mgr-lv-chart-btn ${chartKey === pos.id ? 'mgr-lv-chart-btn-active' : ''}`}
-                        onClick={(e) => { e.stopPropagation(); setChartKey(chartKey === pos.id ? null : pos.id); }}
-                      >
-                        📊 Chart
-                      </button>
                       {chartKey === pos.id && (
-                        <PositionChart
-                          symbol={pos.symbol}
-                          entryPrice={pos.openPrice}
-                          currentPrice={pos.currentPrice}
-                          stopLoss={pos.stopLoss}
-                          takeProfit={pos.takeProfit}
-                          isBuy={isBuy}
-                          volume={pos.volume}
-                          activeBrokerId={activeBrokerId}
-                          onClose={() => setChartKey(null)}
-                          onRefresh={onRefresh}
-                        />
+                        <div style={{ marginTop: '12px' }} onClick={(e) => e.stopPropagation()}>
+                          <PositionChart
+                            symbol={pos.symbol}
+                            entryPrice={pos.openPrice}
+                            currentPrice={pos.currentPrice}
+                            stopLoss={pos.stopLoss}
+                            takeProfit={pos.takeProfit}
+                            isBuy={isBuy}
+                            volume={pos.volume}
+                            activeBrokerId={activeBrokerId}
+                            onClose={() => setChartKey(null)}
+                            onRefresh={onRefresh}
+                          />
+                        </div>
                       )}
                     </div>
                   );
