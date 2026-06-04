@@ -12,9 +12,19 @@ export async function POST(req: NextRequest) {
 
     // Launch puppeteer and render HTML to PDF
     const puppeteer = await import('puppeteer');
+    // Resolve the Chrome executable path — works regardless of which system user runs the process
+    const { executablePath } = await import('puppeteer');
+    const chromePath = executablePath();
+
     const browser = await puppeteer.default.launch({
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu'],
+      executablePath: chromePath,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-gpu',
+        '--disable-dev-shm-usage',
+      ],
     });
 
     const page = await browser.newPage();
