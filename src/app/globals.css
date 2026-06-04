@@ -3891,6 +3891,12 @@ body {
 .rsk-empty { padding: 30px; text-align: center; color: var(--subtext); font-size: 13px; }
 
 /* ── Sticky Bottom Summary Bar ── */
+.rsk-bottom-bar-container {
+  position: relative;
+  width: 100%;
+  height: 52px;
+  margin-top: 16px;
+}
 .rsk-bottom-bar {
   display: grid; grid-template-columns: repeat(4, 1fr);
   padding: 8px 12px; transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
@@ -3902,7 +3908,7 @@ body {
   animation: rskBarSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 .rsk-bottom-bar-inline {
-  position: relative; margin-top: 16px; border-radius: 12px;
+  position: absolute; inset: 0; border-radius: 12px;
   border: 1px solid var(--border); background: var(--sidebar-bg);
   box-shadow: 0 4px 12px rgba(0,0,0,0.03);
 }

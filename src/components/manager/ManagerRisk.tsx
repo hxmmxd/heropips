@@ -463,27 +463,29 @@ export default function ManagerRisk({ accountInfo, positions, activeBrokerId, is
         )}
       </div>
 
-      {/* ── 8. Sticky Bottom Bar ── */}
-      <div className={`rsk-bottom-bar ${isSticky ? 'rsk-bottom-bar-sticky' : 'rsk-bottom-bar-inline'}`}>
-        <div className="rsk-bottom-item">
-          <span className="rsk-bottom-label">NET</span>
-          <span className={`rsk-bottom-value ${stats.netProfit >= 0 ? 'mgr-positive' : 'mgr-negative'}`}>
-            {formatPnl(stats.netProfit)}
-          </span>
-        </div>
-        <div className="rsk-bottom-item">
-          <span className="rsk-bottom-label">VOL</span>
-          <span className="rsk-bottom-value">{stats.totalVolume.toFixed(2)}</span>
-        </div>
-        <div className="rsk-bottom-item">
-          <span className="rsk-bottom-label">WIN %</span>
-          <span className="rsk-bottom-value">{stats.winRate.toFixed(0)}</span>
-        </div>
-        <div className="rsk-bottom-item">
-          <span className="rsk-bottom-label">AVG TRADE</span>
-          <span className={`rsk-bottom-value ${stats.avgTrade >= 0 ? 'mgr-positive' : 'mgr-negative'}`}>
-            {formatPnl(stats.avgTrade)}
-          </span>
+      {/* ── 8. Sticky Bottom Bar Container ── */}
+      <div className="rsk-bottom-bar-container">
+        <div className={`rsk-bottom-bar ${isSticky ? 'rsk-bottom-bar-sticky' : 'rsk-bottom-bar-inline'}`}>
+          <div className="rsk-bottom-item">
+            <span className="rsk-bottom-label">NET</span>
+            <span className={`rsk-bottom-value ${stats.netProfit >= 0 ? 'mgr-positive' : 'mgr-negative'}`}>
+              {formatPnl(stats.netProfit)}
+            </span>
+          </div>
+          <div className="rsk-bottom-item">
+            <span className="rsk-bottom-label">VOL</span>
+            <span className="rsk-bottom-value">{stats.totalVolume.toFixed(2)}</span>
+          </div>
+          <div className="rsk-bottom-item">
+            <span className="rsk-bottom-label">WIN %</span>
+            <span className="rsk-bottom-value">{stats.winRate.toFixed(0)}</span>
+          </div>
+          <div className="rsk-bottom-item">
+            <span className="rsk-bottom-label">AVG TRADE</span>
+            <span className={`rsk-bottom-value ${stats.avgTrade >= 0 ? 'mgr-positive' : 'mgr-negative'}`}>
+              {formatPnl(stats.avgTrade)}
+            </span>
+          </div>
         </div>
       </div>
     </div>
