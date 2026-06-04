@@ -375,7 +375,10 @@ export default function Home() {
           )}
 
           {currentTab === 'manager' && (
-            <ManagerTab activeBrokerId={activeBroker.acc} />
+            <ManagerTab
+              activeBrokerId={activeBroker.acc}
+              onNavigateToTerminal={() => setCurrentTab('terminal')}
+            />
           )}
 
           {currentTab === 'brokers' && (

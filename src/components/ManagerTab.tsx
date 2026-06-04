@@ -9,6 +9,7 @@ import ManagerRisk from './manager/ManagerRisk';
 
 interface ManagerTabProps {
   activeBrokerId: string;
+  onNavigateToTerminal?: () => void;
 }
 
 const defaultAccountInfo: AccountInfo = {
@@ -17,12 +18,13 @@ const defaultAccountInfo: AccountInfo = {
   positionCount: 0, leverage: 0, currency: 'USD',
 };
 
-export default function ManagerTab({ activeBrokerId }: ManagerTabProps) {
+export default function ManagerTab({ activeBrokerId, onNavigateToTerminal }: ManagerTabProps) {
   const [activeSubTab, setActiveSubTab] = useState<'insights' | 'positions' | 'config' | 'risk'>('insights');
   const [positions, setPositions] = useState<Position[]>([]);
   const [pendingOrders, setPendingOrders] = useState<PendingOrder[]>([]);
   const [accountInfo, setAccountInfo] = useState<AccountInfo>(defaultAccountInfo);
   const [loading, setLoading] = useState(true);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (!activeBrokerId || activeBrokerId === 'none') return;
@@ -52,6 +54,37 @@ export default function ManagerTab({ activeBrokerId }: ManagerTabProps) {
     return () => clearInterval(interval);
   }, [activeBrokerId, fetchData]);
 
+  const handleCloseAllPositions = async () => {
+    if (positions.length === 0) {
+      alert('No open positions to close.');
+      return;
+    }
+    if (!window.confirm(`Are you sure you want to close all ${positions.length} positions?`)) return;
+
+    try {
+      await Promise.all(
+        positions.map((pos) =>
+          fetch('/api/broker/order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: pos.type === 'POSITION_TYPE_BUY' ? 'SELL' : 'BUY',
+              symbol: pos.symbol,
+              volume: pos.volume,
+              brokerId: activeBrokerId,
+              positionId: pos.id,
+            }),
+          })
+        )
+      );
+      fetchData();
+      alert('All positions closed successfully.');
+    } catch (err) {
+      console.error(err);
+      alert('Failed to close some positions.');
+    }
+  };
+
   const subTabs = [
     { id: 'insights' as const, label: 'Insights' },
     { id: 'positions' as const, label: 'Positions', badge: accountInfo.positionCount },
@@ -60,7 +93,7 @@ export default function ManagerTab({ activeBrokerId }: ManagerTabProps) {
   ];
 
   return (
-    <div className="mgr-root">
+    <div className="mgr-root" style={{ position: 'relative', minHeight: '100%' }}>
       {/* Sub-tab Navigation */}
       <div className="mgr-tabs">
         {subTabs.map((tab) => (
@@ -118,6 +151,88 @@ export default function ManagerTab({ activeBrokerId }: ManagerTabProps) {
           </>
         )}
       </div>
+
+      {/* Floating Footer Dock */}
+      {activeSubTab !== 'risk' && (
+        <div className="mgr-floating-dock">
+          <button className="mgr-dock-btn" onClick={onNavigateToTerminal} title="AI Chat Terminal">
+            <svg className="mgr-dock-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+              <line x1="8" y1="21" x2="16" y2="21"/>
+              <line x1="12" y1="17" x2="12" y2="21"/>
+              <path d="M12 7h.01M9 10h.01M15 10h.01M9 13h.01M15 13h.01M12 13h.01"/>
+            </svg>
+          </button>
+          <button className="mgr-dock-btn mgr-dock-btn-accent" onClick={() => setShortcutsOpen(true)} title="Quick Shortcuts">
+            <svg className="mgr-dock-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            </svg>
+          </button>
+        </div>
+      )}
+
+      {/* Shortcuts Panel Overlay */}
+      {shortcutsOpen && (
+        <div className="mgr-shortcuts-overlay" onClick={() => setShortcutsOpen(false)}>
+          <div className="mgr-shortcuts-panel" onClick={(e) => e.stopPropagation()}>
+            <div className="mgr-shortcuts-drag-handle" />
+
+            <div className="mgr-shortcuts-header">
+              <div className="mgr-shortcuts-title-wrap">
+                <span className="mgr-shortcuts-icon">⚡</span>
+                <span className="mgr-shortcuts-title">Commands</span>
+              </div>
+              <div className="mgr-shortcuts-meta">
+                <span className="mgr-shortcuts-mic">🎙</span>
+                <span className="mgr-shortcuts-pnl-pill">
+                  {accountInfo.totalLots.toFixed(2)}L · <span className={accountInfo.mtmPnl >= 0 ? 'mgr-positive' : 'mgr-negative'}>
+                    {accountInfo.mtmPnl >= 0 ? '+' : '-'}${Math.abs(accountInfo.mtmPnl).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </span>
+                <button className="mgr-shortcuts-edit-btn">Edit</button>
+              </div>
+            </div>
+
+            <div className="mgr-shortcuts-grid">
+              {[
+                { title: 'SL', sub: 'stop loss' },
+                { title: 'TP', sub: 'take profit' },
+                { title: 'BE', sub: 'sl->be' },
+                { title: 'R:R', sub: 'tp->r:r' },
+                { title: 'REV', sub: 'inverse' },
+                { title: '2X', sub: 'double' },
+                { title: 'CUT', sub: 'cut %' },
+                { title: 'CW', sub: 'close winners' },
+                { title: 'CL', sub: 'close losers' },
+                { title: 'SC', sub: 'smart cut' },
+                { title: 'AT', sub: 'auto trail' },
+                { title: 'LT', sub: 'ladder tp' },
+                { title: 'RF', sub: 'risk free' },
+                { title: 'SLG', sub: 'sl guard' },
+                { title: 'TP@BE', sub: 'tp->be' },
+                { title: 'RTP', sub: 'remove tp' },
+                { title: 'RSL', sub: 'remove sl' },
+                { title: 'CLH', sub: 'close half' },
+                { title: 'SL@E', sub: 'sl at entry' }
+              ].map((item, idx) => (
+                <div
+                  key={idx}
+                  className={`mgr-shortcut-tile ${idx >= 16 ? 'mgr-shortcut-tile-wide' : ''}`}
+                  onClick={() => alert(`Command "${item.title}" executed`)}
+                >
+                  <span className="mgr-shortcut-title">{item.title}</span>
+                  <span className="mgr-shortcut-sub">{item.sub}</span>
+                </div>
+              ))}
+            </div>
+
+            <button className="mgr-shortcuts-close-all" onClick={handleCloseAllPositions}>
+              <span className="mgr-shortcuts-close-all-arrow">→</span>
+              <span className="mgr-shortcuts-close-all-text">CLOSE ALL POSITIONS</span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

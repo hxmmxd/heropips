@@ -4055,6 +4055,180 @@ body {
   background: var(--bg); z-index: 5;
 }
 
+/* Floating Footer Dock */
+.mgr-floating-dock {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(16px);
+  border: 1px solid rgba(180, 145, 108, 0.25);
+  box-shadow: 0 8px 32px rgba(180, 145, 108, 0.15);
+  border-radius: 40px; display: flex; gap: 8px; padding: 6px;
+  z-index: 99; transition: all 0.2s ease;
+}
+.dark .mgr-floating-dock {
+  background: rgba(30, 30, 32, 0.85);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+.mgr-dock-btn {
+  width: 44px; height: 44px; border-radius: 50%; border: none;
+  background: none; cursor: pointer; display: flex; align-items: center;
+  justify-content: center; color: var(--text); transition: all 0.2s;
+}
+.mgr-dock-btn:hover {
+  background: rgba(180, 145, 108, 0.1); transform: scale(1.06);
+}
+.mgr-dock-btn:active {
+  transform: scale(0.95);
+}
+.mgr-dock-btn-accent {
+  background: var(--accent); color: #fff !important;
+}
+.mgr-dock-btn-accent:hover {
+  background: #624b13; transform: scale(1.06);
+}
+.mgr-dock-svg {
+  width: 20px; height: 20px;
+}
+
+/* Shortcuts Panel Bottom Sheet */
+.mgr-shortcuts-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.35); backdrop-filter: blur(8px);
+  z-index: 1000; display: flex; align-items: flex-end; justify-content: center;
+}
+.mgr-shortcuts-panel {
+  width: 100%; max-width: 480px;
+  background: #FAF8F5; border-radius: 28px 28px 0 0;
+  border-top: 1px solid rgba(180, 145, 108, 0.2);
+  padding: 20px 20px 30px 20px; box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.12);
+  display: flex; flex-direction: column; gap: 18px;
+  animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.dark .mgr-shortcuts-panel {
+  background: #1C1C1E; border-color: rgba(255, 255, 255, 0.1);
+}
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.mgr-shortcuts-drag-handle {
+  width: 40px; height: 5px; background: rgba(0, 0, 0, 0.1);
+  border-radius: 3px; align-self: center; margin-bottom: -4px;
+}
+.dark .mgr-shortcuts-drag-handle {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Header */
+.mgr-shortcuts-header {
+  display: flex; justify-content: space-between; align-items: center;
+}
+.mgr-shortcuts-title-wrap {
+  display: flex; align-items: center; gap: 6px;
+}
+.mgr-shortcuts-icon {
+  font-size: 16px; color: var(--accent);
+}
+.mgr-shortcuts-title {
+  font-size: 18px; font-weight: 800; color: var(--text);
+}
+.mgr-shortcuts-meta {
+  display: flex; align-items: center; gap: 10px;
+}
+.mgr-shortcuts-mic {
+  font-size: 16px; cursor: pointer; color: var(--subtext);
+}
+.mgr-shortcuts-pnl-pill {
+  background: rgba(180, 145, 108, 0.08); padding: 4px 10px;
+  border-radius: 12px; font-size: 12px; font-weight: 700; color: var(--subtext);
+  border: 1px solid rgba(180, 145, 108, 0.15);
+}
+.dark .mgr-shortcuts-pnl-pill {
+  background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.1);
+}
+.mgr-shortcuts-edit-btn {
+  font-size: 13px; font-weight: 700; color: var(--accent);
+  background: none; border: none; cursor: pointer;
+}
+
+/* Grid layout with 12 cols to support last row having 3 wider items */
+.mgr-shortcuts-grid {
+  display: grid; grid-template-columns: repeat(12, 1fr); gap: 8px;
+}
+.mgr-shortcut-tile {
+  grid-column: span 3;
+  background: #FFFFFF; border: 1px solid #E2DFDA;
+  box-shadow: 0 3.5px 0 #D2CEC8; border-radius: 14px;
+  padding: 14px 4px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 2px;
+  cursor: pointer; transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+.mgr-shortcut-tile-wide {
+  grid-column: span 4;
+}
+.mgr-shortcut-tile:hover {
+  transform: translateY(-0.5px); box-shadow: 0 4px 0 #C7C3BB;
+}
+.mgr-shortcut-tile:active {
+  transform: translateY(3px); box-shadow: 0 0.5px 0 #C7C3BB;
+}
+.dark .mgr-shortcut-tile {
+  background: #2C2C2E; border-color: #48484A; box-shadow: 0 3.5px 0 #18181A;
+}
+.dark .mgr-shortcut-tile:hover {
+  background: #323235; box-shadow: 0 4px 0 #121214;
+}
+.dark .mgr-shortcut-tile:active {
+  box-shadow: 0 0.5px 0 #121214;
+}
+.mgr-shortcut-title {
+  font-size: 14px; font-weight: 850; color: var(--text);
+}
+.mgr-shortcut-sub {
+  font-size: 8px; font-weight: 700; color: var(--subtext); text-transform: uppercase;
+  letter-spacing: 0.02em; text-align: center;
+}
+
+/* Close All Positions Swipe Button */
+.mgr-shortcuts-close-all {
+  margin-top: 8px; width: 100%; height: 50px; border-radius: 25px;
+  background: #FFF0F0; border: 1px solid #FFCACA;
+  box-shadow: 0 3.5px 0 #EAAFAF;
+  display: flex; align-items: center; justify-content: center;
+  position: relative; cursor: pointer; transition: all 0.1s ease;
+}
+.mgr-shortcuts-close-all:hover {
+  background: #FFE5E5; box-shadow: 0 4px 0 #E29F9F;
+}
+.mgr-shortcuts-close-all:active {
+  transform: translateY(3px); box-shadow: 0 0.5px 0 #E29F9F;
+}
+.mgr-shortcuts-close-all-arrow {
+  position: absolute; left: 6px; top: 5px; width: 38px; height: 38px;
+  background: #C53030; color: #FFFFFF; font-size: 20px; font-weight: 900;
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+}
+.mgr-shortcuts-close-all-text {
+  font-size: 14px; font-weight: 800; color: #C53030; letter-spacing: 0.05em;
+  padding-left: 20px;
+}
+.dark .mgr-shortcuts-close-all {
+  background: #3F2222; border-color: #633232; box-shadow: 0 3.5px 0 #221010;
+}
+.dark .mgr-shortcuts-close-all:hover {
+  background: #4A2828; box-shadow: 0 4px 0 #1B0C0C;
+}
+.dark .mgr-shortcuts-close-all:active {
+  transform: translateY(3px); box-shadow: 0 0.5px 0 #1B0C0C;
+}
+.dark .mgr-shortcuts-close-all-arrow {
+  background: #FC8181; color: #3F2222;
+}
+.dark .mgr-shortcuts-close-all-text {
+  color: #FC8181;
+}
+
 /* Chart button in card actions */
 .mgr-pos-action-chart {
   color: #B8860B; border-color: rgba(184,134,11,0.2);
