@@ -35,6 +35,74 @@ const tagStyles: Record<string, { bg: string; color: string; label: string }> = 
 
 const worklog: WorkDay[] = [
   {
+    date: 'June 5, 2026',
+    dayLabel: 'Thursday',
+    commitCount: 7,
+    blocks: [
+      { tag: 'major', time: '12:00 AM',
+        title: 'Multi-Level Rebate & 40/40/20 Milestone System',
+        summary: 'Designed and implemented the complete multi-level rebate distribution engine, milestone qualification system with balanced-leg enforcement, and full admin configuration panels.',
+        items: [
+          { icon: '🗄️', title: 'Database Schema — Referral Tree & Trade Log', description: 'Created SQL migration with `referred_by` column for recursive referral chains, `trade_log` for granular deal tracking, `rebate_levels` for 5-level commission percentages, `milestones` for reward tiers, and `milestone_progress` for per-user qualification status.', files: ['20260605_multilevel_rebates_milestones.sql'] },
+          { icon: '🔄', title: 'Recursive Rebate Engine (rebateEngine.ts)', description: 'Built `distributeRebate()` which walks the upline referral tree up to 5 levels, crediting each ancestor with their configured commission percentage. Uses PostgreSQL recursive CTEs for efficient tree traversal.', files: ['lib/rebateEngine.ts'] },
+          { icon: '🎯', title: '40/40/20 Milestone Qualification Engine', description: 'Built `checkMilestone()` which enforces balanced-leg growth rules: no single direct referral leg can contribute more than 40% of the target volume. Stores JSONB `legs_breakdown` for audit transparency.', files: ['lib/rebateEngine.ts'] },
+          { icon: '📊', title: 'MilestoneProgress Dashboard Component', description: 'Created expandable card UI showing per-tier progress bars, leg-level volume breakdowns with capped/OK indicators, strongest/second/other leg max percentages, and one-click recalculate button.', files: ['referral/MilestoneProgress.tsx', 'ReferralTab.tsx'] },
+          { icon: '⚙️', title: 'Admin Multi-Level % Configuration', description: 'Added "Multi-Level %" sub-tab in Rebate Controls: editable table for L1–L5 labels, commission percentages, and active toggles. Shows live "Total distributed: X% · Company retains: Y%".', files: ['AdminSettings.tsx', 'api/admin/route.ts'] },
+          { icon: '🏆', title: 'Admin 40/40/20 Milestones Manager', description: 'Added "40/40/20 Milestones" sub-tab with CRUD for reward tiers: icon, name, target lots, reward amount, leg cap percentage, active toggle, and "Add Tier" creation form.', files: ['AdminSettings.tsx', 'api/admin/route.ts'] },
+          { icon: '🔌', title: 'Admin API Handlers', description: 'Extended GET with `?table=rebate_levels|milestones` for targeted fetches. Added PATCH handlers for `rebateLevels` (bulk upsert), `milestones` (bulk update), and `milestone` (single create). All ops audit-logged.', files: ['api/admin/route.ts'] },
+        ]
+      },
+      { tag: 'fix', time: '02:30 AM',
+        title: 'Trade Log Data Accuracy & Admin UX',
+        summary: 'Fixed critical data accuracy issues in the admin Trade Log: stale open statuses, missing close prices, and scroll-blocking layout bugs.',
+        items: [
+          { icon: '🔄', title: 'Closed Deal Sync to Trades Table', description: 'Updated sync-deals cron to write close_price, pnl, and status=closed back to the trades table when MetaAPI deals close. Detects orphaned open trades and auto-closes them.', files: ['api/cron/sync-deals/route.ts'] },
+          { icon: '📋', title: 'Enhanced Trade Table (12 Columns)', description: 'Expanded admin trades table from 8 to 12 columns: added User, SL, TP, Order ID. P&L shows "—" for open trades instead of misleading "+0.00". Date now includes time.', files: ['admin/page.tsx'] },
+          { icon: '🔍', title: 'Trade Search & Date Range Filter', description: 'Added real-time search by symbol/type, status pills (All/Open/Closed), date range picker with calendar icon, and one-click Clear button. All filtering via useMemo for instant response.', files: ['admin/page.tsx'] },
+          { icon: '📜', title: 'Admin Scroll Fix & Sticky Headers', description: 'Changed .adm root from min-height to height:100vh + overflow:hidden to properly constrain the viewport. Added max-height to table wraps and sticky column headers.', files: ['globals.css'] },
+          { icon: '🐛', title: 'MilestoneProgress Auth Fix', description: 'Fixed infinite "Loading milestones…" spinner caused by MilestoneProgress being called without userId prop. Now auto-resolves the current user from Supabase auth.', files: ['referral/MilestoneProgress.tsx'] },
+        ]
+      },
+    ]
+  },
+  {
+    date: 'June 4, 2026',
+    dayLabel: 'Wednesday',
+    commitCount: 24,
+    blocks: [
+      { tag: 'major', time: '09:00 AM',
+        title: 'Manager Portal — Premium UX Overhaul',
+        summary: 'Complete visual and interaction redesign of the Manager positions, risk analytics, and trading controls with tactile UI elements and floating navigation dock.',
+        items: [
+          { icon: '🎨', title: 'Premium Warm Theme for Risk Tab', description: 'Replaced default dark styling with a warm, light-mode bronze/amber theme across the risk analytics dashboard. Period selectors, stat cards, and trade history all themed consistently.', files: ['manager/ManagerRisk.tsx', 'globals.css'] },
+          { icon: '📊', title: 'Positions Component Restyle', description: 'Refactored inline chart view toggles, card spacing, and visual density for a more professional trading terminal feel.', files: ['manager/ManagerPositions.tsx', 'globals.css'] },
+          { icon: '🔘', title: 'Tactile 3D Action Buttons', description: 'Replaced text emoji buttons with outline SVG icons. Added tactile 3D press-state animations with shadow depth changes on tap for SL, TP, RF, Flash, and Close actions.', files: ['manager/ManagerPositions.tsx', 'globals.css'] },
+          { icon: '🎚️', title: 'Swipe to Close All Slider', description: 'Implemented high-fidelity range slider for closing all positions. Dragging the thumb from left to right triggers the close-all action with visual progress feedback.', files: ['manager/ManagerPositions.tsx', 'globals.css'] },
+          { icon: '🚀', title: 'Floating Footer Dock', description: 'Added persistent floating dock with AI Terminal, Quick Shortcuts panel (slide-up Commands grid), and Trading Chart toggle. Pill-shaped buttons with vertical dividers.', files: ['manager/ManagerInsights.tsx', 'globals.css'] },
+          { icon: '📐', title: 'Bottom Bar Scroll Docking', description: 'Implemented dynamic scroll-to-bottom footer docking behavior: summary bar slides into view as user scrolls, wrapped in static height container to prevent layout feedback loop.', files: ['manager/ManagerRisk.tsx', 'globals.css'] },
+        ]
+      },
+      { tag: 'major', time: '02:00 PM',
+        title: 'Reports Tab — HTML-to-PDF Infographic Engine',
+        summary: 'Built a complete reports system with live HTML preview and programmatic PDF generation using jsPDF, including gradient banners, trade logs, and account metrics.',
+        items: [
+          { icon: '📄', title: 'Reports Tab & HTML Preview', description: 'Created Reports tab with infographic-style HTML report template. Added full-screen preview page at /reports/preview with print-optimized CSS.', files: ['ReportComponents.tsx', 'reports/preview/page.tsx'] },
+          { icon: '📊', title: 'jsPDF Programmatic Generator', description: 'Replaced broken html2pdf.js with pure jsPDF drawing: gradient banner, metadata grid, sub-labels, section dividers, trade log table with alternating rows. Explicit fill/stroke/text color before every draw call.', files: ['lib/invoicePdf.ts'] },
+          { icon: '🔧', title: 'PDF Debugging Iterations', description: 'Fixed blank PDF issue through 5 iterations: html2pdf.js → puppeteer → back to client-side → pure jsPDF. Resolved font embedding, color rendering, and Chrome path issues.', files: ['lib/invoicePdf.ts', 'api/reports/pdf/route.ts'] },
+          { icon: '🏷️', title: 'Deal Type Label Cleanup', description: 'Stripped DEAL_TYPE_ prefix from trade log entries in PDF output (e.g. "DEAL_TYPE_BUY" → "BUY") for cleaner presentation.', files: ['manager/ManagerReports.tsx'] },
+        ]
+      },
+      { tag: 'improvement', time: '06:00 PM',
+        title: 'Global Rebate Engine — Trade Log Integration',
+        summary: 'Extended the rebate sync pipeline to log every processed deal to the trade_log table and trigger multi-level distribution.',
+        items: [
+          { icon: '📝', title: 'Trade Log Writes', description: 'Every closed deal processed by sync-rebates is now upserted into trade_log with full metadata: entry/exit price, volume, hold time, commission, swap, and rebate_processed flag.', files: ['api/cron/sync-rebates/route.ts'] },
+          { icon: '🌐', title: 'Multi-Level Distribution Trigger', description: 'After each rebate credit, distributeRebate() is called to walk the upline tree and credit L1-L5 ancestors automatically.', files: ['api/cron/sync-rebates/route.ts', 'lib/rebateEngine.ts'] },
+        ]
+      },
+    ]
+  },
+  {
     date: 'June 2, 2026',
     dayLabel: 'Tuesday',
     commitCount: 12,
