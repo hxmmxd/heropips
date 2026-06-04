@@ -40,7 +40,7 @@ interface UserRow {
 }
 
 interface BrokerRow { id: string; user_id: string; broker_name: string; mt5_login: string; account_id?: string; server: string; metaapi_id?: string; status: string; balance: number; equity: number; pnl: number; is_active: boolean; created_at: string; trade_count?: number; }
-interface TradeRow { id: string; user_id: string; symbol: string; action: string; volume: number; entry_price: number; close_price: number; pnl: number; status: string; created_at: string; }
+interface TradeRow { id: string; user_id: string; broker_id?: string; symbol: string; action: string; volume: number; entry_price: number; close_price: number; pnl: number; status: string; order_id?: string; stop_loss?: number; take_profit?: number; created_at: string; updated_at?: string; }
 
 type SortKey = 'full_name' | 'email' | 'plan' | 'created_at';
 type SortDir = 'asc' | 'desc';
@@ -1279,7 +1279,10 @@ export default function AdminPage() {
               <div className="adm-card-head">
                 <h3>Trade Log ({filteredTrades.length}{filteredTrades.length !== trades.length ? ` of ${trades.length}` : ''})</h3>
                 <button className="adm-export-btn" onClick={() => {
-                  const csv = 'Symbol,Type,Volume,Open,Close,P&L,Status,Date\n' + filteredTrades.map(t => `${t.symbol},${t.action},${t.volume},${t.entry_price},${t.close_price},${t.pnl},${t.status},${t.created_at}`).join('\n');
+                  const csv = 'User,Symbol,Type,Volume,Open,Close,SL,TP,P&L,Status,Order,Date\n' + filteredTrades.map(t => {
+                    const u = users.find(x => x.id === t.user_id);
+                    return `"${u?.full_name || u?.email || ''}",${t.symbol},${t.action},${t.volume},${t.entry_price},${t.close_price || ''},${t.stop_loss || ''},${t.take_profit || ''},${t.pnl || 0},${t.status},${t.order_id || ''},${t.created_at}`;
+                  }).join('\n');
                   const blob = new Blob([csv], { type: 'text/csv' });
                   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'trades.csv'; a.click();
                 }}><Download /> Export CSV</button>
@@ -1388,20 +1391,28 @@ export default function AdminPage() {
                 <div className="adm-empty-state"><Receipt className="adm-empty-icon" /><p>{trades.length === 0 ? 'No trades recorded yet' : 'No trades match your filters'}</p></div>
               ) : (
                 <div className="adm-table-wrap"><table className="adm-table"><thead><tr>
-                  <th>Symbol</th><th>Type</th><th>Volume</th><th>Open</th><th>Close</th><th>P&L</th><th>Status</th><th>Date</th>
+                  <th>User</th><th>Symbol</th><th>Type</th><th>Volume</th><th>Open</th><th>Close</th><th>SL</th><th>TP</th><th>P&L</th><th>Status</th><th>Order</th><th>Date</th>
                 </tr></thead><tbody>
-                  {filteredTrades.map(t => (
+                  {filteredTrades.map(t => {
+                    const tradeUser = users.find(u => u.id === t.user_id);
+                    const userName = tradeUser?.full_name || tradeUser?.email?.split('@')[0] || '—';
+                    return (
                     <tr key={t.id}>
+                      <td><span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text)', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-block' }} title={tradeUser?.email || ''}>{userName}</span></td>
                       <td><span className="adm-symbol">{t.symbol}</span></td>
                       <td><span className={`adm-trade-type ${String(t.action).toLowerCase() === 'buy' ? 'adm-buy' : 'adm-sell'}`}>{(t.action || '').toUpperCase()}</span></td>
                       <td>{Number(t.volume || 0).toFixed(2)}</td>
                       <td className="adm-mono">${Number(t.entry_price || 0).toFixed(2)}</td>
                       <td className="adm-mono">{t.close_price ? `$${Number(t.close_price).toFixed(2)}` : '—'}</td>
-                      <td className={`adm-pnl ${(t.pnl || 0) >= 0 ? 'adm-pnl-pos' : 'adm-pnl-neg'}`}>{(t.pnl || 0) >= 0 ? '+' : ''}{(t.pnl || 0).toFixed(2)}</td>
+                      <td className="adm-mono" style={{ fontSize: 11, color: t.stop_loss ? '#ef4444' : 'var(--subtext)' }}>{t.stop_loss ? `$${Number(t.stop_loss).toFixed(2)}` : '—'}</td>
+                      <td className="adm-mono" style={{ fontSize: 11, color: t.take_profit ? '#10b981' : 'var(--subtext)' }}>{t.take_profit ? `$${Number(t.take_profit).toFixed(2)}` : '—'}</td>
+                      <td className={`adm-pnl ${(t.pnl || 0) >= 0 ? 'adm-pnl-pos' : 'adm-pnl-neg'}`}>{t.status === 'open' && !t.pnl ? '—' : `${(t.pnl || 0) >= 0 ? '+' : ''}${(t.pnl || 0).toFixed(2)}`}</td>
                       <td><span className={`adm-status ${t.status === 'open' ? 'adm-status-on' : 'adm-status-off'}`}>{t.status === 'open' ? 'Open' : 'Closed'}</span></td>
-                      <td className="adm-date-cell">{t.created_at ? new Date(t.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}</td>
+                      <td style={{ fontSize: 10, fontFamily: 'monospace', color: 'var(--subtext)' }}>{t.order_id || '—'}</td>
+                      <td className="adm-date-cell">{t.created_at ? new Date(t.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}</td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody></table></div>
               )}
             </div>

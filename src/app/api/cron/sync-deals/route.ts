@@ -110,13 +110,62 @@ export async function GET(request: Request) {
           }
         }
 
-        // Upsert deals
+        // Upsert deals to closed_deals archive
         let dealsUpserted = 0;
         if (closedTrades.length > 0) {
           const { error } = await admin
             .from('closed_deals')
             .upsert(closedTrades, { onConflict: 'deal_id', ignoreDuplicates: true });
           if (!error) dealsUpserted = closedTrades.length;
+
+          // Sync back to the 'trades' table: update open entries with close data
+          for (const ct of closedTrades) {
+            // Match by user_id + symbol + status=open + broker_id
+            // Update with close_price, pnl, status=closed
+            await admin
+              .from('trades')
+              .update({
+                close_price: ct.exit_price,
+                pnl: ct.profit,
+                status: 'closed',
+                updated_at: new Date().toISOString(),
+              })
+              .eq('user_id', ct.user_id)
+              .eq('symbol', ct.symbol)
+              .eq('status', 'open')
+              .eq('broker_id', ct.broker_id)
+              .order('created_at', { ascending: false })
+              .limit(1);
+          }
+        }
+
+        // Also close any trades whose positions are no longer open on the broker
+        const openPositionSymbols = (Array.isArray(rawPositions) ? rawPositions : []).map((p: any) => p.symbol);
+        if (openPositionSymbols.length >= 0) {
+          // Get open trades in DB for this user+broker
+          const { data: dbOpenTrades } = await admin
+            .from('trades')
+            .select('id, symbol')
+            .eq('user_id', userId)
+            .eq('broker_id', brokerId)
+            .eq('status', 'open');
+
+          for (const ot of (dbOpenTrades || [])) {
+            if (!openPositionSymbols.includes(ot.symbol)) {
+              // This trade is no longer open on the broker — mark it closed
+              // Try to find a matching closed deal for PnL data
+              const matchedClosed = closedTrades.find(ct => ct.symbol === ot.symbol);
+              await admin
+                .from('trades')
+                .update({
+                  status: 'closed',
+                  close_price: matchedClosed?.exit_price || null,
+                  pnl: matchedClosed?.profit || 0,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('id', ot.id);
+            }
+          }
         }
 
         // Save daily snapshot
