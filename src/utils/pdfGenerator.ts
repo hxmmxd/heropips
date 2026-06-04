@@ -273,7 +273,8 @@ export async function downloadPDF(
 
     doc.setFont('helvetica', 'normal'); doc.setFontSize(7); color(doc, NAVY);
     doc.text(d.symbol,                cols[0].x, ty + 4);
-    doc.text(d.type.toUpperCase(),    cols[1].x, ty + 4);
+    const typeLabel = d.type.replace(/^DEAL_TYPE_/i, '').toUpperCase();
+    doc.text(typeLabel,                   cols[1].x, ty + 4);
     doc.text(f(d.volume, 2),          cols[2].x, ty + 4);
     doc.text(f(d.entryPrice, 5),      cols[3].x, ty + 4);
     doc.text(f(d.exitPrice, 5),       cols[4].x, ty + 4);
