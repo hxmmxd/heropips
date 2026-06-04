@@ -1896,7 +1896,9 @@ function RebatesTab() {
   });
   const [promotions, setPromotions] = useState<any[]>([]);
   const [volumeTiers, setVolumeTiers] = useState<any[]>([]);
-  const [subTab, setSubTab] = useState<'rules' | 'risk' | 'promotions' | 'tiers'>('rules');
+  const [subTab, setSubTab] = useState<'rules' | 'risk' | 'promotions' | 'tiers' | 'levels' | 'milestones'>('rules');
+  const [rebateLevels, setRebateLevels] = useState<any[]>([]);
+  const [milestonesList, setMilestonesList] = useState<any[]>([]);
 
   // Modal states
   const [showAddRule, setShowAddRule] = useState(false);
@@ -2192,6 +2194,8 @@ function RebatesTab() {
       <div style={{ display: 'flex', gap: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 12, padding: 4 }}>
         {[
           { id: 'rules', label: 'Rate Rules' },
+          { id: 'levels', label: 'Multi-Level %' },
+          { id: 'milestones', label: '40/40/20 Milestones' },
           { id: 'risk', label: 'Risk Safeguards' },
           { id: 'promotions', label: 'Happy Hours & Promos' },
           { id: 'tiers', label: 'Volume Tiers' },
@@ -2792,6 +2796,221 @@ function RebatesTab() {
           </form>
         </div>
       )}
+      {subTab === 'levels' && (
+        <RebateLevelsSection levels={rebateLevels} setLevels={setRebateLevels} />
+      )}
+
+      {subTab === 'milestones' && (
+        <MilestonesSection milestones={milestonesList} setMilestones={setMilestonesList} />
+      )}
+    </div>
+  );
+}
+
+// ── Rebate Levels Sub-Section ────────────────────────────────────────────────
+function RebateLevelsSection({ levels, setLevels }: { levels: any[]; setLevels: (l: any[]) => void }) {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/admin?table=rebate_levels');
+        if (res.ok) { const d = await res.json(); setLevels(d.data || []); }
+      } catch {} finally { setLoading(false); }
+    })();
+  }, [setLevels]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch('/api/admin', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rebateLevels: levels }),
+      });
+      if (res.ok) { setSaved(true); setTimeout(() => setSaved(false), 2500); }
+      else alert('Failed to save levels');
+    } catch { alert('Error saving'); }
+    finally { setSaving(false); }
+  };
+
+  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--subtext)' }}>Loading levels…</div>;
+
+  return (
+    <div className="adm-card adm-card-full">
+      <div className="adm-card-head">
+        <h3>Multi-Level Distribution Percentages</h3>
+        <p style={{ fontSize: 11, color: 'var(--subtext)', margin: '4px 0 0' }}>Configure how rebates are distributed to each referral level upline</p>
+      </div>
+      <div className="adm-card-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ borderRadius: 10, overflow: 'hidden', border: '1px solid var(--border)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr 120px 80px', background: 'var(--input-bg)', borderBottom: '1px solid var(--border)' }}>
+            {['Level', 'Label', 'Share %', 'Active'].map(h => (
+              <div key={h} style={{ padding: '10px 14px', fontSize: 10, fontWeight: 700, color: 'var(--subtext)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{h}</div>
+            ))}
+          </div>
+          {levels.sort((a, b) => a.level - b.level).map((lvl, i) => (
+            <div key={lvl.level} style={{ display: 'grid', gridTemplateColumns: '60px 1fr 120px 80px', borderBottom: i < levels.length - 1 ? '1px solid var(--border)' : 'none', alignItems: 'center' }}>
+              <div style={{ padding: '12px 14px', fontSize: 13, fontWeight: 800, color: 'var(--text)', textAlign: 'center' }}>L{lvl.level}</div>
+              <div style={{ padding: '8px 14px' }}>
+                <input className="adm-edit-input" style={{ width: '100%', padding: '6px 10px' }} value={lvl.label}
+                  onChange={e => { const u = [...levels]; u[i] = { ...u[i], label: e.target.value }; setLevels(u); }} />
+              </div>
+              <div style={{ padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <input type="number" className="adm-edit-input" style={{ width: 72, padding: '6px 10px', textAlign: 'center', fontWeight: 700 }} value={lvl.percentage}
+                  onChange={e => { const u = [...levels]; u[i] = { ...u[i], percentage: Number(e.target.value) }; setLevels(u); }} />
+                <span style={{ fontSize: 12, color: 'var(--subtext)' }}>%</span>
+              </div>
+              <div style={{ padding: '8px 14px', display: 'flex', justifyContent: 'center' }}>
+                <div className={`adm-switch ${lvl.active !== false ? 'adm-switch-on' : ''}`} role="button" tabIndex={0}
+                  onClick={() => { const u = [...levels]; u[i] = { ...u[i], active: !(lvl.active !== false) }; setLevels(u); }}>
+                  <span className="adm-switch-track"><span className="adm-switch-thumb" /></span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 12, color: 'var(--subtext)' }}>
+          <span>Total distributed: <strong style={{ color: 'var(--text)' }}>{levels.filter(l => l.active !== false).reduce((s, l) => s + Number(l.percentage), 0)}%</strong></span>
+          <span>·</span>
+          <span>Company retains: <strong style={{ color: 'var(--text)' }}>{100 - levels.filter(l => l.active !== false).reduce((s, l) => s + Number(l.percentage), 0)}%</strong></span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+          <button className="adm-post-btn" onClick={handleSave} disabled={saving}>{saving ? 'Saving…' : 'Save Level Config'}</button>
+          {saved && <span style={{ fontSize: 13, color: '#10a37f', fontWeight: 600 }}>✓ Levels saved</span>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Milestones (40/40/20) Sub-Section ────────────────────────────────────────
+function MilestonesSection({ milestones, setMilestones }: { milestones: any[]; setMilestones: (m: any[]) => void }) {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [showAdd, setShowAdd] = useState(false);
+  const [form, setForm] = useState({ name: '', target_lots: 500, reward_amount: 500, leg_cap_pct: 40, icon: '🏆', min_active_legs: 2 });
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/admin?table=milestones');
+        if (res.ok) { const d = await res.json(); setMilestones(d.data || []); }
+      } catch {} finally { setLoading(false); }
+    })();
+  }, [setMilestones]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch('/api/admin', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ milestones }),
+      });
+      if (res.ok) { setSaved(true); setTimeout(() => setSaved(false), 2500); }
+      else alert('Failed to save milestones');
+    } catch { alert('Error saving'); }
+    finally { setSaving(false); }
+  };
+
+  const handleAdd = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch('/api/admin', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ milestone: { action: 'create', data: { ...form, sort_order: milestones.length + 1 } } }),
+      });
+      if (res.ok) {
+        const d = await res.json();
+        setMilestones([...milestones, d.milestone || { ...form, id: Date.now().toString() }]);
+        setShowAdd(false);
+        setForm({ name: '', target_lots: 500, reward_amount: 500, leg_cap_pct: 40, icon: '🏆', min_active_legs: 2 });
+      }
+    } catch { alert('Error creating milestone'); }
+    finally { setSaving(false); }
+  };
+
+  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--subtext)' }}>Loading milestones…</div>;
+
+  return (
+    <div className="adm-card adm-card-full">
+      <div className="adm-card-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h3>40/40/20 Milestone Tiers</h3>
+          <p style={{ fontSize: 11, color: 'var(--subtext)', margin: '4px 0 0' }}>Team volume milestones with balanced-leg qualification</p>
+        </div>
+        <button className="adm-post-btn" style={{ fontSize: 12, padding: '6px 14px' }} onClick={() => setShowAdd(!showAdd)}>+ Add Tier</button>
+      </div>
+      <div className="adm-card-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {/* Existing milestones */}
+        <div style={{ borderRadius: 10, overflow: 'hidden', border: '1px solid var(--border)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '48px 1fr 100px 100px 80px 80px', background: 'var(--input-bg)', borderBottom: '1px solid var(--border)' }}>
+            {['', 'Name', 'Target Lots', 'Reward $', 'Cap %', 'Active'].map(h => (
+              <div key={h} style={{ padding: '10px 14px', fontSize: 10, fontWeight: 700, color: 'var(--subtext)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{h}</div>
+            ))}
+          </div>
+          {milestones.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)).map((m, i) => (
+            <div key={m.id} style={{ display: 'grid', gridTemplateColumns: '48px 1fr 100px 100px 80px 80px', borderBottom: i < milestones.length - 1 ? '1px solid var(--border)' : 'none', alignItems: 'center' }}>
+              <div style={{ padding: '12px 14px', fontSize: 18, textAlign: 'center' }}>{m.icon || '🏆'}</div>
+              <div style={{ padding: '8px 14px' }}>
+                <input className="adm-edit-input" style={{ width: '100%', padding: '6px 10px', fontWeight: 700 }} value={m.name}
+                  onChange={e => { const u = [...milestones]; u[i] = { ...u[i], name: e.target.value }; setMilestones(u); }} />
+              </div>
+              <div style={{ padding: '8px 14px' }}>
+                <input type="number" className="adm-edit-input" style={{ width: '100%', padding: '6px 10px', textAlign: 'center', fontWeight: 700 }} value={m.target_lots}
+                  onChange={e => { const u = [...milestones]; u[i] = { ...u[i], target_lots: Number(e.target.value) }; setMilestones(u); }} />
+              </div>
+              <div style={{ padding: '8px 14px' }}>
+                <input type="number" className="adm-edit-input" style={{ width: '100%', padding: '6px 10px', textAlign: 'center', fontWeight: 700 }} value={m.reward_amount}
+                  onChange={e => { const u = [...milestones]; u[i] = { ...u[i], reward_amount: Number(e.target.value) }; setMilestones(u); }} />
+              </div>
+              <div style={{ padding: '8px 14px' }}>
+                <input type="number" className="adm-edit-input" style={{ width: '100%', padding: '6px 10px', textAlign: 'center', fontWeight: 700 }} value={m.leg_cap_pct || 40}
+                  onChange={e => { const u = [...milestones]; u[i] = { ...u[i], leg_cap_pct: Number(e.target.value) }; setMilestones(u); }} />
+              </div>
+              <div style={{ padding: '8px 14px', display: 'flex', justifyContent: 'center' }}>
+                <div className={`adm-switch ${m.active !== false ? 'adm-switch-on' : ''}`} role="button" tabIndex={0}
+                  onClick={() => { const u = [...milestones]; u[i] = { ...u[i], active: !(m.active !== false) }; setMilestones(u); }}>
+                  <span className="adm-switch-track"><span className="adm-switch-thumb" /></span>
+                </div>
+              </div>
+            </div>
+          ))}
+          {milestones.length === 0 && (
+            <div style={{ padding: 24, textAlign: 'center', color: 'var(--subtext)', fontSize: 13 }}>No milestone tiers configured.</div>
+          )}
+        </div>
+
+        {/* Add new */}
+        {showAdd && (
+          <div style={{ border: '1px solid var(--border)', borderRadius: 12, padding: 16, background: 'var(--input-bg)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', margin: 0 }}>New Milestone Tier</p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12 }}>
+              {[{ l: 'Name', k: 'name', t: 'text' }, { l: 'Target Lots', k: 'target_lots', t: 'number' }, { l: 'Reward $', k: 'reward_amount', t: 'number' }, { l: 'Leg Cap %', k: 'leg_cap_pct', t: 'number' }].map(f => (
+                <div key={f.k}>
+                  <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--subtext)', display: 'block', marginBottom: 4 }}>{f.l}</label>
+                  <input type={f.t} className="adm-edit-input" style={{ width: '100%', padding: '6px 10px', fontWeight: 700 }}
+                    value={(form as any)[f.k]} onChange={e => setForm({ ...form, [f.k]: f.t === 'number' ? Number(e.target.value) : e.target.value })} />
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+              <button className="adm-pagination button" style={{ height: 34, padding: '0 16px' }} onClick={() => setShowAdd(false)}>Cancel</button>
+              <button className="adm-post-btn" style={{ height: 34 }} onClick={handleAdd} disabled={saving || !form.name}>{saving ? 'Creating…' : 'Add Milestone'}</button>
+            </div>
+          </div>
+        )}
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+          <button className="adm-post-btn" onClick={handleSave} disabled={saving}>{saving ? 'Saving…' : 'Save All Milestones'}</button>
+          {saved && <span style={{ fontSize: 13, color: '#10a37f', fontWeight: 600 }}>✓ Milestones saved</span>}
+        </div>
+      </div>
     </div>
   );
 }

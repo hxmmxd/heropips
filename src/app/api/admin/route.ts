@@ -16,7 +16,7 @@ function getSupabaseAdmin() {
   return _supabaseAdmin;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const supabaseAdmin = getSupabaseAdmin();
   // Verify calling user is admin
   const supabase = createServerClient();
@@ -34,6 +34,18 @@ export async function GET() {
 
   if (!(profile as any)?.is_admin) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  // Handle specific table fetches
+  const { searchParams } = new URL(request.url);
+  const table = searchParams.get('table');
+  if (table === 'rebate_levels') {
+    const { data } = await supabaseAdmin.from('rebate_levels').select('*').order('level', { ascending: true });
+    return NextResponse.json({ data: data || [] });
+  }
+  if (table === 'milestones') {
+    const { data } = await supabaseAdmin.from('milestones').select('*').order('sort_order', { ascending: true });
+    return NextResponse.json({ data: data || [] });
   }
 
   // Fetch all data
@@ -166,7 +178,53 @@ export async function PATCH(request: Request) {
   }
 
   const body = await request.json();
-  const { userId, plan, is_admin, full_name, email, status, suspended_reason, configKey, configValue, announcement, riskRule, brokerProvider, rebateRule, rebateRiskRule, rebatePromotion, rebateVolumeTier } = body;
+  const { userId, plan, is_admin, full_name, email, status, suspended_reason, configKey, configValue, announcement, riskRule, brokerProvider, rebateRule, rebateRiskRule, rebatePromotion, rebateVolumeTier, rebateLevels, milestones, milestone } = body;
+
+  // -- Rebate levels bulk upsert
+  if (rebateLevels !== undefined) {
+    for (const lvl of rebateLevels) {
+      await supabaseAdmin.from('rebate_levels').upsert({
+        level: lvl.level,
+        percentage: Number(lvl.percentage),
+        label: lvl.label,
+        active: lvl.active !== false,
+      }, { onConflict: 'level' });
+    }
+    await supabaseAdmin.from('audit_log').insert({ admin_id: user.id, action: 'rebate_levels_updated', target_type: 'rebate_levels', details: { levels: rebateLevels.length } });
+    return NextResponse.json({ success: true });
+  }
+
+  // -- Milestones bulk upsert
+  if (milestones !== undefined && !milestone) {
+    for (const m of milestones) {
+      if (m.id) {
+        const { id, ...rest } = m;
+        await supabaseAdmin.from('milestones').update({
+          name: rest.name,
+          target_lots: Number(rest.target_lots),
+          reward_amount: Number(rest.reward_amount),
+          leg_cap_pct: Number(rest.leg_cap_pct || 40),
+          icon: rest.icon || '🏆',
+          active: rest.active !== false,
+          sort_order: rest.sort_order || 0,
+        }).eq('id', id);
+      }
+    }
+    await supabaseAdmin.from('audit_log').insert({ admin_id: user.id, action: 'milestones_updated', target_type: 'milestones', details: { count: milestones.length } });
+    return NextResponse.json({ success: true });
+  }
+
+  // -- Milestone single create
+  if (milestone !== undefined) {
+    const { action, data } = milestone;
+    if (action === 'create') {
+      const { data: created, error } = await supabaseAdmin.from('milestones').insert(data).select().single();
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      await supabaseAdmin.from('audit_log').insert({ admin_id: user.id, action: 'milestone_created', target_type: 'milestone', details: data });
+      return NextResponse.json({ success: true, milestone: created });
+    }
+    return NextResponse.json({ success: true });
+  }
 
   // -- Rebate risk settings update
   if (rebateRiskRule !== undefined) {
