@@ -4199,44 +4199,71 @@ body {
   letter-spacing: 0.02em; text-align: center;
 }
 
-/* Close All Positions Swipe Button */
-.mgr-shortcuts-close-all {
-  margin-top: 8px; width: 100%; height: 50px; border-radius: 9999px;
-  background: #FFF0F0; border: 1px solid #FFCACA;
-  box-shadow: 0 3.5px 0 #EAAFAF;
-  display: flex; align-items: center; justify-content: center;
-  position: relative; cursor: pointer; transition: all 0.1s ease;
+/* Swipe to Close Slider */
+.mgr-swipe-container {
+  position: relative; margin-top: 8px; width: 100%; height: 54px;
+  background: #FFF0F0; border: 1.5px solid #FFCACA;
+  box-shadow: 0 4px 12px rgba(197, 48, 48, 0.08);
+  border-radius: 9999px; display: flex; align-items: center;
+  overflow: hidden;
 }
-.mgr-shortcuts-close-all:hover {
-  background: #FFE5E5; box-shadow: 0 4px 0 #E29F9F;
+.dark .mgr-swipe-container {
+  background: #2C1A1A; border-color: #5C2E2E;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
-.mgr-shortcuts-close-all:active {
-  transform: translateY(3px); box-shadow: 0 0.5px 0 #E29F9F;
+
+.mgr-swipe-bg-text {
+  position: absolute; width: 100%; text-align: center;
+  font-size: 12px; font-weight: 850; color: #C53030;
+  letter-spacing: 0.06em; pointer-events: none;
+  z-index: 1; transition: opacity 0.1s ease;
 }
-.mgr-shortcuts-close-all-arrow {
-  position: absolute; left: 6px; top: 5px; width: 38px; height: 38px;
-  background: #C53030; color: #FFFFFF; font-size: 20px; font-weight: 900;
-  border-radius: 50%; display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.15);
-}
-.mgr-shortcuts-close-all-text {
-  font-size: 14px; font-weight: 800; color: #C53030; letter-spacing: 0.05em;
-  padding-left: 20px;
-}
-.dark .mgr-shortcuts-close-all {
-  background: #3F2222; border-color: #633232; box-shadow: 0 3.5px 0 #221010;
-}
-.dark .mgr-shortcuts-close-all:hover {
-  background: #4A2828; box-shadow: 0 4px 0 #1B0C0C;
-}
-.dark .mgr-shortcuts-close-all:active {
-  transform: translateY(3px); box-shadow: 0 0.5px 0 #1B0C0C;
-}
-.dark .mgr-shortcuts-close-all-arrow {
-  background: #FC8181; color: #3F2222;
-}
-.dark .mgr-shortcuts-close-all-text {
+.dark .mgr-swipe-bg-text {
   color: #FC8181;
+}
+
+.mgr-swipe-slider {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 100%; background: transparent;
+  outline: none; z-index: 2; cursor: pointer;
+  position: relative; margin: 0; padding: 0;
+}
+
+/* Webkit Range Thumb (Chrome, Safari, Opera) */
+.mgr-swipe-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 44px; height: 44px; border-radius: 50%;
+  background: #C53030; cursor: grab;
+  box-shadow: 0 3px 8px rgba(197, 48, 48, 0.3);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='5' y1='12' x2='19' y2='12'%3E%3C/line%3E%3Cpolyline points='12 5 19 12 12 19'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: center;
+  background-size: 20px; transition: transform 0.1s ease;
+  margin-left: 5px;
+}
+.mgr-swipe-slider::-webkit-slider-thumb:active {
+  cursor: grabbing; transform: scale(1.05);
+}
+.dark .mgr-swipe-slider::-webkit-slider-thumb {
+  background: #FC8181;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232C1A1A' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='5' y1='12' x2='19' y2='12'%3E%3C/line%3E%3Cpolyline points='12 5 19 12 12 19'%3E%3C/polyline%3E%3C/svg%3E");
+}
+
+/* Firefox Range Thumb */
+.mgr-swipe-slider::-moz-range-thumb {
+  width: 44px; height: 44px; border: none; border-radius: 50%;
+  background: #C53030; cursor: grab;
+  box-shadow: 0 3px 8px rgba(197, 48, 48, 0.3);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='5' y1='12' x2='19' y2='12'%3E%3C/line%3E%3Cpolyline points='12 5 19 12 12 19'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: center;
+  background-size: 20px; transition: transform 0.1s ease;
+}
+.mgr-swipe-slider::-moz-range-thumb:active {
+  cursor: grabbing; transform: scale(1.05);
+}
+.dark .mgr-swipe-slider::-moz-range-thumb {
+  background: #FC8181;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232C1A1A' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='5' y1='12' x2='19' y2='12'%3E%3C/line%3E%3Cpolyline points='12 5 19 12 12 19'%3E%3C/polyline%3E%3C/svg%3E");
 }
 
 /* Chart button in card actions */

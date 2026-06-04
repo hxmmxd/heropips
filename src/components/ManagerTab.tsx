@@ -27,6 +27,7 @@ export default function ManagerTab({ activeBrokerId, onNavigateToTerminal }: Man
   const [loading, setLoading] = useState(true);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [dockChartSymbol, setDockChartSymbol] = useState<string | null>(null);
+  const [sliderVal, setSliderVal] = useState(0);
 
   const fetchData = useCallback(async () => {
     if (!activeBrokerId || activeBrokerId === 'none') return;
@@ -240,10 +241,31 @@ export default function ManagerTab({ activeBrokerId, onNavigateToTerminal }: Man
               ))}
             </div>
 
-            <button className="mgr-shortcuts-close-all" onClick={handleCloseAllPositions}>
-              <span className="mgr-shortcuts-close-all-arrow">→</span>
-              <span className="mgr-shortcuts-close-all-text">CLOSE ALL POSITIONS</span>
-            </button>
+            {/* Swipe to Close Slider */}
+            <div className="mgr-swipe-container">
+              <div 
+                className="mgr-swipe-bg-text" 
+                style={{ opacity: Math.max(0.1, 1 - sliderVal / 70) }}
+              >
+                SWIPE TO CLOSE ALL POSITIONS
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={sliderVal}
+                onChange={(e) => setSliderVal(parseInt(e.target.value, 10))}
+                onMouseUp={() => {
+                  if (sliderVal >= 90) handleCloseAllPositions();
+                  setSliderVal(0);
+                }}
+                onTouchEnd={() => {
+                  if (sliderVal >= 90) handleCloseAllPositions();
+                  setSliderVal(0);
+                }}
+                className="mgr-swipe-slider"
+              />
+            </div>
           </div>
         </div>
       )}
