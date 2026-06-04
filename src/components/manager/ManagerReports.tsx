@@ -110,26 +110,46 @@ export default function ManagerReports({ accountInfo, positions, activeBrokerId 
     if (selectedAccounts.length === 0) return;
     setGenerating(true);
     try {
-      const [{ generateReportHTML }, html2pdf] = await Promise.all([
+      const [{ generateReportHTML }, html2pdfModule] = await Promise.all([
         import('@/utils/reportTemplate'),
-        import('html2pdf.js').then(m => m.default),
+        import('html2pdf.js'),
       ]);
+      const html2pdf = (html2pdfModule as any).default ?? html2pdfModule;
 
       const html = generateReportHTML(accountInfo, period, stats, deals, getBrokerName());
       const filename = `TradeGPT_Report_${period}_${new Date().toISOString().split('T')[0]}.pdf`;
 
-      // Render into a hidden off-screen container
+      // Container must be in-DOM and visible (not off-screen) for html2canvas to capture
       const container = document.createElement('div');
-      container.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:210mm;background:#fffdf7;';
+      container.style.cssText = [
+        'position:fixed',
+        'top:0',
+        'left:0',
+        'width:794px',       // 210mm @ 96dpi
+        'z-index:-1',
+        'opacity:0',
+        'pointer-events:none',
+        'background:#fffdf7',
+        'overflow:visible',
+      ].join(';');
       container.innerHTML = html;
       document.body.appendChild(container);
 
-      await (html2pdf as any)()
+      // Give the browser a frame to layout & paint
+      await new Promise(r => setTimeout(r, 600));
+
+      await html2pdf()
         .set({
           margin: 0,
           filename,
           image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: { scale: 2, useCORS: true, allowTaint: true, logging: false },
+          html2canvas: {
+            scale: 2,
+            useCORS: true,
+            allowTaint: true,
+            logging: false,
+            backgroundColor: '#fffdf7',
+          },
           jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
           pagebreak: { mode: ['css', 'legacy'] },
         })

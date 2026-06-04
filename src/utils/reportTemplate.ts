@@ -82,9 +82,8 @@ export function generateReportHTML(
 <meta charset="UTF-8"/>
 <title>TradeGPT Performance Report · ${periodLabel}</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
   *{margin:0;padding:0;box-sizing:border-box}
-  body{font-family:'Inter',sans-serif;background:#fffdf7;color:#2c1f00;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;background:#fffdf7;color:#2c1f00;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 
   /* ── PAGE BREAKS ── */
   .page{width:210mm;min-height:297mm;padding:14mm 16mm;position:relative;background:#fffdf7;page-break-after:always}
