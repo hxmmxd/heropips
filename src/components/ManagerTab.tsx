@@ -6,6 +6,7 @@ import ManagerInsights from './manager/ManagerInsights';
 import ManagerPositions from './manager/ManagerPositions';
 import ManagerConfig from './manager/ManagerConfig';
 import ManagerRisk from './manager/ManagerRisk';
+import PositionChart from './manager/PositionChart';
 
 interface ManagerTabProps {
   activeBrokerId: string;
@@ -25,6 +26,7 @@ export default function ManagerTab({ activeBrokerId, onNavigateToTerminal }: Man
   const [accountInfo, setAccountInfo] = useState<AccountInfo>(defaultAccountInfo);
   const [loading, setLoading] = useState(true);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [dockChartSymbol, setDockChartSymbol] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     if (!activeBrokerId || activeBrokerId === 'none') return;
@@ -164,6 +166,17 @@ export default function ManagerTab({ activeBrokerId, onNavigateToTerminal }: Man
             </svg>
           </button>
           <div className="mgr-dock-divider" />
+          <button className="mgr-dock-btn" onClick={() => {
+            const sym = positions.length > 0 ? positions[0].symbol : 'XAUUSD';
+            setDockChartSymbol(sym);
+          }} title="Trading Chart">
+            <svg className="mgr-dock-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="20" x2="18" y2="10"/>
+              <line x1="12" y1="20" x2="12" y2="4"/>
+              <line x1="6" y1="20" x2="6" y2="14"/>
+            </svg>
+          </button>
+          <div className="mgr-dock-divider" />
           <button className="mgr-dock-btn mgr-dock-btn-accent" onClick={() => setShortcutsOpen(true)} title="Quick Shortcuts">
             <svg className="mgr-dock-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
@@ -234,6 +247,25 @@ export default function ManagerTab({ activeBrokerId, onNavigateToTerminal }: Man
           </div>
         </div>
       )}
+
+      {/* Position Chart Modal (triggered from Dock) */}
+      {dockChartSymbol && (() => {
+        const activePos = positions.find(p => p.symbol === dockChartSymbol);
+        return (
+          <PositionChart
+            symbol={dockChartSymbol}
+            entryPrice={activePos ? activePos.openPrice : 0}
+            currentPrice={activePos ? activePos.currentPrice : 0}
+            stopLoss={activePos ? activePos.stopLoss : undefined}
+            takeProfit={activePos ? activePos.takeProfit : undefined}
+            isBuy={activePos ? activePos.type === 'POSITION_TYPE_BUY' : true}
+            volume={activePos ? activePos.volume : 0.01}
+            activeBrokerId={activeBrokerId}
+            onClose={() => setDockChartSymbol(null)}
+            onRefresh={fetchData}
+          />
+        );
+      })()}
     </div>
   );
 }
