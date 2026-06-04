@@ -105,22 +105,28 @@ export default function ManagerReports({ accountInfo, positions, activeBrokerId 
     return a ? `${a.name} · ${a.login}` : 'TradeGPT Account';
   };
 
-  // Instant PDF download via html2pdf.js (no print dialog)
+  // PDF download via server-side puppeteer
   const handleDownload = async () => {
     if (selectedAccounts.length === 0) return;
     setGenerating(true);
     try {
-      const { generateReportHTML } = await import('@/utils/reportTemplate');
-      const html = generateReportHTML(accountInfo, period, stats, deals, getBrokerName());
-
-      // POST the HTML to server — puppeteer renders it and returns a real PDF
+      // Send data to server — puppeteer renders HTML and returns a PDF blob
       const res = await fetch('/api/reports/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accountInfo, period, stats, deals, brokerName: getBrokerName() }),
+        body: JSON.stringify({
+          accountInfo,
+          period,
+          stats,
+          deals,
+          brokerName: getBrokerName(),
+        }),
       });
 
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) {
+        const msg = await res.text();
+        throw new Error(`Server error ${res.status}: ${msg}`);
+      }
 
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
@@ -130,10 +136,10 @@ export default function ManagerReports({ accountInfo, positions, activeBrokerId 
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (e) {
       console.error('[Reports] PDF generation failed:', e);
-      alert('Failed to generate PDF. Please try again.');
+      alert(`Failed to generate PDF: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       setGenerating(false);
     }
