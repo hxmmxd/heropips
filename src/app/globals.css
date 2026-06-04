@@ -1254,7 +1254,7 @@ body {
 }
 
 /* ── Admin Panel (Enterprise) ────────────────────── */
-.adm { min-height: 100vh; background: var(--bg); color: var(--text); display: flex; flex-direction: column; }
+.adm { height: 100vh; background: var(--bg); color: var(--text); display: flex; flex-direction: column; overflow: hidden; }
 .adm-center { display: flex; align-items: center; justify-content: center; flex: 1; min-height: 100vh; }
 
 /* Loader */
@@ -1546,12 +1546,13 @@ body {
 }
 
 /* Table */
-.adm-table-wrap { overflow-x: auto; }
+.adm-table-wrap { overflow-x: auto; max-height: calc(100vh - 200px); overflow-y: auto; }
 .adm-table { width: 100%; border-collapse: collapse; }
 .adm-table th {
   text-align: left; padding: 10px 20px;
   font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
   color: var(--subtext); border-bottom: 1px solid var(--border); white-space: nowrap;
+  position: sticky; top: 0; background: var(--sidebar-bg); z-index: 2;
 }
 .adm-th-sort { cursor: pointer; user-select: none; }
 .adm-th-sort:hover { color: var(--text); }
