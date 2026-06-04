@@ -9,7 +9,7 @@ import {
   Heart, Cpu, Database, Pencil, Check, X, Mail, User, Settings, Megaphone,
   FileText, Power, ToggleLeft, ToggleRight, AlertTriangle, Plus, Trash2,
   Target, BarChart2, ShieldAlert, Plug, TestTube, Loader2, Key, Link2, Handshake,
-  Menu
+  Menu, Calendar, Filter
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import AdminSettings from '@/components/AdminSettings';
@@ -112,6 +112,44 @@ export default function AdminPage() {
   const [brokerSearchResults, setBrokerSearchResults] = useState<string[]>([]);
   const [searchingServers, setSearchingServers] = useState(false);
   const [customServerInput, setCustomServerInput] = useState('');
+
+  // ── Trade Filter State ──
+  const [tradeSearch, setTradeSearch] = useState('');
+  const [tradeDateFrom, setTradeDateFrom] = useState('');
+  const [tradeDateTo, setTradeDateTo] = useState('');
+  const [tradeStatusFilter, setTradeStatusFilter] = useState<'all' | 'open' | 'closed'>('all');
+
+  const filteredTrades = useMemo(() => {
+    let result = trades;
+    // Search by symbol, action, order_id
+    if (tradeSearch.trim()) {
+      const q = tradeSearch.toLowerCase();
+      result = result.filter(t =>
+        (t.symbol || '').toLowerCase().includes(q) ||
+        (t.action || '').toLowerCase().includes(q) ||
+        String(t.id || '').toLowerCase().includes(q)
+      );
+    }
+    // Status filter
+    if (tradeStatusFilter !== 'all') {
+      result = result.filter(t => {
+        if (tradeStatusFilter === 'open') return t.status === 'open';
+        return t.status !== 'open'; // closed
+      });
+    }
+    // Date range
+    if (tradeDateFrom) {
+      const from = new Date(tradeDateFrom);
+      from.setHours(0, 0, 0, 0);
+      result = result.filter(t => t.created_at && new Date(t.created_at) >= from);
+    }
+    if (tradeDateTo) {
+      const to = new Date(tradeDateTo);
+      to.setHours(23, 59, 59, 999);
+      result = result.filter(t => t.created_at && new Date(t.created_at) <= to);
+    }
+    return result;
+  }, [trades, tradeSearch, tradeStatusFilter, tradeDateFrom, tradeDateTo]);
 
   // Debounced search for broker servers
   useEffect(() => {
@@ -1239,20 +1277,120 @@ export default function AdminPage() {
           {activeSection === 'trades' && (
             <div className="adm-card adm-card-full">
               <div className="adm-card-head">
-                <h3>Trade Log ({trades.length})</h3>
+                <h3>Trade Log ({filteredTrades.length}{filteredTrades.length !== trades.length ? ` of ${trades.length}` : ''})</h3>
                 <button className="adm-export-btn" onClick={() => {
-                  const csv = 'Symbol,Type,Volume,Open,Close,P&L,Status,Date\n' + trades.map(t => `${t.symbol},${t.action},${t.volume},${t.entry_price},${t.close_price},${t.pnl},${t.status},${t.created_at}`).join('\n');
+                  const csv = 'Symbol,Type,Volume,Open,Close,P&L,Status,Date\n' + filteredTrades.map(t => `${t.symbol},${t.action},${t.volume},${t.entry_price},${t.close_price},${t.pnl},${t.status},${t.created_at}`).join('\n');
                   const blob = new Blob([csv], { type: 'text/csv' });
                   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'trades.csv'; a.click();
                 }}><Download /> Export CSV</button>
               </div>
-              {trades.length === 0 ? (
-                <div className="adm-empty-state"><Receipt className="adm-empty-icon" /><p>No trades recorded yet</p></div>
+
+              {/* Search & Filter Bar */}
+              <div style={{
+                padding: '12px 20px', borderBottom: '1px solid var(--border)',
+                display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center',
+              }}>
+                {/* Search input */}
+                <div style={{
+                  flex: '1 1 200px', position: 'relative', minWidth: 180,
+                }}>
+                  <Search style={{
+                    position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)',
+                    width: 14, height: 14, color: 'var(--subtext)', pointerEvents: 'none',
+                  }} />
+                  <input
+                    type="text"
+                    placeholder="Search symbol, type..."
+                    value={tradeSearch}
+                    onChange={e => setTradeSearch(e.target.value)}
+                    style={{
+                      width: '100%', padding: '8px 12px 8px 32px', borderRadius: 8,
+                      border: '1px solid var(--border)', background: 'var(--input-bg)',
+                      fontSize: 12, color: 'var(--text)', outline: 'none',
+                      fontFamily: 'inherit',
+                    }}
+                  />
+                </div>
+
+                {/* Status filter */}
+                <div style={{ display: 'flex', gap: 4 }}>
+                  {(['all', 'open', 'closed'] as const).map(s => (
+                    <button
+                      key={s}
+                      onClick={() => setTradeStatusFilter(s)}
+                      style={{
+                        padding: '6px 14px', borderRadius: 7, border: '1px solid var(--border)',
+                        background: tradeStatusFilter === s
+                          ? s === 'open' ? 'rgba(59,130,246,0.12)'
+                          : s === 'closed' ? 'rgba(16,163,127,0.12)'
+                          : 'rgba(139,92,246,0.12)'
+                          : 'transparent',
+                        color: tradeStatusFilter === s
+                          ? s === 'open' ? '#3b82f6' : s === 'closed' ? '#10a37f' : '#8b5cf6'
+                          : 'var(--subtext)',
+                        fontSize: 11, fontWeight: tradeStatusFilter === s ? 700 : 500,
+                        cursor: 'pointer', fontFamily: 'inherit',
+                        borderColor: tradeStatusFilter === s
+                          ? s === 'open' ? 'rgba(59,130,246,0.3)'
+                          : s === 'closed' ? 'rgba(16,163,127,0.3)'
+                          : 'rgba(139,92,246,0.3)'
+                          : 'var(--border)',
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      {s === 'all' ? 'All' : s === 'open' ? '● Open' : '● Closed'}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Date range */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Calendar style={{ width: 13, height: 13, color: 'var(--subtext)', flexShrink: 0 }} />
+                  <input
+                    type="date"
+                    value={tradeDateFrom}
+                    onChange={e => setTradeDateFrom(e.target.value)}
+                    style={{
+                      padding: '6px 8px', borderRadius: 7, border: '1px solid var(--border)',
+                      background: 'var(--input-bg)', fontSize: 11, color: 'var(--text)',
+                      fontFamily: 'inherit', outline: 'none', minWidth: 120,
+                    }}
+                  />
+                  <span style={{ fontSize: 11, color: 'var(--subtext)' }}>→</span>
+                  <input
+                    type="date"
+                    value={tradeDateTo}
+                    onChange={e => setTradeDateTo(e.target.value)}
+                    style={{
+                      padding: '6px 8px', borderRadius: 7, border: '1px solid var(--border)',
+                      background: 'var(--input-bg)', fontSize: 11, color: 'var(--text)',
+                      fontFamily: 'inherit', outline: 'none', minWidth: 120,
+                    }}
+                  />
+                </div>
+
+                {/* Clear filters */}
+                {(tradeSearch || tradeDateFrom || tradeDateTo || tradeStatusFilter !== 'all') && (
+                  <button
+                    onClick={() => { setTradeSearch(''); setTradeDateFrom(''); setTradeDateTo(''); setTradeStatusFilter('all'); }}
+                    style={{
+                      padding: '6px 12px', borderRadius: 7, border: '1px solid rgba(239,68,68,0.25)',
+                      background: 'rgba(239,68,68,0.06)', color: '#ef4444', fontSize: 11,
+                      fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                    }}
+                  >
+                    ✕ Clear
+                  </button>
+                )}
+              </div>
+
+              {filteredTrades.length === 0 ? (
+                <div className="adm-empty-state"><Receipt className="adm-empty-icon" /><p>{trades.length === 0 ? 'No trades recorded yet' : 'No trades match your filters'}</p></div>
               ) : (
                 <div className="adm-table-wrap"><table className="adm-table"><thead><tr>
                   <th>Symbol</th><th>Type</th><th>Volume</th><th>Open</th><th>Close</th><th>P&L</th><th>Status</th><th>Date</th>
                 </tr></thead><tbody>
-                  {trades.map(t => (
+                  {filteredTrades.map(t => (
                     <tr key={t.id}>
                       <td><span className="adm-symbol">{t.symbol}</span></td>
                       <td><span className={`adm-trade-type ${String(t.action).toLowerCase() === 'buy' ? 'adm-buy' : 'adm-sell'}`}>{(t.action || '').toUpperCase()}</span></td>
