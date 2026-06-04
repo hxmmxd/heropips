@@ -3289,42 +3289,115 @@ body {
 /* Position Actions */
 .mgr-pos-actions {
   display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 14px;
+  padding-bottom: 4px;
 }
 .mgr-pos-action {
-  padding: 8px 4px; border-radius: 10px; border: 1px solid var(--border);
+  padding: 8px 4px 10px 4px; border-radius: 10px; border: 1px solid var(--border);
   background: var(--sidebar-bg); cursor: pointer; display: flex; align-items: center;
   justify-content: center; gap: 4px; font-size: 11px; font-weight: 700;
-  color: var(--text); transition: all 0.15s;
+  color: var(--text); position: relative;
+  transition: transform 0.1s ease, box-shadow 0.1s ease, background-color 0.15s ease;
+  box-shadow: 0 3.5px 0 rgba(0, 0, 0, 0.08);
 }
-.mgr-pos-action:hover { background: var(--input-bg); }
-.mgr-pos-action:disabled { opacity: 0.4; cursor: not-allowed; }
-.mgr-pos-action-sl {
-  background: #FAF6EE; border-color: rgba(180, 145, 108, 0.2); color: var(--accent);
+.mgr-pos-action:hover {
+  transform: translateY(-0.5px);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.1);
 }
-.mgr-pos-action-sl:hover {
-  background: rgba(180, 145, 108, 0.08);
+.mgr-pos-action:active {
+  transform: translateY(3px);
+  box-shadow: 0 0.5px 0 rgba(0, 0, 0, 0.05);
 }
-.mgr-pos-action-tp {
-  background: var(--sidebar-bg); border-color: var(--border); color: var(--text);
+.mgr-pos-action:disabled {
+  opacity: 0.4; cursor: not-allowed; transform: none !important; box-shadow: none !important;
 }
-.mgr-pos-action-tp:hover {
-  background: var(--input-bg);
+
+/* Individual 3D Button Theming */
+
+/* Base Tactile Button (TP, Chart) */
+.mgr-pos-action-tp, .mgr-pos-action-chart {
+  background: #FFFFFF;
+  border-color: #E2DFDA;
+  box-shadow: 0 3.5px 0 #D2CEC8;
+  color: #1D1D1F;
 }
-.mgr-pos-action-rf {
-  background: var(--sidebar-bg); border-color: var(--border); color: var(--subtext);
-  opacity: 0.5; cursor: not-allowed;
+.mgr-pos-action-tp:hover, .mgr-pos-action-chart:hover {
+  background: #F9F8F6;
+  box-shadow: 0 4px 0 #C7C3BB;
 }
-.mgr-pos-action-flash {
-  background: #FAF6EE; border-color: rgba(180, 145, 108, 0.2); color: var(--accent);
+.mgr-pos-action-tp:active, .mgr-pos-action-chart:active {
+  box-shadow: 0 0.5px 0 #C7C3BB;
 }
-.mgr-pos-action-flash:hover {
-  background: rgba(180, 145, 108, 0.08);
+
+.dark .mgr-pos-action-tp, .dark .mgr-pos-action-chart {
+  background: #2C2C2E;
+  border-color: #48484A;
+  box-shadow: 0 3.5px 0 #18181A;
+  color: #FFFFFF;
 }
+.dark .mgr-pos-action-tp:hover, .dark .mgr-pos-action-chart:hover {
+  background: #323235;
+  box-shadow: 0 4px 0 #121214;
+}
+.dark .mgr-pos-action-tp:active, .dark .mgr-pos-action-chart:active {
+  box-shadow: 0 0.5px 0 #121214;
+}
+
+/* SL / FLASH Tactile Button (Warm Golden) */
+.mgr-pos-action-sl, .mgr-pos-action-flash {
+  background: #FAF6EE;
+  border-color: #E6DCCE;
+  box-shadow: 0 3.5px 0 #D4C8B8;
+  color: #A37F5A;
+}
+.mgr-pos-action-sl:hover, .mgr-pos-action-flash:hover {
+  background: #F5EFEB;
+  box-shadow: 0 4px 0 #C9BDAA;
+}
+.mgr-pos-action-sl:active, .mgr-pos-action-flash:active {
+  box-shadow: 0 0.5px 0 #C9BDAA;
+}
+
+.dark .mgr-pos-action-sl, .dark .mgr-pos-action-flash {
+  background: #3A342C;
+  border-color: #5A4E3F;
+  box-shadow: 0 3.5px 0 #201D19;
+  color: #E0C4A8;
+}
+.dark .mgr-pos-action-sl:hover, .dark .mgr-pos-action-flash:hover {
+  background: #423B32;
+  box-shadow: 0 4px 0 #191613;
+}
+.dark .mgr-pos-action-sl:active, .dark .mgr-pos-action-flash:active {
+  box-shadow: 0 0.5px 0 #191613;
+}
+
+/* CLOSE Tactile Button (Soft Red) */
 .mgr-pos-action-close {
-  background: rgba(200, 75, 75, 0.04); border-color: rgba(200, 75, 75, 0.15); color: var(--negative);
+  background: #FFF5F5;
+  border-color: #FDC3C3;
+  box-shadow: 0 3.5px 0 #E2A4A4;
+  color: #C53030;
 }
 .mgr-pos-action-close:hover {
-  background: rgba(200, 75, 75, 0.08);
+  background: #FFEBEB;
+  box-shadow: 0 4px 0 #D59393;
+}
+.mgr-pos-action-close:active {
+  box-shadow: 0 0.5px 0 #D59393;
+}
+
+.dark .mgr-pos-action-close {
+  background: #3F2222;
+  border-color: #633232;
+  box-shadow: 0 3.5px 0 #221010;
+  color: #FC8181;
+}
+.dark .mgr-pos-action-close:hover {
+  background: #4A2828;
+  box-shadow: 0 4px 0 #1B0C0C;
+}
+.dark .mgr-pos-action-close:active {
+  box-shadow: 0 0.5px 0 #1B0C0C;
 }
 
 .mgr-lv-card {
