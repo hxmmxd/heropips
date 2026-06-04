@@ -110,53 +110,27 @@ export default function ManagerReports({ accountInfo, positions, activeBrokerId 
     if (selectedAccounts.length === 0) return;
     setGenerating(true);
     try {
-      const [{ generateReportHTML }, html2pdfModule] = await Promise.all([
-        import('@/utils/reportTemplate'),
-        import('html2pdf.js'),
-      ]);
-      const html2pdf = (html2pdfModule as any).default ?? html2pdfModule;
-
+      const { generateReportHTML } = await import('@/utils/reportTemplate');
       const html = generateReportHTML(accountInfo, period, stats, deals, getBrokerName());
-      const filename = `TradeGPT_Report_${period}_${new Date().toISOString().split('T')[0]}.pdf`;
 
-      // Container must be in-DOM and visible (not off-screen) for html2canvas to capture
-      const container = document.createElement('div');
-      container.style.cssText = [
-        'position:fixed',
-        'top:0',
-        'left:0',
-        'width:794px',       // 210mm @ 96dpi
-        'z-index:-1',
-        'opacity:0',
-        'pointer-events:none',
-        'background:#fffdf7',
-        'overflow:visible',
-      ].join(';');
-      container.innerHTML = html;
-      document.body.appendChild(container);
+      // POST the HTML to server — puppeteer renders it and returns a real PDF
+      const res = await fetch('/api/reports/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accountInfo, period, stats, deals, brokerName: getBrokerName() }),
+      });
 
-      // Give the browser a frame to layout & paint
-      await new Promise(r => setTimeout(r, 600));
+      if (!res.ok) throw new Error(await res.text());
 
-      await html2pdf()
-        .set({
-          margin: 0,
-          filename,
-          image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: {
-            scale: 2,
-            useCORS: true,
-            allowTaint: true,
-            logging: false,
-            backgroundColor: '#fffdf7',
-          },
-          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-          pagebreak: { mode: ['css', 'legacy'] },
-        })
-        .from(container)
-        .save();
-
-      document.body.removeChild(container);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `TradeGPT_Report_${period}_${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     } catch (e) {
       console.error('[Reports] PDF generation failed:', e);
       alert('Failed to generate PDF. Please try again.');
