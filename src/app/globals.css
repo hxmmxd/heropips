@@ -1,15 +1,19 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #FFFFFF;
-  --sidebar-bg: #F9F9F9;
-  --text: #1D1D1F;
-  --subtext: #6E6E73;
-  --input-bg: #F4F4F4;
-  --border: rgba(0, 0, 0, 0.08);
-  --send-btn: #1D1D1F;
+  --bg: #FAF9F6;              /* Warm ivory/paper page background */
+  --sidebar-bg: #FFFFFF;      /* Sidebar and card background (pure white) */
+  --text: #3C3935;            /* Soft charcoal/warm brown text */
+  --subtext: #8E8A82;         /* Muted brownish-grey for subtext */
+  --input-bg: #F4F3EE;        /* Slightly darker warm ivory for inputs/toggles */
+  --border: rgba(184, 179, 169, 0.22); /* Warm light border */
+  --send-btn: #3C3935;        /* Warm dark send button */
   --send-icon: #FFFFFF;
-  --accent: #D97757;
+  --accent: #B4916C;          /* Warm golden/bronze accent */
+  --positive: #0F9675;        /* Warm teal-green from screenshot */
+  --positive-bg: rgba(15, 150, 117, 0.12);
+  --negative: #C84B4B;        /* Soft warm red from screenshot */
+  --negative-bg: rgba(200, 75, 75, 0.12);
   
   /* Admin theme variables mapping */
   --adm-bg: var(--bg);
@@ -29,6 +33,11 @@
   --border: rgba(255, 255, 255, 0.1);
   --send-btn: #F5F5F7;
   --send-icon: #0D0D0D;
+  --accent: #D4A843;
+  --positive: #16a34a;
+  --positive-bg: rgba(22, 163, 74, 0.12);
+  --negative: #dc2626;
+  --negative-bg: rgba(220, 38, 38, 0.12);
 
   /* Admin theme variables mapping */
   --adm-bg: var(--bg);
@@ -2856,14 +2865,12 @@ body {
 }
 .mgr-tab:hover { color: var(--text); }
 .mgr-tab-active {
-  color: #8B6914; font-weight: 700;
+  color: var(--accent); font-weight: 700;
 }
 .mgr-tab-active::after {
   content: ''; position: absolute; bottom: -1px; left: 8px; right: 8px;
-  height: 2px; background: #8B6914; border-radius: 2px 2px 0 0;
+  height: 2.5px; background: var(--accent); border-radius: 2.5px 2.5px 0 0;
 }
-.dark .mgr-tab-active { color: #D4A843; }
-.dark .mgr-tab-active::after { background: #D4A843; }
 .mgr-tab-badge {
   font-size: 10px; font-weight: 700; background: var(--text); color: var(--bg);
   padding: 1px 6px; border-radius: 8px; min-width: 18px; text-align: center;
@@ -2908,8 +2915,8 @@ body {
 .mgr-card-sub-split {
   display: flex; gap: 16px; font-size: 10px; color: var(--subtext); margin-top: 3px;
 }
-.mgr-positive { color: #16a34a !important; }
-.mgr-negative { color: #dc2626 !important; }
+.mgr-positive { color: var(--positive) !important; }
+.mgr-negative { color: var(--negative) !important; }
 .mgr-warn { color: #8B6914 !important; }
 .mgr-guard-dot {
   width: 6px; height: 6px; border-radius: 50%; background: #D97706; flex-shrink: 0;
@@ -3193,8 +3200,8 @@ body {
 .mgr-pos-dir {
   font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 5px;
 }
-.mgr-pos-dir-buy { background: rgba(22,163,74,0.12); color: #16a34a; }
-.mgr-pos-dir-sell { background: rgba(220,38,38,0.12); color: #dc2626; }
+.mgr-pos-dir-buy { background: var(--positive-bg); color: var(--positive); }
+.mgr-pos-dir-sell { background: var(--negative-bg); color: var(--negative); }
 .mgr-pos-menu {
   background: none; border: none; font-size: 16px; color: var(--subtext);
   cursor: pointer; padding: 2px 6px; border-radius: 6px;
@@ -3343,8 +3350,8 @@ body {
   font-size: 9px; font-weight: 800; padding: 2px 8px; border-radius: 4px;
   letter-spacing: 0.04em;
 }
-.mgr-lv-badge-buy { background: rgba(22,163,74,0.12); color: #16a34a; }
-.mgr-lv-badge-sell { background: rgba(220,38,38,0.12); color: #dc2626; }
+.mgr-lv-badge-buy { background: var(--positive-bg); color: var(--positive); }
+.mgr-lv-badge-sell { background: var(--negative-bg); color: var(--negative); }
 .mgr-lv-lots { font-size: 12px; color: var(--subtext); }
 .mgr-lv-pts { font-size: 12px; font-weight: 600; margin-left: auto; }
 
@@ -3555,7 +3562,7 @@ body {
 .rsk-period-pill:first-child { border-radius: 8px 0 0 8px; }
 .rsk-period-pill:last-child { border-radius: 0 8px 8px 0; }
 .rsk-period-pill-active {
-  background: var(--text); color: var(--bg); border-color: var(--text);
+  background: var(--accent); color: #fff; border-color: var(--accent);
 }
 .rsk-net-pnl { text-align: right; }
 .rsk-net-pnl-label { display: block; font-size: 10px; font-weight: 600; color: var(--subtext); letter-spacing: 0.05em; }
@@ -3641,6 +3648,15 @@ body {
 .rsk-trio-sub { font-size: 9px; color: var(--subtext); margin-top: 2px; }
 .rsk-trio-cards-compact .rsk-trio-value { font-size: 18px; }
 .rsk-trio-cards-compact .rsk-trio-card { padding: 10px 8px; }
+:root:not(.dark) .rsk-trio-cards-compact .rsk-trio-card:nth-child(1),
+:root:not(.dark) .rsk-trio-cards-compact .rsk-trio-card:nth-child(2) {
+  background: #FAF6EE;
+  border-color: rgba(180, 145, 108, 0.15);
+}
+:root:not(.dark) .rsk-trio-cards-compact .rsk-trio-card:nth-child(3) {
+  background: #FDF2F2;
+  border-color: rgba(200, 75, 75, 0.12);
+}
 
 /* ── Trade Stats Grid ── */
 .rsk-stats-grid { padding: 10px 14px; }
@@ -3670,8 +3686,8 @@ body {
 .rsk-attr-dot {
   display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px;
 }
-.rsk-attr-dot-long { background: #16a34a; }
-.rsk-attr-dot-short { background: #dc2626; }
+.rsk-attr-dot-long { background: var(--positive); }
+.rsk-attr-dot-short { background: var(--negative); }
 .rsk-attr-bar {
   display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px;
 }
@@ -3683,10 +3699,10 @@ body {
   min-height: 36px;
 }
 .rsk-attr-bar-long {
-  background: rgba(22,163,74,0.12); color: #16a34a;
+  background: var(--positive-bg); color: var(--positive);
 }
 .rsk-attr-bar-short {
-  background: rgba(220,38,38,0.12); color: #dc2626;
+  background: var(--negative-bg); color: var(--negative);
 }
 .rsk-attr-bar-empty {
   flex: 1; background: var(--input-bg); padding: 8px 14px; border-radius: 10px;
@@ -3709,7 +3725,7 @@ body {
 }
 .rsk-lb-btn:first-child { border-radius: 6px 0 0 6px; }
 .rsk-lb-btn:last-child { border-radius: 0 6px 6px 0; }
-.rsk-lb-btn-active { background: #8B6914; color: #fff; border-color: #8B6914; }
+.rsk-lb-btn-active { background: var(--accent); color: #fff; border-color: var(--accent); }
 .rsk-lb-row {
   display: flex; align-items: center; gap: 10px; padding: 10px 0;
   border-bottom: 1px solid var(--border);
@@ -3726,16 +3742,18 @@ body {
   padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border);
   background: var(--sidebar-bg);
 }
-.rsk-trade-card-win { border-left: 3px solid rgba(22,163,74,0.4); background: rgba(22,163,74,0.03); }
-.rsk-trade-card-loss { border-left: 3px solid rgba(220,38,38,0.4); background: rgba(220,38,38,0.03); }
+.rsk-trade-card-win { border-left: 3px solid var(--positive); background: rgba(15, 150, 117, 0.03); }
+.rsk-trade-card-loss { border-left: 3px solid var(--negative); background: rgba(200, 75, 75, 0.03); }
+.dark .rsk-trade-card-win { border-left: 3px solid var(--positive); background: rgba(22, 163, 74, 0.03); }
+.dark .rsk-trade-card-loss { border-left: 3px solid var(--negative); background: rgba(220, 38, 38, 0.03); }
 .rsk-trade-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
 .rsk-trade-left { display: flex; align-items: center; gap: 6px; }
 .rsk-trade-badge {
   font-size: 9px; font-weight: 800; padding: 2px 8px; border-radius: 4px;
   letter-spacing: 0.05em;
 }
-.rsk-trade-badge-buy { background: rgba(22,163,74,0.15); color: #16a34a; }
-.rsk-trade-badge-sell { background: rgba(220,38,38,0.15); color: #dc2626; }
+.rsk-trade-badge-buy { background: var(--positive-bg); color: var(--positive); }
+.rsk-trade-badge-sell { background: var(--negative-bg); color: var(--negative); }
 .rsk-trade-symbol { font-size: 14px; font-weight: 800; color: var(--text); }
 .rsk-trade-sep { color: var(--subtext); font-size: 10px; }
 .rsk-trade-lots { font-size: 12px; color: var(--subtext); }
@@ -3772,9 +3790,12 @@ body {
 /* ── Position Chart ───────────────────────────── */
 .pos-chart-overlay {
   position: fixed; inset: 0; z-index: 9999;
-  background: rgba(0,0,0,0.85);
+  background: rgba(0,0,0,0.45);
   backdrop-filter: blur(8px);
   animation: posChartFadeIn 0.2s ease-out;
+}
+.dark .pos-chart-overlay {
+  background: rgba(0,0,0,0.85);
 }
 @keyframes posChartFadeIn {
   from { opacity: 0; }
@@ -3783,7 +3804,8 @@ body {
 .pos-chart-fullscreen {
   position: absolute; inset: 0;
   display: flex; flex-direction: column;
-  background: #0a0a0f;
+  background: var(--bg);
+  color: var(--text);
   animation: posChartSlide 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 @keyframes posChartSlide {
@@ -3798,47 +3820,48 @@ body {
   display: flex; align-items: center; gap: 8px;
 }
 .pos-chart-symbol {
-  font-size: 14px; font-weight: 800; color: #fff;
+  font-size: 14px; font-weight: 800; color: var(--text);
   letter-spacing: 0.02em;
 }
 .pos-chart-dir {
   font-size: 10px; font-weight: 700;
   padding: 2px 8px; border-radius: 6px;
-  background: rgba(255,255,255,0.06);
+  background: var(--input-bg);
+  color: var(--text);
 }
 .pos-chart-actions {
   display: flex; align-items: center; gap: 8px;
 }
 .pos-chart-timeframes {
-  display: flex; gap: 2px; background: rgba(255,255,255,0.04);
+  display: flex; gap: 2px; background: var(--input-bg);
   border-radius: 8px; padding: 2px;
 }
 .pos-chart-tf {
   padding: 4px 8px; font-size: 10px; font-weight: 700;
-  color: #6E6E73; background: none; border: none;
+  color: var(--subtext); background: none; border: none;
   border-radius: 6px; cursor: pointer; transition: all 0.15s;
   letter-spacing: 0.02em;
 }
-.pos-chart-tf:hover { color: #aaa; }
+.pos-chart-tf:hover { color: var(--text); }
 .pos-chart-tf-active {
   background: #B8860B; color: #fff;
   box-shadow: 0 1px 4px rgba(184,134,11,0.3);
 }
 .pos-chart-close {
   width: 28px; height: 28px; border-radius: 8px;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: none; color: #6E6E73; font-size: 12px;
+  border: 1px solid var(--border);
+  background: none; color: var(--subtext); font-size: 12px;
   cursor: pointer; display: flex; align-items: center;
   justify-content: center; transition: all 0.15s;
 }
-.pos-chart-close:hover { background: rgba(255,255,255,0.06); color: #fff; }
+.pos-chart-close:hover { background: var(--input-bg); color: var(--text); }
 
 /* Live price ticker */
 .pos-chart-live-ticker {
   display: flex; align-items: center; justify-content: space-between;
   padding: 10px 16px;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
-  background: rgba(255,255,255,0.01);
+  border-bottom: 1px solid var(--border);
+  background: var(--sidebar-bg);
 }
 .pos-chart-live-price-wrap {
   display: flex; align-items: center; gap: 10px;
@@ -3855,7 +3878,7 @@ body {
   50% { opacity: 0.4; transform: scale(0.8); }
 }
 .pos-chart-live-price {
-  font-size: 22px; font-weight: 900; color: #fff;
+  font-size: 22px; font-weight: 900; color: var(--text);
   font-family: 'SF Mono', 'JetBrains Mono', monospace;
   letter-spacing: -0.02em;
   transition: color 0.15s;
@@ -3883,11 +3906,11 @@ body {
   display: flex; flex-direction: column; align-items: center; gap: 1px;
 }
 .pos-chart-level-label {
-  font-size: 8px; font-weight: 700; color: #555;
+  font-size: 8px; font-weight: 700; color: var(--subtext);
   letter-spacing: 0.1em;
 }
 .pos-chart-level-val {
-  font-size: 11px; font-weight: 700; color: #888;
+  font-size: 11px; font-weight: 700; color: var(--subtext);
   font-family: 'SF Mono', 'JetBrains Mono', monospace;
 }
 .pos-chart-container {
@@ -3899,13 +3922,13 @@ body {
 .pos-chart-loading {
   position: absolute; inset: 0; display: flex;
   align-items: center; justify-content: center;
-  background: #0a0a0f; z-index: 5;
+  background: var(--bg); z-index: 5;
 }
 .pos-chart-error {
   position: absolute; inset: 0; display: flex;
   align-items: center; justify-content: center;
-  color: #6E6E73; font-size: 13px; font-weight: 500;
-  background: #0a0a0f; z-index: 5;
+  color: var(--subtext); font-size: 13px; font-weight: 500;
+  background: var(--bg); z-index: 5;
 }
 
 /* Chart button in card actions */
@@ -3937,8 +3960,8 @@ body {
 .pos-chart-trade-bar {
   display: flex; align-items: center; gap: 6px;
   padding: 6px 10px 8px;
-  background: #0c0c14;
-  border-top: 1px solid rgba(255,255,255,0.04);
+  background: var(--sidebar-bg);
+  border-top: 1px solid var(--border);
   flex-shrink: 0;
 }
 .pos-chart-sell-btn,
@@ -3979,6 +4002,6 @@ body {
   gap: 1px; min-width: 48px;
 }
 .pos-chart-spread-vol {
-  font-size: 9px; font-weight: 700; color: #444;
+  font-size: 9px; font-weight: 700; color: var(--subtext);
   font-family: 'SF Mono', 'JetBrains Mono', monospace;
 }

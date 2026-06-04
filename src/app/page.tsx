@@ -16,7 +16,7 @@ import { Broker, ChatMessage, Partner, TradeLog } from '@/types';
 export default function Home() {
   const [currentTab, setCurrentTab] = useState('terminal');
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [modalOpen, setModalOpen] = useState(false);
 
   // Initial Brokers Data

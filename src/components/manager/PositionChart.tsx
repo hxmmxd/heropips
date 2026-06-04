@@ -147,6 +147,12 @@ export default function PositionChart({
     container.style.width = '100%';
     widgetRef.current.appendChild(container);
 
+    // Determine current theme dynamically from document element
+    const isDark = document.documentElement.classList.contains('dark');
+    const tvTheme = isDark ? 'dark' : 'light';
+    const tvBgColor = isDark ? '#08080e' : '#ffffff';
+    const tvGridColor = isDark ? 'rgba(255,255,255,0.025)' : 'rgba(0,0,0,0.025)';
+
     const script = document.createElement('script');
     script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
     script.type = 'text/javascript';
@@ -156,11 +162,11 @@ export default function PositionChart({
       symbol: tvSymbol,
       interval: toTVInterval(timeframe),
       timezone: 'Etc/UTC',
-      theme: 'dark',
+      theme: tvTheme,
       style: '1', // Candlestick
       locale: 'en',
-      backgroundColor: '#08080e',
-      gridColor: 'rgba(255,255,255,0.025)',
+      backgroundColor: tvBgColor,
+      gridColor: tvGridColor,
       hide_top_toolbar: false,
       hide_legend: false,
       hide_side_toolbar: false,
