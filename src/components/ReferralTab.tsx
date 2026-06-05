@@ -39,6 +39,7 @@ export default function ReferralTab({ switchTab }: ReferralTabProps) {
   const [networkView, setNetworkView] = useState<'list' | 'tree'>('list');
   const [collapsedNodes, setCollapsedNodes] = useState<Record<string, boolean>>({});
   const [expandedDetailsNodes, setExpandedDetailsNodes] = useState<Record<string, boolean>>({});
+  const [treeAnimKey, setTreeAnimKey] = useState(0);
 
   // Loaders
   const [loadingProfile, setLoadingProfile] = useState(true);
@@ -291,8 +292,10 @@ export default function ReferralTab({ switchTab }: ReferralTabProps) {
       }));
     };
 
+    const animDelay = `${(node.level || 0) * 120}ms`;
+
     return (
-      <li key={node.userId} className="rh-tree-li">
+      <li key={node.userId} className="rh-tree-li rh-tree-anim" style={{ animationDelay: animDelay }}>
         {isDetailsExpanded ? (
           /* EXPANDED DETAILS CARD */
           <div 
@@ -393,7 +396,7 @@ export default function ReferralTab({ switchTab }: ReferralTabProps) {
     };
 
     return (
-      <div className="rh-tree-container">
+      <div className="rh-tree-container" key={`tree-${treeAnimKey}`}>
         <ul className="rh-tree-root">
           {renderTreeNode(virtualRoot)}
         </ul>
@@ -615,7 +618,7 @@ export default function ReferralTab({ switchTab }: ReferralTabProps) {
                 List View
               </button>
               <button 
-                onClick={() => setNetworkView('tree')}
+                onClick={() => { setNetworkView('tree'); setTreeAnimKey(k => k + 1); }}
                 className={`rh-filter-chip ${networkView === 'tree' ? 'active' : ''}`}
                 style={{ padding: '4px 10px', fontSize: 10, border: 'none', margin: 0 }}
               >

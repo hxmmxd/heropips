@@ -603,3 +603,51 @@
   margin-top: -2px;
   display: block;
 }
+
+/* ── Explode Tree Animation ── */
+@keyframes rh-tree-bloom {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+    filter: blur(4px);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.08);
+    filter: blur(0);
+  }
+  80% {
+    transform: scale(0.97);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes rh-tree-line-draw {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.rh-tree-anim {
+  animation: rh-tree-bloom 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* Connector lines fade in slightly after their parent node */
+.rh-tree-anim::before,
+.rh-tree-anim::after {
+  animation: rh-tree-line-draw 0.3s ease both;
+  animation-delay: inherit;
+}
+
+/* Inner ul connector also fades in */
+.rh-tree-container ul ul::before {
+  animation: rh-tree-line-draw 0.4s ease both;
+}
+
