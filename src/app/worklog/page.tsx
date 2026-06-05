@@ -35,6 +35,23 @@ const tagStyles: Record<string, { bg: string; color: string; label: string }> = 
 
 const worklog: WorkDay[] = [
   {
+    date: 'June 6, 2026',
+    dayLabel: 'Saturday',
+    commitCount: 1,
+    blocks: [
+      { tag: 'feature', time: '03:45 AM',
+        title: 'Genealogy Tree Flowchart & Interactive Compact Pills',
+        summary: 'Designed and implemented a visual org-chart-style horizontal/vertical flowchart layout for the Genealogy Tree with collapsible tree branches and interactive compact details pills.',
+        items: [
+          { icon: '🌳', title: 'Flowchart Org-Chart Tree Layout', description: 'Replaced simple vertical indented lists with a horizontal flowchart utilizing CSS pseudo-elements to draw neat connecting paths between parent and child nodes.', files: ['components/ReferralTab.tsx', 'components/ReferralHub.css'] },
+          { icon: '💊', title: 'Interactive Compact Pills', description: 'Nodes are rendered as small pill badges displaying level (e.g. YOU, L1, L2) and name, reducing tree width and height to preserve screen real estate.', files: ['components/ReferralTab.tsx', 'components/ReferralHub.css'] },
+          { icon: '🔍', title: 'Expandable Node Detail Cards', description: 'Clicking a pill opens an inline detailed card showing active trade stats, lot sizes, plan tier badge, and wallet earnings before collapsing back to pill mode.', files: ['components/ReferralTab.tsx', 'components/ReferralHub.css'] },
+          { icon: '👑', title: 'Virtual Root Node', description: 'Created a virtual root node representing the user ("YOU"), integrating the entire multi-level network into a single cohesive hierarchy.', files: ['components/ReferralTab.tsx'] }
+        ]
+      }
+    ]
+  },
+  {
     date: 'June 5, 2026',
     dayLabel: 'Thursday',
     commitCount: 7,
