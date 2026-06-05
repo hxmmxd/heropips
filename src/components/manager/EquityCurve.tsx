@@ -17,7 +17,7 @@ export default function EquityCurve({ data, label = 'EQUITY CURVE' }: EquityCurv
 
   // Process data once
   const chartData = useMemo(() => {
-    if (!data || data.length < 2) return null;
+    if (!data || data.length < 1) return null;
 
     // Sort by time and deduplicate
     const sorted = [...data]

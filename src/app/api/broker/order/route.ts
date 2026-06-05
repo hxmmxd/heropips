@@ -33,6 +33,20 @@ async function restTrade(metaApiId: string, payload: object): Promise<any> {
   return { status: res.status, data: await res.json() };
 }
 
+// Rate limiting — max 10 orders per 15 seconds per user (S3)
+const rateLimitMap = new Map<string, number[]>();
+const RATE_LIMIT_MAX = 10;
+const RATE_LIMIT_WINDOW_MS = 15_000;
+
+function checkRateLimit(userId: string): boolean {
+  const now = Date.now();
+  const timestamps = rateLimitMap.get(userId)?.filter(t => now - t < RATE_LIMIT_WINDOW_MS) || [];
+  if (timestamps.length >= RATE_LIMIT_MAX) return false;
+  timestamps.push(now);
+  rateLimitMap.set(userId, timestamps);
+  return true;
+}
+
 export async function POST(request: Request) {
   try {
     const supabase = createClient();
@@ -41,12 +55,29 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    if (!checkRateLimit(user.id)) {
+      return NextResponse.json({ error: 'Too many requests. Max 10 orders per 15 seconds.' }, { status: 429 });
+    }
+
     if (!token) {
       return NextResponse.json({ error: 'MetaAPI not configured' }, { status: 500 });
     }
 
     const body = await request.json();
     const { action, brokerId } = body;
+
+    // Verify broker belongs to this user
+    const { data: brokerMatch } = await supabase
+      .from('broker_accounts')
+      .select('id')
+      .eq('user_id', user.id)
+      .or(`metaapi_id.eq.${brokerId},mt5_login.eq.${brokerId}`)
+      .maybeSingle();
+
+    if (!brokerMatch) {
+      return NextResponse.json({ error: 'Broker not found or access denied' }, { status: 403 });
+    }
+
     const metaApiId = await resolveMetaApiId(brokerId);
 
     switch (action) {
@@ -120,6 +151,19 @@ export async function POST(request: Request) {
 
         const closed = results.filter(r => r.status === 'fulfilled' && (r as any).value?.data?.stringCode === 'TRADE_RETCODE_DONE').length;
         return NextResponse.json({ success: true, closed, total: positions.length });
+      }
+
+      case 'cancelOrder': {
+        const { orderId } = body;
+        const payload = {
+          actionType: 'ORDER_CANCEL',
+          orderId,
+        };
+        const { data } = await restTrade(metaApiId, payload);
+        if (data?.stringCode === 'TRADE_RETCODE_DONE') {
+          return NextResponse.json({ success: true });
+        }
+        return NextResponse.json({ error: data?.message || 'Cancel failed', code: data?.stringCode }, { status: 400 });
       }
 
       default:

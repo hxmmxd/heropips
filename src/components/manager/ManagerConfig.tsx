@@ -1,14 +1,56 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
 
-export default function ManagerConfig() {
-  const [oneClickTrading, setOneClickTrading] = useState(false);
-  const [guardMode, setGuardMode] = useState(false);
-  const [soundNotifications, setSoundNotifications] = useState(true);
-  const [defaultSL, setDefaultSL] = useState('50');
-  const [defaultTP, setDefaultTP] = useState('100');
-  const [defaultLot, setDefaultLot] = useState('0.01');
+export interface ManagerConfigValues {
+  oneClickTrading: boolean;
+  guardMode: boolean;
+  soundNotifications: boolean;
+  defaultLot: string;
+  defaultSL: string;
+  defaultTP: string;
+}
+
+export const DEFAULT_CONFIG: ManagerConfigValues = {
+  oneClickTrading: false,
+  guardMode: false,
+  soundNotifications: true,
+  defaultLot: '0.01',
+  defaultSL: '50',
+  defaultTP: '100',
+};
+
+const STORAGE_KEY = 'tradegpt-mgr-config';
+
+export function loadConfig(): ManagerConfigValues {
+  if (typeof window === 'undefined') return DEFAULT_CONFIG;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return { ...DEFAULT_CONFIG, ...JSON.parse(raw) };
+  } catch {}
+  return DEFAULT_CONFIG;
+}
+
+export function saveConfig(config: ManagerConfigValues) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+  } catch {}
+}
+
+interface ManagerConfigProps {
+  config: ManagerConfigValues;
+  onChange: (config: ManagerConfigValues) => void;
+}
+
+export default function ManagerConfig({ config, onChange }: ManagerConfigProps) {
+  // Persist on every change
+  useEffect(() => {
+    saveConfig(config);
+  }, [config]);
+
+  const update = (patch: Partial<ManagerConfigValues>) => {
+    onChange({ ...config, ...patch });
+  };
 
   return (
     <div className="mgr-config">
@@ -21,8 +63,8 @@ export default function ManagerConfig() {
             <span className="mgr-config-row-desc">Execute orders without confirmation dialog</span>
           </div>
           <button
-            onClick={() => setOneClickTrading(!oneClickTrading)}
-            className={`mgr-toggle ${oneClickTrading ? 'mgr-toggle-on' : ''}`}
+            onClick={() => update({ oneClickTrading: !config.oneClickTrading })}
+            className={`mgr-toggle ${config.oneClickTrading ? 'mgr-toggle-on' : ''}`}
           >
             <span className="mgr-toggle-knob" />
           </button>
@@ -34,8 +76,8 @@ export default function ManagerConfig() {
             <span className="mgr-config-row-desc">Auto-close positions at equity threshold</span>
           </div>
           <button
-            onClick={() => setGuardMode(!guardMode)}
-            className={`mgr-toggle ${guardMode ? 'mgr-toggle-on' : ''}`}
+            onClick={() => update({ guardMode: !config.guardMode })}
+            className={`mgr-toggle ${config.guardMode ? 'mgr-toggle-on' : ''}`}
           >
             <span className="mgr-toggle-knob" />
           </button>
@@ -47,8 +89,8 @@ export default function ManagerConfig() {
             <span className="mgr-config-row-desc">Play sounds on order fills and alerts</span>
           </div>
           <button
-            onClick={() => setSoundNotifications(!soundNotifications)}
-            className={`mgr-toggle ${soundNotifications ? 'mgr-toggle-on' : ''}`}
+            onClick={() => update({ soundNotifications: !config.soundNotifications })}
+            className={`mgr-toggle ${config.soundNotifications ? 'mgr-toggle-on' : ''}`}
           >
             <span className="mgr-toggle-knob" />
           </button>
@@ -62,8 +104,8 @@ export default function ManagerConfig() {
           <label className="mgr-config-field-label">Default Lot Size</label>
           <input
             type="number"
-            value={defaultLot}
-            onChange={(e) => setDefaultLot(e.target.value)}
+            value={config.defaultLot}
+            onChange={(e) => update({ defaultLot: e.target.value })}
             className="mgr-input"
             step="0.01"
             min="0.01"
@@ -74,8 +116,8 @@ export default function ManagerConfig() {
           <label className="mgr-config-field-label">Default SL (points)</label>
           <input
             type="number"
-            value={defaultSL}
-            onChange={(e) => setDefaultSL(e.target.value)}
+            value={config.defaultSL}
+            onChange={(e) => update({ defaultSL: e.target.value })}
             className="mgr-input"
           />
         </div>
@@ -84,8 +126,8 @@ export default function ManagerConfig() {
           <label className="mgr-config-field-label">Default TP (points)</label>
           <input
             type="number"
-            value={defaultTP}
-            onChange={(e) => setDefaultTP(e.target.value)}
+            value={config.defaultTP}
+            onChange={(e) => update({ defaultTP: e.target.value })}
             className="mgr-input"
           />
         </div>

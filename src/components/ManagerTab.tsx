@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Position, AccountInfo, PendingOrder } from '@/types';
 import ManagerInsights from './manager/ManagerInsights';
 import ManagerPositions from './manager/ManagerPositions';
-import ManagerConfig from './manager/ManagerConfig';
+import ManagerConfig, { ManagerConfigValues, loadConfig } from './manager/ManagerConfig';
 import ManagerRisk from './manager/ManagerRisk';
 import ManagerReports from './manager/ManagerReports';
 import PositionChart from './manager/PositionChart';
@@ -12,6 +12,7 @@ import PositionChart from './manager/PositionChart';
 interface ManagerTabProps {
   activeBrokerId: string;
   onNavigateToTerminal?: () => void;
+  onAccountUpdate?: (info: { balance: number; equity: number; pnl: number }) => void;
 }
 
 const defaultAccountInfo: AccountInfo = {
@@ -20,7 +21,7 @@ const defaultAccountInfo: AccountInfo = {
   positionCount: 0, leverage: 0, currency: 'USD',
 };
 
-export default function ManagerTab({ activeBrokerId, onNavigateToTerminal }: ManagerTabProps) {
+export default function ManagerTab({ activeBrokerId, onNavigateToTerminal, onAccountUpdate }: ManagerTabProps) {
   const [activeSubTab, setActiveSubTab] = useState<'insights' | 'positions' | 'config' | 'risk' | 'reports'>('insights');
   const [positions, setPositions] = useState<Position[]>([]);
   const [pendingOrders, setPendingOrders] = useState<PendingOrder[]>([]);
@@ -30,6 +31,7 @@ export default function ManagerTab({ activeBrokerId, onNavigateToTerminal }: Man
   const [dockChartSymbol, setDockChartSymbol] = useState<string | null>(null);
   const [sliderVal, setSliderVal] = useState(0);
   const [isAtBottom, setIsAtBottom] = useState(false);
+  const [mgrConfig, setMgrConfig] = useState<ManagerConfigValues>(loadConfig);
   const contentRef = useRef<HTMLDivElement>(null);
 
   const handleContentScroll = (e: React.UIEvent<HTMLDivElement>) => {
@@ -65,7 +67,15 @@ export default function ManagerTab({ activeBrokerId, onNavigateToTerminal }: Man
       const data = await res.json();
       if (data.positions) setPositions(data.positions);
       if (data.pendingOrders) setPendingOrders(data.pendingOrders);
-      if (data.accountInfo) setAccountInfo(data.accountInfo);
+      if (data.accountInfo) {
+        setAccountInfo(data.accountInfo);
+        // Sync header with live data (MGR-005)
+        onAccountUpdate?.({
+          balance: data.accountInfo.balance,
+          equity: data.accountInfo.equity,
+          pnl: data.accountInfo.mtmPnl,
+        });
+      }
     } catch (err) {
       console.error('[ManagerTab] Failed to fetch data:', err);
     } finally {
@@ -94,26 +104,30 @@ export default function ManagerTab({ activeBrokerId, onNavigateToTerminal }: Man
     if (!window.confirm(`Are you sure you want to close all ${positions.length} positions?`)) return;
 
     try {
-      await Promise.all(
+      const results = await Promise.allSettled(
         positions.map((pos) =>
           fetch('/api/broker/order', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              action: pos.type === 'POSITION_TYPE_BUY' ? 'SELL' : 'BUY',
-              symbol: pos.symbol,
-              volume: pos.volume,
+              action: 'close',
               brokerId: activeBrokerId,
               positionId: pos.id,
             }),
-          })
+          }).then(res => res.json())
         )
       );
+      const closed = results.filter(r => r.status === 'fulfilled' && (r as any).value?.success).length;
+      const failed = positions.length - closed;
       fetchData();
-      alert('All positions closed successfully.');
+      if (failed > 0) {
+        alert(`Closed ${closed}/${positions.length} positions. ${failed} failed.`);
+      } else {
+        alert('All positions closed successfully.');
+      }
     } catch (err) {
       console.error(err);
-      alert('Failed to close some positions.');
+      alert('Failed to close positions.');
     }
   };
 
@@ -160,6 +174,8 @@ export default function ManagerTab({ activeBrokerId, onNavigateToTerminal }: Man
                 positions={positions}
                 activeBrokerId={activeBrokerId}
                 onRefresh={fetchData}
+                config={mgrConfig}
+                onNavigateToRisk={() => setActiveSubTab('risk')}
               />
             )}
             {activeSubTab === 'positions' && (
@@ -172,7 +188,7 @@ export default function ManagerTab({ activeBrokerId, onNavigateToTerminal }: Man
               />
             )}
             {activeSubTab === 'config' && (
-              <ManagerConfig />
+              <ManagerConfig config={mgrConfig} onChange={setMgrConfig} />
             )}
             {activeSubTab === 'risk' && (
               <ManagerRisk
@@ -271,7 +287,66 @@ export default function ManagerTab({ activeBrokerId, onNavigateToTerminal }: Man
                 <div
                   key={idx}
                   className={`mgr-shortcut-tile ${idx >= 16 ? 'mgr-shortcut-tile-wide' : ''}`}
-                  onClick={() => alert(`Command "${item.title}" executed`)}
+                  onClick={async () => {
+                    const cmd = item.title;
+                    if (cmd === 'BE' || cmd === 'SL@E') {
+                      const profitable = positions.filter(p => p.profit > 0);
+                      if (profitable.length === 0) { alert('No profitable positions.'); return; }
+                      if (!confirm(`Move SL to entry for ${profitable.length} position(s)?`)) return;
+                      await Promise.allSettled(profitable.map(p =>
+                        fetch('/api/broker/order', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ action: 'modify', brokerId: activeBrokerId, positionId: p.id, stopLoss: p.openPrice }) })
+                      ));
+                      fetchData();
+                    } else if (cmd === 'CLH') {
+                      if (positions.length === 0) { alert('No positions.'); return; }
+                      const half = positions.slice(0, Math.max(1, Math.ceil(positions.length / 2)));
+                      if (!confirm(`Close ${half.length}/${positions.length} positions?`)) return;
+                      await Promise.allSettled(half.map(p =>
+                        fetch('/api/broker/order', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ action: 'close', brokerId: activeBrokerId, positionId: p.id }) })
+                      ));
+                      fetchData();
+                    } else if (cmd === 'CW') {
+                      const winners = positions.filter(p => p.profit > 0);
+                      if (winners.length === 0) { alert('No winners.'); return; }
+                      if (!confirm(`Close ${winners.length} winning position(s)?`)) return;
+                      await Promise.allSettled(winners.map(p =>
+                        fetch('/api/broker/order', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ action: 'close', brokerId: activeBrokerId, positionId: p.id }) })
+                      ));
+                      fetchData();
+                    } else if (cmd === 'CL') {
+                      const losers = positions.filter(p => p.profit < 0);
+                      if (losers.length === 0) { alert('No losers.'); return; }
+                      if (!confirm(`Close ${losers.length} losing position(s)?`)) return;
+                      await Promise.allSettled(losers.map(p =>
+                        fetch('/api/broker/order', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ action: 'close', brokerId: activeBrokerId, positionId: p.id }) })
+                      ));
+                      fetchData();
+                    } else if (cmd === 'RSL') {
+                      const withSL = positions.filter(p => p.stopLoss);
+                      if (withSL.length === 0) { alert('No positions with SL.'); return; }
+                      if (!confirm(`Remove SL from ${withSL.length} position(s)?`)) return;
+                      await Promise.allSettled(withSL.map(p =>
+                        fetch('/api/broker/order', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ action: 'modify', brokerId: activeBrokerId, positionId: p.id, stopLoss: 0 }) })
+                      ));
+                      fetchData();
+                    } else if (cmd === 'RTP') {
+                      const withTP = positions.filter(p => p.takeProfit);
+                      if (withTP.length === 0) { alert('No positions with TP.'); return; }
+                      if (!confirm(`Remove TP from ${withTP.length} position(s)?`)) return;
+                      await Promise.allSettled(withTP.map(p =>
+                        fetch('/api/broker/order', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ action: 'modify', brokerId: activeBrokerId, positionId: p.id, takeProfit: 0 }) })
+                      ));
+                      fetchData();
+                    } else {
+                      alert(`"${cmd}" — coming soon`);
+                    }
+                  }}
                 >
                   <span className="mgr-shortcut-title">{item.title}</span>
                   <span className="mgr-shortcut-sub">{item.sub}</span>

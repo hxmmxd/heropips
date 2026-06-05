@@ -219,7 +219,7 @@ export function generateReportHTML(
       <table class="stats-table">
         <tr><td>Sharpe Ratio</td><td class="${stats.sharpe >= 1 ? 'val-gold' : ''}">${n(stats.sharpe)}</td></tr>
         <tr><td>Sortino Ratio</td><td class="${stats.sortino >= 1 ? 'val-gold' : ''}">${n(stats.sortino)}</td></tr>
-        <tr><td>Max Drawdown</td><td class="val-neg">${n(stats.maxDrawdown * 100)}%</td></tr>
+        <tr><td>Max Drawdown</td><td class="val-neg">${n(stats.maxDrawdown)}%</td></tr>
         <tr><td>Recovery Factor</td><td class="${stats.recoveryFactor >= 1 ? 'val-pos' : 'val-neg'}">${n(stats.recoveryFactor)}</td></tr>
         <tr><td>Max Win Streak</td><td class="val-pos">${stats.maxWinStreak} trades</td></tr>
         <tr><td>Max Loss Streak</td><td class="val-neg">${stats.maxLossStreak} trades</td></tr>
@@ -282,8 +282,8 @@ export function generateReportHTML(
         <div class="risk-bar-track"><div class="risk-bar-fill" style="width:${Math.min((stats.recoveryFactor / 5) * 100, 100)}%"></div></div>
       </div>
       <div class="risk-bar-wrap">
-        <div class="risk-bar-label"><span>Max Drawdown Exposure</span><span>${n(stats.maxDrawdown * 100)}%</span></div>
-        <div class="risk-bar-track"><div class="risk-bar-fill" style="width:${Math.min(stats.maxDrawdown * 100 * 5, 100)}%;background:linear-gradient(90deg,#c0392b,#e74c3c)"></div></div>
+        <div class="risk-bar-label"><span>Max Drawdown Exposure</span><span>${n(stats.maxDrawdown)}%</span></div>
+        <div class="risk-bar-track"><div class="risk-bar-fill" style="width:${Math.min(stats.maxDrawdown * 5, 100)}%;background:linear-gradient(90deg,#c0392b,#e74c3c)"></div></div>
       </div>
     </div>
   </div>

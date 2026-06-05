@@ -71,16 +71,11 @@ export default function ManagerReports({ accountInfo, positions, activeBrokerId 
   }, [activeBrokerId]);
 
   const toggleAccount = (id: string) => {
-    setSelectedAccounts(prev =>
-      prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]
-    );
+    setSelectedAccounts([id]);
     setPreviewReady(false);
   };
 
-  const selectAll = () => {
-    setSelectedAccounts(accounts.map(a => a.id));
-    setPreviewReady(false);
-  };
+  // selectAll removed — single account reports only (MGR-020)
 
   const fetchReportData = useCallback(async () => {
     if (selectedAccounts.length === 0) return;
@@ -180,9 +175,6 @@ export default function ManagerReports({ accountInfo, positions, activeBrokerId 
       <div className="rpt-section">
         <div className="rpt-section-header">
           <span className="rpt-section-title">Select Account</span>
-          {accounts.length > 1 && (
-            <button className="rpt-select-all" onClick={selectAll}>Select All</button>
-          )}
         </div>
         <div className="rpt-accounts-grid">
           {accounts.map(acc => (

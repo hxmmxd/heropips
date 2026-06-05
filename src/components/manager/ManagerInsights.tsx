@@ -3,12 +3,15 @@
 import React, { useState } from 'react';
 import { AccountInfo, Position } from '@/types';
 import { useLivePrices } from '@/hooks/useLivePrices';
+import { ManagerConfigValues } from './ManagerConfig';
 
 interface ManagerInsightsProps {
   accountInfo: AccountInfo;
   positions: Position[];
   activeBrokerId: string;
   onRefresh: () => void;
+  config?: ManagerConfigValues;
+  onNavigateToRisk?: () => void;
 }
 
 type TradingMode = 'market' | 'custom' | 'lots' | 'risk';
@@ -20,10 +23,10 @@ const DEFAULT_SYMBOLS = [
 
 const VOLUMES = ['0.01', '0.02', '0.05', '0.1', '0.2', '0.5', '1.0', '2.0', '5.0', '10.0'];
 
-export default function ManagerInsights({ accountInfo, positions, activeBrokerId, onRefresh }: ManagerInsightsProps) {
+export default function ManagerInsights({ accountInfo, positions, activeBrokerId, onRefresh, config, onNavigateToRisk }: ManagerInsightsProps) {
   const [tradingMode, setTradingMode] = useState<TradingMode>('market');
   const [symbol, setSymbol] = useState(DEFAULT_SYMBOLS[0]);
-  const [volume, setVolume] = useState('0.01');
+  const [volume, setVolume] = useState(config?.defaultLot || '0.01');
   const [multiplier, setMultiplier] = useState(1);
   const [customPrice, setCustomPrice] = useState('');
   const [riskType, setRiskType] = useState<'%' | '$'>('%');
@@ -36,9 +39,23 @@ export default function ManagerInsights({ accountInfo, positions, activeBrokerId
 
   const { getPrice } = useLivePrices();
 
-  // Get live bid/ask prices
-  const livePrice = getPrice(symbol.replace('.sc', '').replace('USD', '')) || getPrice(symbol);
-  const spread = livePrice ? (livePrice > 100 ? 0.5 : 0.0003) : 0;
+  // Get live bid/ask prices — improved symbol resolution (MGR-011)
+  const normalizedSymbol = symbol.replace('.sc', '');
+  const livePrice = getPrice(normalizedSymbol) || getPrice(symbol) || getPrice(normalizedSymbol.replace('USD', ''));
+
+  // Better per-asset spread estimates (MGR-010)
+  const getTypicalSpread = (sym: string, price: number): number => {
+    const s = sym.toUpperCase();
+    if (s.includes('XAU')) return 0.30;
+    if (s.includes('XAG')) return 0.03;
+    if (s.includes('BTC')) return 25;
+    if (s.includes('ETH')) return 2;
+    if (s.includes('NAS') || s.includes('US30') || s.includes('SP')) return 1.5;
+    if (s.includes('OIL') || s.includes('XTI')) return 0.04;
+    if (price > 100) return 0.5;
+    return 0.00015;
+  };
+  const spread = livePrice ? getTypicalSpread(symbol, livePrice) : 0;
   const bidPrice = livePrice ? livePrice - spread / 2 : 0;
   const askPrice = livePrice ? livePrice + spread / 2 : 0;
 
@@ -49,8 +66,40 @@ export default function ManagerInsights({ accountInfo, positions, activeBrokerId
     ? (accountInfo.balance * parseFloat(riskValue || '0')) / 100
     : parseFloat(riskValue || '0');
 
+  // Compute lot size from risk parameters
+  const computeRiskLot = (): { lot: number; slPrice: number } => {
+    if (!livePrice || riskDollar <= 0) return { lot: 0, slPrice: 0 };
+    const slNum = parseFloat(slValue || '0');
+    if (slNum <= 0) return { lot: 0, slPrice: 0 };
+
+    // Point value depends on the instrument class
+    const isForex = livePrice < 10 && !symbol.toUpperCase().includes('XAG');
+    const isMetals = symbol.toUpperCase().includes('XAU') || symbol.toUpperCase().includes('XAG');
+    const pipValue = isForex ? 100000 : isMetals ? 100 : 1;
+
+    let slDistance: number;
+    if (slType === 'PTS') {
+      slDistance = slNum / pipValue;
+    } else {
+      slDistance = Math.abs(livePrice - slNum);
+    }
+    if (slDistance <= 0) return { lot: 0, slPrice: 0 };
+
+    const dollarPerLot = slDistance * pipValue;
+    const lot = Math.max(0.01, Math.round((riskDollar / dollarPerLot) * 100) / 100);
+    const slPrice = slType === 'PTS' ? 0 : slNum; // 0 = use pts, API will calc
+    return { lot, slPrice };
+  };
+
+  const riskLot = tradingMode === 'risk' ? computeRiskLot() : { lot: 0, slPrice: 0 };
+  const orderVolume = tradingMode === 'risk' ? riskLot.lot.toFixed(2) : effectiveVolume;
+
   const handleOrder = async (direction: 'BUY' | 'SELL') => {
     if (!activeBrokerId || activeBrokerId === 'none') return;
+    if (tradingMode === 'risk' && riskLot.lot <= 0) {
+      alert('Set valid risk amount and stop loss to compute lot size.');
+      return;
+    }
     setExecuting(direction === 'BUY' ? 'buy' : 'sell');
     try {
       const body: any = {
@@ -58,10 +107,20 @@ export default function ManagerInsights({ accountInfo, positions, activeBrokerId
         brokerId: activeBrokerId,
         symbol,
         direction,
-        volume: effectiveVolume,
+        volume: orderVolume,
       };
-      if (tradingMode === 'custom' && customPrice) {
-        body.price = customPrice;
+      if (tradingMode === 'custom') {
+        const price = customPrice || (livePrice ? String(livePrice) : '');
+        if (price) body.price = price;
+      }
+      // Auto-attach SL when in risk mode
+      if (tradingMode === 'risk' && parseFloat(slValue || '0') > 0) {
+        if (slType === 'PRICE') {
+          body.stopLoss = parseFloat(slValue);
+        } else if (livePrice) {
+          const slPts = parseFloat(slValue) / (livePrice < 10 ? 100000 : livePrice > 1000 ? 100 : 1);
+          body.stopLoss = direction === 'BUY' ? livePrice - slPts : livePrice + slPts;
+        }
       }
       const res = await fetch('/api/broker/order', {
         method: 'POST',
@@ -100,6 +159,31 @@ export default function ManagerInsights({ accountInfo, positions, activeBrokerId
   const nearestTP = positions
     .filter(p => p.takeProfit && p.currentPrice)
     .map(p => Math.abs((p.takeProfit! - p.currentPrice) * (p.currentPrice > 100 ? 10 : 100000)))
+    .sort((a, b) => a - b)[0];
+
+  // Break-Even calculation (MGR-008): volume-weighted average entry
+  const computeBE = (posArr: Position[]) => {
+    if (posArr.length === 0) return null;
+    const totalVol = posArr.reduce((a, p) => a + p.volume, 0);
+    if (totalVol <= 0) return null;
+    return posArr.reduce((a, p) => a + p.openPrice * p.volume, 0) / totalVol;
+  };
+  const buyBE = computeBE(buyPositions);
+  const sellBE = computeBE(sellPositions);
+
+  // Max Loss: sum of worst-case P&L if all SL hit (MGR-008)
+  const maxLoss = positions.reduce((total, p) => {
+    if (!p.stopLoss) return total; // no SL = unlimited risk, skip
+    const isBuy = p.type === 'POSITION_TYPE_BUY';
+    const pipMult = p.currentPrice > 100 ? 10 : 100000;
+    const slLoss = Math.abs(p.openPrice - p.stopLoss) * p.volume * pipMult;
+    return total + (isBuy ? (p.stopLoss < p.openPrice ? slLoss : -slLoss) : (p.stopLoss > p.openPrice ? slLoss : -slLoss));
+  }, 0);
+
+  // Nearest SL calculation (MGR-009)
+  const nearestSL = positions
+    .filter(p => p.stopLoss && p.currentPrice)
+    .map(p => Math.abs((p.currentPrice - p.stopLoss!) * (p.currentPrice > 100 ? 10 : 100000)))
     .sort((a, b) => a - b)[0];
 
   return (
@@ -305,7 +389,11 @@ export default function ManagerInsights({ accountInfo, positions, activeBrokerId
             </div>
           )}
 
-          {tradingMode !== 'risk' && (
+          {tradingMode === 'risk' ? (
+            <span className="ins-vol-summary">
+              = {riskLot.lot > 0 ? `${riskLot.lot.toFixed(2)} lot (risk: $${riskDollar.toFixed(2)})` : 'Set SL'}
+            </span>
+          ) : (
             <span className="ins-vol-summary">= {effectiveVolume}</span>
           )}
         </div>
@@ -361,17 +449,19 @@ export default function ManagerInsights({ accountInfo, positions, activeBrokerId
       <div className="mgr-be-grid">
         <div className="mgr-be-card">
           <div className="mgr-be-label">Buy BE</div>
-          <div className="mgr-be-value">—</div>
+          <div className="mgr-be-value">{buyBE ? formatPrice(buyBE) : '—'}</div>
           <div className="mgr-be-sub">{buyPositions.reduce((a, p) => a + p.volume, 0).toFixed(2)}L</div>
         </div>
         <div className="mgr-be-card">
           <div className="mgr-be-label">Sell BE</div>
-          <div className="mgr-be-value">—</div>
+          <div className="mgr-be-value">{sellBE ? formatPrice(sellBE) : '—'}</div>
           <div className="mgr-be-sub">{sellPositions.reduce((a, p) => a + p.volume, 0).toFixed(2)}L</div>
         </div>
         <div className="mgr-be-card">
           <div className="mgr-be-label">Max Loss</div>
-          <div className="mgr-be-value mgr-negative">—</div>
+          <div className="mgr-be-value mgr-negative">
+            {positionsWithoutSL < positions.length && maxLoss > 0 ? `-$${maxLoss.toFixed(2)}` : '—'}
+          </div>
         </div>
         <div className="mgr-be-card">
           <div className="mgr-be-label">Max Profit</div>
@@ -388,11 +478,11 @@ export default function ManagerInsights({ accountInfo, positions, activeBrokerId
             </svg>
             Account Risk Summary
           </div>
-          <button className="mgr-details-link">Details &gt;</button>
+          <button className="mgr-details-link" onClick={onNavigateToRisk}>Details &gt;</button>
         </div>
         <div className="mgr-risk-stats">
           <div className="mgr-risk-stat">
-            <span className="mgr-risk-stat-label">Win Rate</span>
+            <span className="mgr-risk-stat-label">Open P&L Rate</span>
             <span className="mgr-risk-stat-value mgr-positive">{winRate}%</span>
           </div>
           <div className="mgr-risk-stat">
@@ -407,7 +497,7 @@ export default function ManagerInsights({ accountInfo, positions, activeBrokerId
         <div className="mgr-risk-stats mgr-risk-stats-2">
           <div className="mgr-risk-stat">
             <span className="mgr-risk-stat-label">Nearest SL</span>
-            <span className="mgr-risk-stat-value">{positionsWithoutSL === positions.length ? 'No SL' : '—'}</span>
+            <span className="mgr-risk-stat-value">{nearestSL ? `${Math.round(nearestSL)} pts` : (positionsWithoutSL === positions.length ? 'No SL' : '—')}</span>
           </div>
           <div className="mgr-risk-stat">
             <span className="mgr-risk-stat-label">Nearest TP</span>

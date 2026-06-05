@@ -378,6 +378,19 @@ export default function Home() {
             <ManagerTab
               activeBrokerId={activeBroker.acc}
               onNavigateToTerminal={() => setCurrentTab('terminal')}
+              onAccountUpdate={(info) => {
+                setBrokers(prev => prev.map(b => {
+                  if (b.acc === activeBroker.acc) {
+                    return {
+                      ...b,
+                      balance: info.balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                      equity: info.equity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                      pnl: (info.pnl >= 0 ? '+' : '') + info.pnl.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                    };
+                  }
+                  return b;
+                }));
+              }}
             />
           )}
 
@@ -390,7 +403,7 @@ export default function Home() {
           )}
 
           {currentTab === 'referral' && (
-            <ReferralTab partners={partners} />
+            <ReferralTab partners={partners} switchTab={setCurrentTab} />
           )}
 
           {currentTab === 'profile' && (

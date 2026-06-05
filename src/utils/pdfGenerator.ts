@@ -150,7 +150,7 @@ export async function downloadPDF(
   const rr:[string,string,C][] = [
     ['Sharpe Ratio', f(stats.sharpe), stats.sharpe>=1?GREEN:SLATE],
     ['Sortino Ratio', f(stats.sortino), stats.sortino>=1?GREEN:SLATE],
-    ['Max Drawdown', `${f(stats.maxDrawdown*100)}%`, RED],
+    ['Max Drawdown', `${f(stats.maxDrawdown)}%`, RED],
     ['Recovery Factor', f(stats.recoveryFactor), stats.recoveryFactor>=1?GREEN:RED],
     ['Max Win Streak', `${stats.maxWinStreak} trades`, GREEN],
     ['Max Loss Streak', `${stats.maxLossStreak} trades`, RED],
@@ -174,7 +174,7 @@ export async function downloadPDF(
     ['Profit Factor (÷10)', Math.min(stats.profitFactor===Infinity?1:stats.profitFactor/10,1), GOLD, stats.profitFactor===Infinity?'∞':f(stats.profitFactor)],
     ['Sharpe Ratio (÷3)', Math.min(stats.sharpe/3,1), GOLD, f(stats.sharpe)],
     ['Recovery Factor (÷5)', Math.min(stats.recoveryFactor/5,1), GREEN, f(stats.recoveryFactor)],
-    ['Max Drawdown ×5', Math.min(stats.maxDrawdown*5,1), RED, `${f(stats.maxDrawdown*100)}%`],
+    ['Max Drawdown ×5', Math.min(stats.maxDrawdown/20,1), RED, `${f(stats.maxDrawdown)}%`],
   ];
   riskBars.forEach(([label,pct,bc,val])=>{
     doc.setFont('helvetica','normal'); doc.setFontSize(7.5); tc(doc,SLATE);

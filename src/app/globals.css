@@ -2179,7 +2179,7 @@ body {
 .gw-divider { height:1px; background:var(--border); margin:2px 0; }
 .gw-spin { display:inline-block; animation:gw-spin 0.8s linear infinite; }
 @keyframes gw-spin { to { transform:rotate(360deg); } }
-
+/* ═══════════════════════════════════════════════════════════
    REFERRAL HUB v2  —  Mobile-first, premium redesign
 ═══════════════════════════════════════════════════════════ */
 

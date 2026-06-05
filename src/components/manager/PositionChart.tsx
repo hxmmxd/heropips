@@ -101,8 +101,18 @@ export default function PositionChart({
   const pnlPct = entryPrice > 0 ? ((pnlFromEntry / entryPrice) * 100) * (isBuy ? 1 : -1) : 0;
   const pnlValue = isBuy ? pnlFromEntry : -pnlFromEntry;
 
-  // Spread estimate for bid/ask
-  const spreadFactor = entryPrice > 100 ? 0.3 : 0.00015;
+  // Spread estimate for bid/ask — per-asset estimates (MGR-010)
+  const getSpread = (sym: string, price: number): number => {
+    const s = sym.toUpperCase();
+    if (s.includes('XAU')) return 0.30;
+    if (s.includes('XAG')) return 0.03;
+    if (s.includes('BTC')) return 25;
+    if (s.includes('ETH')) return 2;
+    if (s.includes('NAS') || s.includes('US30') || s.includes('SP')) return 1.5;
+    if (price > 100) return 0.5;
+    return 0.00015;
+  };
+  const spreadFactor = getSpread(symbol, entryPrice);
   const bidPrice = livePrice - spreadFactor / 2;
   const askPrice = livePrice + spreadFactor / 2;
 
@@ -229,10 +239,11 @@ export default function PositionChart({
     };
   }, [symbol]);
 
-  // Lock body scroll
+  // Lock body scroll — save previous state for safe cleanup (MGR-025)
   useEffect(() => {
+    const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = ''; };
+    return () => { document.body.style.overflow = prev; };
   }, []);
 
   // ESC to close

@@ -6,14 +6,24 @@ import { useEffect, useRef, useState } from 'react';
 const SYMBOL_TO_KEY: Record<string, string> = {
   'Gold': 'XAU/USD',
   'XAU/USD': 'XAU/USD',
+  'XAUUSD': 'XAU/USD',
+  'XAUUSD.sc': 'XAU/USD',
+  'Silver': 'XAG/USD',
+  'XAG/USD': 'XAG/USD',
+  'XAGUSD': 'XAG/USD',
+  'XAGUSD.sc': 'XAG/USD',
   'Bitcoin': 'BTC/USD',
   'BTC/USD': 'BTC/USD',
+  'BTCUSD': 'BTC/USD',
   'Ethereum': 'ETH/USD',
   'ETH/USD': 'ETH/USD',
+  'ETHUSD': 'ETH/USD',
   'EURUSD': 'EUR/USD',
   'EUR/USD': 'EUR/USD',
   'GBPUSD': 'GBP/USD',
   'GBP/USD': 'GBP/USD',
+  'USDJPY': 'USD/JPY',
+  'USD/JPY': 'USD/JPY',
   'NAS100': 'QQQ',
   'QQQ': 'QQQ',
   'US30': 'DIA',
@@ -72,9 +82,22 @@ export function useLivePrices(): {
   }, []);
 
   const getPrice = (watchlistSymbol: string): number | null => {
+    // Direct lookup
     const key = SYMBOL_TO_KEY[watchlistSymbol];
-    if (!key) return null;
-    return prices[key] ?? null;
+    if (key && prices[key] != null) return prices[key];
+
+    // Fallback: try normalizing 6-char forex pairs (e.g. EURUSD → EUR/USD)
+    const clean = watchlistSymbol.replace('.sc', '').toUpperCase();
+    const fallbackKey = SYMBOL_TO_KEY[clean];
+    if (fallbackKey && prices[fallbackKey] != null) return prices[fallbackKey];
+
+    // Last resort: try inserting slash at position 3
+    if (clean.length === 6 && !clean.includes('/')) {
+      const slashed = clean.slice(0, 3) + '/' + clean.slice(3);
+      if (prices[slashed] != null) return prices[slashed];
+    }
+
+    return null;
   };
 
   return { prices, getPrice, connected };

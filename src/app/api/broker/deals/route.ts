@@ -91,7 +91,9 @@ function computeStats(deals: any[]) {
     if (dd > maxDD) maxDD = dd;
   }
 
-  const recoveryFactor = maxDD > 0 ? netProfit / (maxDD * netProfit / 100) : 0;
+  // Recovery factor = net profit / max drawdown in dollars
+  const maxDDDollars = peak > 0 ? peak * (maxDD / 100) : 0;
+  const recoveryFactor = maxDDDollars > 0 ? netProfit / maxDDDollars : 0;
 
   return {
     netProfit: Math.round(netProfit * 100) / 100,

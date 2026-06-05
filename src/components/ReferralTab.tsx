@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import MilestoneProgress from '@/components/referral/MilestoneProgress';
+import './ReferralHub.css';
 
 interface Partner {
   name: string;
@@ -17,572 +17,641 @@ interface Partner {
 
 interface ReferralTabProps {
   partners?: Partner[];
+  switchTab?: (tab: string) => void;
 }
 
-const LEVEL_COLORS  = ['#6366f1', '#3b82f6', '#10b981', '#f59e0b', '#ec4899'];
-const LEVEL_LABELS  = ['Direct', 'Level 2', 'Level 3', 'Level 4', 'Level 5'];
-const LEVEL_RATES   = [
-  { commission: 10, rebate: 5   },
-  { commission: 5,  rebate: 2   },
-  { commission: 3,  rebate: 1   },
-  { commission: 2,  rebate: 0.5 },
-  { commission: 1,  rebate: 0.25},
-];
+type Tab = 'network' | 'milestones' | 'rates' | 'ledger' | 'analytics';
 
-const mockNetwork: Partner[] = [
-  {
-    name: 'Alpha_Quant', portfolio: '42,481', rebate: '622', commission: '124',
-    status: 'Active', joined: 'May 12', trades: 84, level: 1,
-    children: [
-      {
-        name: 'Quant_Sub1', portfolio: '12,000', rebate: '88', commission: '17',
-        status: 'Active', joined: 'May 15', trades: 28, level: 2,
-        children: [
-          {
-            name: 'Sub1_Child', portfolio: '5,400', rebate: '32', commission: '6',
-            status: 'Active', joined: 'May 20', trades: 11, level: 3,
-            children: [
-              {
-                name: 'Deep_Trader', portfolio: '2,100', rebate: '12', commission: '2',
-                status: 'Active', joined: 'May 22', trades: 4, level: 4,
-                children: [
-                  { name: 'Ultra_Deep', portfolio: '800', rebate: '4', commission: '0.8', status: 'Inactive', joined: 'May 28', trades: 1, level: 5 },
-                ],
-              },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-  {
-    name: 'Institutional_Void', portfolio: '540,200', rebate: '4,240', commission: '848',
-    status: 'Active', joined: 'Apr 10', trades: 612, level: 1,
-    children: [
-      { name: 'Void_Sub', portfolio: '28,000', rebate: '198', commission: '40', status: 'Active', joined: 'Apr 18', trades: 74, level: 2 },
-    ],
-  },
-  { name: 'Scalp_Hunter',  portfolio: '89,120', rebate: '1,142', commission: '228', status: 'Active',   joined: 'Apr 29', trades: 210, level: 1 },
-  { name: 'Retail_King',   portfolio: '12,400', rebate: '88',    commission: '17',  status: 'Active',   joined: 'May 18', trades: 31,  level: 1 },
-  { name: 'FX_Nomad',      portfolio: '8,800',  rebate: '44',    commission: '8',   status: 'Inactive', joined: 'May 25', trades: 12,  level: 1 },
-];
-
-const MILESTONES = [
-  { label: '1st Referral', reward: '$25',    refs: 1,  reached: true  },
-  { label: '5 Referrals',  reward: '$100',   refs: 5,  reached: true  },
-  { label: '10 Referrals', reward: '$250',   refs: 10, reached: false },
-  { label: '25 Referrals', reward: '$750',   refs: 25, reached: false },
-  { label: '50 Referrals', reward: '$2,000', refs: 50, reached: false },
-];
-
-const REFERRAL_CODE = 'TGPT-U82910';
-const REFERRAL_LINK = 'tradegpt.ai/r/u82910';
-
-function countAll(nodes: Partner[]) {
-  const byLevel = [0, 0, 0, 0, 0];
-  function walk(p: Partner) {
-    const idx = (p.level ?? 1) - 1;
-    if (idx >= 0 && idx < 5) byLevel[idx]++;
-    p.children?.forEach(walk);
-  }
-  nodes.forEach(walk);
-  return { total: byLevel.reduce((a, b) => a + b, 0), byLevel };
-}
-
-// Animated counter hook
-function useCounter(target: number, duration = 1200, isFloat = false) {
-  const [val, setVal] = useState(0);
-  useEffect(() => {
-    let start = 0;
-    const step = target / (duration / 16);
-    const timer = setInterval(() => {
-      start += step;
-      if (start >= target) { 
-        setVal(target); 
-        clearInterval(timer); 
-      } else {
-        setVal(isFloat ? Number(start.toFixed(2)) : Math.floor(start));
-      }
-    }, 16);
-    return () => clearInterval(timer);
-  }, [target, duration, isFloat]);
-  return val;
-}
-
-function NetworkNode({ partner, depth = 0 }: { partner: Partner; depth?: number }) {
-  const [open, setOpen] = useState(depth === 0);
-  const lvlIdx  = (partner.level ?? 1) - 1;
-  const color   = LEVEL_COLORS[lvlIdx];
-  const hasKids = (partner.children?.length ?? 0) > 0;
-  const initials = partner.name.slice(0, 2).toUpperCase();
-
-  return (
-    <div className={`ref-tree-item depth-${depth}`}>
-      {depth > 0 && <div className="ref-tree-line" style={{ borderColor: color + '30' }} />}
-      <div
-        className={`ref-tree-node ${hasKids ? 'ref-tree-node--clickable' : ''} ${open && hasKids ? 'ref-tree-node--open' : ''}`}
-        style={{ borderColor: open && hasKids ? color + '40' : 'var(--border)' }}
-        onClick={() => hasKids && setOpen(!open)}
-      >
-        <span className="ref-tree-lvl-badge" style={{ background: color }}>L{partner.level}</span>
-        <div className="ref-tree-avatar" style={{ background: `linear-gradient(135deg,${color},${color}88)` }}>
-          {initials}
-        </div>
-        <div className="ref-tree-info">
-          <span className="ref-tree-name">{partner.name}</span>
-          <span className="ref-tree-meta">
-            {LEVEL_LABELS[lvlIdx]}&nbsp;·&nbsp;{partner.trades} trades&nbsp;·&nbsp;{partner.joined}
-          </span>
-        </div>
-        <div className="ref-tree-right">
-          <span className="ref-tree-rebate">+${partner.rebate}</span>
-          <span className={`ref-badge-status ${partner.status === 'Active' ? 'ref-badge-active' : 'ref-badge-inactive'}`}>
-            {partner.status}
-          </span>
-          {hasKids && (
-            <span className="ref-tree-toggle" style={{ color, background: color + '15' }}>
-              {open ? '▲' : `▼${partner.children!.length}`}
-            </span>
-          )}
-        </div>
-      </div>
-      {open && hasKids && (
-        <div className="ref-tree-children">
-          {partner.children!.map((child, i) => (
-            <NetworkNode key={i} partner={child} depth={depth + 1} />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-type Tab = 'network' | 'milestones' | 'rates' | 'ledger';
-
-export default function ReferralTab({ partners = mockNetwork }: ReferralTabProps) {
-  const [copied, setCopied]   = useState<'code' | 'link' | null>(null);
+export default function ReferralTab({ switchTab }: ReferralTabProps) {
   const [activeTab, setActiveTab] = useState<Tab>('network');
-  const [shareOpen, setShareOpen] = useState(false);
-  const [withdrawOpen, setWithdrawOpen] = useState(false);
-  const [withdrawAmt, setWithdrawAmt]   = useState('');
-  const [withdrawMethod, setWithdrawMethod] = useState<'crypto'>('crypto');
-  const [withdrawCoin, setWithdrawCoin]     = useState('USDT (TRC-20)');
-  const [withdrawAddr, setWithdrawAddr]   = useState('');
-  const [withdrawStep, setWithdrawStep]   = useState<'form'|'confirm'|'success'>('form');
-  const [withdrawing, setWithdrawing]     = useState(false);
-  const [withdrawError, setWithdrawError] = useState<string|null>(null);
-  const [withdrawResult, setWithdrawResult] = useState<{withdrawalId?:string;nowpaymentsId?:string}|null>(null);
-
-  // Dynamic wallet & transactions state
-  const [wallet, setWallet] = useState({
-    available: 0,
-    pending:   0,
-    lifetime:  0,
-    minWithdrawal: 50,
-    nextPayout: 'Dynamic Sync',
-    totalLots: 0,
-  });
+  const [copied, setCopied] = useState<'code' | 'link' | null>(null);
+  
+  // Profile / Network / Rates / Milestones state
+  const [profileData, setProfileData] = useState<any>(null);
+  const [networkMembers, setNetworkMembers] = useState<any[]>([]);
+  const [ratesData, setRatesData] = useState<any>(null);
+  const [analyticsData, setAnalyticsData] = useState<any>(null);
+  const [walletStats, setWalletStats] = useState<any>(null);
   const [transactions, setTransactions] = useState<any[]>([]);
+  const [milestones, setMilestones] = useState<any[]>([]);
+
+  // Genealogy Tree State
+  const [networkView, setNetworkView] = useState<'list' | 'tree'>('list');
+  const [collapsedNodes, setCollapsedNodes] = useState<Record<string, boolean>>({});
+  const [expandedDetailsNodes, setExpandedDetailsNodes] = useState<Record<string, boolean>>({});
+
+  // Loaders
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [loadingNetwork, setLoadingNetwork] = useState(true);
+  const [loadingRates, setLoadingRates] = useState(true);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(true);
+  const [loadingWallet, setLoadingWallet] = useState(true);
+  const [loadingMilestones, setLoadingMilestones] = useState(true);
+
+  // Withdraw Modal State
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [withdrawAmt, setWithdrawAmt] = useState('');
+  const [withdrawCoin, setWithdrawCoin] = useState('USDT (TRC-20)');
+  const [withdrawAddr, setWithdrawAddr] = useState('');
+  const [withdrawStep, setWithdrawStep] = useState<'form' | 'confirm' | 'success'>('form');
+  const [withdrawing, setWithdrawing] = useState(false);
+  const [withdrawError, setWithdrawError] = useState<string | null>(null);
+
+  // Share Modal State
+  const [shareOpen, setShareOpen] = useState(false);
+
+  // Ledger Filter
+  const [ledgerFilter, setLedgerFilter] = useState<'all' | 'rebate' | 'referral' | 'withdrawal'>('all');
+
+  // Fetch functions
+  const fetchMilestones = async (userId: string) => {
+    try {
+      setLoadingMilestones(true);
+      const res = await fetch(`/api/milestones?userId=${userId}`);
+      const data = await res.json();
+      console.log('[RH] Milestones API:', data);
+      if (data.success) {
+        setMilestones(data.milestones || []);
+      }
+    } catch (e) {
+      console.error('[RH] Error fetching milestones:', e);
+    } finally {
+      setLoadingMilestones(false);
+    }
+  };
+
+  const fetchProfile = async () => {
+    try {
+      setLoadingProfile(true);
+      const res = await fetch('/api/referral/profile');
+      const data = await res.json();
+      console.log('[RH] Profile API:', data);
+      if (data.success || data.referralCode || data.id) {
+        setProfileData(data);
+        if (data.id) {
+          fetchMilestones(data.id);
+        } else {
+          setLoadingMilestones(false);
+        }
+      } else {
+        setLoadingMilestones(false);
+      }
+    } catch (e) {
+      console.error('[RH] Error fetching profile:', e);
+      setLoadingMilestones(false);
+    } finally {
+      setLoadingProfile(false);
+    }
+  };
+
+  const fetchNetwork = async () => {
+    try {
+      setLoadingNetwork(true);
+      const res = await fetch('/api/referral/network');
+      const data = await res.json();
+      console.log('[RH] Network API:', data);
+      if (data.members) {
+        setNetworkMembers(data.members);
+      }
+    } catch (e) {
+      console.error('[RH] Error fetching network:', e);
+    } finally {
+      setLoadingNetwork(false);
+    }
+  };
+
+  const fetchRates = async () => {
+    try {
+      setLoadingRates(true);
+      const res = await fetch('/api/referral/rates');
+      const data = await res.json();
+      console.log('[RH] Rates API:', data);
+      if (data.success || data.levels) {
+        setRatesData(data);
+      }
+    } catch (e) {
+      console.error('[RH] Error fetching rates:', e);
+    } finally {
+      setLoadingRates(false);
+    }
+  };
+
+  const fetchAnalytics = async () => {
+    try {
+      setLoadingAnalytics(true);
+      const res = await fetch('/api/referral/analytics');
+      const data = await res.json();
+      console.log('[RH] Analytics API:', data);
+      if (data.success || data.summary) {
+        setAnalyticsData(data);
+      }
+    } catch (e) {
+      console.error('[RH] Error fetching analytics:', e);
+    } finally {
+      setLoadingAnalytics(false);
+    }
+  };
 
   const fetchWallet = async () => {
     try {
+      setLoadingWallet(true);
       const res = await fetch('/api/wallet');
       const data = await res.json();
-      if (data.success && data.wallet) {
-        setWallet(data.wallet);
+      console.log('[RH] Wallet API:', data);
+      if (data.success || data.wallet) {
+        setWalletStats(data.wallet);
         setTransactions(data.transactions || []);
       }
-    } catch (err) {
-      console.error('Failed to load wallet stats:', err);
+    } catch (e) {
+      console.error('[RH] Error fetching wallet:', e);
+    } finally {
+      setLoadingWallet(false);
     }
   };
 
   useEffect(() => {
+    fetchProfile();
+    fetchNetwork();
+    fetchRates();
+    fetchAnalytics();
     fetchWallet();
   }, []);
 
-  const { total, byLevel } = countAll(partners);
-  const progressPct = Math.min((total / 10) * 100, 100);
-
-  // Lot milestones calculations
-  const totalLots = wallet.totalLots || 0;
-  
-  const LOT_MILESTONES = [
-    { label: 'Bronze Trader', targetLots: 5,   reward: '$50 bonus',   reached: false },
-    { label: 'Silver Trader', targetLots: 20,  reward: '$200 bonus',  reached: false },
-    { label: 'Gold Trader',   targetLots: 50,  reward: '$500 bonus',  reached: false },
-    { label: 'Platinum VIP',  targetLots: 100, reward: '$1,200 bonus', reached: false },
-    { label: 'Diamond Elite', targetLots: 250, reward: '$3,000 bonus', reached: false },
-  ];
-  
-  const currentLotMilestoneIndex = LOT_MILESTONES.findIndex(m => totalLots < m.targetLots);
-  const nextLotMilestone = currentLotMilestoneIndex !== -1 ? LOT_MILESTONES[currentLotMilestoneIndex] : LOT_MILESTONES[LOT_MILESTONES.length - 1];
-  const prevLotMilestoneTarget = currentLotMilestoneIndex > 0 ? LOT_MILESTONES[currentLotMilestoneIndex - 1].targetLots : 0;
-  
-  const lotProgressPct = Math.min(
-    ((totalLots - prevLotMilestoneTarget) / Math.max(1, nextLotMilestone.targetLots - prevLotMilestoneTarget)) * 100,
-    100
-  );
-
-  // Animation triggers for progress fills
-  const [barAnimated, setBarAnimated] = useState(false);
-  useEffect(() => {
-    const t = setTimeout(() => setBarAnimated(true), 150);
-    return () => clearTimeout(t);
-  }, []);
-
-  const animTotal     = useCounter(total);
-  const animRebate    = useCounter(Math.round(wallet.available));
-  const animComm      = useCounter(Math.round(wallet.lifetime));
-  const animLots      = useCounter(totalLots, 1200, true);
-
-  const copy = (text: string, type: 'code' | 'link') => {
+  const copyToClipboard = (text: string, type: 'code' | 'link') => {
     navigator.clipboard.writeText(text);
     setCopied(type);
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const share = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: 'Join TradeGPT', text: 'Use my referral link to join TradeGPT!', url: 'https://' + REFERRAL_LINK });
-      } catch {}
-    } else {
-      setShareOpen(true);
+  // Social Share helpers
+  const getShareLink = (platform: 'telegram' | 'whatsapp' | 'twitter') => {
+    const text = encodeURIComponent("Join me on TradeGPT, the best-in-class AI-powered trading platform! Sign up using my referral link:");
+    const url = encodeURIComponent(profileData?.referralLink || '');
+    if (platform === 'telegram') return `https://t.me/share/url?url=${url}&text=${text}`;
+    if (platform === 'whatsapp') return `https://api.whatsapp.com/send?text=${text}%20${url}`;
+    return `https://twitter.com/intent/tweet?url=${url}&text=${text}`;
+  };
+
+  // Withdraw process handler
+  const handleWithdrawalSubmit = async () => {
+    setWithdrawing(true);
+    setWithdrawError(null);
+    try {
+      const res = await fetch('/api/withdrawals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'withdraw',
+          amount: Number(withdrawAmt),
+          currency: withdrawCoin.split(' ')[0], // extract symbol like USDT
+          address: withdrawAddr,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setWithdrawStep('success');
+        fetchWallet(); // refresh stats
+      } else {
+        setWithdrawError(data.error || 'Withdrawal request failed.');
+      }
+    } catch (err: any) {
+      setWithdrawError(err.message || 'An error occurred during withdrawal request.');
+    } finally {
+      setWithdrawing(false);
     }
   };
 
-  const TABS: { id: Tab; icon: string; label: string }[] = [
-    { id: 'network',    icon: '🌐', label: 'Network'    },
-    { id: 'milestones', icon: '🏆', label: 'Milestones' },
-    { id: 'rates',      icon: '📊', label: 'Rates'      },
-    { id: 'ledger',     icon: '📜', label: 'Ledger'     },
-  ];
+  // Level badge background mapping (null-safe)
+  const getLevelColor = (level: any) => {
+    const colors = ['#6366f1', '#3b82f6', '#10b981', '#f59e0b', '#ec4899'];
+    const idx = Math.max(0, (Number(level) || 1) - 1);
+    return colors[idx % colors.length];
+  };
 
-  return (
-    <div className="ref2-root">
+  // Filtered transactions (null-safe)
+  const filteredTxs = (transactions || []).filter(tx => {
+    if (!tx || !tx.tx_type) return false;
+    if (ledgerFilter === 'all') return true;
+    if (ledgerFilter === 'rebate') return tx.tx_type === 'rebate';
+    if (ledgerFilter === 'referral') return tx.tx_type === 'referral';
+    if (ledgerFilter === 'withdrawal') return String(tx.tx_type).startsWith('withdrawal');
+    return true;
+  });
 
-      {/* ── HERO ── */}
-      <div className="ref2-hero">
-        <div className="ref2-hero-orb ref2-orb1" />
-        <div className="ref2-hero-orb ref2-orb2" />
-        <div className="ref2-hero-inner">
-          <div className="ref2-hero-badge">
-            <span className="ref2-hero-badge-dot" />
-            Referral Hub
-          </div>
-          <h1 className="ref2-hero-title">
-            Earn While Your<br />Network Trades
-          </h1>
-          <p className="ref2-hero-sub">
-            5-level deep commission structure. Earn on every trade your network makes — forever.
-          </p>
-          <div className="ref2-hero-actions">
-            <button className="ref2-btn-primary" onClick={() => copy(REFERRAL_LINK, 'link')}>
-              {copied === 'link' ? '✓ Copied!' : '🔗 Copy Link'}
-            </button>
-            <button className="ref2-btn-secondary" onClick={share}>
-              ↗ Share
-            </button>
-          </div>
-        </div>
-      </div>
+  // Genealogy Tree Constructor
+  const buildGenealogyTree = () => {
+    if (!networkMembers || networkMembers.length === 0) return [];
+    const rootUserId = profileData?.id;
 
-      {/* ── STATS GRID ── */}
-      <div className="ref2-stats">
-        {[
-          { label: 'Total Rebates',   value: `$${animRebate.toLocaleString()}`, sub: '↑ 12.4% this month', color: '#10b981', icon: '💰' },
-          { label: 'Commissions',     value: `$${animComm.toLocaleString()}`,   sub: '↑ 8.1% this month',  color: '#6366f1', icon: '📈' },
-          { label: 'Network Size',    value: animTotal,                          sub: `${byLevel.filter(Boolean).length} active levels`, color: '#3b82f6', icon: '👥' },
-          { label: 'Lots Traded',     value: `${animLots} lots`,                 sub: 'Personal closed volume', color: '#f59e0b', icon: '⚡' },
-        ].map((s, i) => (
-          <div key={i} className="ref2-stat-card">
-            <div className="ref2-stat-icon">{s.icon}</div>
-            <div className="ref2-stat-body">
-              <span className="ref2-stat-label">{s.label}</span>
-              <span className="ref2-stat-value" style={{ color: s.color }}>{s.value}</span>
-              <span className="ref2-stat-sub">{s.sub}</span>
-            </div>
-          </div>
-        ))}
-      </div>
+    // Create node mapping
+    const nodeMap: Record<string, any> = {};
+    networkMembers.forEach(m => {
+      nodeMap[m.userId] = { ...m, children: [] };
+    });
 
-      {/* ── WALLET BALANCE CARD ── */}
-      <div className="ref2-wallet">
-        <div className="ref2-wallet-left">
-          <div className="ref2-wallet-glow" />
-          <span className="ref2-wallet-eyebrow">💼 Referral Wallet</span>
-          <div className="ref2-wallet-balance">
-            <span className="ref2-wallet-currency">$</span>
-            <span className="ref2-wallet-amount">{wallet.available.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-          </div>
-          <div className="ref2-wallet-meta">
-            <span className="ref2-wallet-pill ref2-wallet-pending">⏳ ${wallet.pending.toFixed(2)} pending</span>
-            <span className="ref2-wallet-pill ref2-wallet-lifetime">🏆 ${wallet.lifetime.toLocaleString()} lifetime</span>
-          </div>
-          <p className="ref2-wallet-payout">Next auto-payout: <strong>{wallet.nextPayout}</strong></p>
-        </div>
-        <div className="ref2-wallet-right">
-          <button className="ref2-withdraw-btn" onClick={() => { setWithdrawOpen(true); setWithdrawStep('form'); }}
-            disabled={wallet.available < wallet.minWithdrawal}>
-            ↑ Withdraw
-          </button>
-          <p className="ref2-wallet-min">Min ${wallet.minWithdrawal}</p>
-        </div>
-      </div>
+    const treeRoots: any[] = [];
+    networkMembers.forEach(m => {
+      const node = nodeMap[m.userId];
+      const parentId = m.referredBy;
 
-      {/* ── REFERRAL LINK CARD ── */}
-      <div className="ref2-link-card">
-        <div className="ref2-link-top">
-          <div className="ref2-link-icon">🔗</div>
-          <div className="ref2-link-text">
-            <span className="ref2-link-eyebrow">Your Referral Link</span>
-            <code className="ref2-link-url">https://{REFERRAL_LINK}</code>
-          </div>
-        </div>
-        <div className="ref2-link-actions">
-          <div className="ref2-code-pill">
-            <span className="ref2-code-tag">CODE</span>
-            <code className="ref2-code-val">{REFERRAL_CODE}</code>
-            <button className="ref2-code-copy" onClick={() => copy(REFERRAL_CODE, 'code')}>
-              {copied === 'code' ? '✓' : '⎘'}
-            </button>
-          </div>
-          <button className="ref2-btn-copy" onClick={() => copy(REFERRAL_LINK, 'link')}>
-            {copied === 'link' ? '✓ Copied!' : 'Copy Link'}
-          </button>
-          <button className="ref2-btn-share" onClick={share}>
-            ↗ Share
-          </button>
-        </div>
-      </div>
+      // If the parent is root user, or the parent is not in our downline list
+      if (!parentId || parentId === rootUserId || !nodeMap[parentId]) {
+        node.level = node.level || 1;
+        treeRoots.push(node);
+      } else {
+        nodeMap[parentId].children.push(node);
+      }
+    });
 
-      {/* ── LEVEL OVERVIEW STRIP ── */}
-      <div className="ref2-levels">
-        {LEVEL_RATES.map((r, i) => (
-          <div key={i} className="ref2-level-chip" style={{ borderColor: LEVEL_COLORS[i] + '30', background: LEVEL_COLORS[i] + '08' }}>
-            <div className="ref2-level-dot" style={{ background: LEVEL_COLORS[i] }}>L{i + 1}</div>
-            <div className="ref2-level-info">
-              <span className="ref2-level-pct" style={{ color: LEVEL_COLORS[i] }}>{r.commission}%</span>
-              <span className="ref2-level-sub">{byLevel[i]} members</span>
-            </div>
-          </div>
-        ))}
-      </div>
+    // Sort by level asc, then by volume desc
+    treeRoots.sort((a, b) => a.level - b.level || (b.totalVolume || 0) - (a.totalVolume || 0));
+    return treeRoots;
+  };
 
-      {/* ── MILESTONE PROGRESS GRID ── */}
-      <div className="ref2-progress-grid">
-        {/* Track 1: Network Referrals */}
-        <div className="ref2-progress-card">
-          <div className="ref2-progress-header">
-            <div>
-              <span className="ref2-progress-title">Referrals Milestone</span>
-              <span className="ref2-progress-sub">{total} / 10 referrals · Earn $250</span>
-            </div>
-            <span className="ref2-progress-pct">{Math.round(progressPct)}%</span>
-          </div>
-          <div className="ref2-track">
-            <div className="ref2-fill" style={{ width: barAnimated ? `${progressPct}%` : '0%', transition: 'width 1.5s cubic-bezier(0.34, 1.56, 0.64, 1)' }} />
-            <div className="ref2-thumb" style={{ left: barAnimated ? `${progressPct}%` : '0%', transition: 'left 1.5s cubic-bezier(0.34, 1.56, 0.64, 1)' }} />
-          </div>
-          <div className="ref2-track-labels">
-            <span>0</span>
-            <span>5 · $100</span>
-            <span>10 · $250 🎯</span>
-          </div>
-        </div>
+  // Recursive Tree Node Renderer
+  const renderTreeNode = (node: any) => {
+    const isCollapsed = !!collapsedNodes[node.userId];
+    const isDetailsExpanded = !!expandedDetailsNodes[node.userId];
+    const hasChildren = node.children && node.children.length > 0;
+    const isRoot = node.level === 0;
 
-        {/* Track 2: Trading Lot Volume */}
-        <div className="ref2-progress-card ref2-progress-card--lots">
-          <div className="ref2-progress-header">
-            <div>
-              <span className="ref2-progress-title">Next Lot Milestone</span>
-              <span className="ref2-progress-sub">
-                {totalLots.toFixed(2)} / {nextLotMilestone.targetLots.toFixed(1)} lots · {nextLotMilestone.reward}
+    const toggleCollapse = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setCollapsedNodes(prev => ({
+        ...prev,
+        [node.userId]: !prev[node.userId]
+      }));
+    };
+
+    const toggleDetails = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setExpandedDetailsNodes(prev => ({
+        ...prev,
+        [node.userId]: !prev[node.userId]
+      }));
+    };
+
+    return (
+      <li key={node.userId} className="rh-tree-li">
+        {isDetailsExpanded ? (
+          /* EXPANDED DETAILS CARD */
+          <div 
+            className={`rh-tree-card rh-tree-level-${node.level || 0} expanded`}
+            onClick={toggleDetails}
+          >
+            {/* Card top indicator / status */}
+            <div className="rh-tree-card-header">
+              <span className={`rh-tree-badge-tier tier-${node.plan || 'free'}`}>
+                {(node.plan || 'free').toUpperCase()}
+              </span>
+              <span className="rh-tree-card-level">
+                {isRoot ? 'YOU' : `L${node.level}`}
               </span>
             </div>
-            <span className="ref2-progress-pct">{Math.round(lotProgressPct)}%</span>
-          </div>
-          <div className="ref2-track">
-            <div className="ref2-fill ref2-fill--lots" style={{ width: barAnimated ? `${lotProgressPct}%` : '0%', transition: 'width 1.5s cubic-bezier(0.34, 1.56, 0.64, 1)' }} />
-            <div className="ref2-thumb ref2-thumb--lots" style={{ left: barAnimated ? `${lotProgressPct}%` : '0%', transition: 'left 1.5s cubic-bezier(0.34, 1.56, 0.64, 1)' }} />
-          </div>
-          <div className="ref2-track-labels">
-            <span>{prevLotMilestoneTarget.toFixed(1)}</span>
-            <span>{nextLotMilestone.label}</span>
-            <span>{nextLotMilestone.targetLots.toFixed(1)} lots 🎯</span>
-          </div>
-        </div>
-      </div>
 
-      {/* ── TABS ── */}
-      <div className="ref2-tabs">
-        {TABS.map(t => (
-          <button
-            key={t.id}
-            className={`ref2-tab ${activeTab === t.id ? 'ref2-tab--active' : ''}`}
-            onClick={() => setActiveTab(t.id)}
-          >
-            <span className="ref2-tab-icon">{t.icon}</span>
-            <span className="ref2-tab-label">{t.label}</span>
-          </button>
-        ))}
-      </div>
-
-      {/* ── NETWORK TREE ── */}
-      {activeTab === 'network' && (
-        <div className="ref2-section">
-          <div className="ref2-section-header">
-            <span className="ref2-section-title">Your Network ({total} members)</span>
-            <span className="ref2-section-hint">Tap to expand levels</span>
-          </div>
-          <div className="ref2-tree">
-            {partners.map((p, i) => <NetworkNode key={i} partner={p} />)}
-          </div>
-        </div>
-      )}
-
-      {/* ── MILESTONES ── */}
-      {activeTab === 'milestones' && (
-        <div className="ref2-section">
-          <div className="ref2-section-header">
-            <span className="ref2-section-title">Milestone Rewards & Targets</span>
-            <span className="ref2-section-hint">Unlocked dynamically as metrics grow</span>
-          </div>
-          
-          <div className="ref2-milestones-split">
-            <div>
-              <h4 style={{ margin: '0 0 16px', fontSize: 13, fontWeight: 800, color: '#10b981', display: 'flex', alignItems: 'center', gap: 6 }}>
-                👥 Referral Milestones
-              </h4>
-              <div className="ref2-milestones">
-                {MILESTONES.map((m, i) => (
-                  <div key={i} className={`ref2-milestone ${m.reached ? 'ref2-milestone--done' : ''}`}>
-                    <div className="ref2-milestone-icon">
-                      {m.reached ? '✓' : <span style={{ opacity: 0.4 }}>{i + 1}</span>}
-                    </div>
-                    <div className="ref2-milestone-body">
-                      <span className="ref2-milestone-label">{m.label}</span>
-                      <span className="ref2-milestone-status">{m.reached ? '🎉 Unlocked & paid' : `${m.refs - total > 0 ? m.refs - total : 0} more referrals needed`}</span>
-                    </div>
-                    <div className="ref2-milestone-reward" style={{ color: m.reached ? '#10b981' : 'var(--subtext)' }}>
-                      {m.reward}
-                    </div>
-                  </div>
-                ))}
+            {/* Node Avatar & Name */}
+            <div className="rh-tree-card-body">
+              <div 
+                className="rh-tree-card-avatar"
+                style={{ background: getLevelColor(node.level || 1) }}
+              >
+                {(node.displayName || '??').slice(0, 2).toUpperCase()}
+              </div>
+              <div className="rh-tree-card-details">
+                <div className="rh-tree-card-name" title={node.displayName || 'Trader'}>
+                  {node.displayName || 'Trader'}
+                </div>
+                <div className="rh-tree-card-stats">
+                  <span>{node.tradeCount || 0} trades</span>
+                  <span>·</span>
+                  <span>{(Number(node.totalVolume) || 0).toFixed(1)} lots</span>
+                </div>
               </div>
             </div>
 
-            <div>
-              <h4 style={{ margin: '0 0 16px', fontSize: 13, fontWeight: 800, color: '#6366f1', display: 'flex', alignItems: 'center', gap: 6 }}>
-                ⚡ Team Volume Milestones (40/40/20)
-              </h4>
-              <MilestoneProgress />
+            {/* Node Bottom Info */}
+            <div className="rh-tree-card-footer">
+              <span className="rh-tree-card-label">{isRoot ? 'Total Earned' : 'Earned From Them'}</span>
+              <span className="rh-tree-card-value">${(Number(node.earnedFromThem) || 0).toFixed(2)}</span>
             </div>
-          </div>
-        </div>
-      )}
 
-      {/* ── COMMISSION RATES ── */}
-      {activeTab === 'rates' && (
-        <div className="ref2-section">
-          <div className="ref2-section-header">
-            <span className="ref2-section-title">Commission Structure</span>
-            <span className="ref2-section-hint">% of trade volume</span>
+            <span className="rh-tree-card-info-tip">Click to hide details</span>
+
+            {/* Expand/Collapse Button if children exist */}
+            {hasChildren && (
+              <div className="rh-tree-collapse-indicator" onClick={toggleCollapse}>
+                {isCollapsed ? '+' : '-'}
+              </div>
+            )}
           </div>
-          <div className="ref2-rates">
-            {LEVEL_RATES.map((r, i) => (
-              <div key={i} className="ref2-rate-row" style={{ borderColor: LEVEL_COLORS[i] + '25' }}>
-                <div className="ref2-rate-badge" style={{ background: LEVEL_COLORS[i] }}>L{i + 1}</div>
-                <div className="ref2-rate-info">
-                  <span className="ref2-rate-name" style={{ color: LEVEL_COLORS[i] }}>{LEVEL_LABELS[i]}</span>
-                  <span className="ref2-rate-members">{byLevel[i]} members</span>
-                </div>
-                <div className="ref2-rate-nums">
-                  <div className="ref2-rate-num" style={{ color: LEVEL_COLORS[i] }}>
-                    {r.commission}%
-                    <span className="ref2-rate-num-label">commission</span>
-                  </div>
-                  <div className="ref2-rate-num" style={{ color: '#10b981' }}>
-                    +{r.rebate}%
-                    <span className="ref2-rate-num-label">rebate</span>
-                  </div>
-                </div>
-                <div className="ref2-rate-bar-wrap">
-                  <div className="ref2-rate-bar" style={{ width: `${r.commission * 10}%`, background: LEVEL_COLORS[i] }} />
-                </div>
+        ) : (
+          /* COMPACT PILL */
+          <div 
+            className={`rh-tree-pill rh-tree-level-${node.level || 0} ${isCollapsed ? 'collapsed' : ''}`}
+            onClick={toggleDetails}
+          >
+            <span className="rh-tree-pill-level" style={{ background: getLevelColor(node.level || 1) }}>
+              {isRoot ? 'YOU' : `L${node.level}`}
+            </span>
+            <span className="rh-tree-pill-name">
+              {node.displayName || 'Trader'}
+            </span>
+            
+            {hasChildren && (
+              <button 
+                className="rh-tree-pill-toggle-btn"
+                onClick={toggleCollapse}
+              >
+                {isCollapsed ? '▼' : '▲'}
+              </button>
+            )}
+          </div>
+        )}
+
+        {hasChildren && !isCollapsed && (
+          <ul>
+            {node.children.map((child: any) => renderTreeNode(child))}
+          </ul>
+        )}
+      </li>
+    );
+  };
+
+  const renderTree = () => {
+    const roots = buildGenealogyTree();
+    
+    // Create the virtual main root node for the current user
+    const virtualRoot = {
+      userId: profileData?.id || 'root',
+      displayName: profileData?.displayName || 'You',
+      plan: profileData?.plan || 'free',
+      level: 0,
+      tradeCount: walletStats?.totalLots || 0,
+      earnedFromThem: walletStats?.lifetime || 0,
+      totalVolume: walletStats?.totalLots || 0,
+      children: roots
+    };
+
+    return (
+      <div className="rh-tree-container">
+        <ul className="rh-tree-root">
+          {renderTreeNode(virtualRoot)}
+        </ul>
+      </div>
+    );
+  };
+
+  return (
+    <div className="rh-root">
+      {/* ── HERO HEADER PANEL ── */}
+      <div className="rh-hero">
+        <div className="rh-hero-orb rh-hero-orb1" />
+        <div className="rh-hero-orb rh-hero-orb2" />
+
+        <div className="rh-hero-inner">
+          <div className="rh-hero-badge">
+            <span className="rh-hero-badge-dot" />
+            Multilevel Partnership Network
+          </div>
+
+          <h1 className="rh-hero-title">
+            Enterprise Referral Hub
+          </h1>
+          <p className="rh-hero-sub">
+            Build your professional trading team network. Earn high-fidelity multi-level rebates up to 5 tiers deep on all downline closed positions.
+          </p>
+
+          <div className="rh-hero-code-row">
+            <div className="rh-hero-code">
+              <span className="rh-hero-code-label">YOUR REFERRAL CODE</span>
+              <span className="rh-hero-code-val">{profileData?.referralCode || 'TGPT-ADMIN'}</span>
+            </div>
+            <button 
+              className="rh-hero-copy"
+              onClick={() => copyToClipboard(profileData?.referralCode || '', 'code')}
+            >
+              {copied === 'code' ? '✓ Copied' : 'Copy Code'}
+            </button>
+          </div>
+
+          <div className="rh-hero-link">
+            <span>Invite Link:</span>
+            <strong>{profileData?.referralLink || 'https://tradegpt.com/register?ref=TGPT-ADMIN'}</strong>
+          </div>
+
+          <div className="rh-hero-actions">
+            <button 
+              className="rh-hero-btn rh-hero-btn-primary"
+              onClick={() => setShareOpen(true)}
+            >
+              Share Network Link
+            </button>
+            <button 
+              className="rh-hero-btn rh-hero-btn-secondary"
+              onClick={() => {
+                copyToClipboard(profileData?.referralLink || '', 'link');
+              }}
+            >
+              {copied === 'link' ? '✓ Link Copied' : 'Quick Copy Link'}
+            </button>
+          </div>
+
+          <div className="rh-hero-network">
+            {[1, 2, 3, 4, 5].map(lvl => (
+              <div key={lvl} className="rh-hero-lvl">
+                <span className="rh-hero-lvl-dot" style={{ background: getLevelColor(lvl) }} />
+                <span className="rh-hero-lvl-lbl">L{lvl}:</span>
+                <span className="rh-hero-lvl-cnt">
+                  {loadingNetwork ? '...' : (networkMembers.filter(m => m.level === lvl).length)}
+                </span>
               </div>
             ))}
           </div>
-          <p className="ref2-rates-note">Rates configured by admin · Applied to trade volume · Paid monthly</p>
         </div>
-      )}
+      </div>
 
-      {/* ── WALLET LEDGER ── */}
-      {activeTab === 'ledger' && (
-        <div className="ref2-section">
-          <div className="ref2-section-header">
-            <span className="ref2-section-title">Wallet Ledger</span>
-            <span className="ref2-section-hint">Audited transactions</span>
+      {/* ── STATS CARDS ── */}
+      <div className="rh-stats">
+        <div className="rh-stat">
+          <span className="rh-stat-icon">👥</span>
+          <span className="rh-stat-label">Direct Team</span>
+          <span className="rh-stat-value">
+            {loadingNetwork ? '...' : networkMembers.filter(m => m.level === 1).length}
+          </span>
+          <span className="rh-stat-sub">Level 1 referrals</span>
+        </div>
+
+        <div className="rh-stat">
+          <span className="rh-stat-icon">🕸️</span>
+          <span className="rh-stat-label">Total Network</span>
+          <span className="rh-stat-value">
+            {loadingNetwork ? '...' : networkMembers.length}
+          </span>
+          <span className="rh-stat-sub">Descendants (L1 - L5)</span>
+        </div>
+
+        <div className="rh-stat">
+          <span className="rh-stat-icon">💰</span>
+          <span className="rh-stat-label">Total Earned</span>
+          <span className="rh-stat-value">
+            ${loadingWallet ? '...' : (walletStats?.lifetime?.toFixed(2) || '0.00')}
+          </span>
+          <span className="rh-stat-sub">Lifetime earnings</span>
+        </div>
+
+        <div className="rh-stat">
+          <span className="rh-stat-icon">📊</span>
+          <span className="rh-stat-label">Volume Traded</span>
+          <span className="rh-stat-value">
+            {loadingWallet ? '...' : (walletStats?.totalLots?.toFixed(2) || '0.00')}
+          </span>
+          <span className="rh-stat-sub">Your closed volume</span>
+        </div>
+      </div>
+
+      {/* ── WALLET BALANCE & WITHDRAW CARD ── */}
+      <div className="rh-wallet">
+        <div className="rh-wallet-left">
+          <span className="rh-wallet-eyebrow">💼 Referral Wallet</span>
+          <div className="rh-wallet-balance">
+            <span className="rh-wallet-currency">$</span>
+            <span className="rh-wallet-amount">
+              {loadingWallet ? '...' : (walletStats?.available?.toLocaleString('en-US', { minimumFractionDigits: 2 }) || '0.00')}
+            </span>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {transactions.length === 0 ? (
-              <div style={{ padding: 20, textAlign: 'center', color: 'var(--subtext)' }}>
-                No transactions recorded yet.
+          <div className="rh-wallet-pills">
+            <span className="rh-wallet-pill rh-wallet-pill-pending">
+              ⏳ ${loadingWallet ? '...' : (walletStats?.pending?.toFixed(2) || '0.00')} pending
+            </span>
+            <span className="rh-wallet-pill rh-wallet-pill-lifetime">
+              🏆 ${loadingWallet ? '...' : (walletStats?.lifetime?.toFixed(2) || '0.00')} lifetime
+            </span>
+          </div>
+        </div>
+
+        <div className="rh-wallet-right">
+          <button 
+            className="rh-withdraw-btn"
+            disabled={loadingWallet || !walletStats || walletStats.available < walletStats.minWithdrawal}
+            onClick={() => {
+              setWithdrawStep('form');
+              setWithdrawAmt('');
+              setWithdrawAddr('');
+              setWithdrawOpen(true);
+            }}
+          >
+            Withdraw Now
+          </button>
+          <span className="rh-wallet-min">
+            Min withdrawal: ${loadingWallet ? '50' : (walletStats?.minWithdrawal || '50')}
+          </span>
+        </div>
+      </div>
+
+      {/* ── DYNAMIC RATE / UPGRADE PLAN CARD ── */}
+      <div className={`rh-plan-card rh-plan-card-${ratesData?.userPlan || 'free'}`}>
+        <div className="rh-plan-info">
+          <span className="rh-plan-eyebrow">Your Earning Rate & Plan Tier</span>
+          <span className="rh-plan-name">
+            {ratesData?.userPlan ? ratesData.userPlan.toUpperCase() : 'FREE'} PLAN
+            &nbsp;·&nbsp;
+            {ratesData?.tierLabel || 'Standard'} Tier
+          </span>
+          <span className="rh-plan-meta">
+            Plan Multiplier: <strong>{ratesData?.planMultiplier || '0.60'}x</strong>
+            &nbsp;·&nbsp;
+            Effective Rate: <strong>${ratesData?.effectiveRate || '1.20'}/lot</strong>
+          </span>
+        </div>
+
+        <div className="rh-plan-tiers">
+          {switchTab && ratesData?.userPlan !== 'enterprise' && (
+            <button 
+              className="rh-plan-upgrade-btn"
+              onClick={() => switchTab('profile')}
+            >
+              Upgrade Plan &rarr;
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* ── TAB SELECTOR ── */}
+      <div className="rh-tabs">
+        {(['network', 'milestones', 'rates', 'ledger', 'analytics'] as Tab[]).map(t => (
+          <button
+            key={t}
+            className={`rh-tab ${activeTab === t ? 'active' : ''}`}
+            onClick={() => setActiveTab(t)}
+          >
+            <span className="rh-tab-label">
+              {t === 'network' && '🌐 Network'}
+              {t === 'milestones' && '🏆 Milestones'}
+              {t === 'rates' && '📊 Rates'}
+              {t === 'ledger' && '📜 Ledger'}
+              {t === 'analytics' && '📈 Analytics'}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {/* ── TAB CONTENTS ── */}
+
+      {/* 1. NETWORK TAB */}
+      {activeTab === 'network' && (
+        <div className="rh-section-card">
+          <div className="rh-section-card-header">
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span className="rh-section-card-title">Team Network</span>
+              <span className="rh-section-card-hint">Total: {networkMembers.length} members</span>
+            </div>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--input-bg)', padding: 4, borderRadius: 8 }}>
+              <button 
+                onClick={() => setNetworkView('list')}
+                className={`rh-filter-chip ${networkView === 'list' ? 'active' : ''}`}
+                style={{ padding: '4px 10px', fontSize: 10, border: 'none', margin: 0 }}
+              >
+                List View
+              </button>
+              <button 
+                onClick={() => setNetworkView('tree')}
+                className={`rh-filter-chip ${networkView === 'tree' ? 'active' : ''}`}
+                style={{ padding: '4px 10px', fontSize: 10, border: 'none', margin: 0 }}
+              >
+                Genealogy Tree
+              </button>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {loadingNetwork ? (
+              <div className="rh-empty">Loading network members...</div>
+            ) : networkMembers.length === 0 ? (
+              <div className="rh-empty">
+                <div className="rh-empty-icon">👥</div>
+                <div className="rh-empty-text">No team members referred yet. Copy your link to start building.</div>
               </div>
+            ) : networkView === 'tree' ? (
+              renderTree()
             ) : (
-              transactions.map((tx) => (
-                <div key={tx.id} style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '12px 16px',
-                  background: 'var(--card-bg, #fff)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 12,
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{
-                      width: 32, height: 32,
-                      borderRadius: '50%',
-                      background: tx.amount >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 14,
-                      color: tx.amount >= 0 ? '#10b981' : '#ef4444'
-                    }}>
-                      {tx.amount >= 0 ? '↓' : '↑'}
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', textTransform: 'capitalize' }}>
-                        {tx.tx_type.replace('_', ' ')}
-                      </div>
-                      <div style={{ fontSize: 11, color: 'var(--subtext)' }}>
-                        {new Date(tx.created_at).toLocaleDateString(undefined, {
-                          month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-                        })}
-                      </div>
+              networkMembers.map((member, idx) => (
+                <div key={member.userId || idx} className="rh-member">
+                  <div 
+                    className="rh-member-avatar" 
+                    style={{ background: getLevelColor(member.level || 1) }}
+                  >
+                    {(member.displayName || '??').slice(0, 2).toUpperCase()}
+                  </div>
+                  <div className="rh-member-info">
+                    <div className="rh-member-name">{member.displayName || 'Trader'}</div>
+                    <div className="rh-member-meta">
+                      Level {member.level || '?'} &nbsp;·&nbsp; {(member.plan || 'free').toUpperCase()} &nbsp;·&nbsp; {member.tradeCount || 0} trades
                     </div>
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{
-                      fontSize: 14,
-                      fontWeight: 800,
-                      color: tx.amount >= 0 ? '#10b981' : '#ef4444'
-                    }}>
-                      {tx.amount >= 0 ? '+' : ''}${Number(tx.amount).toFixed(2)}
-                    </div>
-                    <div style={{
-                      fontSize: 9,
-                      fontWeight: 600,
-                      padding: '2px 6px',
-                      borderRadius: 6,
-                      display: 'inline-block',
-                      textTransform: 'uppercase',
-                      background: tx.status === 'completed' ? 'rgba(16, 185, 129, 0.1)' : tx.status === 'pending' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                      color: tx.status === 'completed' ? '#10b981' : tx.status === 'pending' ? '#f59e0b' : '#ef4444'
-                    }}>
-                      {tx.status}
-                    </div>
+                  <div className="rh-member-right">
+                    <span className="rh-member-earned">+${(Number(member.earnedFromThem) || 0).toFixed(2)}</span>
+                    <span className="rh-member-vol">{(Number(member.totalVolume) || 0).toFixed(2)} lots</span>
                   </div>
                 </div>
               ))
@@ -591,248 +660,595 @@ export default function ReferralTab({ partners = mockNetwork }: ReferralTabProps
         </div>
       )}
 
-      {/* ── HOW IT WORKS ── */}
-      <div className="ref2-how">
-        <span className="ref2-how-title">How 5-Level Referral Works</span>
-        <div className="ref2-how-steps">
-          {[
-            { icon: '🔗', n: '01', label: 'Share your link',  sub: 'Send to traders you know' },
-            { icon: '✍️', n: '02', label: 'They sign up',     sub: 'Create via your referral' },
-            { icon: '💹', n: '03', label: 'They refer too',   sub: 'Build your L2+ network'  },
-            { icon: '💰', n: '04', label: 'You earn deep',    sub: 'Earn through 5 levels'   },
-          ].map((s, i) => (
-            <div key={i} className="ref2-how-step">
-              <div className="ref2-how-num">{s.n}</div>
-              <div className="ref2-how-icon">{s.icon}</div>
-              <span className="ref2-how-label">{s.label}</span>
-              <span className="ref2-how-sub">{s.sub}</span>
-              {i < 3 && <div className="ref2-how-arrow">→</div>}
+      {/* 2. MILESTONES TAB */}
+      {activeTab === 'milestones' && (
+        <div className="rh-section-card">
+          <div className="rh-section-card-header">
+            <span className="rh-section-card-title">Milestone Tiers</span>
+            <span className="rh-section-card-hint">40/40/20 Leg Rule Applied</span>
+          </div>
+          <div className="rh-section-card-body">
+            {loadingMilestones ? (
+              <div className="rh-empty">Loading milestone progress...</div>
+            ) : milestones.length === 0 ? (
+              <div className="rh-empty">No milestone configurations found.</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {milestones.map((m) => {
+                  const p = m.progress;
+                  const pct = p ? Math.min((p.total_counted_lots / m.target_lots) * 100, 100) : 0;
+                  const status = p?.status || 'in_progress';
+                  const isQualified = status === 'qualified' || status === 'paid';
+                  const isPaid = status === 'paid';
+                  const color = getLevelColor(m.sort_order || 1);
+
+                  return (
+                    <div
+                      key={m.id}
+                      style={{
+                        background: 'var(--input-bg)',
+                        border: `1px solid ${isQualified ? '#10b981' : 'var(--border)'}`,
+                        borderRadius: 12,
+                        padding: '14px 16px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 8
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div style={{
+                          width: 36, height: 36, borderRadius: 8,
+                          background: `${color}20`,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 18
+                        }}>
+                          {m.icon || '🏆'}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)' }}>
+                              {m.name}
+                            </span>
+                            {isQualified && (
+                              <span style={{
+                                fontSize: 9, fontWeight: 800, padding: '2px 6px', borderRadius: 4,
+                                background: isPaid ? 'rgba(16,185,129,0.1)' : `${color}20`,
+                                color: isPaid ? '#10b981' : '#d4a843',
+                                textTransform: 'uppercase'
+                              }}>
+                                {isPaid ? 'Paid' : 'Qualified'}
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ fontSize: 10, color: 'var(--subtext)', marginTop: 2 }}>
+                            {(p?.total_counted_lots || 0).toLocaleString()} / {m.target_lots.toLocaleString()} lots &nbsp;·&nbsp; Reward: <strong style={{ color }}>${m.reward_amount.toLocaleString()}</strong>
+                          </div>
+                        </div>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: isQualified ? '#10b981' : 'var(--text)' }}>
+                          {Math.round(pct)}%
+                        </div>
+                      </div>
+
+                      {/* Progress bar */}
+                      <div style={{ height: 4, background: 'var(--border)', borderRadius: 2, overflow: 'hidden' }}>
+                        <div style={{
+                          height: '100%',
+                          width: `${pct}%`,
+                          background: isQualified ? '#10b981' : color,
+                          transition: 'width 0.4s ease'
+                        }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 3. RATES TAB */}
+      {activeTab === 'rates' && (
+        <div className="rh-section-card">
+          <div className="rh-section-card-header">
+            <span className="rh-section-card-title">Multi-Level Rebate Percentages</span>
+            <span className="rh-section-card-hint">Rules from global settings</span>
+          </div>
+          
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {loadingRates ? (
+              <div className="rh-empty">Loading rates...</div>
+            ) : (
+              ratesData?.levels?.map((lvl: any) => (
+                <div key={lvl.level} className="rh-rate-row">
+                  <div 
+                    className="rh-rate-badge"
+                    style={{ background: getLevelColor(lvl.level) }}
+                  >
+                    L{lvl.level}
+                  </div>
+                  <div className="rh-rate-info">
+                    <span className="rh-rate-name">{lvl.label}</span>
+                    <span className="rh-rate-members">
+                      Commission rate: {lvl.percentage}% of closed rebate
+                    </span>
+                    <div className="rh-rate-bar-track">
+                      <div 
+                        className="rh-rate-bar" 
+                        style={{ 
+                          width: `${lvl.percentage}%`,
+                          background: getLevelColor(lvl.level) 
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <span className="rh-rate-pct" style={{ color: getLevelColor(lvl.level) }}>
+                      {lvl.percentage}%
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Symbol Specific Base Rates */}
+          {ratesData?.rules && ratesData.rules.length > 0 && (
+            <div className="rh-symbol-rules">
+              {ratesData.rules.map((rule: any, idx: number) => (
+                <div key={idx} className="rh-symbol-rule">
+                  <span className="rh-symbol-name">{rule.symbol}</span>
+                  <span className="rh-symbol-rate">${rule.rebate_per_lot}/lot</span>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
+        </div>
+      )}
+
+      {/* 4. LEDGER TAB */}
+      {activeTab === 'ledger' && (
+        <div className="rh-section-card">
+          <div className="rh-section-card-header">
+            <span className="rh-section-card-title">Transaction Ledger</span>
+            <span className="rh-section-card-hint">Total filtered: {filteredTxs.length}</span>
+          </div>
+
+          <div className="rh-ledger-filters">
+            {(['all', 'rebate', 'referral', 'withdrawal'] as const).map(f => (
+              <button
+                key={f}
+                className={`rh-filter-chip ${ledgerFilter === f ? 'active' : ''}`}
+                onClick={() => setLedgerFilter(f)}
+              >
+                {f.toUpperCase()}
+              </button>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {loadingWallet ? (
+              <div className="rh-empty">Loading ledger...</div>
+            ) : filteredTxs.length === 0 ? (
+              <div className="rh-empty">No transactions match the selected filter.</div>
+            ) : (
+              filteredTxs.map((tx) => (
+                <div key={tx.id} className="rh-tx">
+                  <div 
+                    className="rh-tx-icon"
+                    style={{
+                      background: tx.amount >= 0 ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
+                      color: tx.amount >= 0 ? '#10b981' : '#ef4444'
+                    }}
+                  >
+                    {tx.amount >= 0 ? '↓' : '↑'}
+                  </div>
+                  <div className="rh-tx-info">
+                    <div className="rh-tx-type">{String(tx.tx_type).replace('_', ' ')}</div>
+                    <div className="rh-tx-date">
+                      {new Date(tx.created_at).toLocaleDateString(undefined, {
+                        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                      })}
+                    </div>
+                    {tx.metadata?.symbol && (
+                      <div className="rh-tx-tags">
+                        <span className="rh-tx-tag">{tx.metadata.symbol}</span>
+                        <span className="rh-tx-tag">{tx.metadata.volume} lots</span>
+                        {tx.metadata.level && (
+                          <span className="rh-tx-tag">L{tx.metadata.level} Referral</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
+                    <span 
+                      className="rh-tx-amount"
+                      style={{ color: tx.amount >= 0 ? '#10b981' : '#ef4444' }}
+                    >
+                      {tx.amount >= 0 ? '+' : ''}${Math.abs(Number(tx.amount)).toFixed(2)}
+                    </span>
+                    <span className={`rh-tx-status rh-tx-status-${tx.status}`}>
+                      {tx.status}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 5. ANALYTICS TAB */}
+      {activeTab === 'analytics' && (
+        <div className="rh-section-card">
+          <div className="rh-section-card-header">
+            <span className="rh-section-card-title">Earning Performance</span>
+            <span className="rh-section-card-hint">Trailing 30 days statistics</span>
+          </div>
+
+          <div className="rh-analytics-grid">
+            <div className="rh-an-card">
+              <span className="rh-an-label">30D Income</span>
+              <div className="rh-an-val">${analyticsData?.summary?.total30d?.toFixed(2) || '0.00'}</div>
+            </div>
+            <div className="rh-an-card">
+              <span className="rh-an-label">Rebates</span>
+              <div className="rh-an-val" style={{ color: '#10b981' }}>
+                ${analyticsData?.summary?.rebate30d?.toFixed(2) || '0.00'}
+              </div>
+            </div>
+            <div className="rh-an-card">
+              <span className="rh-an-label">Referrals</span>
+              <div className="rh-an-val" style={{ color: '#6366f1' }}>
+                ${analyticsData?.summary?.referral30d?.toFixed(2) || '0.00'}
+              </div>
+            </div>
+            <div className="rh-an-card">
+              <span className="rh-an-label">Lot Velocity</span>
+              <div className="rh-an-val" style={{ color: '#d4a843' }}>
+                {analyticsData?.summary?.dailyLotVelocity || '0.00'}
+              </div>
+              <span className="rh-an-sub">Lots / day average</span>
+            </div>
+          </div>
+
+          {/* Interactive Chart */}
+          <div className="rh-chart-wrap">
+            <span className="rh-chart-title">Daily Earnings Breakdown</span>
+            <div className="rh-bars">
+              {analyticsData?.dailyChart?.map((day: any, idx: number) => {
+                const chartList = analyticsData.dailyChart || [];
+                const maxVal = Math.max(...chartList.map((d: any) => Number(d.total) || 0), 10);
+                const rebPct = ((Number(day.rebate) || 0) / maxVal) * 100;
+                const refPct = ((Number(day.referral) || 0) / maxVal) * 100;
+
+                return (
+                  <div 
+                    key={idx} 
+                    className="rh-bar-col"
+                    title={`${day.date}: Rebate $${day.rebate.toFixed(2)}, Referral $${day.referral.toFixed(2)}`}
+                  >
+                    <div className="rh-bar-stack">
+                      <div 
+                        className="rh-bar-seg" 
+                        style={{ height: `${refPct}%`, background: '#6366f1' }}
+                      />
+                      <div 
+                        className="rh-bar-seg" 
+                        style={{ height: `${rebPct}%`, background: '#10b981' }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="rh-chart-legend">
+              <div className="rh-legend-item">
+                <span className="rh-legend-dot" style={{ background: '#10b981' }} />
+                Personal Rebates
+              </div>
+              <div className="rh-legend-item">
+                <span className="rh-legend-dot" style={{ background: '#6366f1' }} />
+                Referral Commission
+              </div>
+            </div>
+          </div>
+
+          {/* Top Performers */}
+          {analyticsData?.topEarners && analyticsData.topEarners.length > 0 && (
+            <div className="rh-earners">
+              <span className="rh-chart-title">Top Contributing Referrals</span>
+              {(analyticsData.topEarners || []).map((earner: any) => {
+                const earnersList = analyticsData.topEarners || [];
+                const maxEarned = Math.max(...earnersList.map((e: any) => Number(e.earned) || 0), 1);
+                const widthPct = ((Number(earner.earned) || 0) / maxEarned) * 100;
+                return (
+                  <div key={earner.rank} className="rh-earner-row">
+                    <span className="rh-earner-rank">#{earner.rank}</span>
+                    <div className="rh-earner-bar">
+                      <div 
+                        className="rh-earner-fill" 
+                        style={{ width: `${widthPct}%` }}
+                      />
+                    </div>
+                    <span className="rh-earner-earned">${earner.earned.toFixed(2)}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── HOW IT WORKS ── */}
+      <div className="rh-how">
+        <span className="rh-how-title">How the 5-Level Referral Tree Works</span>
+        <div className="rh-how-steps">
+          <div className="rh-how-step">
+            <span className="rh-how-n">01</span>
+            <div className="rh-how-icon">🔗</div>
+            <span className="rh-how-label">Share link</span>
+            <span className="rh-how-sub">Copy and post your unique referral code.</span>
+          </div>
+          <div className="rh-how-step">
+            <span className="rh-how-n">02</span>
+            <div className="rh-how-icon">🤝</div>
+            <span className="rh-how-label">Traders join</span>
+            <span className="rh-how-sub">Your invitees connect MetaAPI broker accounts.</span>
+          </div>
+          <div className="rh-how-step">
+            <span className="rh-how-n">03</span>
+            <div className="rh-how-icon">📈</div>
+            <span className="rh-how-label">Team trades</span>
+            <span className="rh-how-sub">Lots closed in their network generate commission.</span>
+          </div>
+          <div className="rh-how-step">
+            <span className="rh-how-n">04</span>
+            <div className="rh-how-icon">💰</div>
+            <span className="rh-how-label">Get paid</span>
+            <span className="rh-how-sub">Earnings roll up instantly to your wallet.</span>
+          </div>
         </div>
       </div>
 
-      {/* ── SHARE MODAL (fallback) ── */}
+      {/* ── SHARE MODAL ── */}
       {shareOpen && (
-        <div className="ref2-modal-overlay" onClick={() => setShareOpen(false)}>
-          <div className="ref2-modal" onClick={e => e.stopPropagation()}>
-            <div className="ref2-modal-header">
-              <span className="ref2-modal-title">Share Your Link</span>
-              <button className="ref2-modal-close" onClick={() => setShareOpen(false)}>✕</button>
+        <div className="rh-modal-overlay" onClick={() => setShareOpen(false)}>
+          <div className="rh-modal" onClick={e => e.stopPropagation()}>
+            <div className="rh-modal-header">
+              <div>
+                <span className="rh-modal-title">Share Referral Code</span>
+                <span className="rh-modal-sub">Earn on their closed trade volume</span>
+              </div>
+              <button className="rh-modal-close" onClick={() => setShareOpen(false)}>✕</button>
             </div>
-            <div className="ref2-modal-body">
-              <div className="ref2-modal-url">{REFERRAL_LINK}</div>
-              <button className="ref2-btn-primary ref2-modal-copy" onClick={() => { copy(REFERRAL_LINK, 'link'); setShareOpen(false); }}>
-                {copied === 'link' ? '✓ Copied!' : '⎘ Copy to clipboard'}
-              </button>
+            
+            <div className="rh-share-grid">
+              <a 
+                href={getShareLink('telegram')} 
+                target="_blank" 
+                rel="noreferrer" 
+                className="rh-share-btn"
+              >
+                <span className="rh-share-icon">✈️</span>
+                <span className="rh-share-label">Telegram</span>
+              </a>
+              <a 
+                href={getShareLink('whatsapp')} 
+                target="_blank" 
+                rel="noreferrer" 
+                className="rh-share-btn"
+              >
+                <span className="rh-share-icon">💬</span>
+                <span className="rh-share-label">WhatsApp</span>
+              </a>
+              <a 
+                href={getShareLink('twitter')} 
+                target="_blank" 
+                rel="noreferrer" 
+                className="rh-share-btn"
+              >
+                <span className="rh-share-icon">🐦</span>
+                <span className="rh-share-label">Twitter</span>
+              </a>
             </div>
+
+            <div className="rh-share-url">
+              {profileData?.referralLink || ''}
+            </div>
+
+            <button 
+              className="rh-btn rh-btn-secondary"
+              onClick={() => {
+                copyToClipboard(profileData?.referralLink || '', 'link');
+                setShareOpen(false);
+              }}
+            >
+              Copy to clipboard
+            </button>
           </div>
         </div>
       )}
 
       {/* ── WITHDRAWAL MODAL ── */}
       {withdrawOpen && (
-        <div className="ref2-modal-overlay" onClick={() => { setWithdrawOpen(false); setWithdrawStep('form'); }}>
-          <div className="ref2-modal ref2-modal--wide" onClick={e => e.stopPropagation()}>
-            <div className="ref2-modal-header">
+        <div className="rh-modal-overlay" onClick={() => !withdrawing && setWithdrawOpen(false)}>
+          <div className="rh-modal" onClick={e => e.stopPropagation()}>
+            <div className="rh-modal-header">
               <div>
-                <span className="ref2-modal-title">Withdraw Earnings</span>
-                <span className="ref2-modal-subtitle">Available: <strong style={{ color:'#10b981' }}>${wallet.available.toFixed(2)}</strong></span>
+                <span className="rh-modal-title">Withdraw Referral Wallet</span>
+                <span className="rh-modal-sub">
+                  Available: <strong style={{ color: '#10b981' }}>${walletStats?.available?.toFixed(2) || '0.00'}</strong>
+                </span>
               </div>
-              <button className="ref2-modal-close" onClick={() => { setWithdrawOpen(false); setWithdrawStep('form'); }}>✕</button>
+              <button 
+                className="rh-modal-close" 
+                disabled={withdrawing} 
+                onClick={() => setWithdrawOpen(false)}
+              >
+                ✕
+              </button>
             </div>
 
             {withdrawStep === 'form' && (
-              <div className="ref2-modal-body">
-                {/* Quick amount chips */}
+              <>
                 <div>
-                  <p className="ref2-wd-label">Amount</p>
-                  <div className="ref2-wd-chips">
-                    {[100, 250, 500, 1000].filter(v => v <= wallet.available).map(v => (
-                      <button key={v} className={`ref2-wd-chip ${withdrawAmt === String(v) ? 'ref2-wd-chip--active' : ''}`}
-                        onClick={() => setWithdrawAmt(String(v))}>${v}</button>
+                  <span className="rh-wd-label">Payout Amount</span>
+                  <div className="rh-wd-chips">
+                    {[50, 100, 250, 500].filter(v => v <= (walletStats?.available || 0)).map(v => (
+                      <button 
+                        key={v} 
+                        className={`rh-wd-chip ${Number(withdrawAmt) === v ? 'active' : ''}`}
+                        onClick={() => setWithdrawAmt(String(v))}
+                      >
+                        ${v}
+                      </button>
                     ))}
-                    <button className={`ref2-wd-chip ${withdrawAmt === String(Math.floor(wallet.available)) ? 'ref2-wd-chip--active' : ''}`}
-                      onClick={() => setWithdrawAmt(String(Math.floor(wallet.available)))}>Max</button>
+                    <button 
+                      className={`rh-wd-chip ${Number(withdrawAmt) === Math.floor(walletStats?.available || 0) ? 'active' : ''}`}
+                      onClick={() => setWithdrawAmt(String(Math.floor(walletStats?.available || 0)))}
+                    >
+                      Max
+                    </button>
                   </div>
-                  <div className="ref2-wd-input-wrap">
-                    <span className="ref2-wd-prefix">$</span>
-                    <input
-                      className="ref2-wd-input"
+                  <div className="rh-wd-input-wrap">
+                    <span className="rh-wd-prefix">$</span>
+                    <input 
                       type="number"
-                      min={wallet.minWithdrawal}
-                      max={wallet.available}
-                      placeholder={`Min $${wallet.minWithdrawal}`}
+                      className="rh-wd-input"
+                      placeholder="0.00"
+                      min={walletStats?.minWithdrawal || 50}
+                      max={walletStats?.available || 0}
                       value={withdrawAmt}
                       onChange={e => setWithdrawAmt(e.target.value)}
                     />
                   </div>
                 </div>
 
-                {/* Method */}
                 <div>
-                  <p className="ref2-wd-label">Payout Method</p>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    background: 'var(--input-bg)',
-                    border: '1px solid var(--border)',
-                    borderRadius: 12,
-                    padding: '12px 14px',
-                    marginBottom: 10
-                  }}>
-                    <span className="ref2-wd-method-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, background: 'rgba(99, 102, 241, 0.1)', borderRadius: 8 }}>
-                      <img src="https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/btc.png" alt="Crypto" width={22} height={22} style={{ borderRadius: 50, background: '#fff' }} />
-                    </span>
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Crypto Wallet</span>
-                      <span style={{ fontSize: 11, color: 'var(--subtext)' }}>Processed automatically via NOWPayments</span>
-                    </div>
-                  </div>
-
-                  {/* Crypto coin picker */}
-                  <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:10 }}>
+                  <span className="rh-wd-label">Select Payout Cryptocurrency</span>
+                  <div className="rh-wd-coins">
                     {[
-                      { name:'USDT (TRC-20)', slug:'usdt' },
-                      { name:'USDT (ERC-20)', slug:'usdt' },
-                      { name:'BTC',           slug:'btc'  },
-                      { name:'ETH',           slug:'eth'  },
-                      { name:'BNB',           slug:'bnb'  },
-                      { name:'USDC',          slug:'usdc' },
-                    ].map(coin => {
-                      const active = withdrawCoin === coin.name;
-                      return (
-                        <button key={coin.name}
-                          type="button"
-                          onClick={() => setWithdrawCoin(coin.name)}
-                          style={{
-                            display:'flex', alignItems:'center', gap:6,
-                            padding:'5px 12px 5px 6px', borderRadius:20, fontSize:11, fontWeight:700,
-                            border:'1px solid', cursor:'pointer', fontFamily:'inherit',
-                            background: active ? '#6366f1' : 'transparent',
-                            borderColor: active ? '#6366f1' : 'var(--border)',
-                            color: active ? '#fff' : 'var(--subtext)',
-                            transition:'all 0.15s',
-                          }}>
-                          <img
-                            src={`https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/${coin.slug}.png`}
-                            alt={coin.name}
-                            width={18} height={18}
-                            style={{ borderRadius:50, background:'#fff', flexShrink:0 }}
-                          />
-                          {coin.name}
-                        </button>
-                      );
-                    })}
+                      { name: 'USDT (TRC-20)', slug: 'usdt' },
+                      { name: 'USDT (ERC-20)', slug: 'usdt' },
+                      { name: 'BTC', slug: 'btc' },
+                      { name: 'ETH', slug: 'eth' }
+                    ].map(coin => (
+                      <button
+                        key={coin.name}
+                        className={`rh-wd-coin ${withdrawCoin === coin.name ? 'active' : ''}`}
+                        onClick={() => setWithdrawCoin(coin.name)}
+                      >
+                        <img 
+                          src={`https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/${coin.slug}.png`}
+                          alt={coin.name}
+                          width={14}
+                          height={14}
+                        />
+                        {coin.name}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
-                {/* Address / details */}
                 <div>
-                  <p className="ref2-wd-label">{withdrawCoin} Wallet Address</p>
-                  <input
-                    className="ref2-wd-addr"
-                    type="text"
-                    placeholder="T..."
+                  <span className="rh-wd-label">{withdrawCoin} Wallet Address</span>
+                  <input 
+                    type="text" 
+                    className="rh-wd-addr"
+                    placeholder="Enter wallet address"
                     value={withdrawAddr}
                     onChange={e => setWithdrawAddr(e.target.value)}
                   />
                 </div>
 
-                {/* Fee note */}
-                <div className="ref2-wd-fee">
-                  <span>Network fee</span>
+                <div className="rh-wd-fee">
+                  <span>Estimated network gas fee:</span>
                   <span>$2.00</span>
                 </div>
 
-                <button
-                  className="ref2-btn-primary ref2-modal-copy"
-                  disabled={!withdrawAmt || Number(withdrawAmt) < wallet.minWithdrawal || !withdrawAddr}
-                  onClick={() => setWithdrawStep('confirm')}>
-                  Review Withdrawal
+                {withdrawError && (
+                  <div style={{ color: '#ef4444', fontSize: 12, textAlign: 'center' }}>
+                    {withdrawError}
+                  </div>
+                )}
+
+                <button 
+                  className="rh-btn rh-btn-primary"
+                  disabled={!withdrawAmt || Number(withdrawAmt) < (walletStats?.minWithdrawal || 50) || !withdrawAddr}
+                  onClick={() => setWithdrawStep('confirm')}
+                >
+                  Review Request &rarr;
                 </button>
-              </div>
+              </>
             )}
 
             {withdrawStep === 'confirm' && (
-              <div className="ref2-modal-body">
-                <div className="ref2-wd-summary">
-                  <div className="ref2-wd-summary-row">
-                    <span>Amount</span>
-                    <strong style={{ color:'#10b981' }}>${Number(withdrawAmt).toFixed(2)}</strong>
+              <>
+                <div className="rh-wd-summary">
+                  <div className="rh-wd-row">
+                    <span>Requested Amount:</span>
+                    <span>${Number(withdrawAmt).toFixed(2)}</span>
                   </div>
-                  <div className="ref2-wd-summary-row">
-                    <span>Method</span>
-                    <strong>{withdrawMethod.charAt(0).toUpperCase() + withdrawMethod.slice(1)}</strong>
+                  <div className="rh-wd-row">
+                    <span>Currency:</span>
+                    <span>{withdrawCoin}</span>
                   </div>
-                  <div className="ref2-wd-summary-row">
-                    <span>Destination</span>
-                    <strong className="ref2-wd-addr-preview">{withdrawAddr}</strong>
+                  <div className="rh-wd-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
+                    <span>Destination Address:</span>
+                    <span style={{ fontSize: 11, fontFamily: 'monospace', wordBreak: 'break-all', color: 'var(--subtext)' }}>
+                      {withdrawAddr}
+                    </span>
                   </div>
-                  <div className="ref2-wd-summary-row ref2-wd-summary-total">
-                    <span>You receive</span>
-                    <strong style={{ color:'#10b981', fontSize:18 }}>
-                      ${(Number(withdrawAmt) - (withdrawMethod === 'crypto' ? 2 : withdrawMethod === 'bank' ? 5 : 0)).toFixed(2)}
+                  <div className="rh-wd-row">
+                    <span>You Receive:</span>
+                    <strong style={{ color: '#10b981' }}>
+                      ${(Number(withdrawAmt) - 2.00).toFixed(2)}
                     </strong>
                   </div>
                 </div>
-                <div style={{ display:'flex', gap:10 }}>
-                  <button className="ref2-btn-secondary" style={{ flex:1 }} onClick={() => { setWithdrawStep('form'); setWithdrawError(null); }}>
-                    ← Edit
-                  </button>
-                  <button className="ref2-btn-primary" style={{ flex:2 }}
-                    disabled={withdrawing}
-                    onClick={async () => {
-                      setWithdrawing(true);
-                      setWithdrawError(null);
-                      try {
-                        const res = await fetch('/api/withdrawals', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            action: 'withdraw',
-                            amount: Number(withdrawAmt),
-                            currency: withdrawMethod === 'crypto' ? withdrawCoin : withdrawMethod,
-                            address: withdrawAddr,
-                          }),
-                        });
-                        const data = await res.json();
-                        if (!res.ok || data.error) throw new Error(data.error || 'Withdrawal failed');
-                        setWithdrawResult({ withdrawalId: data.withdrawalId, nowpaymentsId: data.nowpaymentsId });
-                        setWithdrawStep('success');
-                        fetchWallet();
-                      } catch (e: any) {
-                        setWithdrawError(e.message);
-                      }
-                      setWithdrawing(false);
-                    }}>
-                    {withdrawing ? '⏳ Processing…' : 'Confirm Withdrawal'}
-                  </button>
-                </div>
+
                 {withdrawError && (
-                  <div style={{ background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.3)', borderRadius:10, padding:'10px 14px', marginTop:4 }}>
-                    <p style={{ color:'#ef4444', fontSize:12, fontWeight:700, margin:0 }}>❌ {withdrawError}</p>
+                  <div style={{ color: '#ef4444', fontSize: 12, textAlign: 'center' }}>
+                    {withdrawError}
                   </div>
                 )}
-              </div>
+
+                <div className="rh-btn-row">
+                  <button 
+                    className="rh-btn rh-btn-secondary"
+                    disabled={withdrawing}
+                    onClick={() => {
+                      setWithdrawStep('form');
+                      setWithdrawError(null);
+                    }}
+                  >
+                    Back
+                  </button>
+                  <button 
+                    className="rh-btn rh-btn-primary"
+                    disabled={withdrawing}
+                    onClick={handleWithdrawalSubmit}
+                  >
+                    {withdrawing ? <span className="rh-spinner" /> : 'Confirm Payout'}
+                  </button>
+                </div>
+              </>
             )}
 
             {withdrawStep === 'success' && (
-              <div className="ref2-modal-body ref2-wd-success">
-                <div className="ref2-wd-success-icon">✓</div>
-                <p className="ref2-wd-success-title">Withdrawal Submitted!</p>
-                <p className="ref2-wd-success-sub">
-                  ${Number(withdrawAmt).toFixed(2)} is being processed via NOWPayments.<br />
-                  You'll receive it within 1–3 business days.
-                </p>
-                {withdrawResult?.withdrawalId && (
-                  <p style={{ fontSize:11, color:'var(--subtext)', fontFamily:'monospace', margin:0 }}>
-                    Ref: {withdrawResult.withdrawalId}
-                  </p>
-                )}
-                <button className="ref2-btn-primary ref2-modal-copy"
-                  onClick={() => { setWithdrawOpen(false); setWithdrawStep('form'); setWithdrawAmt(''); setWithdrawAddr(''); setWithdrawError(null); setWithdrawResult(null); }}>
+              <div className="rh-success">
+                <span className="rh-success-icon">🎉</span>
+                <span className="rh-success-title">Withdrawal Requested</span>
+                <span className="rh-success-sub">
+                  Your payout request of <strong>${Number(withdrawAmt).toFixed(2)}</strong> has been successfully placed. Our compliance team will audit and process the payout within 24 hours.
+                </span>
+                <button 
+                  className="rh-btn rh-btn-primary" 
+                  style={{ width: '100%', marginTop: 12 }}
+                  onClick={() => setWithdrawOpen(false)}
+                >
                   Done
                 </button>
               </div>
@@ -840,7 +1256,6 @@ export default function ReferralTab({ partners = mockNetwork }: ReferralTabProps
           </div>
         </div>
       )}
-
     </div>
   );
 }

@@ -222,6 +222,7 @@ export default function ManagerPositions({ positions, pendingOrders, accountInfo
   const [batchClosing, setBatchClosing] = useState(false);
   const [menuGroupKey, setMenuGroupKey] = useState<string | null>(null);
   const [chartKey, setChartKey] = useState<string | null>(null);
+  const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
 
   const grouped = groupPositions(positions);
 
@@ -247,21 +248,47 @@ export default function ManagerPositions({ positions, pendingOrders, accountInfo
     return `${top[0]} ${dir}`;
   })();
 
+  const handleCancelOrder = async (orderId: string) => {
+    if (!confirm('Cancel this pending order?')) return;
+    setCancellingOrderId(orderId);
+    try {
+      const res = await fetch('/api/broker/order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'cancelOrder', brokerId: activeBrokerId, orderId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        onRefresh();
+      } else {
+        alert(data.error || 'Cancel failed');
+      }
+    } catch (err: any) {
+      alert('Cancel failed: ' + err.message);
+    } finally {
+      setCancellingOrderId(null);
+    }
+  };
+
   const handleBatchClose = async () => {
     if (selectedIds.size === 0) return;
     if (!confirm(`Close ${selectedIds.size} selected position${selectedIds.size > 1 ? 's' : ''}?`)) return;
     setBatchClosing(true);
     try {
-      for (const posId of selectedIds) {
-        await fetch('/api/broker/order', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'close', brokerId: activeBrokerId, positionId: posId }),
-        });
-      }
+      const results = await Promise.allSettled(
+        [...selectedIds].map(posId =>
+          fetch('/api/broker/order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'close', brokerId: activeBrokerId, positionId: posId }),
+          }).then(res => res.json())
+        )
+      );
+      const failed = results.filter(r => r.status === 'rejected' || !(r as any).value?.success).length;
       setSelectMode(false);
       setSelectedIds(new Set());
       onRefresh();
+      if (failed > 0) alert(`${selectedIds.size - failed}/${selectedIds.size} closed. ${failed} failed.`);
     } catch (err: any) {
       alert('Batch close failed: ' + err.message);
     } finally {
@@ -298,14 +325,18 @@ export default function ManagerPositions({ positions, pendingOrders, accountInfo
     const groupKey = `${groupPositions[0]?.symbol}-${groupPositions[0]?.type}`;
     setClosingGroup(groupKey);
     try {
-      for (const p of groupPositions) {
-        await fetch('/api/broker/order', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'close', brokerId: activeBrokerId, positionId: p.id }),
-        });
-      }
+      const results = await Promise.allSettled(
+        groupPositions.map(p =>
+          fetch('/api/broker/order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'close', brokerId: activeBrokerId, positionId: p.id }),
+          }).then(res => res.json())
+        )
+      );
+      const failed = results.filter(r => r.status === 'rejected' || !(r as any).value?.success).length;
       onRefresh();
+      if (failed > 0) alert(`${count - failed}/${count} closed. ${failed} failed.`);
     } catch (err: any) {
       alert('Close group failed: ' + err.message);
     } finally {
@@ -314,16 +345,67 @@ export default function ManagerPositions({ positions, pendingOrders, accountInfo
   };
 
   const handleModifyGroup = async (groupPositions: Position[]) => {
+    // Validate SL/TP values before sending
+    const sl = modifySL ? parseFloat(modifySL) : null;
+    const tp = modifyTP ? parseFloat(modifyTP) : null;
+
+    if (!sl && !tp) {
+      alert('Enter at least one value: Stop Loss or Take Profit.');
+      return;
+    }
+
+    if (sl !== null && (isNaN(sl) || sl <= 0)) {
+      alert('Stop Loss must be a positive number.');
+      return;
+    }
+    if (tp !== null && (isNaN(tp) || tp <= 0)) {
+      alert('Take Profit must be a positive number.');
+      return;
+    }
+
+    // Direction-based validation against current price
+    const firstPos = groupPositions[0];
+    const isBuy = firstPos?.type === 'POSITION_TYPE_BUY';
+    const currentPrice = firstPos?.currentPrice || 0;
+
+    if (currentPrice > 0) {
+      if (isBuy) {
+        if (sl !== null && sl >= currentPrice) {
+          alert(`For BUY positions, Stop Loss must be below current price (${currentPrice}).`);
+          return;
+        }
+        if (tp !== null && tp <= currentPrice) {
+          alert(`For BUY positions, Take Profit must be above current price (${currentPrice}).`);
+          return;
+        }
+      } else {
+        if (sl !== null && sl <= currentPrice) {
+          alert(`For SELL positions, Stop Loss must be above current price (${currentPrice}).`);
+          return;
+        }
+        if (tp !== null && tp >= currentPrice) {
+          alert(`For SELL positions, Take Profit must be below current price (${currentPrice}).`);
+          return;
+        }
+      }
+    }
+
     try {
-      for (const p of groupPositions) {
-        const body: any = { action: 'modify', brokerId: activeBrokerId, positionId: p.id };
-        if (modifySL) body.stopLoss = parseFloat(modifySL);
-        if (modifyTP) body.takeProfit = parseFloat(modifyTP);
-        await fetch('/api/broker/order', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        });
+      const results = await Promise.allSettled(
+        groupPositions.map(p => {
+          const body: any = { action: 'modify', brokerId: activeBrokerId, positionId: p.id };
+          if (sl !== null) body.stopLoss = sl;
+          if (tp !== null) body.takeProfit = tp;
+          return fetch('/api/broker/order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          }).then(res => res.json());
+        })
+      );
+      const failed = results.filter(r => r.status === 'rejected' || !(r as any).value?.success).length;
+      if (failed > 0) {
+        alert(`Modified ${groupPositions.length - failed}/${groupPositions.length} positions. ${failed} failed.`);
       }
       setModifyingId(null);
       onRefresh();
@@ -476,17 +558,17 @@ export default function ManagerPositions({ positions, pendingOrders, accountInfo
                       </div>
                       <div className="mgr-pos-bar-wrap">
                         <div className="mgr-pos-bar">
-                          <div className="mgr-pos-bar-red" style={{ width: `${entryPos}%` }} />
-                          <div className="mgr-pos-bar-green" style={{ left: `${entryPos}%`, width: `${100 - entryPos}%` }} />
+                          <div className={isBuy ? "mgr-pos-bar-red" : "mgr-pos-bar-green"} style={{ width: `${entryPos}%` }} />
+                          <div className={isBuy ? "mgr-pos-bar-green" : "mgr-pos-bar-red"} style={{ left: `${entryPos}%`, width: `${100 - entryPos}%` }} />
                           <div className="mgr-pos-bar-entry" style={{ left: `${entryPos}%` }} />
                           <div className="mgr-pos-bar-mark" style={{ left: `${markPos}%` }} />
                           {tpPos !== null && <div className="mgr-pos-bar-tp" style={{ left: `${tpPos}%` }} />}
                         </div>
                         <div className="mgr-pos-bar-labels">
-                          <span>SL {hasSL ? group.stopLoss!.toFixed(3) : '—'}</span>
-                          <span>entry {entry.toFixed(3)}</span>
-                          <span>mark {mark.toFixed(3)}</span>
-                          <span>TP {hasTP ? group.takeProfit!.toFixed(3) : '—'}</span>
+                          <span>SL {hasSL ? (group.stopLoss! > 100 ? group.stopLoss!.toFixed(2) : group.stopLoss!.toFixed(5)) : '—'}</span>
+                          <span>entry {entry > 100 ? entry.toFixed(2) : entry.toFixed(5)}</span>
+                          <span>mark {mark > 100 ? mark.toFixed(2) : mark.toFixed(5)}</span>
+                          <span>TP {hasTP ? (group.takeProfit! > 100 ? group.takeProfit!.toFixed(2) : group.takeProfit!.toFixed(5)) : '—'}</span>
                         </div>
                       </div>
                       {isModifying && (
@@ -717,6 +799,20 @@ export default function ManagerPositions({ positions, pendingOrders, accountInfo
                   </div>
                   {order.stopLoss && <div className="mgr-pos-meta"><span>SL: {order.stopLoss}</span></div>}
                   {order.takeProfit && <div className="mgr-pos-meta"><span>TP: {order.takeProfit}</span></div>}
+                  <div className="mgr-pos-actions" style={{ marginTop: '8px' }}>
+                    <button
+                      className="mgr-pos-action mgr-pos-action-close"
+                      onClick={() => handleCancelOrder(order.id)}
+                      disabled={cancellingOrderId === order.id}
+                      style={{ width: '100%', padding: '6px 0', borderRadius: '6px', fontSize: '11px', fontWeight: 600, background: 'rgba(192,57,43,0.15)', color: '#e74c3c', border: 'none', cursor: 'pointer' }}
+                    >
+                      {cancellingOrderId === order.id ? (
+                        <><span className="mgr-btn-spinner" style={{ borderTopColor: '#e74c3c' }} /> Cancelling...</>
+                      ) : (
+                        'Cancel Order'
+                      )}
+                    </button>
+                  </div>
                 </div>
               );
             })
