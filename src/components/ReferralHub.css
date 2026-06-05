@@ -77,6 +77,9 @@
 .rh-tab { flex:1; display:flex; align-items:center; justify-content:center; gap:5px; padding:8px 4px; border-radius:10px; border:none; background:transparent; cursor:pointer; font-size:11px; font-weight:600; color:var(--subtext); transition:all 0.2s; white-space:nowrap; }
 .rh-tab:hover { color:var(--text); }
 .rh-tab.active { background:var(--sidebar-bg); color:var(--text); box-shadow:0 1px 4px rgba(0,0,0,0.1); }
+.rh-tab-label { display:flex; align-items:center; gap:5px; }
+.rh-tab-label svg { flex-shrink:0; opacity:0.7; }
+.rh-tab.active .rh-tab-label svg { opacity:1; }
 .rh-tab-icon { font-size:13px; }
 
 /* Section Card */

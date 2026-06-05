@@ -40,6 +40,7 @@ export default function ReferralTab({ switchTab }: ReferralTabProps) {
   const [collapsedNodes, setCollapsedNodes] = useState<Record<string, boolean>>({});
   const [expandedDetailsNodes, setExpandedDetailsNodes] = useState<Record<string, boolean>>({});
   const [treeAnimKey, setTreeAnimKey] = useState(0);
+  const treeTimersRef = React.useRef<ReturnType<typeof setTimeout>[]>([]);
 
   // Loaders
   const [loadingProfile, setLoadingProfile] = useState(true);
@@ -380,6 +381,66 @@ export default function ReferralTab({ switchTab }: ReferralTabProps) {
     );
   };
 
+  // Helper: collect all node IDs grouped by level
+  const collectNodeIdsByLevel = (node: any, result: Record<number, string[]> = {}) => {
+    const lvl = node.level || 0;
+    if (!result[lvl]) result[lvl] = [];
+    result[lvl].push(node.userId);
+    if (node.children) {
+      node.children.forEach((c: any) => collectNodeIdsByLevel(c, result));
+    }
+    return result;
+  };
+
+  // Explode-expand: progressively uncollapse levels
+  const triggerExplodeExpand = React.useCallback(() => {
+    // Clear any previous timers
+    treeTimersRef.current.forEach(t => clearTimeout(t));
+    treeTimersRef.current = [];
+
+    const roots = buildGenealogyTree();
+    const virtualRoot = {
+      userId: profileData?.id || 'root',
+      level: 0,
+      children: roots
+    };
+
+    // Collect all IDs by level
+    const byLevel = collectNodeIdsByLevel(virtualRoot);
+    const levels = Object.keys(byLevel).map(Number).sort((a, b) => a - b);
+
+    // First: collapse ALL nodes with children
+    const allCollapsed: Record<string, boolean> = {};
+    levels.forEach(lvl => {
+      byLevel[lvl].forEach(id => { allCollapsed[id] = true; });
+    });
+    setCollapsedNodes(allCollapsed);
+
+    // Then: uncollapse each level with staggered delay
+    levels.forEach((lvl, idx) => {
+      const timer = setTimeout(() => {
+        setCollapsedNodes(prev => {
+          const next = { ...prev };
+          byLevel[lvl].forEach(id => { next[id] = false; });
+          return next;
+        });
+      }, 300 + idx * 400); // root at 300ms, L1 at 700ms, L2 at 1100ms...
+      treeTimersRef.current.push(timer);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [networkMembers, profileData]);
+
+  // Trigger explode when treeAnimKey changes (user tapped Genealogy Tree)
+  React.useEffect(() => {
+    if (treeAnimKey > 0 && networkView === 'tree') {
+      triggerExplodeExpand();
+    }
+    return () => {
+      treeTimersRef.current.forEach(t => clearTimeout(t));
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [treeAnimKey]);
+
   const renderTree = () => {
     const roots = buildGenealogyTree();
     
@@ -588,11 +649,11 @@ export default function ReferralTab({ switchTab }: ReferralTabProps) {
             onClick={() => setActiveTab(t)}
           >
             <span className="rh-tab-label">
-              {t === 'network' && '🌐 Network'}
-              {t === 'milestones' && '🏆 Milestones'}
-              {t === 'rates' && '📊 Rates'}
-              {t === 'ledger' && '📜 Ledger'}
-              {t === 'analytics' && '📈 Analytics'}
+              {t === 'network' && <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> Network</>}
+              {t === 'milestones' && <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5C7 4 7 7 7 7"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5C17 4 17 7 17 7"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg> Milestones</>}
+              {t === 'rates' && <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg> Rates</>}
+              {t === 'ledger' && <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> Ledger</>}
+              {t === 'analytics' && <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Analytics</>}
             </span>
           </button>
         ))}
