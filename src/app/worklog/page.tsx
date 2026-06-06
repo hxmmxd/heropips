@@ -35,11 +35,11 @@ const tagStyles: Record<string, { bg: string; color: string; label: string }> = 
 
 const worklog: WorkDay[] = [
   {
-    date: 'June 6–7, 2026',
-    dayLabel: 'Saturday–Sunday',
+    date: 'June 7, 2026',
+    dayLabel: 'Sunday',
     commitCount: 3,
     blocks: [
-      { tag: 'major', time: '06:00 PM',
+      { tag: 'major', time: '12:30 AM',
         title: 'Phase A: 9-Gate Institutional Signal Engine',
         summary: 'Replaced the basic 3-vote indicator system with a full institutional-grade 9-gate validation engine. Every market analysis now passes through sequential gating logic before a SIGNAL, WATCH, or NO_TRADE outcome is assigned.',
         items: [
@@ -52,7 +52,7 @@ const worklog: WorkDay[] = [
           { icon: '🎨', title: 'Premium Analysis Card UI', description: '2×2 indicator grid (RSI/MACD/EMA/ATR) with colored status pills, gradient gating status strip, expandable gate checklist, SMC pattern tags, 4H bias + news sentiment badges, confluence progress bar.', files: ['src/components/TerminalTab.tsx', 'src/types/index.ts', 'src/app/page.tsx'] },
         ]
       },
-      { tag: 'major', time: '09:00 PM',
+      { tag: 'major', time: '02:00 AM',
         title: 'Phase B: Edge Multipliers (B1–B4)',
         summary: 'Extended the 7-gate engine to 9 gates by integrating four real-world data modules: Finnhub news sentiment, economic calendar event blocking, RSI/MACD divergence detection, and correlated asset confirmation.',
         items: [
@@ -63,6 +63,13 @@ const worklog: WorkDay[] = [
           { icon: '✅', title: 'TypeScript Build — Zero Errors', description: 'All 4 Phase B modules + 9-gate engine pass npx tsc --noEmit cleanly. Verified with live browser test showing 8/9 and 9/9 gates passing on XAUUSD and BTCUSD queries.', files: ['src/lib/market.ts'] },
         ]
       },
+    ]
+  },
+  {
+    date: 'June 6, 2026',
+    dayLabel: 'Saturday',
+    commitCount: 1,
+    blocks: [
       { tag: 'feature', time: '03:45 AM',
         title: 'Genealogy Tree Flowchart & Interactive Compact Pills',
         summary: 'Designed and implemented a visual org-chart-style horizontal/vertical flowchart layout for the Genealogy Tree with collapsible tree branches and interactive compact details pills.',
