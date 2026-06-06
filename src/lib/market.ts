@@ -332,7 +332,7 @@ function scoreIndicators(
     }
   }
 
-  // 3. EMA Alignment (20%)
+  // 3. EMA Alignment (20%) — full stack if all available, single EMA50 fallback
   if (ema20 !== null && ema50 !== null && ema200 !== null) {
     if (price > ema20 && ema20 > ema50 && ema50 > ema200) {
       signals.push({ name: 'EMA Stack', weight: 20, direction: 'bullish', detail: `Price > EMA20 > EMA50 > EMA200 — Perfect bullish alignment` });
@@ -340,6 +340,16 @@ function scoreIndicators(
       signals.push({ name: 'EMA Stack', weight: 20, direction: 'bearish', detail: `Price < EMA20 < EMA50 < EMA200 — Perfect bearish alignment` });
     } else {
       signals.push({ name: 'EMA Stack', weight: 20, direction: 'neutral', detail: 'Mixed EMA alignment — no trend conviction' });
+    }
+  } else if (ema50 !== null) {
+    // Fallback: single EMA50 trend filter
+    const pctFromEma = ((price - ema50) / ema50) * 100;
+    if (pctFromEma > 0.15) {
+      signals.push({ name: 'EMA(50)', weight: 20, direction: 'bullish', detail: `Price ${pctFromEma.toFixed(2)}% above EMA50 — uptrend` });
+    } else if (pctFromEma < -0.15) {
+      signals.push({ name: 'EMA(50)', weight: 20, direction: 'bearish', detail: `Price ${Math.abs(pctFromEma).toFixed(2)}% below EMA50 — downtrend` });
+    } else {
+      signals.push({ name: 'EMA(50)', weight: 20, direction: 'neutral', detail: `Price within 0.15% of EMA50 — consolidating` });
     }
   }
 
@@ -374,18 +384,22 @@ function scoreIndicators(
   }
 
   // Calculate weighted confluence
+  // Only use directional (non-neutral) weight in denominator so neutral
+  // indicators don't dilute the score when data is partial.
   let bullishScore = 0;
   let bearishScore = 0;
-  let totalWeight = 0;
+  let directionalWeight = 0;
 
   for (const sig of signals) {
-    totalWeight += sig.weight;
-    if (sig.direction === 'bullish') bullishScore += sig.weight;
-    if (sig.direction === 'bearish') bearishScore += sig.weight;
+    if (sig.direction === 'bullish') { bullishScore += sig.weight; directionalWeight += sig.weight; }
+    else if (sig.direction === 'bearish') { bearishScore += sig.weight; directionalWeight += sig.weight; }
+    // neutral signals don't add to denominator
   }
 
   const maxScore = Math.max(bullishScore, bearishScore);
-  const confluencePercent = totalWeight > 0 ? Math.round((maxScore / totalWeight) * 100) : 0;
+  // If no directional signal at all, fall back to total weight to avoid NaN
+  const denominator = directionalWeight > 0 ? directionalWeight : signals.reduce((s, sig) => s + sig.weight, 0);
+  const confluencePercent = denominator > 0 ? Math.round((maxScore / denominator) * 100) : 0;
   const direction = bullishScore > bearishScore ? 'BUY' : bearishScore > bullishScore ? 'SELL' : 'NEUTRAL';
 
   return { score: confluencePercent, direction, signals };
@@ -550,8 +564,8 @@ export async function getMarketSnapshot(symbol: string): Promise<MarketSnapshot 
     // ── A1: 6-Gate System ─────────────────────────────────
     const gates: GateResult[] = [];
 
-    // Gate 1: Confluence ≥ 65%
-    gates.push({ name: 'Confluence', passed: score >= 65, detail: `${score}% (need ≥65%)` });
+    // Gate 1: Confluence ≥ 45%
+    gates.push({ name: 'Confluence', passed: score >= 45, detail: `${score}% (need ≥45%)` });
 
     // Gate 2: SMC Confirmation ≥ 1
     gates.push({ name: 'SMC Confirmation', passed: smcConfirmations >= 1, detail: `${smcConfirmations} pattern(s): ${smcPatterns.join(', ') || 'none'}` });
@@ -592,7 +606,7 @@ export async function getMarketSnapshot(symbol: string): Promise<MarketSnapshot 
 
     // ── Determine Outcome ──────────────────────────────────
     const passedCount = gates.filter(g => g.passed).length;
-    const criticalGates = ['Confluence', 'No Conflict', 'News Event'];
+    const criticalGates = ['Confluence', 'News Event'];
     const criticalFailed = gates.filter(g => criticalGates.includes(g.name) && !g.passed);
 
     let signalOutcome: SignalOutcome;
@@ -601,10 +615,10 @@ export async function getMarketSnapshot(symbol: string): Promise<MarketSnapshot 
     if (criticalFailed.length > 0) {
       signalOutcome = 'NO_TRADE';
       outcomeReason = `Critical gate failed: ${criticalFailed.map(g => g.name).join(', ')}`;
-    } else if (passedCount >= 6) {
+    } else if (passedCount >= 5) {
       signalOutcome = 'SIGNAL';
       outcomeReason = `${passedCount}/${gates.length} gates passed — high-confluence setup`;
-    } else if (passedCount >= 4) {
+    } else if (passedCount >= 3) {
       signalOutcome = 'WATCH';
       const failed = gates.filter(g => !g.passed).map(g => g.name);
       outcomeReason = `${passedCount}/${gates.length} gates passed — watching: ${failed.join(', ')}`;
