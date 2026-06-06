@@ -7,6 +7,11 @@ import { getNewsSentiment, type SentimentResult } from './newsSentiment';
 import { checkEconomicCalendar } from './econCalendar';
 import { detectDivergence, type DivergenceResult } from './divergence';
 import { checkCorrelation, type CorrelationResult } from './correlation';
+// Phase C imports
+import { computeVWAP, type VWAPResult } from './vwap';
+import { getMTFBias, type MTFBias } from './mtfBias';
+import { detectCandlePatterns, type PatternResult } from './candlePatterns';
+import { computeKellySizing, type KellyResult } from './kellyCriterion';
 
 const BASE_URL = 'https://api.twelvedata.com';
 
@@ -184,6 +189,11 @@ export interface MarketSnapshot {
   newsSentiment: SentimentResult;
   divergence: DivergenceResult;
   correlation: CorrelationResult;
+  // Phase C additions
+  vwap: VWAPResult;
+  mtfBias: MTFBias;
+  candlePatterns: PatternResult;
+  kellySizing: KellyResult;
 }
 
 // ── Fetch Helpers ──────────────────────────────────────────
@@ -306,7 +316,11 @@ function scoreIndicators(
   ema200: number | null,
   bbands: { upper: number; middle: number; lower: number } | null,
   stoch: { k: number; d: number } | null,
-  htfBias: 'bullish' | 'bearish' | 'neutral'
+  htfBias: 'bullish' | 'bearish' | 'neutral',
+  // Phase C optional additions
+  vwap?: { signal: 'bullish' | 'bearish' | 'neutral'; detail: string; weight: number } | null,
+  mtf?: { signal: 'bullish' | 'bearish' | 'neutral'; detail: string; weight: number } | null,
+  pattern?: { signal: 'bullish' | 'bearish' | 'neutral'; detail: string; weight: number } | null,
 ): { score: number; direction: 'BUY' | 'SELL' | 'NEUTRAL'; signals: IndicatorSignal[] } {
   const signals: IndicatorSignal[] = [];
 
@@ -376,11 +390,32 @@ function scoreIndicators(
     }
   }
 
-  // 6. Multi-Timeframe Alignment (20%)
+  // 6. Multi-Timeframe Alignment (15% — reduced since MTF has its own gate now)
   if (htfBias !== 'neutral') {
-    signals.push({ name: '4H Timeframe Bias', weight: 20, direction: htfBias, detail: `4H RSI confirms ${htfBias} bias` });
+    signals.push({ name: '4H Timeframe Bias', weight: 15, direction: htfBias, detail: `4H RSI confirms ${htfBias} bias` });
   } else {
-    signals.push({ name: '4H Timeframe Bias', weight: 20, direction: 'neutral', detail: '4H timeframe shows no directional conviction' });
+    signals.push({ name: '4H Timeframe Bias', weight: 15, direction: 'neutral', detail: '4H timeframe shows no directional conviction' });
+  }
+
+  // 7. VWAP (C1 — 15%)
+  if (vwap && vwap.signal !== 'neutral') {
+    signals.push({ name: 'VWAP', weight: vwap.weight, direction: vwap.signal, detail: vwap.detail });
+  } else if (vwap) {
+    signals.push({ name: 'VWAP', weight: vwap.weight, direction: 'neutral', detail: vwap.detail });
+  }
+
+  // 8. MTF Stack (C2 — 20%)
+  if (mtf && mtf.signal !== 'neutral') {
+    signals.push({ name: 'MTF Stack', weight: mtf.weight, direction: mtf.signal, detail: mtf.detail });
+  } else if (mtf) {
+    signals.push({ name: 'MTF Stack', weight: mtf.weight, direction: 'neutral', detail: mtf.detail });
+  }
+
+  // 9. Candle Patterns (C3 — 10%)
+  if (pattern && pattern.signal !== 'neutral') {
+    signals.push({ name: 'Candle Pattern', weight: pattern.weight, direction: pattern.signal, detail: pattern.detail });
+  } else if (pattern) {
+    signals.push({ name: 'Candle Pattern', weight: pattern.weight, direction: 'neutral', detail: pattern.detail });
   }
 
   // Calculate weighted confluence
@@ -523,9 +558,27 @@ export async function getMarketSnapshot(symbol: string): Promise<MarketSnapshot 
     // ── B1: Real News Sentiment ───────────────────────────
     const sentimentResult = await getNewsSentiment(symbol);
 
-    // ── A3: Weighted 6-Indicator Scoring (replaces 3-vote) ─
+    // ── C1: VWAP ─────────────────────────────────────────
+    const vwapResult = computeVWAP(candles, price);
+    console.log(`[Market Engine] VWAP: ${vwapResult.vwap.toFixed(2)} | ${vwapResult.detail}`);
+
+    // ── C2: MTF Bias (Weekly + Daily + 4H stack) ─────────
+    const mtfResult = await getMTFBias(symbol, htfBias);
+    console.log(`[Market Engine] MTF: ${mtfResult.detail}`);
+
+    // ── C3: Candlestick Patterns ─────────────────────────
+    const patternResult = detectCandlePatterns(candles.slice(-3));
+    if (patternResult.patterns.length > 0) {
+      console.log(`[Market Engine] Patterns: ${patternResult.detail}`);
+    }
+
+    // ── C4: Kelly Criterion Lot Sizing ───────────────────
+    const kellyResult = await computeKellySizing(symbol, 10000, 0.02);
+    console.log(`[Market Engine] Kelly: ${kellyResult.detail}`);
+
+    // ── A3: Weighted Scoring (now includes C1/C2/C3 signals) ─
     const macdForScorer = macd ? { macd: macd.value, signal: macd.signal, histogram: macd.histogram } : null;
-    const scoring = scoreIndicators(price, rsi, macdForScorer, null, ema50, null, null, null, htfBias);
+    const scoring = scoreIndicators(price, rsi, macdForScorer, null, ema50, null, null, null, htfBias, vwapResult, mtfResult, patternResult);
     const { score, direction, signals: indicatorSignals } = scoring;
     console.log(`[Market Engine] Weighted Confluence: ${score}% ${direction}`);
     console.log(`[Market Engine] Signals: ${indicatorSignals.map(s => `${s.name}:${s.direction}`).join(', ')}`);
@@ -604,9 +657,21 @@ export async function getMarketSnapshot(symbol: string): Promise<MarketSnapshot 
     const correlationCheck = await checkCorrelation(symbol, direction);
     gates.push({ name: 'Correlation', passed: correlationCheck.confirmed, detail: correlationCheck.detail });
 
-    // ── Determine Outcome ──────────────────────────────────
+    // Gate 10: MTF Stack (C2) — at least 2/3 timeframes aligned
+    gates.push({ name: 'MTF Stack', passed: mtfResult.aligned, detail: mtfResult.detail });
+
+    // Gate 11: VWAP (C1) — price not at extreme band (overbought/oversold vs VWAP)
+    const vwapGatePassed = vwapResult.signal !== 'neutral' || vwapResult.priceRelation === 'at';
+    gates.push({ name: 'VWAP', passed: vwapGatePassed, detail: vwapResult.detail });
+
+    // Gate 12: Candle Pattern (C3) — optional boost gate (passes if no conflicting pattern)
+    const patternConflict = patternResult.signal !== 'neutral' && patternResult.signal !== direction.toLowerCase() as 'bullish' | 'bearish';
+    gates.push({ name: 'Candle Pattern', passed: !patternConflict, detail: patternResult.detail });
+
+    // ── Determine Outcome (12-gate system) ────────────────
     const passedCount = gates.filter(g => g.passed).length;
-    const criticalGates = ['Confluence', 'News Event'];
+    const totalGates = gates.length; // now 12
+    const criticalGates = ['Confluence', 'News Event', 'MTF Stack'];
     const criticalFailed = gates.filter(g => criticalGates.includes(g.name) && !g.passed);
 
     let signalOutcome: SignalOutcome;
@@ -615,16 +680,16 @@ export async function getMarketSnapshot(symbol: string): Promise<MarketSnapshot 
     if (criticalFailed.length > 0) {
       signalOutcome = 'NO_TRADE';
       outcomeReason = `Critical gate failed: ${criticalFailed.map(g => g.name).join(', ')}`;
-    } else if (passedCount >= 5) {
+    } else if (passedCount >= 8) {
       signalOutcome = 'SIGNAL';
-      outcomeReason = `${passedCount}/${gates.length} gates passed — high-confluence setup`;
-    } else if (passedCount >= 3) {
+      outcomeReason = `${passedCount}/${totalGates} gates passed — high-confluence setup`;
+    } else if (passedCount >= 5) {
       signalOutcome = 'WATCH';
       const failed = gates.filter(g => !g.passed).map(g => g.name);
-      outcomeReason = `${passedCount}/${gates.length} gates passed — watching: ${failed.join(', ')}`;
+      outcomeReason = `${passedCount}/${totalGates} gates passed — watching: ${failed.join(', ')}`;
     } else {
       signalOutcome = 'NO_TRADE';
-      outcomeReason = `Only ${passedCount}/${gates.length} gates passed — insufficient confluence`;
+      outcomeReason = `Only ${passedCount}/${totalGates} gates passed — insufficient confluence`;
     }
 
     console.log(`[Market Engine] Outcome: ${signalOutcome} — ${outcomeReason}`);
@@ -652,6 +717,11 @@ export async function getMarketSnapshot(symbol: string): Promise<MarketSnapshot 
       newsSentiment: sentimentResult,
       divergence: divResult,
       correlation: correlationCheck,
+      // Phase C additions
+      vwap: vwapResult,
+      mtfBias: mtfResult,
+      candlePatterns: patternResult,
+      kellySizing: kellyResult,
     };
 
     // Store in cache

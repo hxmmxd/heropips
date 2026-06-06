@@ -135,6 +135,9 @@ export async function fetchYahooCandles(
   } else if (interval === '1d') {
     yfInterval = '1d';
     yfRange = outputsize > 100 ? '1y' : '6mo';
+  } else if (interval === '1wk') {
+    yfInterval = '1wk';
+    yfRange = '2y';
   }
 
   const t0 = Date.now();
