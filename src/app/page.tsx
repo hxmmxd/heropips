@@ -126,6 +126,9 @@ export default function Home() {
 
     fetchBrokers();
     fetchTrades();
+
+    // Track session info (IP, geo, device) — fire-and-forget
+    fetch('/api/session-track', { method: 'POST' }).catch(() => {});
   }, []);
 
   // Add new broker node from pairing modal
@@ -269,6 +272,7 @@ export default function Home() {
         ticket: data.ticket || undefined,
         signalSymbol: data.signalSymbol || undefined,
         marketData: data.marketData || undefined,
+        gating: data.gating || undefined,
       };
 
       setMessages((prev) =>

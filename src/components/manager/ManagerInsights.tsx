@@ -1,9 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AccountInfo, Position } from '@/types';
 import { useLivePrices } from '@/hooks/useLivePrices';
 import { ManagerConfigValues } from './ManagerConfig';
+import { useSignal } from '@/contexts/SignalContext';
+import SlideToExecute from './SlideToExecute';
 
 interface ManagerInsightsProps {
   accountInfo: AccountInfo;
@@ -14,7 +16,7 @@ interface ManagerInsightsProps {
   onNavigateToRisk?: () => void;
 }
 
-type TradingMode = 'market' | 'custom' | 'lots' | 'risk';
+type TradingMode = 'market' | 'custom' | 'lots' | 'risk' | 'signal';
 
 const DEFAULT_SYMBOLS = [
   'XAUUSD.sc', 'XAUUSD', 'BTCUSD', 'ETHUSD', 'EURUSD',
@@ -38,6 +40,24 @@ export default function ManagerInsights({ accountInfo, positions, activeBrokerId
   const [showVolumeDropdown, setShowVolumeDropdown] = useState(false);
 
   const { getPrice } = useLivePrices();
+  const { pendingSignal, clearSignal, hasSignal } = useSignal();
+
+  // Auto-switch to signal mode when a signal arrives
+  useEffect(() => {
+    if (pendingSignal) {
+      setTradingMode('signal');
+      setSymbol(pendingSignal.symbol);
+      setVolume(pendingSignal.lotSize.toFixed(2));
+      setSignalSL(pendingSignal.stopLoss.toFixed(2));
+      setSignalTP(pendingSignal.takeProfit.toFixed(2));
+      setSignalLot(pendingSignal.lotSize);
+    }
+  }, [pendingSignal]);
+
+  // Signal mode editable params
+  const [signalSL, setSignalSL] = useState('');
+  const [signalTP, setSignalTP] = useState('');
+  const [signalLot, setSignalLot] = useState(0.01);
 
   // Get live bid/ask prices — improved symbol resolution (MGR-011)
   const normalizedSymbol = symbol.replace('.sc', '');
@@ -398,8 +418,128 @@ export default function ManagerInsights({ accountInfo, positions, activeBrokerId
           )}
         </div>
 
-        {/* Buy / Sell Buttons */}
-        <div className="ins-trade-btns">
+        {/* Buy / Sell Buttons — or Signal Mode */}
+        {tradingMode === 'signal' && pendingSignal ? (
+          <div className="signal-panel" style={{ '--ste-color': pendingSignal.direction === 'BUY' ? '34, 197, 94' : '239, 68, 68' } as React.CSSProperties}>
+            {/* Signal Header */}
+            <div className="signal-panel-header">
+              <span className={`signal-panel-badge ${pendingSignal.direction.toLowerCase()}`}>
+                {pendingSignal.direction === 'BUY' ? '▲' : '▼'} {pendingSignal.direction}
+              </span>
+              <span className="signal-panel-title">{pendingSignal.symbol}</span>
+              <span className="signal-panel-confluence">
+                {pendingSignal.confluenceScore}% • {pendingSignal.confidenceGrade}
+              </span>
+            </div>
+
+            {/* SMC Patterns */}
+            {pendingSignal.smcPatterns.length > 0 && (
+              <div className="signal-smc-tags">
+                {pendingSignal.smcPatterns.map((p, i) => (
+                  <span key={i} className="signal-smc-tag">{p}</span>
+                ))}
+              </div>
+            )}
+
+            {/* Editable Params — 2×2 grid */}
+            <div className="signal-panel-grid">
+              <div className="signal-param">
+                <span className="signal-param-label">Entry Price</span>
+                <span className="signal-param-value">${pendingSignal.entryPrice.toFixed(2)}</span>
+              </div>
+              <div className="signal-param">
+                <span className="signal-param-label">Lot Size</span>
+                <input
+                  type="number"
+                  value={signalLot}
+                  onChange={(e) => setSignalLot(Math.max(0.01, parseFloat(e.target.value) || 0.01))}
+                  className="signal-param-input"
+                  step="0.01"
+                  min="0.01"
+                  max="10"
+                />
+              </div>
+              <div className="signal-param">
+                <span className="signal-param-label">Stop Loss</span>
+                <input
+                  type="number"
+                  value={signalSL}
+                  onChange={(e) => setSignalSL(e.target.value)}
+                  className="signal-param-input"
+                  step="0.01"
+                />
+              </div>
+              <div className="signal-param">
+                <span className="signal-param-label">Take Profit</span>
+                <input
+                  type="number"
+                  value={signalTP}
+                  onChange={(e) => setSignalTP(e.target.value)}
+                  className="signal-param-input"
+                  step="0.01"
+                />
+              </div>
+            </div>
+
+            {/* Lot Slider */}
+            <input
+              type="range"
+              min="0.01"
+              max="5"
+              step="0.01"
+              value={signalLot}
+              onChange={(e) => setSignalLot(parseFloat(e.target.value))}
+              className="signal-lot-slider"
+            />
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--subtext)', fontWeight: 700, marginBottom: 10 }}>
+              <span>0.01</span>
+              <span>{signalLot.toFixed(2)} lots • R:R {pendingSignal.rrRatio}</span>
+              <span>5.00</span>
+            </div>
+
+            {/* Slide to Execute */}
+            <SlideToExecute
+              direction={pendingSignal.direction}
+              loading={!!executing}
+              onExecute={async () => {
+                setExecuting(pendingSignal.direction === 'BUY' ? 'buy' : 'sell');
+                try {
+                  const body: any = {
+                    action: 'place',
+                    brokerId: activeBrokerId,
+                    symbol,
+                    direction: pendingSignal.direction,
+                    volume: signalLot.toFixed(2),
+                  };
+                  if (signalSL) body.stopLoss = parseFloat(signalSL);
+                  if (signalTP) body.takeProfit = parseFloat(signalTP);
+                  const res = await fetch('/api/broker/order', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                  });
+                  const data = await res.json();
+                  if (data.success) {
+                    onRefresh();
+                    clearSignal();
+                    setTradingMode('market');
+                  } else {
+                    alert(data.error || 'Order failed');
+                  }
+                } catch (err: any) {
+                  alert('Order failed: ' + err.message);
+                } finally {
+                  setExecuting(null);
+                }
+              }}
+            />
+
+            <button className="signal-dismiss" onClick={() => { clearSignal(); setTradingMode('market'); }}>
+              Dismiss signal & return to manual
+            </button>
+          </div>
+        ) : (
+          <div className="ins-trade-btns">
           <button
             className="ins-sell-btn"
             onClick={() => handleOrder('SELL')}
@@ -443,6 +583,7 @@ export default function ManagerInsights({ accountInfo, positions, activeBrokerId
             )}
           </button>
         </div>
+        )}
       </div>
 
       {/* Break-Even & Max Cards */}

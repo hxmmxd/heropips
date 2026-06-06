@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import './ReferralHub.css';
+import { getMemojiForName } from '@/lib/avatar';
 
 interface Partner {
   name: string;
@@ -315,12 +316,12 @@ export default function ReferralTab({ switchTab }: ReferralTabProps) {
 
             {/* Node Avatar & Name */}
             <div className="rh-tree-card-body">
-              <div 
+              <img 
+                src={getMemojiForName(node.displayName || node.userId)}
+                alt=""
                 className="rh-tree-card-avatar"
                 style={{ background: getLevelColor(node.level || 1) }}
-              >
-                {(node.displayName || '??').slice(0, 2).toUpperCase()}
-              </div>
+              />
               <div className="rh-tree-card-details">
                 <div className="rh-tree-card-name" title={node.displayName || 'Trader'}>
                   {node.displayName || 'Trader'}
@@ -701,12 +702,12 @@ export default function ReferralTab({ switchTab }: ReferralTabProps) {
             ) : (
               networkMembers.map((member, idx) => (
                 <div key={member.userId || idx} className="rh-member">
-                  <div 
+                  <img 
+                    src={getMemojiForName(member.displayName || member.userId)}
+                    alt=""
                     className="rh-member-avatar" 
                     style={{ background: getLevelColor(member.level || 1) }}
-                  >
-                    {(member.displayName || '??').slice(0, 2).toUpperCase()}
-                  </div>
+                  />
                   <div className="rh-member-info">
                     <div className="rh-member-name">{member.displayName || 'Trader'}</div>
                     <div className="rh-member-meta">

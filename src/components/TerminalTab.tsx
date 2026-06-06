@@ -6,6 +6,7 @@ import { ChatMessage } from '../types';
 import TradeTicket from './TradeTicket';
 import dynamic from 'next/dynamic';
 import { useLivePrices } from '@/hooks/useLivePrices';
+import { useSignal, SignalData } from '@/contexts/SignalContext';
 
 const MiniChart = dynamic(() => import('./MiniChart'), { ssr: false });
 
@@ -109,6 +110,7 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { setPendingSignal } = useSignal();
 
   // Live prices via SSE
   const { getPrice, connected } = useLivePrices();
@@ -444,86 +446,238 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
                             <MiniChart symbol={msg.marketData.symbol} height={140} />
                           </div>
 
-                          {/* AI Analysis Text */}
-                          <div className="px-5 py-3 border-b border-[var(--border)]">
-                            {parseMarkdown(msg.text)}
+                          {/* ── Gating Status Strip ── */}
+                          {msg.gating && (
+                            <div className={`px-5 py-2.5 flex items-center gap-3 border-b border-[var(--border)] ${
+                              msg.gating.outcome === 'SIGNAL' ? 'bg-gradient-to-r from-green-500/8 to-transparent'
+                              : msg.gating.outcome === 'WATCH' ? 'bg-gradient-to-r from-yellow-500/8 to-transparent'
+                              : 'bg-gradient-to-r from-red-500/8 to-transparent'
+                            }`}>
+                              <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border ${
+                                msg.gating.outcome === 'SIGNAL' ? 'bg-green-500/12 text-green-500 border-green-500/20'
+                                : msg.gating.outcome === 'WATCH' ? 'bg-yellow-500/12 text-yellow-600 border-yellow-500/20'
+                                : 'bg-red-500/12 text-red-500 border-red-500/20'
+                              }`}>
+                                {msg.gating.outcome === 'SIGNAL' ? '🟢' : msg.gating.outcome === 'WATCH' ? '🟡' : '🔴'} {msg.gating.outcome}
+                              </span>
+                              <span className="text-[10px] text-[var(--subtext)] font-medium leading-tight flex-1">
+                                {msg.gating.reason}
+                              </span>
+                            </div>
+                          )}
+
+                          {/* ── Premium Indicator Grid ── */}
+                          <div className="px-5 py-3">
+                            <div className="grid grid-cols-2 gap-2 mb-3">
+                              {/* RSI */}
+                              <div className="rounded-xl bg-[var(--input-bg)] px-3.5 py-2.5 border border-[var(--border)]/60">
+                                <div className="text-[9px] font-bold text-[var(--subtext)] uppercase tracking-widest mb-1">RSI (14)</div>
+                                <div className="flex items-baseline gap-1.5">
+                                  <span className={`text-[18px] font-black font-mono leading-none ${
+                                    msg.marketData.rsi !== null
+                                      ? msg.marketData.rsi < 30 ? 'text-green-500' : msg.marketData.rsi > 70 ? 'text-red-500' : 'text-[var(--text)]'
+                                      : 'text-[var(--subtext)]'
+                                  }`}>
+                                    {msg.marketData.rsi !== null ? msg.marketData.rsi.toFixed(1) : '—'}
+                                  </span>
+                                  {msg.marketData.rsi !== null && (
+                                    <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                                      msg.marketData.rsi < 30 ? 'bg-green-500/10 text-green-500'
+                                      : msg.marketData.rsi > 70 ? 'bg-red-500/10 text-red-500'
+                                      : msg.marketData.rsi < 45 ? 'bg-yellow-500/10 text-yellow-600' : 'bg-[var(--border)] text-[var(--subtext)]'
+                                    }`}>
+                                      {msg.marketData.rsi < 30 ? 'Oversold' : msg.marketData.rsi > 70 ? 'Overbought' : msg.marketData.rsi < 45 ? 'Weak' : 'Neutral'}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* MACD */}
+                              <div className="rounded-xl bg-[var(--input-bg)] px-3.5 py-2.5 border border-[var(--border)]/60">
+                                <div className="text-[9px] font-bold text-[var(--subtext)] uppercase tracking-widest mb-1">MACD</div>
+                                <div className="flex items-baseline gap-1.5">
+                                  <span className={`text-[18px] font-black font-mono leading-none ${
+                                    msg.marketData.macdHistogram !== null
+                                      ? msg.marketData.macdHistogram > 0 ? 'text-green-500' : 'text-red-500'
+                                      : 'text-[var(--subtext)]'
+                                  }`}>
+                                    {msg.marketData.macdHistogram !== null ? (msg.marketData.macdHistogram > 0 ? '+' : '') + msg.marketData.macdHistogram.toFixed(2) : '—'}
+                                  </span>
+                                  {msg.marketData.macdHistogram !== null && (
+                                    <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                                      msg.marketData.macdHistogram > 0 ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
+                                    }`}>
+                                      {msg.marketData.macdHistogram > 0 ? 'Bullish' : 'Bearish'}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* EMA 50 */}
+                              <div className="rounded-xl bg-[var(--input-bg)] px-3.5 py-2.5 border border-[var(--border)]/60">
+                                <div className="text-[9px] font-bold text-[var(--subtext)] uppercase tracking-widest mb-1">EMA (50)</div>
+                                <div className="flex items-baseline gap-1.5">
+                                  <span className="text-[15px] font-black font-mono leading-none text-[var(--text)]">
+                                    {msg.marketData.ema50 !== null ? `$${msg.marketData.ema50 > 999 ? msg.marketData.ema50.toLocaleString('en-US', {maximumFractionDigits: 0}) : msg.marketData.ema50.toFixed(4)}` : '—'}
+                                  </span>
+                                  {msg.marketData.ema50 !== null && msg.marketData.price > 0 && (
+                                    <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                                      msg.marketData.price > msg.marketData.ema50 ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
+                                    }`}>
+                                      {msg.marketData.price > msg.marketData.ema50 ? 'Above' : 'Below'}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* ATR */}
+                              <div className="rounded-xl bg-[var(--input-bg)] px-3.5 py-2.5 border border-[var(--border)]/60">
+                                <div className="text-[9px] font-bold text-[var(--subtext)] uppercase tracking-widest mb-1">ATR (14)</div>
+                                <div className="flex items-baseline gap-1.5">
+                                  <span className="text-[18px] font-black font-mono leading-none text-[var(--text)]">
+                                    {msg.marketData.atr !== null ? msg.marketData.atr.toFixed(2) : '—'}
+                                  </span>
+                                  <span className="text-[9px] font-bold text-[var(--subtext)] uppercase tracking-wider px-1.5 py-0.5 rounded bg-[var(--border)]">
+                                    Volatility
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* HTF Bias + News Row */}
+                            <div className="flex items-center gap-2">
+                              {msg.gating && (
+                                <div className={`flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1.5 rounded-lg border ${
+                                  msg.marketData.confluenceDirection === 'BUY'
+                                    ? 'bg-green-500/8 text-green-500 border-green-500/15'
+                                    : msg.marketData.confluenceDirection === 'SELL'
+                                    ? 'bg-red-500/8 text-red-500 border-red-500/15'
+                                    : 'bg-[var(--input-bg)] text-[var(--subtext)] border-[var(--border)]'
+                                }`}>
+                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                    <path d={msg.marketData.confluenceDirection === 'SELL' ? "M12 5v14M19 12l-7 7-7-7" : "M12 19V5M5 12l7-7 7 7"} strokeLinecap="round" strokeLinejoin="round"/>
+                                  </svg>
+                                  4H {msg.marketData.confluenceDirection === 'BUY' ? 'Bullish' : msg.marketData.confluenceDirection === 'SELL' ? 'Bearish' : 'Neutral'}
+                                </div>
+                              )}
+                              <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1.5 rounded-lg border ${
+                                msg.marketData.newsSentiment === 'BULLISH' ? 'bg-green-500/8 text-green-500 border-green-500/15'
+                                : msg.marketData.newsSentiment === 'BEARISH' ? 'bg-red-500/8 text-red-500 border-red-500/15'
+                                : 'bg-[var(--input-bg)] text-[var(--subtext)] border-[var(--border)]'
+                              }`}>
+                                📰 {msg.marketData.newsSentiment || 'NEUTRAL'}
+                              </span>
+                            </div>
                           </div>
 
-                          {/* Indicators Table */}
-                          <div className="px-5 py-3 space-y-0">
-                            <div className="flex justify-between items-center py-2 border-b border-[var(--border)]/50">
-                              <span className="text-[11px] text-[var(--subtext)] font-medium">RSI (14)</span>
-                              <span className={`text-[12px] font-bold font-mono ${
-                                msg.marketData.rsi !== null
-                                  ? msg.marketData.rsi < 30 ? 'text-green-500' : msg.marketData.rsi > 70 ? 'text-red-500' : 'text-[var(--text)]'
-                                  : 'text-[var(--subtext)]'
-                              }`}>
-                                {msg.marketData.rsi !== null ? msg.marketData.rsi.toFixed(1) : '—'}
-                              </span>
+                          {/* ── SMC Pattern Tags + Gate Checklist ── */}
+                          {(msg.gating?.smcPatterns?.length || msg.gating?.gates?.length) ? (
+                            <div className="px-5 py-2.5 border-t border-[var(--border)]">
+                              {/* SMC Tags */}
+                              {msg.gating?.smcPatterns && msg.gating.smcPatterns.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5 mb-2">
+                                  <span className="text-[9px] font-black text-[var(--subtext)] uppercase tracking-widest mr-1 self-center">SMC</span>
+                                  {msg.gating.smcPatterns.map((p: string, i: number) => (
+                                    <span key={i} className="text-[9px] font-bold px-2 py-1 rounded-md bg-indigo-500/8 text-indigo-400 border border-indigo-500/15 tracking-wide">
+                                      {p}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+
+                              {/* Gate Checklist */}
+                              {msg.gating?.gates && msg.gating.gates.length > 0 && (
+                                <details className="group">
+                                  <summary className="text-[10px] text-[var(--subtext)] cursor-pointer hover:text-[var(--text)] font-semibold flex items-center gap-1 select-none">
+                                    <svg className="w-3 h-3 transition-transform group-open:rotate-90" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                      <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/>
+                                    </svg>
+                                    {msg.gating.gates.filter((g: any) => g.passed).length}/{msg.gating.gates.length} gates passed
+                                  </summary>
+                                  <div className="mt-2 grid gap-1 pl-1">
+                                    {msg.gating.gates.map((gate: any, gi: number) => (
+                                      <div key={gi} className={`flex items-center gap-2 text-[10px] px-2.5 py-1.5 rounded-lg ${
+                                        gate.passed ? 'bg-green-500/5' : 'bg-red-500/5'
+                                      }`}>
+                                        <span className="text-[11px]">{gate.passed ? '✅' : '⚠️'}</span>
+                                        <span className="font-bold text-[var(--text)]">{gate.name}</span>
+                                        <span className="text-[var(--subtext)] flex-1 text-right font-mono">{gate.detail}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </details>
+                              )}
                             </div>
-                            <div className="flex justify-between items-center py-2 border-b border-[var(--border)]/50">
-                              <span className="text-[11px] text-[var(--subtext)] font-medium">MACD Histogram</span>
-                              <span className={`text-[12px] font-bold font-mono ${
-                                msg.marketData.macdHistogram !== null
-                                  ? msg.marketData.macdHistogram > 0 ? 'text-green-500' : 'text-red-500'
-                                  : 'text-[var(--subtext)]'
-                              }`}>
-                                {msg.marketData.macdHistogram !== null ? msg.marketData.macdHistogram.toFixed(4) : '—'}
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center py-2 border-b border-[var(--border)]/50">
-                              <span className="text-[11px] text-[var(--subtext)] font-medium">EMA (50)</span>
-                              <span className="text-[12px] font-bold font-mono text-[var(--text)]">
-                                {msg.marketData.ema50 !== null ? `$${msg.marketData.ema50.toFixed(2)}` : '—'}
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center py-2 border-b border-[var(--border)]/50">
-                              <span className="text-[11px] text-[var(--subtext)] font-medium">ATR (14)</span>
-                              <span className="text-[12px] font-bold font-mono text-[var(--text)]">
-                                {msg.marketData.atr !== null ? msg.marketData.atr.toFixed(2) : '—'}
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center py-2">
-                              <span className="text-[11px] text-[var(--subtext)] font-medium">News Sentiment</span>
-                              <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                                msg.marketData.newsSentiment === 'BULLISH' ? 'bg-green-500/15 text-green-500'
-                                : msg.marketData.newsSentiment === 'BEARISH' ? 'bg-red-500/15 text-red-500'
-                                : 'bg-[var(--border)] text-[var(--subtext)]'
-                              }`}>
-                                {msg.marketData.newsSentiment || 'NEUTRAL'}
-                              </span>
-                            </div>
-                          </div>
+                          ) : null}
 
                           {/* Confluence Footer + Signal Button */}
-                          <div className="px-5 py-3 border-t border-[var(--border)] flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <div className="w-20 h-1.5 rounded-full bg-[var(--input-bg)] overflow-hidden">
-                                <div className={`h-full rounded-full ${
-                                  msg.marketData.confluenceScore >= 90 ? 'bg-green-500 w-[95%]'
-                                  : msg.marketData.confluenceScore >= 80 ? 'bg-blue-500 w-[82%]'
-                                  : msg.marketData.confluenceScore >= 70 ? 'bg-yellow-500 w-[72%]'
-                                  : 'bg-gray-400 w-[50%]'
-                                }`} style={{ width: `${msg.marketData.confluenceScore}%` }} />
+                          <div className="px-5 py-3 border-t border-[var(--border)]">
+                            {/* Bottom bar: confluence + buttons */}
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <div className="w-20 h-1.5 rounded-full bg-[var(--input-bg)] overflow-hidden">
+                                  <div className={`h-full rounded-full ${
+                                    msg.marketData.confluenceScore >= 90 ? 'bg-green-500'
+                                    : msg.marketData.confluenceScore >= 80 ? 'bg-blue-500'
+                                    : msg.marketData.confluenceScore >= 70 ? 'bg-yellow-500'
+                                    : 'bg-gray-400'
+                                  }`} style={{ width: `${msg.marketData.confluenceScore}%` }} />
+                                </div>
+                                <span className={`text-[10px] font-bold ${
+                                  msg.marketData.confidenceGrade === 'AAA' ? 'text-green-500'
+                                  : msg.marketData.confidenceGrade === 'AA' ? 'text-blue-500'
+                                  : msg.marketData.confidenceGrade === 'A' ? 'text-yellow-500'
+                                  : 'text-[var(--subtext)]'
+                                }`}>
+                                  {msg.marketData.confidenceGrade} · {msg.marketData.confluenceScore}%
+                                </span>
                               </div>
-                              <span className={`text-[10px] font-bold ${
-                                msg.marketData.confidenceGrade === 'AAA' ? 'text-green-500'
-                                : msg.marketData.confidenceGrade === 'AA' ? 'text-blue-500'
-                                : msg.marketData.confidenceGrade === 'A' ? 'text-yellow-500'
-                                : 'text-[var(--subtext)]'
-                              }`}>
-                                {msg.marketData.confidenceGrade} · {msg.marketData.confluenceScore}%
-                              </span>
+                              <div className="flex items-center gap-2">
+                                {/* Generate Signal button */}
+                                {msg.signalSymbol && !msg.ticket && (
+                                  <button
+                                    onClick={() => onGenerateSignal?.(msg.signalSymbol!)}
+                                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white text-[10px] font-bold uppercase tracking-wider hover:shadow-lg hover:shadow-blue-500/30 active:scale-95 transition-all whitespace-nowrap shrink-0"
+                                  >
+                                    <Zap className="w-3 h-3" />
+                                    Generate Signal
+                                  </button>
+                                )}
+                                {/* Execute in Manager button (only when SIGNAL gating passes) */}
+                                {msg.ticket && (
+                                  <button
+                                    onClick={() => {
+                                      const sym = msg.ticket!.apiSymbol || msg.ticket!.symbol;
+                                      const brokerSym = sym.replace('/', '').replace('.sc', '');
+                                      setPendingSignal({
+                                        symbol: brokerSym.includes('.sc') ? brokerSym : brokerSym,
+                                        apiSymbol: sym,
+                                        direction: msg.ticket!.action as 'BUY' | 'SELL',
+                                        entryPrice: parseFloat(msg.ticket!.entryPrice) || 0,
+                                        stopLoss: parseFloat(msg.ticket!.stopLoss) || 0,
+                                        takeProfit: parseFloat(msg.ticket!.takeProfit) || 0,
+                                        lotSize: parseFloat(msg.ticket!.lotVolume) || 0.01,
+                                        confluenceScore: msg.marketData!.confluenceScore,
+                                        confidenceGrade: msg.marketData!.confidenceGrade,
+                                        smcPatterns: msg.gating?.smcPatterns || [],
+                                        analysis: msg.text || '',
+                                        rrRatio: msg.ticket!.rrRatio || '1:2',
+                                        risk: msg.ticket!.risk || '0',
+                                        profit: msg.ticket!.profit || '0',
+                                        timestamp: Date.now(),
+                                      });
+                                      onOpenManager?.();
+                                    }}
+                                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 text-white text-[10px] font-bold uppercase tracking-wider hover:shadow-lg hover:shadow-emerald-500/30 active:scale-95 transition-all whitespace-nowrap shrink-0"
+                                  >
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                      <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round"/>
+                                    </svg>
+                                    Execute in Manager
+                                  </button>
+                                )}
+                              </div>
                             </div>
-                            {msg.signalSymbol && !msg.ticket && (
-                              <button
-                                onClick={() => onGenerateSignal?.(msg.signalSymbol!)}
-                                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white text-[10px] font-bold uppercase tracking-wider hover:shadow-lg hover:shadow-blue-500/30 active:scale-95 transition-all whitespace-nowrap shrink-0"
-                              >
-                                <Zap className="w-3 h-3" />
-                                Generate Signal
-                              </button>
-                            )}
                           </div>
                         </div>
                       )}

@@ -42,6 +42,13 @@ export interface ChatMessage {
     confidenceGrade: string;
     newsSentiment?: string;
   };
+  gating?: {
+    outcome: string;
+    reason: string;
+    gates: { name: string; passed: boolean; detail: string }[];
+    smcPatterns: string[];
+    smcConfirmations: number;
+  };
 }
 
 export interface Partner {

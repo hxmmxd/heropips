@@ -5,6 +5,7 @@ import {
   displaySymbol,
   calculateRiskParams,
   fetchNewsHeadlines,
+  markSignalFired,
 } from '@/lib/market';
 
 import { getPlatformConfig } from '@/lib/platformConfig';
@@ -88,6 +89,8 @@ export async function POST(request: Request) {
         }
       } else {
         try {
+          const chatController = new AbortController();
+          const chatTimeout = setTimeout(() => chatController.abort(), 60_000);
           const response = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -95,7 +98,7 @@ export async function POST(request: Request) {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              model: 'meta/llama-3.1-8b-instruct',
+              model: 'nvidia/nemotron-3-nano-30b-a3b',
               temperature: 0.3,
               max_tokens: 512,
               messages: [
@@ -116,7 +119,9 @@ You MUST respond in this JSON format only: {"text":"your response"}`
                 ...userMessages,
               ],
             }),
+            signal: chatController.signal,
           });
+          clearTimeout(chatTimeout);
 
           const data = await response.json();
           if (!response.ok) {
@@ -165,9 +170,40 @@ ${newsBlock}
 `
       : `[Market data unavailable for ${symDisplay}.]${newsBlock}`;
 
-    // 4. Build prompt based on whether user wants signal or just analysis
-    const systemPrompt = explicitSignal
-      ? `You are the Master Trading Agent. Orchestrate specialized sub-agents to analyze markets and execute trades:
+    // 4. FAST PATH: For non-signal queries, return engine data directly (no LLM needed)
+    if (!explicitSignal && snapshot) {
+      const smcBlock = snapshot.smcPatterns.length > 0
+        ? `\n* **SMC Scanner:** ${snapshot.smcPatterns.join(', ')}`
+        : '';
+
+      const outcomeEmoji = snapshot.signalOutcome === 'SIGNAL' ? '🟢' : snapshot.signalOutcome === 'WATCH' ? '🟡' : '🔴';
+
+      const analysisText = `### 🤖 ${symDisplay} Analysis — ${outcomeEmoji} ${snapshot.signalOutcome}\n` +
+        `* **Price:** $${snapshot.price.toFixed(2)}\n` +
+        `* **Technical:** RSI ${snapshot.indicators.rsi?.toFixed(1) ?? 'N/A'} | MACD ${snapshot.indicators.macd ? (snapshot.indicators.macd.histogram > 0 ? 'Bullish' : 'Bearish') : 'N/A'} | EMA50 ${snapshot.indicators.ema50 ? (snapshot.price > snapshot.indicators.ema50 ? 'Above' : 'Below') : 'N/A'}\n` +
+        `* **Confluence:** ${snapshot.confluenceScore}% ${snapshot.confluenceDirection} (${snapshot.confidenceGrade})\n` +
+        `* **4H Bias:** ${snapshot.htfBias}${smcBlock}`;
+
+      const marketData = {
+        symbol, displaySymbol: symDisplay, price: snapshot.price,
+        rsi: snapshot.indicators.rsi, macdHistogram: snapshot.indicators.macd?.histogram ?? null,
+        ema50: snapshot.indicators.ema50, atr: snapshot.indicators.atr,
+        confluenceScore: snapshot.confluenceScore, confluenceDirection: snapshot.confluenceDirection,
+        confidenceGrade: snapshot.confidenceGrade, newsSentiment: snapshot.newsSentiment.sentiment,
+      };
+
+      return NextResponse.json({
+        text: analysisText, ticket: null, signalSymbol: symbol, marketData,
+        gating: {
+          outcome: snapshot.signalOutcome, reason: snapshot.outcomeReason,
+          gates: snapshot.gateResults, smcPatterns: snapshot.smcPatterns,
+          smcConfirmations: snapshot.smcConfirmations,
+        },
+      });
+    }
+
+    // 5. SIGNAL PATH: Build prompt for LLM (only for explicit signal requests)
+    const systemPrompt = `You are the Master Trading Agent. Orchestrate specialized sub-agents to analyze markets and execute trades:
 1. Technical Analysis Agent: RSI, MACD, EMA50, ATR.
 2. Macro News Agent: Live headline sentiment.
 3. Master Synthesis Agent: Decisive final trading plan.
@@ -182,27 +218,15 @@ ${marketContextBlock}
 Account Balance: $${accountBalance.toFixed(2)} | Max Risk: 1.5%
 
 Respond ONLY with this JSON (no markdown wrapping, no code fences):
-{"text":"### 🤖 Multi-Agent Consensus\\n* **Technical Analysis**: [under 8 words findings]\\n* **Macro News**: [under 8 words sentiment]\\n* **Master Synthesis**: [under 8 words execution target]","newsSentiment":"BULLISH, BEARISH, or NEUTRAL","ticket":{"ticketId":"5 digit number","symbol":"${symDisplay}","action":"BUY or SELL","entryPrice":"price","lotVolume":"lots","rrRatio":"ratio","stopLoss":"sl","takeProfit":"tp","margin":"margin","risk":"risk","profit":"profit","confidence":"${snapshot?.confidenceGrade || 'BBB'}"}}`
-      : `You are the Master Trading Agent. Orchestrate specialized sub-agents to analyze markets:
-1. Technical Analysis Agent: RSI, MACD, EMA50, ATR.
-2. Macro News Agent: Live headline sentiment.
-3. Master Synthesis Agent: Decisive final summary.
+{"text":"### 🤖 Multi-Agent Consensus\\n* **Technical Analysis**: [under 8 words findings]\\n* **Macro News**: [under 8 words sentiment]\\n* **Master Synthesis**: [under 8 words execution target]","newsSentiment":"BULLISH, BEARISH, or NEUTRAL","ticket":{"ticketId":"5 digit number","symbol":"${symDisplay}","action":"BUY or SELL","entryPrice":"price","lotVolume":"lots","rrRatio":"ratio","stopLoss":"sl","takeProfit":"tp","margin":"margin","risk":"risk","profit":"profit","confidence":"${snapshot?.confidenceGrade || 'BBB'}"}}`;
 
-Rules:
-- Formulate the "text" field as a professional markdown report summarizing findings.
-- Enforce extreme conciseness: Each agent's bullet point MUST be under 8 words. No explanation, just data.
-- Keep the entire report under 25 words total. Use only real numbers from the context.
-- Do NOT generate a trade ticket JSON.
 
-${marketContextBlock}
-
-Respond ONLY with this JSON (no markdown wrapping, no code fences):
-{"text":"### 🤖 Multi-Agent Consensus\\n* **Technical Analysis**: [under 8 words findings]\\n* **Macro News**: [under 8 words sentiment]\\n* **Master Synthesis**: [under 8 words final summary]","newsSentiment":"BULLISH, BEARISH, or NEUTRAL"}`;
-
-    // 5. Call NVIDIA NIM API
+    // 5. Call NVIDIA NIM API (120s timeout for 550B reasoning model)
     const apiKey = await getNextApiKey();
     if (!apiKey) markUnconfigured('nvidia');
     const t0 = Date.now();
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 120_000);
     const llmResponse = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -210,15 +234,17 @@ Respond ONLY with this JSON (no markdown wrapping, no code fences):
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'meta/llama-3.1-8b-instruct',
+        model: 'meta/llama-3.3-70b-instruct',
         temperature: 0.2,
-        max_tokens: 1024,
+        max_tokens: 512,
         messages: [
           { role: 'system', content: systemPrompt },
           ...userMessages,
         ],
       }),
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
 
     const llmData = await llmResponse.json();
 
@@ -247,11 +273,13 @@ Respond ONLY with this JSON (no markdown wrapping, no code fences):
         1.5,
         symbol
       );
+      // A4: Engine ALWAYS decides direction — not the LLM
+      const engineDirection = snapshot.confluenceDirection === 'SELL' ? 'SELL' : 'BUY';
       parsed.ticket = {
         ...parsed.ticket,
         ticketId: parsed.ticket.ticketId || Math.floor(10000 + Math.random() * 90000).toString(),
         symbol: symDisplay,
-        action: parsed.ticket.action || (snapshot.confluenceDirection === 'SELL' ? 'SELL' : 'BUY'),
+        action: engineDirection,
         entryPrice: snapshot.price.toFixed(2),
         stopLoss: riskParams.stopLoss,
         takeProfit: riskParams.takeProfit,
@@ -262,8 +290,10 @@ Respond ONLY with this JSON (no markdown wrapping, no code fences):
         rrRatio: riskParams.rrRatio,
         confidence: snapshot.confidenceGrade,
         executionStatus: 'PENDING',
-        apiSymbol: symbol, // raw API symbol for execution (e.g. "XAU/USD")
+        apiSymbol: symbol,
       };
+      // Mark cooldown
+      markSignalFired(symbol);
     }
 
     // Build marketData — always non-null so the rich card renders.
@@ -283,11 +313,23 @@ Respond ONLY with this JSON (no markdown wrapping, no code fences):
       newsSentiment: parsed.newsSentiment || 'NEUTRAL',
     };
 
+    // Gating: only send ticket if engine says SIGNAL
+    const gatingOutcome = snapshot?.signalOutcome || 'NO_TRADE';
+    const shouldSendTicket = explicitSignal && parsed.ticket && gatingOutcome === 'SIGNAL';
+
     return NextResponse.json({
       text: parsed.text || 'Analysis complete.',
-      ticket: (explicitSignal && parsed.ticket) ? parsed.ticket : null,
+      ticket: shouldSendTicket ? parsed.ticket : null,
       signalSymbol: !explicitSignal ? symbol : null,
       marketData: marketData,
+      // Phase A: Gating data for frontend
+      gating: {
+        outcome: gatingOutcome,
+        reason: snapshot?.outcomeReason || '',
+        gates: snapshot?.gateResults || [],
+        smcPatterns: snapshot?.smcPatterns || [],
+        smcConfirmations: snapshot?.smcConfirmations || 0,
+      },
     });
   } catch (error: any) {
     console.error('[Chat API] Unexpected error:', error);

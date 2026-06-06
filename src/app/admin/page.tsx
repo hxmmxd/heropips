@@ -9,9 +9,10 @@ import {
   Heart, Cpu, Database, Pencil, Check, X, Mail, User, Settings, Megaphone,
   FileText, Power, ToggleLeft, ToggleRight, AlertTriangle, Plus, Trash2,
   Target, BarChart2, ShieldAlert, Plug, TestTube, Loader2, Key, Link2, Handshake,
-  Menu, Calendar, Filter
+  Menu, Calendar, Filter, MapPin, Smartphone, Monitor
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { getUserAvatar } from '@/lib/avatar';
 import AdminSettings from '@/components/AdminSettings';
 
 interface AdminStats {
@@ -80,7 +81,8 @@ export default function AdminPage() {
   const [selectedUserAccounts, setSelectedUserAccounts] = useState<BrokerRow[]>([]);
   const [selectedUserTrades, setSelectedUserTrades] = useState<TradeRow[]>([]);
   const [drawerLoading, setDrawerLoading] = useState(false);
-  const [drawerTab, setDrawerTab] = useState<'overview' | 'accounts' | 'metrics'>('overview');
+  const [drawerTab, setDrawerTab] = useState<'overview' | 'accounts' | 'session' | 'metrics'>('overview');
+  const [selectedUserSession, setSelectedUserSession] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState('');
   const [announcements, setAnnouncements] = useState<any[]>([]);
@@ -262,10 +264,11 @@ export default function AdminPage() {
     setSaveMsg('');
     setDrawerTab('overview');
 
-    // Fetch user details (accounts & trades)
+    // Fetch user details (accounts, trades & session)
     setDrawerLoading(true);
     setSelectedUserAccounts([]);
     setSelectedUserTrades([]);
+    setSelectedUserSession(null);
     try {
       const res = await fetch(`/api/admin/user?userId=${u.id}`);
       if (res.ok) {
@@ -273,6 +276,7 @@ export default function AdminPage() {
         if (data.success) {
           setSelectedUserAccounts(data.brokers || []);
           setSelectedUserTrades(data.trades || []);
+          setSelectedUserSession(data.session || null);
         }
       }
     } catch (err) {
@@ -540,7 +544,7 @@ export default function AdminPage() {
                   <div className="adm-card-body adm-card-body-flush">
                     {recentUsers.map(u => (
                       <div key={u.id} className="adm-recent-row">
-                        <img src={u.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.full_name || u.email)}&background=10a37f&color=fff&size=32`} alt="" className="adm-recent-avatar" />
+                        <img src={getUserAvatar({ avatar_url: u.avatar_url, id: u.id, full_name: u.full_name, email: u.email })} alt="" className="adm-recent-avatar" />
                         <div className="adm-recent-info">
                           <p className="adm-recent-name">{u.full_name || u.email?.split('@')[0]}</p>
                           <p className="adm-recent-email">{u.email}</p>
@@ -625,7 +629,7 @@ export default function AdminPage() {
                           <td className="adm-td-check"><input type="checkbox" checked={selected.has(u.id)} onChange={() => toggleSelect(u.id)} /></td>
                           <td>
                             <div className="adm-user-cell" onClick={() => openDrawer(u)} style={{cursor:'pointer'}}>
-                              <img src={u.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.full_name || u.email)}&background=10a37f&color=fff&size=36`} alt="" className="adm-user-av" />
+                              <img src={getUserAvatar({ avatar_url: u.avatar_url, id: u.id, full_name: u.full_name, email: u.email })} alt="" className="adm-user-av" />
                               <div><p className="adm-user-name">{u.full_name || '—'}</p><p className="adm-user-email">{u.email}</p></div>
                             </div>
                           </td>
@@ -737,13 +741,29 @@ export default function AdminPage() {
                       >
                         Metrics
                       </button>
+                      <button
+                        className={`adm-drawer-tab ${drawerTab === 'session' ? 'active' : ''}`}
+                        onClick={() => setDrawerTab('session')}
+                        style={{
+                          padding: '12px 16px',
+                          background: 'none',
+                          border: 'none',
+                          borderBottom: drawerTab === 'session' ? '2px solid #10a37f' : '2px solid transparent',
+                          color: drawerTab === 'session' ? '#10a37f' : 'var(--subtext)',
+                          fontWeight: drawerTab === 'session' ? 'bold' : 'normal',
+                          cursor: 'pointer',
+                          fontSize: '13px'
+                        }}
+                      >
+                        Session
+                      </button>
                     </div>
                   )}
                   <div className="adm-drawer-body">
                     {editMode ? (
                       <>
                         <div className="adm-drawer-profile">
-                          <img src={drawerUser.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(drawerUser.full_name || drawerUser.email)}&background=10a37f&color=fff&size=80`} alt="" className="adm-drawer-avatar" />
+                          <img src={getUserAvatar({ avatar_url: drawerUser.avatar_url, id: drawerUser.id, full_name: drawerUser.full_name, email: drawerUser.email })} alt="" className="adm-drawer-avatar" />
                           <div className="adm-edit-profile-fields">
                             <div className="adm-edit-field"><User className="adm-edit-icon" /><input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Full name" className="adm-edit-input" /></div>
                             <div className="adm-edit-field"><Mail className="adm-edit-icon" /><input value={editEmail} onChange={e => setEditEmail(e.target.value)} placeholder="Email" className="adm-edit-input" /></div>
@@ -773,7 +793,7 @@ export default function AdminPage() {
                         {drawerTab === 'overview' && (
                           <>
                             <div className="adm-drawer-profile">
-                              <img src={drawerUser.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(drawerUser.full_name || drawerUser.email)}&background=10a37f&color=fff&size=80`} alt="" className="adm-drawer-avatar" />
+                              <img src={getUserAvatar({ avatar_url: drawerUser.avatar_url, id: drawerUser.id, full_name: drawerUser.full_name, email: drawerUser.email })} alt="" className="adm-drawer-avatar" />
                               <h4>{drawerUser.full_name || drawerUser.email?.split('@')[0]}</h4>
                               <p className="adm-drawer-email">{drawerUser.email}</p>
                               <div className="adm-drawer-tags">
@@ -848,6 +868,87 @@ export default function AdminPage() {
                                   </div>
                                 </div>
                               ))
+                            )}
+                          </div>
+                        )}
+
+                        {drawerTab === 'session' && (
+                          <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            {drawerLoading ? (
+                              <div className="text-center py-10" style={{ color: 'var(--subtext)' }}>
+                                Loading session info...
+                              </div>
+                            ) : !selectedUserSession ? (
+                              <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--subtext)', border: '1px dashed var(--border)', borderRadius: '12px', background: 'rgba(255,255,255,0.01)' }}>
+                                <Globe style={{ width: 28, height: 28, margin: '0 auto 8px', opacity: 0.4 }} />
+                                <p style={{ margin: 0, fontSize: '13px' }}>No session data available yet</p>
+                                <p style={{ margin: '4px 0 0', fontSize: '11px', opacity: 0.6 }}>Session data is captured when the user visits the platform</p>
+                              </div>
+                            ) : (
+                              <>
+                                {/* Last Seen */}
+                                {selectedUserSession.lastSeen && (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', borderRadius: '10px', background: 'rgba(16,163,127,0.06)', border: '1px solid rgba(16,163,127,0.15)' }}>
+                                    <Clock style={{ width: 14, height: 14, color: '#10a37f', flexShrink: 0 }} />
+                                    <span style={{ fontSize: '12px', color: '#10a37f', fontWeight: 600 }}>
+                                      Last seen {new Date(selectedUserSession.lastSeen).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                  </div>
+                                )}
+
+                                {/* IP & Location */}
+                                <div style={{ border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
+                                  <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--subtext)', background: 'rgba(255,255,255,0.02)' }}>
+                                    <Globe style={{ width: 12, height: 12, display: 'inline', verticalAlign: 'middle', marginRight: 6 }} />
+                                    Network & Location
+                                  </div>
+                                  <div className="adm-drawer-fields" style={{ margin: 0, border: 'none', borderRadius: 0 }}>
+                                    <div className="adm-drawer-field">
+                                      <span>IP Address</span>
+                                      <span className="adm-mono" style={{ fontWeight: 600 }}>{selectedUserSession.ip || '—'}</span>
+                                    </div>
+                                    <div className="adm-drawer-field">
+                                      <span><MapPin style={{ width: 12, height: 12, display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Location</span>
+                                      <span style={{ fontWeight: 600 }}>{selectedUserSession.location || '—'}</span>
+                                    </div>
+                                    <div className="adm-drawer-field">
+                                      <span>Country</span>
+                                      <span style={{ fontWeight: 600 }}>{selectedUserSession.country || '—'}</span>
+                                    </div>
+                                    <div className="adm-drawer-field">
+                                      <span>Timezone</span>
+                                      <span style={{ fontWeight: 600 }}>{selectedUserSession.timezone || '—'}</span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Device Info */}
+                                <div style={{ border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
+                                  <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--subtext)', background: 'rgba(255,255,255,0.02)' }}>
+                                    <Monitor style={{ width: 12, height: 12, display: 'inline', verticalAlign: 'middle', marginRight: 6 }} />
+                                    Device & Browser
+                                  </div>
+                                  <div className="adm-drawer-fields" style={{ margin: 0, border: 'none', borderRadius: 0 }}>
+                                    <div className="adm-drawer-field">
+                                      <span>Operating System</span>
+                                      <span style={{ fontWeight: 600 }}>{selectedUserSession.os || '—'}</span>
+                                    </div>
+                                    <div className="adm-drawer-field">
+                                      <span>Browser</span>
+                                      <span style={{ fontWeight: 600 }}>{selectedUserSession.browser || '—'}</span>
+                                    </div>
+                                    <div className="adm-drawer-field">
+                                      <span>Device Type</span>
+                                      <span style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                        {selectedUserSession.device === 'Mobile' && <Smartphone style={{ width: 13, height: 13 }} />}
+                                        {selectedUserSession.device === 'Desktop' && <Monitor style={{ width: 13, height: 13 }} />}
+                                        {selectedUserSession.device === 'Tablet' && <Monitor style={{ width: 13, height: 13 }} />}
+                                        {selectedUserSession.device || '—'}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </>
                             )}
                           </div>
                         )}

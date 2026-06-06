@@ -2,6 +2,11 @@ import { computeIndicators } from './indicators';
 import { getPlatformConfig } from './platformConfig';
 import { recordApiCall, markUnconfigured } from './apiStats';
 import { fetchYahooCandles } from './yahooFinance';
+import { fullScan, type ScanReport } from './scanner';
+import { getNewsSentiment, type SentimentResult } from './newsSentiment';
+import { checkEconomicCalendar } from './econCalendar';
+import { detectDivergence, type DivergenceResult } from './divergence';
+import { checkCorrelation, type CorrelationResult } from './correlation';
 
 const BASE_URL = 'https://api.twelvedata.com';
 
@@ -141,6 +146,16 @@ export function calculateRiskParams(
   };
 }
 
+// ── Gating Types ──────────────────────────────────────────
+
+export type SignalOutcome = 'SIGNAL' | 'WATCH' | 'NO_TRADE';
+
+export interface GateResult {
+  name: string;
+  passed: boolean;
+  detail: string;
+}
+
 export interface MarketSnapshot {
   symbol: string;
   displaySymbol: string;
@@ -159,6 +174,16 @@ export interface MarketSnapshot {
   confluenceScore: number;
   confluenceDirection: 'BUY' | 'SELL' | 'NEUTRAL';
   confidenceGrade: 'AAA' | 'AA' | 'A' | 'BBB';
+  // Phase A additions
+  smcPatterns: string[];
+  smcConfirmations: number;
+  gateResults: GateResult[];
+  signalOutcome: SignalOutcome;
+  outcomeReason: string;
+  // Phase B additions
+  newsSentiment: SentimentResult;
+  divergence: DivergenceResult;
+  correlation: CorrelationResult;
 }
 
 // ── Fetch Helpers ──────────────────────────────────────────
@@ -374,6 +399,79 @@ function gradeConfidence(score: number): 'AAA' | 'AA' | 'A' | 'BBB' {
 }
 
 
+// ── Session Filter ─────────────────────────────────────────
+
+const SESSION_MAP: Record<string, string[]> = {
+  'XAU/USD': ['london', 'newyork', 'overlap'],
+  'EUR/USD': ['london', 'newyork', 'overlap'],
+  'GBP/USD': ['london', 'newyork', 'overlap'],
+  'USD/JPY': ['tokyo', 'london', 'overlap'],
+  'BTC/USD': ['any'],
+  'ETH/USD': ['any'],
+  'QQQ':     ['newyork'],
+  'DIA':     ['newyork'],
+  'SPY':     ['newyork'],
+  'USO':     ['newyork'],
+};
+
+function getCurrentSession(): string {
+  const utcHour = new Date().getUTCHours();
+  if (utcHour >= 0 && utcHour < 7) return 'tokyo';
+  if (utcHour >= 7 && utcHour < 12) return 'london';
+  if (utcHour >= 12 && utcHour < 16) return 'overlap'; // London+NY
+  if (utcHour >= 16 && utcHour < 21) return 'newyork';
+  return 'off-hours'; // 21-00 UTC
+}
+
+function isOptimalSession(symbol: string): { ok: boolean; session: string; detail: string } {
+  const session = getCurrentSession();
+  const allowed = SESSION_MAP[symbol] || ['any'];
+  if (allowed.includes('any')) return { ok: true, session, detail: `${session} session (24h asset)` };
+  const ok = allowed.includes(session);
+  return { ok, session, detail: ok ? `${session} — optimal trading window` : `${session} — low liquidity for this pair` };
+}
+
+// ── Volatility Filter ──────────────────────────────────────
+
+function checkVolatility(candles: { high: number; low: number; close: number }[]): { ok: boolean; ratio: number; detail: string } {
+  if (candles.length < 21) return { ok: true, ratio: 1, detail: 'Not enough data' };
+  // Current ATR vs 20-period average ATR
+  const trs: number[] = [];
+  for (let i = 1; i < candles.length; i++) {
+    trs.push(Math.max(
+      candles[i].high - candles[i].low,
+      Math.abs(candles[i].high - candles[i - 1].close),
+      Math.abs(candles[i].low - candles[i - 1].close)
+    ));
+  }
+  const currentATR = trs.slice(-1)[0] || 0;
+  const avgATR = trs.slice(-20).reduce((s, v) => s + v, 0) / Math.min(20, trs.length);
+  const ratio = avgATR > 0 ? currentATR / avgATR : 1;
+  if (ratio < 0.5) return { ok: false, ratio, detail: `ATR ratio ${ratio.toFixed(2)} — dead market` };
+  if (ratio > 2.5) return { ok: false, ratio, detail: `ATR ratio ${ratio.toFixed(2)} — extreme volatility` };
+  return { ok: true, ratio, detail: `ATR ratio ${ratio.toFixed(2)} — normal volatility` };
+}
+
+// ── Signal Cooldown ────────────────────────────────────────
+
+const COOLDOWN_MAP = new Map<string, number>();
+const COOLDOWN_MS = 4 * 60 * 60 * 1000; // 4 hours
+
+function checkCooldown(symbol: string): { ok: boolean; detail: string } {
+  const lastSignal = COOLDOWN_MAP.get(symbol);
+  if (!lastSignal) return { ok: true, detail: 'No recent signal' };
+  const elapsed = Date.now() - lastSignal;
+  if (elapsed < COOLDOWN_MS) {
+    const remaining = Math.ceil((COOLDOWN_MS - elapsed) / 60000);
+    return { ok: false, detail: `Cooldown active — ${remaining} min remaining` };
+  }
+  return { ok: true, detail: 'Cooldown expired' };
+}
+
+export function markSignalFired(symbol: string) {
+  COOLDOWN_MAP.set(symbol, Date.now());
+}
+
 // ── Main Market Snapshot Assembler ─────────────────────────
 
 export async function getMarketSnapshot(symbol: string): Promise<MarketSnapshot | null> {
@@ -387,14 +485,14 @@ export async function getMarketSnapshot(symbol: string): Promise<MarketSnapshot 
   try {
     console.log(`[Market Engine] Fetching snapshot for ${symbol}...`);
 
-    // Fetch candles (only 1 Twelve Data API call needed, instead of 5!)
-    const candles = await fetchCandles(symbol, '1h', 80);
+    // ── A2+A5: Fetch 200 candles for scanner depth ────────
+    const candles = await fetchCandles(symbol, '1h', 200);
     if (candles.length < 50) {
       console.error('[Market Engine] Not enough candle data — aborting snapshot');
       return null;
     }
 
-    // Compute indicators using TypeScript engine (works on Vercel)
+    // ── Compute indicators (TypeScript engine — works on Vercel)
     const results = computeIndicators(candles);
     if (!results || results.price === 0) {
       console.error('[Market Engine] Failed to compute indicators');
@@ -405,28 +503,117 @@ export async function getMarketSnapshot(symbol: string): Promise<MarketSnapshot 
     console.log(`[Market Engine] Price: $${price}`);
     console.log(`[Market Engine] Indicators — RSI: ${rsi}, MACD: ${macd ? 'ok' : 'null'}, EMA50: ${ema50}, ATR: ${atr}`);
 
-    // Directional bias using calculated indicators
-    let bullish = 0;
-    let bearish = 0;
+    // ── A5: Higher Timeframe Bias (4H RSI) ────────────────
+    const htfBias = await fetchHTFBias(symbol);
 
-    if (rsi !== null) {
-      if (rsi < 50) bearish++;
-      else bullish++;
+    // ── B1: Real News Sentiment ───────────────────────────
+    const sentimentResult = await getNewsSentiment(symbol);
+
+    // ── A3: Weighted 6-Indicator Scoring (replaces 3-vote) ─
+    const macdForScorer = macd ? { macd: macd.value, signal: macd.signal, histogram: macd.histogram } : null;
+    const scoring = scoreIndicators(price, rsi, macdForScorer, null, ema50, null, null, null, htfBias);
+    const { score, direction, signals: indicatorSignals } = scoring;
+    console.log(`[Market Engine] Weighted Confluence: ${score}% ${direction}`);
+    console.log(`[Market Engine] Signals: ${indicatorSignals.map(s => `${s.name}:${s.direction}`).join(', ')}`);
+
+    // ── A2: Wire SMC Scanner into Pipeline ────────────────
+    const scanReport: ScanReport = fullScan(symbol, '1h', candles);
+    const smcPatterns: string[] = [];
+    let smcConfirmations = 0;
+
+    if (scanReport.structureBreaks.length > 0) {
+      const latest = scanReport.structureBreaks[scanReport.structureBreaks.length - 1];
+      smcPatterns.push(`${latest.type} ${latest.direction}`);
+      smcConfirmations++;
     }
-    if (macd !== null) {
-      if (macd.histogram > 0) bullish++;
-      else bearish++;
+    if (scanReport.fvgs.length > 0) {
+      smcPatterns.push(`${scanReport.fvgs.length} active FVG(s)`);
+      smcConfirmations++;
     }
-    if (ema50 !== null) {
-      if (price > ema50) bullish++;
-      else bearish++;
+    if (scanReport.orderBlocks.length > 0) {
+      smcPatterns.push(`${scanReport.orderBlocks.length} Order Block(s)`);
+      smcConfirmations++;
+    }
+    if (scanReport.liquiditySweeps.length > 0) {
+      smcPatterns.push(`Liquidity Sweep detected`);
+      smcConfirmations++;
+    }
+    console.log(`[Market Engine] SMC: ${smcConfirmations} confirmations — ${smcPatterns.join(', ') || 'none'}`);
+
+    // ── B3: Divergence Detection ──────────────────────────
+    const divResult = detectDivergence(candles);
+    if (divResult.combined !== 'none') {
+      smcPatterns.push(`${divResult.combined} divergence`);
+      console.log(`[Market Engine] Divergence: ${divResult.detail}`);
     }
 
-    const direction: 'BUY' | 'SELL' = bullish >= bearish ? 'BUY' : 'SELL';
-    const total = bullish + bearish;
-    const score = total > 0 ? Math.round((Math.max(bullish, bearish) / total) * 100) : 50;
+    // ── A1: 6-Gate System ─────────────────────────────────
+    const gates: GateResult[] = [];
 
-    console.log(`[Market Engine] Confluence: ${score}% ${direction} (Grade: ${gradeConfidence(score)})`);
+    // Gate 1: Confluence ≥ 65%
+    gates.push({ name: 'Confluence', passed: score >= 65, detail: `${score}% (need ≥65%)` });
+
+    // Gate 2: SMC Confirmation ≥ 1
+    gates.push({ name: 'SMC Confirmation', passed: smcConfirmations >= 1, detail: `${smcConfirmations} pattern(s): ${smcPatterns.join(', ') || 'none'}` });
+
+    // Gate 3: HTF Alignment
+    const htfAligned = htfBias === 'neutral' || (direction === 'BUY' && htfBias === 'bullish') || (direction === 'SELL' && htfBias === 'bearish');
+    gates.push({ name: 'Timeframe Alignment', passed: htfAligned, detail: `4H bias: ${htfBias}, Signal: ${direction}` });
+
+    // Gate 4: Session Filter
+    const sessionCheck = isOptimalSession(symbol);
+    gates.push({ name: 'Session Filter', passed: sessionCheck.ok, detail: sessionCheck.detail });
+
+    // Gate 5: Volatility Normal
+    const volCheck = checkVolatility(candles);
+    gates.push({ name: 'Volatility', passed: volCheck.ok, detail: volCheck.detail });
+
+    // Gate 6: No Conflict (bull vs bear > 10% apart)
+    const bullBear = indicatorSignals.reduce((acc, s) => {
+      if (s.direction === 'bullish') acc.bull += s.weight;
+      if (s.direction === 'bearish') acc.bear += s.weight;
+      return acc;
+    }, { bull: 0, bear: 0 });
+    const totalW = bullBear.bull + bullBear.bear || 1;
+    const spread = Math.abs(bullBear.bull - bullBear.bear) / totalW;
+    gates.push({ name: 'No Conflict', passed: spread > 0.1, detail: `Bull/Bear spread: ${(spread * 100).toFixed(0)}% (need >10%)` });
+
+    // Gate 7: Cooldown
+    const cooldownCheck = checkCooldown(symbol);
+    gates.push({ name: 'Cooldown', passed: cooldownCheck.ok, detail: cooldownCheck.detail });
+
+    // Gate 8: Economic Calendar (B2) — block near high-impact events
+    const calendarCheck = await checkEconomicCalendar(symbol);
+    gates.push({ name: 'News Event', passed: !calendarCheck.blocked, detail: calendarCheck.reason });
+
+    // Gate 9: Correlated Assets (B4) — check if related markets agree
+    const correlationCheck = await checkCorrelation(symbol, direction);
+    gates.push({ name: 'Correlation', passed: correlationCheck.confirmed, detail: correlationCheck.detail });
+
+    // ── Determine Outcome ──────────────────────────────────
+    const passedCount = gates.filter(g => g.passed).length;
+    const criticalGates = ['Confluence', 'No Conflict', 'News Event'];
+    const criticalFailed = gates.filter(g => criticalGates.includes(g.name) && !g.passed);
+
+    let signalOutcome: SignalOutcome;
+    let outcomeReason: string;
+
+    if (criticalFailed.length > 0) {
+      signalOutcome = 'NO_TRADE';
+      outcomeReason = `Critical gate failed: ${criticalFailed.map(g => g.name).join(', ')}`;
+    } else if (passedCount >= 6) {
+      signalOutcome = 'SIGNAL';
+      outcomeReason = `${passedCount}/${gates.length} gates passed — high-confluence setup`;
+    } else if (passedCount >= 4) {
+      signalOutcome = 'WATCH';
+      const failed = gates.filter(g => !g.passed).map(g => g.name);
+      outcomeReason = `${passedCount}/${gates.length} gates passed — watching: ${failed.join(', ')}`;
+    } else {
+      signalOutcome = 'NO_TRADE';
+      outcomeReason = `Only ${passedCount}/${gates.length} gates passed — insufficient confluence`;
+    }
+
+    console.log(`[Market Engine] Outcome: ${signalOutcome} — ${outcomeReason}`);
 
     const snapshot: MarketSnapshot = {
       symbol,
@@ -437,10 +624,20 @@ export async function getMarketSnapshot(symbol: string): Promise<MarketSnapshot 
         macd: macd ? { macd: macd.value, signal: macd.signal, histogram: macd.histogram } : null,
         ema20: null, ema50, ema200: null, bbands: null, atr, stoch: null
       },
-      htfBias: direction === 'BUY' ? 'bullish' : 'bearish',
+      htfBias,
       confluenceScore: score,
       confluenceDirection: direction,
       confidenceGrade: gradeConfidence(score),
+      // Phase A additions
+      smcPatterns,
+      smcConfirmations,
+      gateResults: gates,
+      signalOutcome,
+      outcomeReason,
+      // Phase B additions
+      newsSentiment: sentimentResult,
+      divergence: divResult,
+      correlation: correlationCheck,
     };
 
     // Store in cache

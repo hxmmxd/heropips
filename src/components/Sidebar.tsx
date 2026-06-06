@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Terminal, Server, Receipt, Network, X, LogOut, Settings, ChevronUp, BarChart3 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { getUserAvatar } from '@/lib/avatar';
 
 interface SidebarProps {
   currentTab: string;
@@ -31,8 +32,12 @@ export default function Sidebar({ currentTab, switchTab, isOpen, onToggle }: Sid
 
   const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User';
   const userEmail = user?.email || '';
-  const avatarUrl = user?.user_metadata?.avatar_url || 
-    `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=10a37f&color=fff&size=80`;
+  const avatarUrl = getUserAvatar({
+    avatar_url: user?.user_metadata?.avatar_url,
+    id: user?.id,
+    full_name: userName,
+    email: userEmail,
+  });
 
   const navItems = [
     { id: 'terminal', label: 'AI Terminal', icon: Terminal },

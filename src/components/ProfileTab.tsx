@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User, Mail, Shield, CreditCard, LogOut, ChevronRight, Trash2, Moon, Bell, Camera } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { getUserAvatar } from '@/lib/avatar';
 
 interface ProfileTabProps {
   theme: 'light' | 'dark';
@@ -87,7 +88,7 @@ export default function ProfileTab({ theme, switchTab }: ProfileTabProps) {
   const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User';
   const userEmail = user?.email || '';
   const avatarUrl = currentAvatar ||
-    `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=10a37f&color=fff&size=128`;
+    getUserAvatar({ id: user?.id, full_name: userName, email: userEmail });
   const plan = profile?.plan || 'free';
   const joinDate = user?.created_at ? new Date(user.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '';
 

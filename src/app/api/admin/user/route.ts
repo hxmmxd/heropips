@@ -41,14 +41,16 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
     }
 
-    // Fetch user accounts and trades
-    const [brokersRes, tradesRes] = await Promise.all([
+    // Fetch user accounts, trades, and session info
+    const [brokersRes, tradesRes, profileRes] = await Promise.all([
       supabaseAdmin.from('broker_accounts').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
       supabaseAdmin.from('trades').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+      supabaseAdmin.from('profiles').select('last_ip, last_location, last_country, last_city, last_region, last_timezone, last_os, last_browser, last_device, last_seen').eq('id', userId).single(),
     ]);
 
     const brokers = brokersRes.data || [];
     const trades = tradesRes.data || [];
+    const sessionInfo = profileRes.data || {};
 
     // Calculate trade counts per broker account
     const brokerTradeCounts: Record<string, number> = {};
@@ -67,6 +69,18 @@ export async function GET(request: Request) {
       success: true,
       brokers: brokersWithCount,
       trades,
+      session: {
+        ip: sessionInfo.last_ip || null,
+        location: sessionInfo.last_location || null,
+        country: sessionInfo.last_country || null,
+        city: sessionInfo.last_city || null,
+        region: sessionInfo.last_region || null,
+        timezone: sessionInfo.last_timezone || null,
+        os: sessionInfo.last_os || null,
+        browser: sessionInfo.last_browser || null,
+        device: sessionInfo.last_device || null,
+        lastSeen: sessionInfo.last_seen || null,
+      },
     });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });

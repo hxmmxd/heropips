@@ -1745,7 +1745,7 @@ body {
 /* User Drawer */
 .adm-drawer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; animation: admFadeIn 0.15s ease; }
 .adm-drawer {
-  position: fixed; top: 0; right: 0; bottom: 0; width: 380px; max-width: 90vw;
+  position: fixed; top: 0; right: 0; bottom: 0; width: 520px; max-width: 90vw;
   background: var(--sidebar-bg); border-left: 1px solid var(--border);
   z-index: 110; display: flex; flex-direction: column;
   animation: admSlideIn 0.2s ease;
@@ -3027,6 +3027,133 @@ body {
   font-size: 16px; font-weight: 900; color: #fff;
   letter-spacing: -0.01em; margin-top: 1px;
 }
+
+/* ── Slide to Execute ─────────────────────────── */
+.ste-track {
+  position: relative;
+  height: 60px;
+  border-radius: 30px;
+  background: rgba(var(--ste-color), 0.1);
+  border: 2px solid rgba(var(--ste-color), 0.25);
+  overflow: hidden;
+  cursor: pointer;
+  user-select: none;
+  touch-action: none;
+  transition: border-color 0.2s;
+}
+.ste-track:hover { border-color: rgba(var(--ste-color), 0.45); }
+.ste-fill {
+  position: absolute; top: 0; left: 0; bottom: 0;
+  background: linear-gradient(90deg, rgba(var(--ste-color), 0.25), rgba(var(--ste-color), 0.5));
+  border-radius: 30px; transition: width 0.05s linear;
+}
+.ste-handle {
+  position: absolute; top: 4px; left: 4px;
+  width: 52px; height: 52px; border-radius: 50%;
+  background: linear-gradient(135deg, rgb(var(--ste-color)), rgba(var(--ste-color), 0.85));
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 16px rgba(var(--ste-color), 0.5);
+  transition: transform 0.05s linear, box-shadow 0.2s;
+  z-index: 2;
+}
+.ste-handle-dragging {
+  box-shadow: 0 6px 24px rgba(var(--ste-color), 0.65);
+  transform-origin: center;
+}
+.ste-handle-done {
+  background: rgb(var(--ste-color));
+  box-shadow: 0 2px 10px rgba(var(--ste-color), 0.4);
+}
+.ste-label {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 14px; font-weight: 700;
+  color: rgba(var(--ste-color), 0.7);
+  letter-spacing: 0.05em;
+  pointer-events: none; z-index: 1;
+  transition: opacity 0.1s;
+}
+.ste-spinner {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 3px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  animation: spin 0.6s linear infinite;
+}
+
+/* ── Signal Mode Panel ────────────────────────── */
+.signal-panel {
+  background: linear-gradient(135deg, rgba(var(--ste-color, 34,197,94), 0.06), transparent);
+  border: 1px solid rgba(var(--ste-color, 34,197,94), 0.2);
+  border-radius: 14px; padding: 14px; margin-bottom: 10px;
+}
+.signal-panel-header {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 12px;
+}
+.signal-panel-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 800;
+  letter-spacing: 0.06em; text-transform: uppercase;
+}
+.signal-panel-badge.buy {
+  background: rgba(34, 197, 94, 0.15); color: #22c55e;
+}
+.signal-panel-badge.sell {
+  background: rgba(239, 68, 68, 0.15); color: #ef4444;
+}
+.signal-panel-title {
+  font-size: 15px; font-weight: 800; color: var(--text);
+}
+.signal-panel-confluence {
+  font-size: 12px; font-weight: 700; color: var(--subtext);
+  margin-left: auto;
+}
+.signal-panel-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+  margin-bottom: 12px;
+}
+.signal-param {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 8px 10px; border-radius: 10px;
+  background: var(--sidebar-bg); border: 1px solid var(--border);
+}
+.signal-param-label {
+  font-size: 9px; font-weight: 700; color: var(--subtext);
+  letter-spacing: 0.06em; text-transform: uppercase;
+}
+.signal-param-value {
+  font-size: 14px; font-weight: 800; color: var(--text);
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+}
+.signal-param-input {
+  font-size: 14px; font-weight: 800; color: var(--text);
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  background: transparent; border: none; outline: none;
+  width: 100%; padding: 0;
+  border-bottom: 1px dashed rgba(var(--ste-color), 0.3);
+}
+.signal-param-input:focus {
+  border-bottom-color: rgb(var(--ste-color));
+}
+.signal-smc-tags {
+  display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 12px;
+}
+.signal-smc-tag {
+  font-size: 10px; font-weight: 700; padding: 3px 8px;
+  border-radius: 6px; background: rgba(99, 102, 241, 0.12);
+  color: #818cf8; letter-spacing: 0.03em;
+}
+.signal-dismiss {
+  font-size: 12px; font-weight: 600; color: var(--subtext);
+  background: none; border: none; cursor: pointer;
+  padding: 6px 0; text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.signal-dismiss:hover { color: var(--text); }
+.signal-lot-slider {
+  width: 100%; margin: 8px 0; accent-color: rgb(var(--ste-color));
+}
+
 
 /* Quick Stats */
 .ins-quick-stats {
