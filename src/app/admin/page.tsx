@@ -72,8 +72,7 @@ export default function AdminPage() {
   const [roleFilter, setRoleFilter] = useState('all');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [drawerUser, setDrawerUser] = useState<UserRow | null>(null);
-  const [page, setPage] = useState(0);
-  const PAGE_SIZE = 15;
+  const [visibleCount, setVisibleCount] = useState(30);
   const [editMode, setEditMode] = useState(false);
   const [editName, setEditName] = useState('');
   const [editEmail, setEditEmail] = useState('');
@@ -316,8 +315,8 @@ export default function AdminPage() {
     return list;
   }, [users, search, sortKey, sortDir, planFilter, roleFilter]);
 
-  const pagedUsers = useMemo(() => filteredUsers.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE), [filteredUsers, page]);
-  const totalPages = Math.ceil(filteredUsers.length / PAGE_SIZE);
+  const visibleUsers = useMemo(() => filteredUsers.slice(0, visibleCount), [filteredUsers, visibleCount]);
+  const hasMore = visibleCount < filteredUsers.length;
 
   const toggleSelect = (id: string) => {
     const next = new Set(selected);
@@ -325,8 +324,8 @@ export default function AdminPage() {
     setSelected(next);
   };
   const toggleSelectAll = () => {
-    if (selected.size === pagedUsers.length) setSelected(new Set());
-    else setSelected(new Set(pagedUsers.map(u => u.id)));
+    if (selected.size === visibleUsers.length) setSelected(new Set());
+    else setSelected(new Set(visibleUsers.map(u => u.id)));
   };
   const handleBulkPlan = async (plan: string) => {
     await Promise.all([...selected].map(id => fetch('/api/admin', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: id, plan }) })));
@@ -584,10 +583,10 @@ export default function AdminPage() {
             <>
               {/* Filter bar */}
               <div className="adm-filter-bar">
-                <div className="adm-search"><Search className="adm-search-icon" /><input type="text" placeholder="Search users…" value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} /></div>
+                <div className="adm-search"><Search className="adm-search-icon" /><input type="text" placeholder="Search users…" value={search} onChange={(e) => { setSearch(e.target.value); setVisibleCount(30); }} /></div>
                 <div className="adm-filters">
-                  <select className="adm-select" value={planFilter} onChange={e => { setPlanFilter(e.target.value); setPage(0); }}><option value="all">All Plans</option><option value="free">Free</option><option value="pro">Pro</option><option value="enterprise">Enterprise</option></select>
-                  <select className="adm-select" value={roleFilter} onChange={e => { setRoleFilter(e.target.value); setPage(0); }}><option value="all">All Roles</option><option value="admin">Admins</option><option value="user">Users</option></select>
+                  <select className="adm-select" value={planFilter} onChange={e => { setPlanFilter(e.target.value); setVisibleCount(30); }}><option value="all">All Plans</option><option value="free">Free</option><option value="pro">Pro</option><option value="enterprise">Enterprise</option></select>
+                  <select className="adm-select" value={roleFilter} onChange={e => { setRoleFilter(e.target.value); setVisibleCount(30); }}><option value="all">All Roles</option><option value="admin">Admins</option><option value="user">Users</option></select>
                   <button className="adm-export-btn" onClick={() => {
                     const csv = 'Name,Email,Plan,Admin,Joined\n' + filteredUsers.map(u => `"${u.full_name || ''}",${u.email},${u.plan || 'free'},${u.is_admin},${u.created_at}`).join('\n');
                     const blob = new Blob([csv], { type: 'text/csv' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'users.csv'; a.click();
@@ -613,7 +612,7 @@ export default function AdminPage() {
                 <div className="adm-table-wrap">
                   <table className="adm-table">
                     <thead><tr>
-                      <th className="adm-th-check"><input type="checkbox" checked={selected.size === pagedUsers.length && pagedUsers.length > 0} onChange={toggleSelectAll} /></th>
+                      <th className="adm-th-check"><input type="checkbox" checked={selected.size === visibleUsers.length && visibleUsers.length > 0} onChange={toggleSelectAll} /></th>
                       <th onClick={() => handleSort('full_name')} className="adm-th-sort">User <SortIcon col="full_name" /></th>
                       <th onClick={() => handleSort('plan')} className="adm-th-sort">Plan <SortIcon col="plan" /></th>
                       <th>Role</th>
@@ -621,7 +620,7 @@ export default function AdminPage() {
                       <th>Actions</th>
                     </tr></thead>
                     <tbody>
-                      {pagedUsers.map((u) => (
+                      {visibleUsers.map((u) => (
                         <tr key={u.id} className={selected.has(u.id) ? 'adm-row-selected' : ''}>
                           <td className="adm-td-check"><input type="checkbox" checked={selected.has(u.id)} onChange={() => toggleSelect(u.id)} /></td>
                           <td>
@@ -657,16 +656,22 @@ export default function AdminPage() {
                           </td>
                         </tr>
                       ))}
-                      {pagedUsers.length === 0 && (<tr><td colSpan={6} className="adm-empty">No users found</td></tr>)}
+                      {visibleUsers.length === 0 && (<tr><td colSpan={6} className="adm-empty">No users found</td></tr>)}
                     </tbody>
                   </table>
                 </div>
-                {/* Pagination */}
-                {totalPages > 1 && (
+                {/* Load More */}
+                {hasMore && (
                   <div className="adm-pagination">
-                    <button disabled={page === 0} onClick={() => setPage(p => p - 1)}>← Prev</button>
-                    <span className="adm-page-info">Page {page + 1} of {totalPages}</span>
-                    <button disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>Next →</button>
+                    <span className="adm-page-info">Showing {visibleUsers.length} of {filteredUsers.length} users</span>
+                    <button onClick={() => setVisibleCount(c => c + 30)}>Show More</button>
+                    <button onClick={() => setVisibleCount(filteredUsers.length)}>Show All</button>
+                  </div>
+                )}
+                {!hasMore && filteredUsers.length > 30 && (
+                  <div className="adm-pagination">
+                    <span className="adm-page-info">Showing all {filteredUsers.length} users</span>
+                    <button onClick={() => setVisibleCount(30)}>Collapse</button>
                   </div>
                 )}
               </div>
