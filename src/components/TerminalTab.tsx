@@ -448,21 +448,52 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
 
                           {/* ── Gating Status Strip ── */}
                           {msg.gating && (
-                            <div className={`px-5 py-2.5 flex items-center gap-3 border-b border-[var(--border)] ${
-                              msg.gating.outcome === 'SIGNAL' ? 'bg-gradient-to-r from-green-500/8 to-transparent'
-                              : msg.gating.outcome === 'WATCH' ? 'bg-gradient-to-r from-yellow-500/8 to-transparent'
-                              : 'bg-gradient-to-r from-red-500/8 to-transparent'
+                            <div className={`relative px-5 py-3 flex items-center gap-3 border-b border-[var(--border)] overflow-hidden ${
+                              msg.gating.outcome === 'SIGNAL' ? 'bg-gradient-to-r from-emerald-500/12 via-emerald-500/4 to-transparent'
+                              : msg.gating.outcome === 'WATCH' ? 'bg-gradient-to-r from-amber-500/12 via-amber-500/4 to-transparent'
+                              : 'bg-gradient-to-r from-red-500/12 via-red-500/4 to-transparent'
                             }`}>
-                              <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border ${
-                                msg.gating.outcome === 'SIGNAL' ? 'bg-green-500/12 text-green-500 border-green-500/20'
-                                : msg.gating.outcome === 'WATCH' ? 'bg-yellow-500/12 text-yellow-600 border-yellow-500/20'
-                                : 'bg-red-500/12 text-red-500 border-red-500/20'
-                              }`}>
-                                {msg.gating.outcome === 'SIGNAL' ? '🟢' : msg.gating.outcome === 'WATCH' ? '🟡' : '🔴'} {msg.gating.outcome}
-                              </span>
+                              {/* Glow line */}
+                              <div className={`absolute left-0 top-0 bottom-0 w-[3px] ${
+                                msg.gating.outcome === 'SIGNAL' ? 'bg-gradient-to-b from-emerald-400 to-emerald-600'
+                                : msg.gating.outcome === 'WATCH' ? 'bg-gradient-to-b from-amber-400 to-amber-600'
+                                : 'bg-gradient-to-b from-red-400 to-red-600'
+                              }`} />
+                              <div className="flex items-center gap-2">
+                                {/* Animated pulse dot */}
+                                <div className={`relative w-2 h-2 rounded-full ${
+                                  msg.gating.outcome === 'SIGNAL' ? 'bg-emerald-400'
+                                  : msg.gating.outcome === 'WATCH' ? 'bg-amber-400'
+                                  : 'bg-red-400'
+                                }`}>
+                                  {msg.gating.outcome === 'SIGNAL' && (
+                                    <div className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-60" />
+                                  )}
+                                </div>
+                                <span className={`text-[11px] font-black uppercase tracking-[0.15em] ${
+                                  msg.gating.outcome === 'SIGNAL' ? 'text-emerald-500'
+                                  : msg.gating.outcome === 'WATCH' ? 'text-amber-500'
+                                  : 'text-red-500'
+                                }`}>
+                                  {msg.gating.outcome === 'SIGNAL' ? 'SIGNAL' : msg.gating.outcome === 'WATCH' ? 'WATCH' : 'NO_TRADE'}
+                                </span>
+                              </div>
+                              <div className={`w-[1px] h-4 ${
+                                msg.gating.outcome === 'SIGNAL' ? 'bg-emerald-500/30' : msg.gating.outcome === 'WATCH' ? 'bg-amber-500/30' : 'bg-red-500/30'
+                              }`} />
                               <span className="text-[10px] text-[var(--subtext)] font-medium leading-tight flex-1">
                                 {msg.gating.reason}
                               </span>
+                              {/* Gate pass count badge */}
+                              {msg.gating.gates && (
+                                <span className={`text-[9px] font-black px-2 py-1 rounded-lg shrink-0 ${
+                                  msg.gating.outcome === 'SIGNAL' ? 'bg-emerald-500/12 text-emerald-500'
+                                  : msg.gating.outcome === 'WATCH' ? 'bg-amber-500/12 text-amber-500'
+                                  : 'bg-red-500/12 text-red-500'
+                                }`}>
+                                  {msg.gating.gates.filter((g: any) => g.passed).length}/{msg.gating.gates.length}
+                                </span>
+                              )}
                             </div>
                           )}
 
@@ -572,13 +603,14 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
 
                           {/* ── SMC Pattern Tags + Gate Checklist ── */}
                           {(msg.gating?.smcPatterns?.length || msg.gating?.gates?.length) ? (
-                            <div className="px-5 py-2.5 border-t border-[var(--border)]">
+                            <div className="px-5 py-3 border-t border-[var(--border)] space-y-3">
                               {/* SMC Tags */}
                               {msg.gating?.smcPatterns && msg.gating.smcPatterns.length > 0 && (
-                                <div className="flex flex-wrap gap-1.5 mb-2">
-                                  <span className="text-[9px] font-black text-[var(--subtext)] uppercase tracking-widest mr-1 self-center">SMC</span>
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  <span className="text-[8px] font-black text-[var(--subtext)] uppercase tracking-[0.15em] mr-0.5">SMC</span>
                                   {msg.gating.smcPatterns.map((p: string, i: number) => (
-                                    <span key={i} className="text-[9px] font-bold px-2 py-1 rounded-md bg-indigo-500/8 text-indigo-400 border border-indigo-500/15 tracking-wide">
+                                    <span key={i} className="inline-flex items-center gap-1 text-[9px] font-bold px-2 py-1 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 tracking-wide">
+                                      <span className="w-1 h-1 rounded-full bg-indigo-400 shrink-0" />
                                       {p}
                                     </span>
                                   ))}
@@ -588,20 +620,52 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
                               {/* Gate Checklist */}
                               {msg.gating?.gates && msg.gating.gates.length > 0 && (
                                 <details className="group">
-                                  <summary className="text-[10px] text-[var(--subtext)] cursor-pointer hover:text-[var(--text)] font-semibold flex items-center gap-1 select-none">
-                                    <svg className="w-3 h-3 transition-transform group-open:rotate-90" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                  <summary className="flex items-center gap-2 cursor-pointer select-none list-none">
+                                    {/* Mini gate bar */}
+                                    <div className="flex gap-0.5 items-center">
+                                      {msg.gating.gates.map((g: any, gi: number) => (
+                                        <div key={gi} className={`h-2 w-2 rounded-sm ${
+                                          g.passed ? 'bg-emerald-500' : 'bg-red-500/60'
+                                        }`} />
+                                      ))}
+                                    </div>
+                                    <span className="text-[10px] font-semibold text-[var(--subtext)] group-open:text-[var(--text)] transition-colors">
+                                      {msg.gating.gates.filter((g: any) => g.passed).length}/{msg.gating.gates.length} gates passed
+                                    </span>
+                                    <svg className="w-3 h-3 text-[var(--subtext)] transition-transform group-open:rotate-90 ml-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                       <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/>
                                     </svg>
-                                    {msg.gating.gates.filter((g: any) => g.passed).length}/{msg.gating.gates.length} gates passed
                                   </summary>
-                                  <div className="mt-2 grid gap-1 pl-1">
+                                  <div className="mt-2 space-y-1">
                                     {msg.gating.gates.map((gate: any, gi: number) => (
-                                      <div key={gi} className={`flex items-center gap-2 text-[10px] px-2.5 py-1.5 rounded-lg ${
-                                        gate.passed ? 'bg-green-500/5' : 'bg-red-500/5'
+                                      <div key={gi} className={`relative flex items-start gap-2.5 pl-3 pr-3 py-2 rounded-xl overflow-hidden ${
+                                        gate.passed
+                                          ? 'bg-emerald-500/5 border border-emerald-500/10'
+                                          : 'bg-red-500/5 border border-red-500/10'
                                       }`}>
-                                        <span className="text-[11px]">{gate.passed ? '✅' : '⚠️'}</span>
-                                        <span className="font-bold text-[var(--text)]">{gate.name}</span>
-                                        <span className="text-[var(--subtext)] flex-1 text-right font-mono">{gate.detail}</span>
+                                        {/* Left accent stripe */}
+                                        <div className={`absolute left-0 top-0 bottom-0 w-[2px] ${
+                                          gate.passed ? 'bg-emerald-500' : 'bg-red-500'
+                                        }`} />
+                                        {/* Icon */}
+                                        <div className={`w-4 h-4 rounded-md flex items-center justify-center shrink-0 mt-0.5 ${
+                                          gate.passed ? 'bg-emerald-500/15 text-emerald-500' : 'bg-red-500/15 text-red-500'
+                                        }`}>
+                                          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                            {gate.passed
+                                              ? <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/>
+                                              : <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round"/>}
+                                          </svg>
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <div className="flex items-center gap-1.5">
+                                            <span className="text-[10px] font-bold text-[var(--text)]">{gate.name}</span>
+                                            {['Confluence','News Event','MTF Stack'].includes(gate.name) && (
+                                              <span className="text-[7px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-orange-500/12 text-orange-400 border border-orange-500/15">CRITICAL</span>
+                                            )}
+                                          </div>
+                                          <p className="text-[9px] text-[var(--subtext)] leading-relaxed mt-0.5 font-mono">{gate.detail}</p>
+                                        </div>
                                       </div>
                                     ))}
                                   </div>
@@ -611,26 +675,29 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
                           ) : null}
 
                           {/* Confluence Footer + Signal Button */}
-                          <div className="px-5 py-3 border-t border-[var(--border)]">
-                            {/* Bottom bar: confluence + buttons */}
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <div className="w-20 h-1.5 rounded-full bg-[var(--input-bg)] overflow-hidden">
-                                  <div className={`h-full rounded-full ${
-                                    msg.marketData.confluenceScore >= 90 ? 'bg-green-500'
-                                    : msg.marketData.confluenceScore >= 80 ? 'bg-blue-500'
-                                    : msg.marketData.confluenceScore >= 70 ? 'bg-yellow-500'
-                                    : 'bg-gray-400'
+                          <div className="px-5 py-3.5 border-t border-[var(--border)] bg-gradient-to-r from-[var(--sidebar-bg)] to-[var(--input-bg)]/30">
+                            <div className="flex items-center justify-between gap-3">
+                              {/* Confluence bar with glow */}
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="relative w-24 h-2 rounded-full bg-[var(--input-bg)] overflow-hidden">
+                                  <div className={`h-full rounded-full transition-all ${
+                                    msg.marketData.confluenceScore >= 80 ? 'bg-gradient-to-r from-emerald-500 to-emerald-400'
+                                    : msg.marketData.confluenceScore >= 60 ? 'bg-gradient-to-r from-blue-500 to-blue-400'
+                                    : msg.marketData.confluenceScore >= 45 ? 'bg-gradient-to-r from-amber-500 to-amber-400'
+                                    : 'bg-gradient-to-r from-red-500 to-red-400'
                                   }`} style={{ width: `${msg.marketData.confluenceScore}%` }} />
                                 </div>
-                                <span className={`text-[10px] font-bold ${
-                                  msg.marketData.confidenceGrade === 'AAA' ? 'text-green-500'
-                                  : msg.marketData.confidenceGrade === 'AA' ? 'text-blue-500'
-                                  : msg.marketData.confidenceGrade === 'A' ? 'text-yellow-500'
-                                  : 'text-[var(--subtext)]'
-                                }`}>
-                                  {msg.marketData.confidenceGrade} · {msg.marketData.confluenceScore}%
-                                </span>
+                                <div className="flex flex-col">
+                                  <span className={`text-[11px] font-black leading-none ${
+                                    msg.marketData.confidenceGrade === 'AAA' ? 'text-emerald-500'
+                                    : msg.marketData.confidenceGrade === 'AA' ? 'text-blue-500'
+                                    : msg.marketData.confidenceGrade === 'A' ? 'text-amber-500'
+                                    : 'text-[var(--subtext)]'
+                                  }`}>
+                                    {msg.marketData.confidenceGrade}
+                                  </span>
+                                  <span className="text-[9px] text-[var(--subtext)] font-mono">{msg.marketData.confluenceScore}% confluence</span>
+                                </div>
                               </div>
                               <div className="flex items-center gap-2">
                                 {/* Generate Signal button */}
