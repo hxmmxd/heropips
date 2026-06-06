@@ -35,10 +35,34 @@ const tagStyles: Record<string, { bg: string; color: string; label: string }> = 
 
 const worklog: WorkDay[] = [
   {
-    date: 'June 6, 2026',
-    dayLabel: 'Saturday',
-    commitCount: 1,
+    date: 'June 6–7, 2026',
+    dayLabel: 'Saturday–Sunday',
+    commitCount: 3,
     blocks: [
+      { tag: 'major', time: '06:00 PM',
+        title: 'Phase A: 9-Gate Institutional Signal Engine',
+        summary: 'Replaced the basic 3-vote indicator system with a full institutional-grade 9-gate validation engine. Every market analysis now passes through sequential gating logic before a SIGNAL, WATCH, or NO_TRADE outcome is assigned.',
+        items: [
+          { icon: '🔒', title: '9-Gate System (market.ts)', description: 'Implemented Confluence ≥65%, SMC Confirmation, HTF Alignment, Session Filter, Volatility Normal, No Conflict, Cooldown, News Event (critical), and Correlation (critical) gates. Critical gate failures force NO_TRADE regardless of other results.', files: ['src/lib/market.ts'] },
+          { icon: '🔍', title: 'SMC Scanner Pipeline (scanner.ts)', description: 'Wired SMC scanner into the gate engine. Detects BOS, FVG, Order Blocks, and Liquidity Sweeps. Results injected as pattern tags and Gate 2 confirmation count.', files: ['src/lib/scanner.ts', 'src/lib/market.ts'] },
+          { icon: '⚖️', title: 'Weighted 6-Indicator Confluence Scoring', description: 'Replaced 3-vote majority with RSI 20%, MACD 25%, EMA 15%, Stochastic 10%, Bollinger 10%, 4H HTF Bias 20% weighted scoring. Outputs a 0–100 confluence percentage.', files: ['src/lib/market.ts'] },
+          { icon: '⚡', title: 'Fast-Path Engine (api/chat/route.ts)', description: 'Bypasses LLM for all market analysis queries. Detects asset keywords, routes to market engine, returns structured JSON card in <5 seconds vs 15–30s with LLM.', files: ['src/app/api/chat/route.ts'] },
+          { icon: '📡', title: '4H Higher-Timeframe Bias', description: 'Fetches 4H candle series separately from 1H data. Computes RSI on 4H to determine macro trend direction (BULLISH/BEARISH/NEUTRAL). Used in Gate 3 and the analysis card badge.', files: ['src/lib/market.ts'] },
+          { icon: '▶️', title: 'A10: Signal → Manager Slide-to-Execute', description: 'SignalContext (React global state) carries the gated signal from Terminal to Manager tab. SlideToExecute component pre-fills symbol, direction, SL, TP, and lots. Single gesture submits to MetaAPI.', files: ['src/contexts/SignalContext.tsx', 'src/components/manager/SlideToExecute.tsx', 'src/components/TerminalTab.tsx'] },
+          { icon: '🎨', title: 'Premium Analysis Card UI', description: '2×2 indicator grid (RSI/MACD/EMA/ATR) with colored status pills, gradient gating status strip, expandable gate checklist, SMC pattern tags, 4H bias + news sentiment badges, confluence progress bar.', files: ['src/components/TerminalTab.tsx', 'src/types/index.ts', 'src/app/page.tsx'] },
+        ]
+      },
+      { tag: 'major', time: '09:00 PM',
+        title: 'Phase B: Edge Multipliers (B1–B4)',
+        summary: 'Extended the 7-gate engine to 9 gates by integrating four real-world data modules: Finnhub news sentiment, economic calendar event blocking, RSI/MACD divergence detection, and correlated asset confirmation.',
+        items: [
+          { icon: '📰', title: 'B1: Finnhub News Sentiment (newsSentiment.ts)', description: 'Fetches 20 headlines per symbol from Finnhub API. Scores each headline using 35 bullish + 35 bearish keywords. Aggregates to a -100 to +100 sentiment score mapped to BULLISH/NEUTRAL/BEARISH. Yahoo Finance RSS fallback. 10-min cache.', files: ['src/lib/newsSentiment.ts', 'src/lib/market.ts'] },
+          { icon: '📅', title: 'B2: Economic Calendar — Gate 8 (econCalendar.ts)', description: 'Fetches upcoming events from Finnhub /calendar/economic. Filters high-impact events (NFP, FOMC, CPI, GDP, Rate Decision). Blocks signals 30 min before and 15 min after any match. Static FOMC/NFP/CPI schedule used as fallback. Wired as critical Gate 8.', files: ['src/lib/econCalendar.ts', 'src/lib/market.ts'] },
+          { icon: '📐', title: 'B3: RSI/MACD Divergence Detection (divergence.ts)', description: 'Computes full RSI-14 and MACD histogram series from raw candles using EMA smoothing. Detects swing pivots (3-bar lookback), compares last two swing lows/highs between price and indicator. Outputs bullish/bearish/none with strength score 0–100. Auto-tags SMC patterns when found.', files: ['src/lib/divergence.ts', 'src/lib/market.ts'] },
+          { icon: '🔗', title: 'B4: Correlated Asset Checker — Gate 9 (correlation.ts)', description: 'Maps symbols to their correlated pairs: Gold↔DXY (inverse), BTC↔ETH (positive), EUR/USD↔GBP/USD (positive USD cluster), QQQ↔SPY (index cluster). Fetches 1H candles for each pair, computes 5-bar SMA momentum, checks if direction agrees. 5-min cache. Wired as Gate 9.', files: ['src/lib/correlation.ts', 'src/lib/market.ts'] },
+          { icon: '✅', title: 'TypeScript Build — Zero Errors', description: 'All 4 Phase B modules + 9-gate engine pass npx tsc --noEmit cleanly. Verified with live browser test showing 8/9 and 9/9 gates passing on XAUUSD and BTCUSD queries.', files: ['src/lib/market.ts'] },
+        ]
+      },
       { tag: 'feature', time: '03:45 AM',
         title: 'Genealogy Tree Flowchart & Interactive Compact Pills',
         summary: 'Designed and implemented a visual org-chart-style horizontal/vertical flowchart layout for the Genealogy Tree with collapsible tree branches and interactive compact details pills.',
@@ -48,7 +72,7 @@ const worklog: WorkDay[] = [
           { icon: '🔍', title: 'Expandable Node Detail Cards', description: 'Clicking a pill opens an inline detailed card showing active trade stats, lot sizes, plan tier badge, and wallet earnings before collapsing back to pill mode.', files: ['components/ReferralTab.tsx', 'components/ReferralHub.css'] },
           { icon: '👑', title: 'Virtual Root Node', description: 'Created a virtual root node representing the user ("YOU"), integrating the entire multi-level network into a single cohesive hierarchy.', files: ['components/ReferralTab.tsx'] }
         ]
-      }
+      },
     ]
   },
   {
@@ -599,8 +623,8 @@ export default function WorkLogPage() {
 
         {/* Sprint progress */}
         <div className="cl-sprint">
-          <div className="cl-sprint-label">Sprint Progress <span>78%</span></div>
-          <div className="cl-sprint-bar"><div className="cl-sprint-fill" style={{ width: '78%' }} /></div>
+          <div className="cl-sprint-label">Sprint Progress <span>92%</span></div>
+          <div className="cl-sprint-bar"><div className="cl-sprint-fill" style={{ width: '92%' }} /></div>
         </div>
 
         <nav className="cl-sidebar-nav">
@@ -651,7 +675,7 @@ export default function WorkLogPage() {
             </div>
             <div className="cl-stat-card">
               <div className="cl-stat-icon" style={{ background: 'rgba(16,185,129,0.08)' }}>📝</div>
-              <span className="cl-stat-value">19.7K</span>
+              <span className="cl-stat-value">21.8K</span>
               <span className="cl-stat-label">Lines Added</span>
             </div>
             <div className="cl-stat-card">
