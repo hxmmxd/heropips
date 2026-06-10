@@ -4,6 +4,9 @@ export interface Broker {
   pnl: string;
   equity: string;
   acc: string;
+  timezone_offset?: number;
+  broker_timezone_name?: string;
+  allowed_symbols?: string[];
 }
 
 export interface TradeTicketProps {

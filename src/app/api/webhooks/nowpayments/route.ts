@@ -197,7 +197,68 @@ export async function POST(request: Request) {
     return NextResponse.json({ received: true });
   }
 
-  // 2. Fallback to legacy referral withdrawal payment mapping
+  // 2. Check if it's a course purchase payment
+  const { data: coursePendingRow } = await supabaseAdmin
+    .from('platform_config')
+    .select('value')
+    .eq('key', 'pending_course_purchases')
+    .single();
+
+  const coursePendingMap = coursePendingRow?.value || {};
+  const courseTx = coursePendingMap[paymentId];
+
+  if (courseTx) {
+    if (paymentStatus === 'finished' && courseTx.status !== 'completed') {
+      // Check if already purchased (idempotency)
+      const { data: existing } = await supabaseAdmin
+        .from('course_purchases')
+        .select('id')
+        .eq('user_id', courseTx.user_id)
+        .eq('category', courseTx.category)
+        .limit(1);
+
+      if (!existing || existing.length === 0) {
+        // Unlock the category for the user
+        await supabaseAdmin.from('course_purchases').insert({
+          user_id: courseTx.user_id,
+          category: courseTx.category,
+          amount: courseTx.price_amount,
+          payment_method: 'crypto',
+          payment_ref: paymentId,
+        });
+
+        // Record wallet transaction for audit trail
+        await supabaseAdmin.from('wallet_transactions').insert({
+          user_id: courseTx.user_id,
+          tx_type: 'course_purchase',
+          amount: -courseTx.price_amount,
+          status: 'completed',
+          metadata: {
+            category: courseTx.category,
+            payment_method: 'crypto',
+            payment_id: paymentId,
+            pay_currency: courseTx.pay_currency,
+            description: `Course category: ${courseTx.category} (crypto)`,
+          },
+          created_at: new Date().toISOString(),
+        });
+      }
+
+      courseTx.status = 'completed';
+    } else if (paymentStatus === 'failed' || paymentStatus === 'expired') {
+      courseTx.status = paymentStatus;
+    }
+
+    await supabaseAdmin.from('platform_config').upsert({
+      key: 'pending_course_purchases',
+      value: coursePendingMap,
+      updated_at: new Date().toISOString(),
+    });
+
+    return NextResponse.json({ received: true });
+  }
+
+  // 3. Fallback to legacy referral withdrawal payment mapping
   const { data: record } = await supabaseAdmin
     .from('referral_withdrawals')
     .select('*')

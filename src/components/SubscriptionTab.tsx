@@ -580,7 +580,7 @@ export default function SubscriptionTab({ onBack }: SubscriptionTabProps) {
             <p className="sub-subtitle">
               {activeSubTab === 'plans'
                 ? 'Unlock the full power of institutional AI trading'
-                : 'Your crypto payment records, receipts, and deposit status'}
+                : 'Your payment records — subscriptions, course purchases, and deposit status'}
             </p>
           </div>
         </div>
@@ -714,19 +714,22 @@ export default function SubscriptionTab({ onBack }: SubscriptionTabProps) {
                   <tr>
                     <th>Invoice ID</th>
                     <th>Date</th>
-                    <th>Plan</th>
-                    <th>Asset Details</th>
-                    <th>USD Amount</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                    <th>Payment</th>
+                    <th>Amount</th>
                     <th>Status</th>
                     <th style={{ textAlign: 'right' }}>Receipt</th>
                   </tr>
                 </thead>
                 <tbody>
                   {history.map((item: any) => {
+                    const isCourse = item.type === 'course_purchase';
+                    const displayId = String(item.payment_id || item.id || '').slice(0, 12);
                     return (
-                      <tr key={item.payment_id}>
+                      <tr key={item.payment_id || item.id}>
                         <td style={{ fontFamily: 'monospace', fontWeight: 600, color: 'var(--subtext)', fontSize: 12 }}>
-                          {item.payment_id}
+                          {displayId}…
                         </td>
                         <td>
                           {new Date(item.created_at).toLocaleDateString(undefined, {
@@ -735,26 +738,41 @@ export default function SubscriptionTab({ onBack }: SubscriptionTabProps) {
                             day: 'numeric'
                           })}
                         </td>
-                        <td style={{ fontWeight: 700, textTransform: 'uppercase', color: 'var(--text)' }}>
-                          {item.plan_id}
+                        <td>
+                          <span style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 4,
+                            padding: '3px 9px', borderRadius: 50, fontSize: 10, fontWeight: 700,
+                            textTransform: 'uppercase', letterSpacing: '0.3px',
+                            background: isCourse ? 'rgba(245, 158, 11, 0.1)' : 'rgba(99, 102, 241, 0.1)',
+                            color: isCourse ? '#f59e0b' : '#818cf8',
+                          }}>
+                            {isCourse ? '📚 Course' : '⚡ Plan'}
+                          </span>
+                        </td>
+                        <td style={{ fontWeight: 700, textTransform: 'capitalize', color: 'var(--text)' }}>
+                          {isCourse ? (item.category || item.plan_id || '—') : (item.plan_id || '—')}
                         </td>
                         <td>
-                          <span style={{ fontWeight: 600 }}>{item.pay_amount}</span>{' '}
-                          <span style={{ fontSize: 11, color: 'var(--subtext)' }}>{item.pay_currency.toUpperCase()}</span>
+                          <span style={{ fontWeight: 600 }}>{item.pay_amount ?? item.price_amount ?? '—'}</span>{' '}
+                          <span style={{ fontSize: 11, color: 'var(--subtext)' }}>{(item.pay_currency || 'USD').toUpperCase()}</span>
                         </td>
                         <td style={{ fontWeight: 700, color: '#10b981' }}>
-                          ${item.price_amount.toFixed(2)}
+                          ${(Number(item.price_amount) || 0).toFixed(2)}
                         </td>
                         <td>
-                          <button
-                            type="button"
-                            onClick={() => handleViewInvoice(item)}
-                            className={`invoice-status-pill ${item.status}`}
-                            style={{ border: 'none', cursor: 'pointer', transition: 'all 0.15s', outline: 'none' }}
-                            title="Click to view payment QR code"
-                          >
-                            {item.status === 'completed' || item.status === 'finished' ? 'Completed' : item.status}
-                          </button>
+                          {isCourse && item.status === 'completed' ? (
+                            <span className="invoice-status-pill completed">Completed</span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => !isCourse && handleViewInvoice(item)}
+                              className={`invoice-status-pill ${item.status}`}
+                              style={{ border: 'none', cursor: isCourse ? 'default' : 'pointer', transition: 'all 0.15s', outline: 'none' }}
+                              title={isCourse ? '' : 'Click to view payment QR code'}
+                            >
+                              {item.status === 'completed' || item.status === 'finished' ? 'Completed' : item.status}
+                            </button>
+                          )}
                         </td>
                         <td style={{ textAlign: 'right' }}>
                           <button

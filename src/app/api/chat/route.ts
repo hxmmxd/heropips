@@ -8,34 +8,9 @@ import {
   markSignalFired,
 } from '@/lib/market';
 
-import { getPlatformConfig } from '@/lib/platformConfig';
-import { recordApiCall, markUnconfigured } from '@/lib/apiStats';
+import { callLLM } from '@/lib/llmRouter';
 
 export const dynamic = 'force-dynamic';
-
-// ── NVIDIA API Key Round-Robin Rotation ─────────────────────
-// Keys are read from Supabase platform_config first, then env vars
-let keyIndex = 0;
-
-async function getNvidiaKeys(): Promise<string[]> {
-  // Try Supabase first
-  const dbKeys = await getPlatformConfig('nvidia_api_keys', '');
-  if (dbKeys) return dbKeys.split(',').map((k: string) => k.trim()).filter(Boolean);
-  // Fall back to env vars
-  const multi = process.env.NVIDIA_API_KEYS;
-  if (multi) return multi.split(',').map(k => k.trim()).filter(Boolean);
-  const single = process.env.NVIDIA_API_KEY;
-  if (single) return [single];
-  return [];
-}
-
-async function getNextApiKey(): Promise<string | null> {
-  const keys = await getNvidiaKeys();
-  if (keys.length === 0) return null;
-  const key = keys[keyIndex % keys.length];
-  keyIndex++;
-  return key;
-}
 
 // Keywords that indicate user explicitly wants a trade signal
 const SIGNAL_KEYWORDS = [
@@ -74,72 +49,27 @@ export async function POST(request: Request) {
 
     // 2. No asset detected OR conversational mention → general conversation
     if (!symbol || !isDirectQuery) {
-      const apiKey = await getNextApiKey();
+      const chatSystemPrompt = `You are TradeGPT, an institutional AI trading terminal. Be friendly, concise (2 sentences max). Suggest analyzing Gold, EURUSD, Bitcoin, or Nasdaq. Respond ONLY as JSON: {"text":"your response"}`;
+
+      // Chat path — LLM Router handles failover (Groq → NVIDIA → fallback)
+      const chatResult = await callLLM(userMessages, chatSystemPrompt, 150);
       let parsedText = '';
 
-      if (!apiKey) {
-        console.warn('[Chat API] NVIDIA_API_KEY is empty. Generating simulated general response.');
-        const welcomeGreetings = ['hello', 'hi', 'hey', 'greetings', 'welcome'];
-        const isGreeting = welcomeGreetings.some(g => lastUserMessage.toLowerCase().includes(g));
-
-        if (isGreeting) {
-          parsedText = "Hello! I am TradeGPT, your institutional AI trading assistant. How can I help you today? I can analyze charts and dispatch trade signals for assets like Gold (XAUUSD), EURUSD, Bitcoin, and Nasdaq.";
-        } else {
-          parsedText = "I am TradeGPT, designed to run multi-agent analysis on live markets. I can analyze charts and dispatch automated order signals for: Gold, EURUSD, GBPUSD, USDJPY, BTC, ETH, and Nasdaq. Just ask me to analyze an asset!";
+      if (chatResult) {
+        let rawContent = chatResult.text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+        try {
+          const parsed = JSON.parse(rawContent);
+          parsedText = parsed.text || rawContent;
+        } catch {
+          parsedText = rawContent;
         }
       } else {
-        try {
-          const chatController = new AbortController();
-          const chatTimeout = setTimeout(() => chatController.abort(), 60_000);
-          const response = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${apiKey}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              model: 'nvidia/nemotron-3-nano-30b-a3b',
-              temperature: 0.3,
-              max_tokens: 512,
-              messages: [
-                {
-                  role: 'system',
-                  content: `You are TradeGPT, an institutional-grade AI trading terminal. You are friendly, professional, and helpful.
-
-When users greet you or ask general questions:
-- Welcome them warmly and ask what asset they'd like to analyze
-- Suggest trending markets (e.g. Gold, EURUSD, Bitcoin, Nasdaq)
-- Explain you can generate real-time trade signals with live market data
-- Keep responses concise (2-3 sentences max)
-
-Supported assets: Gold/XAUUSD, EURUSD, GBPUSD, USDJPY, Bitcoin/BTC, Ethereum/ETH, Nasdaq/NAS100, Dow/US30, Oil
-
-You MUST respond in this JSON format only: {"text":"your response"}`
-                },
-                ...userMessages,
-              ],
-            }),
-            signal: chatController.signal,
-          });
-          clearTimeout(chatTimeout);
-
-          const data = await response.json();
-          if (!response.ok) {
-            throw new Error(JSON.stringify(data));
-          }
-
-          let rawContent = data.choices?.[0]?.message?.content || '{}';
-          rawContent = rawContent.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
-          try {
-            const parsed = JSON.parse(rawContent);
-            parsedText = parsed.text || rawContent;
-          } catch {
-            parsedText = rawContent;
-          }
-        } catch (llmErr) {
-          console.warn('[Chat API] NVIDIA Chat completions failed, falling back to simulation:', llmErr);
-          parsedText = "Hello! I am TradeGPT, your institutional AI trading assistant. How can I help you today? I can analyze charts and dispatch trade signals for assets like Gold (XAUUSD), EURUSD, Bitcoin, and Nasdaq.";
-        }
+        // All providers failed — use static fallback
+        const welcomeGreetings = ['hello', 'hi', 'hey', 'greetings', 'welcome'];
+        const isGreeting = welcomeGreetings.some(g => lastUserMessage.toLowerCase().includes(g));
+        parsedText = isGreeting
+          ? "Hello! I am TradeGPT, your institutional AI trading assistant. How can I help you today? I can analyze charts and dispatch trade signals for assets like Gold (XAUUSD), EURUSD, Bitcoin, and Nasdaq."
+          : "I am TradeGPT, designed to run multi-agent analysis on live markets. I can analyze charts and dispatch automated order signals for: Gold, EURUSD, GBPUSD, USDJPY, BTC, ETH, and Nasdaq. Just ask me to analyze an asset!";
       }
 
       return NextResponse.json({ text: parsedText, ticket: null });
@@ -202,82 +132,52 @@ ${newsBlock}
       });
     }
 
-    // 5. SIGNAL PATH: Build prompt for LLM (only for explicit signal requests)
-    const systemPrompt = `You are the Master Trading Agent. Orchestrate specialized sub-agents to analyze markets and execute trades:
-1. Technical Analysis Agent: RSI, MACD, EMA50, ATR.
-2. Macro News Agent: Live headline sentiment.
-3. Master Synthesis Agent: Decisive final trading plan.
+    // 5. SIGNAL PATH: LLM Router handles failover (Groq → NVIDIA → engine fallback)
+    let parsed: any = {};
 
-Rules:
-- Formulate the "text" field as a professional markdown report summarizing findings.
-- Enforce extreme conciseness: Each agent's bullet point MUST be under 8 words. No explanation, just data.
-- Keep the entire report under 30 words total. Use only real numbers from the context.
+    const signalSystemPrompt = `You are the Master Trading Agent. Summarize this market data into a concise report.
+
+Rules: Each bullet MUST be under 8 words. Use only real numbers. No explanation.
 
 ${marketContextBlock}
 
-Account Balance: $${accountBalance.toFixed(2)} | Max Risk: 1.5%
+Respond ONLY with JSON (no code fences):
+{"text":"### 🤖 Multi-Agent Consensus\\n* **Technical Analysis**: [data]\\n* **Macro News**: [sentiment]\\n* **Master Synthesis**: [action target]","newsSentiment":"BULLISH or BEARISH or NEUTRAL"}`;
 
-Respond ONLY with this JSON (no markdown wrapping, no code fences):
-{"text":"### 🤖 Multi-Agent Consensus\\n* **Technical Analysis**: [under 8 words findings]\\n* **Macro News**: [under 8 words sentiment]\\n* **Master Synthesis**: [under 8 words execution target]","newsSentiment":"BULLISH, BEARISH, or NEUTRAL","ticket":{"ticketId":"5 digit number","symbol":"${symDisplay}","action":"BUY or SELL","entryPrice":"price","lotVolume":"lots","rrRatio":"ratio","stopLoss":"sl","takeProfit":"tp","margin":"margin","risk":"risk","profit":"profit","confidence":"${snapshot?.confidenceGrade || 'BBB'}"}}`;
-
-
-    // 5. Call NVIDIA NIM API (120s timeout for 550B reasoning model)
-    const apiKey = await getNextApiKey();
-    if (!apiKey) markUnconfigured('nvidia');
-    const t0 = Date.now();
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 120_000);
-    const llmResponse = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'meta/llama-3.3-70b-instruct',
-        temperature: 0.2,
-        max_tokens: 512,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          ...userMessages,
-        ],
-      }),
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
-
-    const llmData = await llmResponse.json();
-
-    if (!llmResponse.ok) {
-      const errDetail = llmData?.detail || llmData?.error?.message || llmData?.message || JSON.stringify(llmData);
-      recordApiCall('nvidia', false, Date.now() - t0, errDetail);
-      console.error(`[Chat API] NVIDIA error (status ${llmResponse.status}):`, errDetail);
-      return NextResponse.json(
-        { text: `Signal engine error: ${errDetail}`, ticket: null },
-        { status: 502 }
-      );
+    const signalResult = await callLLM(userMessages, signalSystemPrompt, 150);
+    if (signalResult) {
+      parsed = flexibleJsonParse(signalResult.text);
     }
-    recordApiCall('nvidia', true, Date.now() - t0);
 
-    // 6. Parse structured JSON from LLM
-    let rawContent = llmData.choices?.[0]?.message?.content || '{}';
-    const parsed = flexibleJsonParse(rawContent);
+    // 6. Engine-generated fallback report (used when LLM is unavailable or returned no text)
+    if (!parsed.text && snapshot) {
+      const dir = snapshot.confluenceDirection;
+      const rsiLabel = snapshot.indicators.rsi ? `RSI ${snapshot.indicators.rsi.toFixed(1)}` : 'RSI N/A';
+      const macdLabel = snapshot.indicators.macd
+        ? (snapshot.indicators.macd.histogram > 0 ? 'MACD Bullish' : 'MACD Bearish')
+        : 'MACD N/A';
+      const emaLabel = snapshot.indicators.ema50
+        ? (snapshot.price > snapshot.indicators.ema50 ? 'Above EMA50' : 'Below EMA50')
+        : 'EMA50 N/A';
+      const sentimentLabel = snapshot.newsSentiment?.sentiment || 'NEUTRAL';
 
-    // 7. Override ticket with engine-calculated risk params
-    if (parsed.ticket && snapshot && explicitSignal) {
+      parsed.text = `### 🤖 Multi-Agent Consensus\n* **Technical Analysis:** ${rsiLabel} · ${macdLabel} · ${emaLabel}\n* **Macro News:** Sentiment ${sentimentLabel}\n* **Master Synthesis:** ${dir} ${symDisplay} @ $${snapshot.price.toFixed(2)} — ${snapshot.confidenceGrade} grade`;
+      parsed.newsSentiment = sentimentLabel;
+    }
+
+    // 7. Build ticket from engine-calculated risk params (engine ALWAYS decides — not the LLM)
+    if (snapshot && explicitSignal) {
+      const engineDirection = snapshot.confluenceDirection === 'SELL' ? 'SELL' : 'BUY';
       const riskParams = calculateRiskParams(
         snapshot.price,
         snapshot.indicators.atr,
-        snapshot.confluenceDirection === 'SELL' ? 'SELL' : 'BUY',
+        engineDirection,
         accountBalance,
         1.5,
         symbol
       );
-      // A4: Engine ALWAYS decides direction — not the LLM
-      const engineDirection = snapshot.confluenceDirection === 'SELL' ? 'SELL' : 'BUY';
       parsed.ticket = {
-        ...parsed.ticket,
-        ticketId: parsed.ticket.ticketId || Math.floor(10000 + Math.random() * 90000).toString(),
+        ticketId: parsed.ticket?.ticketId || Math.floor(10000 + Math.random() * 90000).toString(),
         symbol: symDisplay,
         action: engineDirection,
         entryPrice: snapshot.price.toFixed(2),

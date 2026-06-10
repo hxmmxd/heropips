@@ -19,7 +19,7 @@ function getSupabaseAdmin() {
 export async function GET(request: Request) {
   const supabaseAdmin = getSupabaseAdmin();
   // Verify calling user is admin
-  const supabase = createServerClient();
+  const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -161,7 +161,7 @@ export async function GET(request: Request) {
 // Update user plan or admin status
 export async function PATCH(request: Request) {
   const supabaseAdmin = getSupabaseAdmin();
-  const supabase = createServerClient();
+  const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -414,7 +414,7 @@ export async function PATCH(request: Request) {
 
 export async function POST(request: Request) {
   const supabaseAdmin = getSupabaseAdmin();
-  const supabase = createServerClient();
+  const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

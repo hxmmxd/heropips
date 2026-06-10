@@ -6,6 +6,7 @@ import { TradeTicketProps } from '../types';
 interface TradeTicketComponentProps {
   ticket: TradeTicketProps;
   onConfirm?: () => Promise<{ orderId: string; fillPrice: number } | null>;
+  onManagerExecute?: () => void;
 }
 
 type ExecState = 'idle' | 'loading' | 'success' | 'error';
@@ -89,7 +90,7 @@ function InstrumentIcon({ symbol }: { symbol: string }) {
   );
 }
 
-export default function TradeTicket({ ticket, onConfirm }: TradeTicketComponentProps) {
+export default function TradeTicket({ ticket, onConfirm, onManagerExecute }: TradeTicketComponentProps) {
   const [execState, setExecState] = useState<ExecState>('idle');
   const [execResult, setExecResult] = useState<{ orderId: string; fillPrice: number } | null>(null);
   const [execError, setExecError] = useState<string | null>(null);
@@ -136,7 +137,7 @@ export default function TradeTicket({ ticket, onConfirm }: TradeTicketComponentP
       </span>
     );
     if (execState === 'error') return 'Retry Execution';
-    return 'Confirm Execution';
+    return 'Direct Execute';
   };
 
   const buttonClass = () => {
@@ -174,7 +175,7 @@ export default function TradeTicket({ ticket, onConfirm }: TradeTicketComponentP
             <h4 className="text-2xl font-bold tracking-tighter uppercase leading-none">
               {ticket.symbol} <span className={isBuy ? 'text-green-500' : 'text-red-500'}>{ticket.action}</span>
             </h4>
-            <p className="text-[10px] text-[var(--subtext)] font-medium mt-1 uppercase">Node Execution</p>
+            <p className="text-[10px] text-[var(--subtext)] font-medium mt-1 uppercase">Quick Execute</p>
           </div>
         </div>
         <div className="text-right">
@@ -253,15 +254,43 @@ export default function TradeTicket({ ticket, onConfirm }: TradeTicketComponentP
           </p>
         )}
 
-        {/* Action Button */}
-        <button
-          id={`execute-btn-${ticket.ticketId}`}
-          onClick={handleConfirm}
-          disabled={execState === 'loading' || execState === 'success'}
-          className={buttonClass()}
-        >
-          {buttonContent()}
-        </button>
+        {/* Action Buttons — Both options together */}
+        <div className="space-y-2">
+          {/* Execute Via Manager */}
+          {onManagerExecute && execState !== 'success' && (
+            <button
+              onClick={onManagerExecute}
+              className="w-full py-3 rounded-2xl font-black uppercase text-[11px] tracking-[0.15em] transition-all bg-gradient-to-r from-emerald-600 to-emerald-500 text-white hover:shadow-lg hover:shadow-emerald-500/25 active:scale-[0.98] flex items-center justify-center gap-2"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Execute Via Manager
+            </button>
+          )}
+
+          {/* Direct Execute */}
+          <button
+            id={`execute-btn-${ticket.ticketId}`}
+            onClick={handleConfirm}
+            disabled={execState === 'loading' || execState === 'success'}
+            className={buttonClass()}
+          >
+            {buttonContent()}
+          </button>
+
+          {/* Helper labels */}
+          {execState === 'idle' && (
+            <div className="flex items-center gap-1 justify-center">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[var(--subtext)] opacity-50">
+                <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>
+              </svg>
+              <p className="text-[9px] text-[var(--subtext)] opacity-60 text-center">
+                Manager lets you review & adjust — Direct sends to broker instantly
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

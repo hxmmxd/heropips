@@ -8,7 +8,7 @@
  * On persistent servers (local / Railway / Render), stats accumulate normally.
  */
 
-export type ApiName = 'twelve_data' | 'nvidia' | 'binance' | 'yahoo_finance' | 'metaapi';
+export type ApiName = 'twelve_data' | 'nvidia' | 'groq' | 'binance' | 'yahoo_finance' | 'metaapi';
 
 export interface ApiStat {
   name: ApiName;
@@ -52,6 +52,16 @@ const STATS: Record<ApiName, ApiStat> = {
     quotaPerMin: null,
     quotaPerDay: null,
   },
+  groq: {
+    name: 'groq', label: 'Groq (LPU)',
+    totalCalls: 0, successCalls: 0, errorCalls: 0,
+    recentTimestamps: [], lastCallAt: null, lastSuccessAt: null,
+    lastErrorAt: null, lastErrorMsg: null,
+    avgLatencyMs: 0, lastLatencyMs: null,
+    status: 'idle',
+    quotaPerMin: 30,       // Free tier: 30 req/min
+    quotaPerDay: 14400,    // Free tier: 14,400 req/day
+  },
   binance: {
     name: 'binance', label: 'Binance (BTC/ETH)',
     totalCalls: 0, successCalls: 0, errorCalls: 0,
@@ -86,7 +96,7 @@ const STATS: Record<ApiName, ApiStat> = {
 
 // Rolling latency samples (last 20 calls)
 const LATENCY_SAMPLES: Record<ApiName, number[]> = {
-  twelve_data: [], nvidia: [], binance: [], yahoo_finance: [], metaapi: [],
+  twelve_data: [], nvidia: [], groq: [], binance: [], yahoo_finance: [], metaapi: [],
 };
 
 /** Record a completed API call */

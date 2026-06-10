@@ -39,6 +39,9 @@ export interface BrokerNode {
   equity: number;
   pnl: number;
   positions: any[];
+  timezone_offset?: number;
+  broker_timezone_name?: string;
+  allowed_symbols?: string[];
 }
 
 import fs from 'fs';
@@ -101,6 +104,9 @@ export async function syncBrokerToSupabase(node: BrokerNode, userId: string) {
           balance: node.balance,
           equity: node.equity,
           pnl: node.pnl,
+          timezone_offset: node.timezone_offset ?? 0.00,
+          broker_timezone_name: node.broker_timezone_name ?? 'UTC',
+          allowed_symbols: node.allowed_symbols ?? [],
           is_active: true,
           updated_at: new Date().toISOString(),
         })
@@ -119,6 +125,9 @@ export async function syncBrokerToSupabase(node: BrokerNode, userId: string) {
           balance: node.balance,
           equity: node.equity,
           pnl: node.pnl,
+          timezone_offset: node.timezone_offset ?? 0.00,
+          broker_timezone_name: node.broker_timezone_name ?? 'UTC',
+          allowed_symbols: node.allowed_symbols ?? [],
           is_active: true,
           updated_at: new Date().toISOString(),
         });
@@ -193,6 +202,9 @@ export async function connectBroker(
       console.log(`[Broker Engine] Account deployed (${account.id}). Fetching info via REST...`);
 
       let balance = 0, equity = 0, brokerName = name;
+      let timezoneOffset = 0;
+      let brokerTimezoneName = 'UTC';
+      let allowedSymbols: string[] = [];
 
       try {
         // Use REST endpoint — works without streaming sync, responds in ~1-2s
@@ -214,6 +226,37 @@ export async function connectBroker(
         console.warn(`[Broker Engine] REST info fetch failed: ${restErr.message} — saving as connecting`);
       }
 
+      try {
+        const [timeRes, symbolsRes] = await Promise.all([
+          fetch(
+            `${MT_CLIENT_BASE}/users/current/accounts/${account.id}/server-time`,
+            { headers: { 'auth-token': token }, signal: AbortSignal.timeout(8000) }
+          ),
+          fetch(
+            `${MT_CLIENT_BASE}/users/current/accounts/${account.id}/symbols`,
+            { headers: { 'auth-token': token }, signal: AbortSignal.timeout(10000) }
+          )
+        ]);
+
+        if (timeRes.ok) {
+          const timeInfo = await timeRes.json();
+          if (timeInfo && timeInfo.brokerTime && timeInfo.time) {
+            const brokerDate = new Date(timeInfo.brokerTime.replace(' ', 'T') + 'Z');
+            const utcDate = new Date(timeInfo.time);
+            const diffMs = brokerDate.getTime() - utcDate.getTime();
+            timezoneOffset = Math.round((diffMs / (1000 * 60 * 60)) * 100) / 100;
+            const sign = timezoneOffset >= 0 ? '+' : '';
+            brokerTimezoneName = `UTC${sign}${timezoneOffset}`;
+          }
+        }
+
+        if (symbolsRes.ok) {
+          allowedSymbols = await symbolsRes.json();
+        }
+      } catch (restFetchErr: any) {
+        console.warn(`[Broker Engine] Failed to fetch server time or symbols: ${restFetchErr.message}`);
+      }
+
       const isConnected = balance > 0 || equity > 0;
 
       const node: BrokerNode = {
@@ -228,6 +271,9 @@ export async function connectBroker(
         equity,
         pnl: equity - balance,
         positions: [],
+        timezone_offset: timezoneOffset,
+        broker_timezone_name: brokerTimezoneName,
+        allowed_symbols: allowedSymbols,
       };
 
       // Persist to local DB for quick lookups
@@ -289,14 +335,36 @@ export async function getBrokerDetails(id: string): Promise<BrokerNode | null> {
       const headers = { 'auth-token': token };
       const base = `${MT_CLIENT_BASE}/users/current/accounts/${id}`;
 
-      const [infoRes, posRes] = await Promise.all([
-        fetch(`${base}/account-information`, { headers }),
-        fetch(`${base}/positions`,           { headers }),
+      const [infoRes, posRes, timeRes, symbolsRes] = await Promise.all([
+        fetch(`${base}/account-information`, { headers, signal: AbortSignal.timeout(8000) }),
+        fetch(`${base}/positions`,           { headers, signal: AbortSignal.timeout(8000) }),
+        fetch(`${base}/server-time`,         { headers, signal: AbortSignal.timeout(8000) }),
+        fetch(`${base}/symbols`,             { headers, signal: AbortSignal.timeout(10000) }),
       ]);
 
       const info = infoRes.ok ? await infoRes.json() : {};
       const posData = posRes.ok ? await posRes.json() : [];
       const positions = Array.isArray(posData) ? posData : [];
+
+      let timezoneOffset = 0;
+      let brokerTimezoneName = 'UTC';
+      let allowedSymbols: string[] = [];
+
+      if (timeRes.ok) {
+        const timeInfo = await timeRes.json();
+        if (timeInfo && timeInfo.brokerTime && timeInfo.time) {
+          const brokerDate = new Date(timeInfo.brokerTime.replace(' ', 'T') + 'Z');
+          const utcDate = new Date(timeInfo.time);
+          const diffMs = brokerDate.getTime() - utcDate.getTime();
+          timezoneOffset = Math.round((diffMs / (1000 * 60 * 60)) * 100) / 100;
+          const sign = timezoneOffset >= 0 ? '+' : '';
+          brokerTimezoneName = `UTC${sign}${timezoneOffset}`;
+        }
+      }
+
+      if (symbolsRes.ok) {
+        allowedSymbols = await symbolsRes.json();
+      }
 
       const balance = info.balance || 0;
       const equity  = info.equity  || 0;
@@ -320,6 +388,9 @@ export async function getBrokerDetails(id: string): Promise<BrokerNode | null> {
           currentPrice: p.currentPrice,
           profit:       p.profit,
         })),
+        timezone_offset: timezoneOffset,
+        broker_timezone_name: brokerTimezoneName,
+        allowed_symbols: allowedSymbols,
       };
     } catch (err) {
       console.error('[Broker Engine] Failed to get broker details:', err);
@@ -371,19 +442,48 @@ export async function executeBrokerOrder(
   if (!token) throw new Error('MetaAPI not configured — cannot execute orders.');
 
   // Resolve id: MetaAPI UUID or login number
-  let metaApiId = id;
+  let metaapi_id = id;
   const localDb = readDb();
   const byId    = localDb.find(b => b.id === id);
   const byLogin = localDb.find(b => b.login === id);
-  if (byId)         metaApiId = byId.id;
-  else if (byLogin) metaApiId = byLogin.id;
+  if (byId)         metaapi_id = byId.id;
+  else if (byLogin) metaapi_id = byLogin.id;
 
-  const mt5Symbol = normalizeMt5Symbol(symbol);
+  // Resolve exact symbol suffix/pattern from allowed_symbols
+  let mt5Symbol = normalizeMt5Symbol(symbol);
+  if (byId?.allowed_symbols && Array.isArray(byId.allowed_symbols)) {
+    const normalizedBase = mt5Symbol;
+    const exactMatch = byId.allowed_symbols.find(
+      s => s.toUpperCase().replace(/[^A-Z0-9]/g, '') === normalizedBase
+    );
+    if (exactMatch) {
+      mt5Symbol = exactMatch;
+    }
+  }
+
+  // Pre-trade margin check
+  try {
+    const infoRes = await fetch(
+      `${MT_CLIENT_BASE}/users/current/accounts/${metaapi_id}/account-information`,
+      { headers: { 'auth-token': token }, signal: AbortSignal.timeout(5000) }
+    );
+    if (infoRes.ok) {
+      const info = await infoRes.json();
+      const marginFree = info.marginFree ?? info.equity ?? 0;
+      if (marginFree <= 0) {
+        throw new Error(`Insufficient funds: account free margin/equity is ${marginFree}. Deposits or leverage adjustments are required.`);
+      }
+    }
+  } catch (marginErr: any) {
+    if (marginErr.message.includes('Insufficient funds:')) throw marginErr;
+    console.warn(`[Broker Engine] Pre-trade margin check bypassed: ${marginErr.message}`);
+  }
+
   const vol = Math.max(Number(volume) || 0.01, 0.01);
   const sl  = stopLoss   != null ? Number(stopLoss)   : undefined;
   const tp  = takeProfit != null ? Number(takeProfit)  : undefined;
 
-  console.log(`[Broker Engine] REST ${action} ${vol} lot(s) ${mt5Symbol} → account ${metaApiId}`);
+  console.log(`[Broker Engine] REST ${action} ${vol} lot(s) ${mt5Symbol} → account ${metaapi_id}`);
   if (sl) console.log(`  SL: ${sl}  TP: ${tp}`);
 
   const payload: Record<string, any> = {
@@ -395,7 +495,7 @@ export async function executeBrokerOrder(
   if (sl)  payload.stopLoss   = sl;
   if (tp)  payload.takeProfit = tp;
 
-  const { status, data } = await restTrade(metaApiId, payload);
+  const { status, data } = await restTrade(metaapi_id, payload);
 
   console.log(`[Broker Engine] REST response (${status}):`, JSON.stringify(data));
 
@@ -410,7 +510,19 @@ export async function executeBrokerOrder(
     if (code === 'SYMBOL_TRADE_MODE_DISABLED') {
       throw new Error(`Trading is disabled for ${mt5Symbol} on this account. Try a different instrument.`);
     }
-    if (code === 'TRADE_RETCODE_INVALID_VOLUME') {
+    if (code === 'TRADE_RETCODE_INVALID_VOLUME' || msg.includes('volume') || msg.includes('Volume')) {
+      try {
+        const specRes = await fetch(
+          `${MT_CLIENT_BASE}/users/current/accounts/${metaapi_id}/symbols/${mt5Symbol}/specification`,
+          { headers: { 'auth-token': token }, signal: AbortSignal.timeout(5000) }
+        );
+        if (specRes.ok) {
+          const spec = await specRes.json();
+          throw new Error(`Invalid volume ${vol} for ${mt5Symbol}. Broker limits: Minimum lot is ${spec.minVolume || 0.01}, Maximum lot is ${spec.maxVolume || 100}, Volume step size is ${spec.volumeStep || 0.01}.`);
+        }
+      } catch (specErr: any) {
+        if (specErr.message.includes('Broker limits:')) throw specErr;
+      }
       throw new Error(`Invalid volume ${vol} for ${mt5Symbol}. Minimum lot size may be different — try 0.01.`);
     }
     if (code === 'TRADE_RETCODE_INVALID_STOPS') {
@@ -418,10 +530,10 @@ export async function executeBrokerOrder(
       console.log('[Broker Engine] Invalid stops, retrying without SL/TP...');
       delete payload.stopLoss;
       delete payload.takeProfit;
-      const retry = await restTrade(metaApiId, payload);
+      const retry = await restTrade(metaapi_id, payload);
       if (retry.data?.stringCode === 'TRADE_RETCODE_DONE') {
         return {
-          orderId: retry.data.orderId || retry.data.positionId || metaApiId,
+          orderId: retry.data.orderId || retry.data.positionId || metaapi_id,
           status: 'success',
           fillPrice: retry.data.openPrice || Number(entryPrice),
         };
@@ -436,7 +548,7 @@ export async function executeBrokerOrder(
   }
 
   return {
-    orderId: data.orderId || data.positionId || metaApiId,
+    orderId: data.orderId || data.positionId || metaapi_id,
     status: 'success',
     fillPrice: data.openPrice || Number(entryPrice),
   };
@@ -526,6 +638,9 @@ export async function getAllBrokers(userId?: string): Promise<BrokerNode[]> {
           equity: Number(b.equity) || 0,
           pnl: Number(b.pnl) || 0,
           positions: [],
+          timezone_offset: Number(b.timezone_offset) || 0,
+          broker_timezone_name: b.broker_timezone_name || 'UTC',
+          allowed_symbols: Array.isArray(b.allowed_symbols) ? b.allowed_symbols : [],
         }));
       }
     } catch (err: any) {

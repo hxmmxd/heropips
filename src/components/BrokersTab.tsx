@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Server, Plus, Unplug, Loader2 } from 'lucide-react';
 import { Broker } from '../types';
 
@@ -13,6 +13,20 @@ interface BrokersTabProps {
 export default function BrokersTab({ brokers, onOpenModal, onDisconnect }: BrokersTabProps) {
   const [disconnecting, setDisconnecting] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const getBrokerTimeString = (offsetHours: number) => {
+    const localOffsetMs = currentTime.getTimezoneOffset() * 60 * 1000;
+    const utcMs = currentTime.getTime() + localOffsetMs;
+    const brokerMs = utcMs + (offsetHours * 60 * 60 * 1000);
+    const brokerDate = new Date(brokerMs);
+    return brokerDate.toLocaleTimeString('en-US', { hour12: false });
+  };
 
   const handleDisconnect = async (acc: string) => {
     if (confirmId !== acc) {
@@ -47,8 +61,14 @@ export default function BrokersTab({ brokers, onOpenModal, onDisconnect }: Broke
                 <div>
                   <p className="font-bold text-[14px] text-[var(--text)]">{b.name}</p>
                   <p className="text-[10px] text-[var(--subtext)] font-mono uppercase tracking-wider">
-                    MT5 ID: #{b.acc}
+                    MT5 ID: #{b.acc} {b.broker_timezone_name ? `(${b.broker_timezone_name})` : ''}
                   </p>
+                  {b.balance !== 'Connecting...' && b.timezone_offset !== undefined && (
+                    <p className="text-[11px] text-blue-500 font-mono mt-1.5 font-semibold flex items-center gap-1.5 bg-blue-500/5 px-2 py-0.5 rounded-md w-fit">
+                      <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-ping shrink-0" />
+                      Server Clock: {getBrokerTimeString(b.timezone_offset)}
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-2">

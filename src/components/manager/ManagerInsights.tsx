@@ -11,6 +11,7 @@ interface ManagerInsightsProps {
   accountInfo: AccountInfo;
   positions: Position[];
   activeBrokerId: string;
+  allowedSymbols?: string[];
   onRefresh: () => void;
   config?: ManagerConfigValues;
   onNavigateToRisk?: () => void;
@@ -25,7 +26,7 @@ const DEFAULT_SYMBOLS = [
 
 const VOLUMES = ['0.01', '0.02', '0.05', '0.1', '0.2', '0.5', '1.0', '2.0', '5.0', '10.0'];
 
-export default function ManagerInsights({ accountInfo, positions, activeBrokerId, onRefresh, config, onNavigateToRisk }: ManagerInsightsProps) {
+export default function ManagerInsights({ accountInfo, positions, activeBrokerId, allowedSymbols, onRefresh, config, onNavigateToRisk }: ManagerInsightsProps) {
   const [tradingMode, setTradingMode] = useState<TradingMode>('market');
   const [symbol, setSymbol] = useState(DEFAULT_SYMBOLS[0]);
   const [volume, setVolume] = useState(config?.defaultLot || '0.01');
@@ -38,6 +39,30 @@ export default function ManagerInsights({ accountInfo, positions, activeBrokerId
   const [executing, setExecuting] = useState<'buy' | 'sell' | null>(null);
   const [showSymbolDropdown, setShowSymbolDropdown] = useState(false);
   const [showVolumeDropdown, setShowVolumeDropdown] = useState(false);
+  const [symbolSearch, setSymbolSearch] = useState('');
+
+  const symbolsToUse = allowedSymbols && allowedSymbols.length > 0 ? allowedSymbols : DEFAULT_SYMBOLS;
+
+  // Auto-switch selected symbol if not allowed anymore
+  useEffect(() => {
+    if (allowedSymbols && allowedSymbols.length > 0) {
+      const match = allowedSymbols.find(s => s.toUpperCase() === symbol.toUpperCase());
+      if (!match) {
+        setSymbol(allowedSymbols[0]);
+      }
+    }
+  }, [allowedSymbols, symbol]);
+
+  // Reset search when dropdown closes
+  useEffect(() => {
+    if (!showSymbolDropdown) {
+      setSymbolSearch('');
+    }
+  }, [showSymbolDropdown]);
+
+  const filteredSymbols = symbolsToUse.filter(s =>
+    s.toLowerCase().includes(symbolSearch.toLowerCase())
+  );
 
   const { getPrice } = useLivePrices();
   const { pendingSignal, clearSignal, hasSignal } = useSignal();
@@ -364,11 +389,29 @@ export default function ManagerInsights({ accountInfo, positions, activeBrokerId
               <>
                 <div className="mgr-dropdown-overlay" onClick={() => setShowSymbolDropdown(false)} />
                 <div className="mgr-dropdown-menu">
-                  {DEFAULT_SYMBOLS.map((s) => (
-                    <button key={s} onClick={() => { setSymbol(s); setShowSymbolDropdown(false); }} className="mgr-dropdown-item">
-                      {s}
-                    </button>
-                  ))}
+                  {symbolsToUse.length > 8 && (
+                    <div className="p-2 border-b border-[var(--border)] sticky top-0 bg-[var(--sidebar-bg)] z-10">
+                      <input
+                        type="text"
+                        value={symbolSearch}
+                        onChange={(e) => setSymbolSearch(e.target.value)}
+                        placeholder="Search symbols..."
+                        className="w-full px-3 py-1.5 text-xs rounded-lg border border-[var(--border)] bg-[var(--input-bg)] text-[var(--text)] outline-none focus:border-blue-500/50"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </div>
+                  )}
+                  <div className="max-h-[220px] overflow-y-auto no-scrollbar">
+                    {filteredSymbols.length > 0 ? (
+                      filteredSymbols.map((s) => (
+                        <button key={s} onClick={() => { setSymbol(s); setShowSymbolDropdown(false); }} className="mgr-dropdown-item w-full text-left">
+                          {s}
+                        </button>
+                      ))
+                    ) : (
+                      <div className="p-3 text-xs text-[var(--subtext)] text-center">No symbols found</div>
+                    )}
+                  </div>
                 </div>
               </>
             )}

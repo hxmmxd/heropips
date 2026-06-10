@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { createClient as createServerClient } from '@/lib/supabase/server';
-import { createPayment } from '@/lib/nowpayments';
+import { createInvoice } from '@/lib/nowpayments';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,16 +21,16 @@ export async function POST(request: Request) {
     const supabaseAdmin = getSupabaseAdmin();
     
     // 1. Authenticate user
-    const supabase = createServerClient();
+    const supabase = await createServerClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await request.json();
-    const { planId, payCurrency } = body;
-    if (!planId || !payCurrency) {
-      return NextResponse.json({ error: 'planId and payCurrency are required' }, { status: 400 });
+    const { planId } = body;
+    if (!planId) {
+      return NextResponse.json({ error: 'planId is required' }, { status: 400 });
     }
 
     // 2. Fetch pricing config from platform_config
@@ -57,16 +57,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid plan or pricing not configured' }, { status: 400 });
     }
 
-    // 3. Create NOWPayments payment
-    const ipnUrl = `${new URL(request.url).origin}/api/webhooks/nowpayments`;
+    // 3. Create NOWPayments invoice (hosted page with multi-currency selector)
+    const origin = new URL(request.url).origin;
+    const ipnUrl = `${origin}/api/webhooks/nowpayments`;
     
-    const payment = await createPayment({
+    const invoice = await createInvoice({
       price_amount: price,
       price_currency: 'usd',
-      pay_currency: payCurrency,
       ipn_callback_url: ipnUrl,
       order_id: `${user.id}:${planId}:${Date.now()}`,
       order_description: `TradeGPT ${planId.toUpperCase()} Subscription`,
+      success_url: `${origin}/`,
+      cancel_url: `${origin}/`,
     });
 
     // 4. Save pending payment mapping in platform_config -> pending_subscriptions key
@@ -77,13 +79,12 @@ export async function POST(request: Request) {
       .single();
 
     const pendingMap = currentPendingRow?.value || {};
-    pendingMap[payment.payment_id] = {
+    pendingMap[invoice.id] = {
       user_id: user.id,
       plan_id: planId,
       price_amount: price,
-      pay_amount: payment.pay_amount,
-      pay_currency: payment.pay_currency,
-      pay_address: payment.pay_address,
+      invoice_id: invoice.id,
+      invoice_url: invoice.invoice_url,
       status: 'pending',
       created_at: new Date().toISOString()
     };
@@ -96,7 +97,13 @@ export async function POST(request: Request) {
         updated_at: new Date().toISOString()
       });
 
-    return NextResponse.json(payment);
+    return NextResponse.json({
+      invoice_id: invoice.id,
+      invoice_url: invoice.invoice_url,
+      // Legacy compat fields
+      payment_id: invoice.id,
+      payment_url: invoice.invoice_url,
+    });
   } catch (err: any) {
     console.error('[checkout] error:', err);
     return NextResponse.json({ error: err.message }, { status: 500 });

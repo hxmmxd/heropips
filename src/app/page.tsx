@@ -11,6 +11,7 @@ import HistoryTab from '@/components/HistoryTab';
 import ReferralTab from '@/components/ReferralTab';
 import ProfileTab from '@/components/ProfileTab';
 import SubscriptionTab from '@/components/SubscriptionTab';
+import CoursesTab from '@/components/CoursesTab';
 import { Broker, ChatMessage, Partner, TradeLog } from '@/types';
 
 export default function Home() {
@@ -105,6 +106,9 @@ export default function Home() {
             pnl: (b.pnl >= 0 ? '+' : '') + b.pnl.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
             equity: b.equity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
             acc: b.id || b.login,  // prefer MetaAPI UUID for trade execution
+            timezone_offset: b.timezone_offset,
+            broker_timezone_name: b.broker_timezone_name,
+            allowed_symbols: b.allowed_symbols,
           })));
         }
       } catch (err) {
@@ -165,6 +169,9 @@ export default function Home() {
                   pnl: (b.pnl >= 0 ? '+' : '') + b.pnl.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
                   equity: b.equity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
                   acc: b.login,
+                  timezone_offset: b.timezone_offset,
+                  broker_timezone_name: b.broker_timezone_name,
+                  allowed_symbols: b.allowed_symbols,
                 }
               : item
           )
@@ -215,6 +222,9 @@ export default function Home() {
           pnl: (b.pnl >= 0 ? '+' : '') + b.pnl.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
           equity: b.equity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
           acc: b.id || b.login,
+          timezone_offset: b.timezone_offset,
+          broker_timezone_name: b.broker_timezone_name,
+          allowed_symbols: b.allowed_symbols,
         })));
       }
     } catch (err) {
@@ -381,6 +391,7 @@ export default function Home() {
           {currentTab === 'manager' && (
             <ManagerTab
               activeBrokerId={activeBroker.acc}
+              allowedSymbols={activeBroker.allowed_symbols}
               onNavigateToTerminal={() => setCurrentTab('terminal')}
               onAccountUpdate={(info) => {
                 setBrokers(prev => prev.map(b => {
@@ -408,6 +419,10 @@ export default function Home() {
 
           {currentTab === 'referral' && (
             <ReferralTab partners={partners} switchTab={setCurrentTab} />
+          )}
+
+          {currentTab === 'courses' && (
+            <CoursesTab />
           )}
 
           {currentTab === 'profile' && (

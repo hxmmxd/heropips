@@ -710,39 +710,7 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
                                     Generate Signal
                                   </button>
                                 )}
-                                {/* Execute in Manager button (only when SIGNAL gating passes) */}
-                                {msg.ticket && (
-                                  <button
-                                    onClick={() => {
-                                      const sym = msg.ticket!.apiSymbol || msg.ticket!.symbol;
-                                      const brokerSym = sym.replace('/', '').replace('.sc', '');
-                                      setPendingSignal({
-                                        symbol: brokerSym.includes('.sc') ? brokerSym : brokerSym,
-                                        apiSymbol: sym,
-                                        direction: msg.ticket!.action as 'BUY' | 'SELL',
-                                        entryPrice: parseFloat(msg.ticket!.entryPrice) || 0,
-                                        stopLoss: parseFloat(msg.ticket!.stopLoss) || 0,
-                                        takeProfit: parseFloat(msg.ticket!.takeProfit) || 0,
-                                        lotSize: parseFloat(msg.ticket!.lotVolume) || 0.01,
-                                        confluenceScore: msg.marketData!.confluenceScore,
-                                        confidenceGrade: msg.marketData!.confidenceGrade,
-                                        smcPatterns: msg.gating?.smcPatterns || [],
-                                        analysis: msg.text || '',
-                                        rrRatio: msg.ticket!.rrRatio || '1:2',
-                                        risk: msg.ticket!.risk || '0',
-                                        profit: msg.ticket!.profit || '0',
-                                        timestamp: Date.now(),
-                                      });
-                                      onOpenManager?.();
-                                    }}
-                                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 text-white text-[10px] font-bold uppercase tracking-wider hover:shadow-lg hover:shadow-emerald-500/30 active:scale-95 transition-all whitespace-nowrap shrink-0"
-                                  >
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                      <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round"/>
-                                    </svg>
-                                    Execute in Manager
-                                  </button>
-                                )}
+
                               </div>
                             </div>
                           </div>
@@ -790,6 +758,28 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
                               return { orderId: data.orderId, fillPrice: data.fillPrice };
                             }
                             throw new Error(data.error || 'Execution failed');
+                          }}
+                          onManagerExecute={() => {
+                            const sym = msg.ticket!.apiSymbol || msg.ticket!.symbol;
+                            const brokerSym = sym.replace('/', '').replace('.sc', '');
+                            setPendingSignal({
+                              symbol: brokerSym,
+                              apiSymbol: sym,
+                              direction: msg.ticket!.action as 'BUY' | 'SELL',
+                              entryPrice: parseFloat(msg.ticket!.entryPrice) || 0,
+                              stopLoss: parseFloat(msg.ticket!.stopLoss) || 0,
+                              takeProfit: parseFloat(msg.ticket!.takeProfit) || 0,
+                              lotSize: parseFloat(msg.ticket!.lotVolume) || 0.01,
+                              confluenceScore: msg.marketData!.confluenceScore,
+                              confidenceGrade: msg.marketData!.confidenceGrade,
+                              smcPatterns: msg.gating?.smcPatterns || [],
+                              analysis: msg.text || '',
+                              rrRatio: msg.ticket!.rrRatio || '1:2',
+                              risk: msg.ticket!.risk || '0',
+                              profit: msg.ticket!.profit || '0',
+                              timestamp: Date.now(),
+                            });
+                            onOpenManager?.();
                           }}
                         />
                       )}

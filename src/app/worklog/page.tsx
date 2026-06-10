@@ -35,9 +35,67 @@ const tagStyles: Record<string, { bg: string; color: string; label: string }> = 
 
 const worklog: WorkDay[] = [
   {
+    date: 'June 10, 2026',
+    dayLabel: 'Wednesday',
+    commitCount: 5,
+    blocks: [
+      { tag: 'major', time: '01:00 PM',
+        title: 'Paid Courses Ledger Alignment & Unified Billing History',
+        summary: 'Stabilized the course purchase engine by adding automated DB constraint self-healing for wallet transactions, routing purchase records to the ledger database, and rebuilding the Billing & Invoice UI to display unified histories.',
+        items: [
+          { icon: '💼', title: 'Ledger Constraint Self-Healing (purchase/route.ts)', description: 'Implemented a fallback check for the PostgreSQL check constraint error (23514) on course purchases via wallet, dynamically attempting constraint alteration before retry.', files: ['src/app/api/courses/purchase/route.ts'] },
+          { icon: '📊', title: 'Unified Billing API (subscriptions/history/route.ts)', description: 'Merged platform config-based subscription invoices, completed course purchases, and pending crypto course invoices into a single sorted GET feed.', files: ['src/app/api/subscriptions/history/route.ts'] },
+          { icon: '🧾', title: 'Billing & Invoice History UI (SubscriptionTab.tsx)', description: 'Rebuilt the Invoice History table to render custom badges for Plan vs Course invoice types, displaying amount details and status pills cleanly.', files: ['src/components/SubscriptionTab.tsx'] },
+          { icon: '🛠️', title: 'Admin DB Migration Endpoint (fix-constraints/route.ts)', description: 'Created a background admin endpoint to drop and re-create the restrictive check constraint allowing course_purchase tx_type.', files: ['src/app/api/admin/fix-constraints/route.ts'] }
+        ]
+      },
+      { tag: 'major', time: '06:00 PM',
+        title: 'MetaAPI Timezones, Allowed Symbols & Live Server Clocks',
+        summary: 'Integrated MetaAPI timezone-offset calculations and allowed trading instruments synchronization, storing them dynamically inside the Supabase broker schema. Added real-time ticker clocks and restricted dashboard symbol dropdowns with autocomplete search.',
+        items: [
+          { icon: '⏰', title: 'Live Server Clock (BrokersTab.tsx)', description: 'Created a ticking React interval clock synced to the broker\'s calculated timezone offset, rendering live updates next to active connections.', files: ['src/components/BrokersTab.tsx'] },
+          { icon: '🌍', title: 'Timezone & Symbols DB Synchronization (broker.ts)', description: 'Updated connectBroker and getBrokerDetails to concurrently query MetaAPI server-time and symbols, writing timezone details and valid symbol names to database rows.', files: ['src/lib/broker.ts', 'src/types/index.ts'] },
+          { icon: '🔍', title: 'Restricted Symbol Inputs & Search Filter (ManagerInsights.tsx)', description: 'Restricted the manual execution panel dropdown to the active broker\'s allowed_symbols, adding a clean search filter input for quick symbol lookup.', files: ['src/components/manager/ManagerInsights.tsx', 'src/components/ManagerTab.tsx', 'src/app/page.tsx'] },
+          { icon: '🛡️', title: 'Pre-Trade Equity Verification', description: 'Integrated validation checks blocking execution if free margin or equity is non-positive, returning detailed error metrics for client troubleshooting.', files: ['src/lib/broker.ts'] }
+        ]
+      }
+    ]
+  },
+  {
+    date: 'June 9, 2026',
+    dayLabel: 'Tuesday',
+    commitCount: 4,
+    blocks: [
+      { tag: 'major', time: '11:30 AM',
+        title: 'Paid Courses Monetization & Payment Gateway Migration',
+        summary: 'Integrated multi-currency crypto invoice checkout and atomic wallet deductions for paid course access.',
+        items: [
+          { icon: '💳', title: 'NOWPayments Invoice Flow Integration', description: 'Replaced rigid BTC-only raw addresses with a hosted check-out invoice interface, allowing checkout with 200+ cryptocurrencies.', files: ['src/components/CoursesTab.tsx', 'src/app/api/subscriptions/checkout/route.ts'] },
+          { icon: '🔒', title: 'Guarded Wallet Balance Deductions', description: 'Removed the legacy, slow RPC balance helper in favor of direct atomic profiles update using Supabase query chaining with .gte() check to eliminate race conditions.', files: ['src/app/api/courses/purchase/route.ts'] },
+          { icon: '🔑', title: 'Admin API Hardening', description: 'Resolved 403 Forbidden validation errors in configuration saves by appending missing await keywords to createServerClient() calls.', files: ['src/app/api/admin/route.ts'] }
+        ]
+      }
+    ]
+  },
+  {
+    date: 'June 8, 2026',
+    dayLabel: 'Monday',
+    commitCount: 2,
+    blocks: [
+      { tag: 'improvement', time: '04:15 PM',
+        title: 'Technical Presentation & Light-Theme Infographics',
+        summary: 'Optimized marketing materials and technical specification document displays for customer-facing exports.',
+        items: [
+          { icon: '🎨', title: 'Light Theme Infographic Conversion', description: 'Restyled layout templates, graphics, and table components into a clean, modern high-contrast light theme to optimize visual layout prints.', files: ['src/components/ReportComponents.tsx'] },
+          { icon: '📄', title: 'PDF Export Layout Adjustments', description: 'Tweaked margins, fonts, and grid paddings to guarantee perfect styling alignments during client-side PDF downloads.', files: ['src/lib/invoicePdf.ts'] }
+        ]
+      }
+    ]
+  },
+  {
     date: 'June 7, 2026',
     dayLabel: 'Sunday',
-    commitCount: 3,
+    commitCount: 8,
     blocks: [
       { tag: 'major', time: '12:30 AM',
         title: 'Phase A: 9-Gate Institutional Signal Engine',
@@ -68,7 +126,7 @@ const worklog: WorkDay[] = [
   {
     date: 'June 6, 2026',
     dayLabel: 'Saturday',
-    commitCount: 1,
+    commitCount: 5,
     blocks: [
       { tag: 'feature', time: '03:45 AM',
         title: 'Genealogy Tree Flowchart & Interactive Compact Pills',
@@ -84,8 +142,8 @@ const worklog: WorkDay[] = [
   },
   {
     date: 'June 5, 2026',
-    dayLabel: 'Thursday',
-    commitCount: 7,
+    dayLabel: 'Friday',
+    commitCount: 19,
     blocks: [
       { tag: 'major', time: '12:00 AM',
         title: 'Multi-Level Rebate & 40/40/20 Milestone System',
@@ -115,8 +173,8 @@ const worklog: WorkDay[] = [
   },
   {
     date: 'June 4, 2026',
-    dayLabel: 'Wednesday',
-    commitCount: 24,
+    dayLabel: 'Thursday',
+    commitCount: 13,
     blocks: [
       { tag: 'major', time: '09:00 AM',
         title: 'Manager Portal — Premium UX Overhaul',
@@ -153,7 +211,7 @@ const worklog: WorkDay[] = [
   {
     date: 'June 2, 2026',
     dayLabel: 'Tuesday',
-    commitCount: 12,
+    commitCount: 31,
     blocks: [
       { tag: 'major', time: '12:30 PM',
         title: 'Manager Portal — Full Trading Dashboard',
@@ -200,7 +258,7 @@ const worklog: WorkDay[] = [
   {
     date: 'June 1, 2026',
     dayLabel: 'Monday',
-    commitCount: 8,
+    commitCount: 19,
     blocks: [
       { tag: 'major', time: '11:15 PM',
         title: 'Advanced Global Rebates & Risk Safeguards',
@@ -218,7 +276,7 @@ const worklog: WorkDay[] = [
   {
     date: 'May 31, 2026',
     dayLabel: 'Sunday',
-    commitCount: 17,
+    commitCount: 21,
     blocks: [
       { tag: 'major', time: '02:30 AM',
         title: 'MetaAPI Integration Engine & Order Execution Refactor',
@@ -288,8 +346,8 @@ const worklog: WorkDay[] = [
   },
   {
     date: 'May 30, 2026',
-    dayLabel: 'Friday',
-    commitCount: 40,
+    dayLabel: 'Saturday',
+    commitCount: 27,
     blocks: [
       { tag: 'major', time: '09:15 AM',
         title: 'Smart Money Concepts Scanner',
@@ -431,8 +489,8 @@ const worklog: WorkDay[] = [
   },
   {
     date: 'May 25, 2026',
-    dayLabel: 'Sunday',
-    commitCount: 32,
+    dayLabel: 'Monday',
+    commitCount: 24,
     blocks: [
       { tag: 'major', time: '08:00 AM',
         title: 'Supabase Authentication & Database',
@@ -491,8 +549,8 @@ const worklog: WorkDay[] = [
   },
   {
     date: 'May 24, 2026',
-    dayLabel: 'Saturday',
-    commitCount: 23,
+    dayLabel: 'Sunday',
+    commitCount: 45,
     blocks: [
       { tag: 'major', time: '02:00 PM',
         title: 'AI Trading Engine',

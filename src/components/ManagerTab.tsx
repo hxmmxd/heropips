@@ -11,6 +11,7 @@ import PositionChart from './manager/PositionChart';
 
 interface ManagerTabProps {
   activeBrokerId: string;
+  allowedSymbols?: string[];
   onNavigateToTerminal?: () => void;
   onAccountUpdate?: (info: { balance: number; equity: number; pnl: number }) => void;
 }
@@ -21,7 +22,7 @@ const defaultAccountInfo: AccountInfo = {
   positionCount: 0, leverage: 0, currency: 'USD',
 };
 
-export default function ManagerTab({ activeBrokerId, onNavigateToTerminal, onAccountUpdate }: ManagerTabProps) {
+export default function ManagerTab({ activeBrokerId, allowedSymbols, onNavigateToTerminal, onAccountUpdate }: ManagerTabProps) {
   const [activeSubTab, setActiveSubTab] = useState<'insights' | 'positions' | 'config' | 'risk' | 'reports'>('insights');
   const [positions, setPositions] = useState<Position[]>([]);
   const [pendingOrders, setPendingOrders] = useState<PendingOrder[]>([]);
@@ -173,6 +174,7 @@ export default function ManagerTab({ activeBrokerId, onNavigateToTerminal, onAcc
                 accountInfo={accountInfo}
                 positions={positions}
                 activeBrokerId={activeBrokerId}
+                allowedSymbols={allowedSymbols}
                 onRefresh={fetchData}
                 config={mgrConfig}
                 onNavigateToRisk={() => setActiveSubTab('risk')}

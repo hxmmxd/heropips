@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Terminal, Server, Receipt, Network, X, LogOut, Settings, ChevronUp, BarChart3 } from 'lucide-react';
+import { Terminal, Server, Receipt, Network, X, LogOut, Settings, ChevronUp, BarChart3, GraduationCap } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { getUserAvatar } from '@/lib/avatar';
 
@@ -45,6 +45,7 @@ export default function Sidebar({ currentTab, switchTab, isOpen, onToggle }: Sid
     { id: 'brokers', label: 'Live Brokers', icon: Server },
     { id: 'history', label: 'Trade Logs', icon: Receipt },
     { id: 'referral', label: 'Referral Hub', icon: Network },
+    { id: 'courses', label: 'Courses', icon: GraduationCap },
   ];
 
   return (

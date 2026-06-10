@@ -134,6 +134,41 @@ async function getJwtToken(config: NowPaymentsConfig): Promise<string> {
   return data.token as string;
 }
 
+// ── Fetch with Retry + Timeout ────────────────────────────
+
+/**
+ * Wraps fetch with timeout (default 10s) and retry (default 2 attempts).
+ * Uses exponential backoff between retries.
+ */
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit,
+  retries = 2,
+  timeoutMs = 10000,
+): Promise<Response> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, { ...options, signal: controller.signal });
+      clearTimeout(timer);
+      return res;
+    } catch (err: any) {
+      clearTimeout(timer);
+      if (attempt === retries) {
+        throw new Error(
+          err.name === 'AbortError'
+            ? `NOWPayments request timed out after ${timeoutMs}ms`
+            : err.message || 'NOWPayments request failed'
+        );
+      }
+      // Exponential backoff: 1s, 2s
+      await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+    }
+  }
+  throw new Error('NOWPayments request failed after retries');
+}
+
 // ── API Methods ───────────────────────────────────────────
 
 /**
@@ -145,7 +180,7 @@ export async function testConnection(apiKey?: string): Promise<{ ok: boolean; me
     const key    = apiKey || config.api_key || '';
     const base   = getBase(config.sandbox);
 
-    const res  = await fetch(`${base}/status`, { headers: { 'x-api-key': key } });
+    const res  = await fetchWithRetry(`${base}/status`, { headers: { 'x-api-key': key } });
     const data = await res.json();
 
     if (!res.ok) throw new Error(data?.message || `Status check failed: ${res.status}`);
@@ -170,7 +205,7 @@ export async function createPayout(
   const base   = getBase(config.sandbox);
   const jwt    = await getJwtToken(config);
 
-  const res = await fetch(`${base}/payout`, {
+  const res = await fetchWithRetry(`${base}/payout`, {
     method:  'POST',
     headers: {
       Authorization:   `Bearer ${jwt}`,
@@ -212,7 +247,7 @@ export async function verifyPayout(
   const jwt    = await getJwtToken(config);
 
   try {
-    const res = await fetch(`${getBase(config.sandbox)}/payout/${batchWithdrawalId}/verify`, {
+    const res = await fetchWithRetry(`${getBase(config.sandbox)}/payout/${batchWithdrawalId}/verify`, {
       method:  'POST',
       headers: {
         Authorization:   `Bearer ${jwt}`,
@@ -240,7 +275,7 @@ export async function getPayoutStatus(
   const config = customConfig || await getActiveConfig();
   const base   = getBase(config.sandbox);
 
-  const res  = await fetch(`${base}/payout/${payoutId}`, {
+  const res  = await fetchWithRetry(`${base}/payout/${payoutId}`, {
     headers: {
       'x-api-key': config.api_key || '',
     },
@@ -309,7 +344,7 @@ export async function createPayment(
   const config = customConfig || await getActiveConfig();
   const base   = getBase(config.sandbox);
 
-  const res = await fetch(`${base}/payment`, {
+  const res = await fetchWithRetry(`${base}/payment`, {
     method:  'POST',
     headers: {
       'x-api-key':    config.api_key || '',
@@ -340,7 +375,7 @@ export async function getPaymentStatus(
   const config = customConfig || await getActiveConfig();
   const base   = getBase(config.sandbox);
 
-  const res  = await fetch(`${base}/payment/${paymentId}`, {
+  const res  = await fetchWithRetry(`${base}/payment/${paymentId}`, {
     headers: {
       'x-api-key': config.api_key || '',
     },
@@ -348,4 +383,81 @@ export async function getPaymentStatus(
   const data = await res.json();
   if (!res.ok) throw new Error(data?.message || `Payment status check failed: ${res.status}`);
   return data;
+}
+
+// ── Invoice-Based Checkout ────────────────────────────────
+
+export interface CreateInvoiceInput {
+  price_amount: number;
+  price_currency: string;      // e.g. 'usd'
+  ipn_callback_url?: string;
+  order_id?: string;
+  order_description?: string;
+  success_url?: string;
+  cancel_url?: string;
+}
+
+export interface NowPaymentsInvoiceResponse {
+  id: string;
+  token_id: string;
+  invoice_url: string;
+  order_id?: string;
+  order_description?: string;
+  price_amount: number;
+  price_currency: string;
+  created_at: string;
+}
+
+/**
+ * POST /v1/invoice — create a hosted invoice page.
+ * Users get a NOWPayments-hosted page where they can choose ANY supported crypto.
+ * Much better UX than raw /payment which requires specifying pay_currency upfront.
+ */
+export async function createInvoice(
+  input: CreateInvoiceInput,
+  customConfig?: NowPaymentsConfig,
+): Promise<NowPaymentsInvoiceResponse> {
+  const config = customConfig || await getActiveConfig();
+  const base   = getBase(config.sandbox);
+
+  const res = await fetchWithRetry(`${base}/invoice`, {
+    method:  'POST',
+    headers: {
+      'x-api-key':    config.api_key || '',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      price_amount:      input.price_amount,
+      price_currency:    input.price_currency.toLowerCase(),
+      ipn_callback_url:  input.ipn_callback_url,
+      order_id:          input.order_id,
+      order_description: input.order_description,
+      success_url:       input.success_url,
+      cancel_url:        input.cancel_url,
+    }),
+  });
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.message || `Invoice creation failed: ${res.status}`);
+  return data as NowPaymentsInvoiceResponse;
+}
+
+// ── Available Currencies ──────────────────────────────────
+
+/**
+ * GET /v1/currencies — get list of available crypto currencies.
+ */
+export async function getAvailableCurrencies(
+  customConfig?: NowPaymentsConfig,
+): Promise<string[]> {
+  const config = customConfig || await getActiveConfig();
+  const base   = getBase(config.sandbox);
+
+  const res = await fetchWithRetry(`${base}/currencies`, {
+    headers: { 'x-api-key': config.api_key || '' },
+  }, 1, 5000); // fewer retries, shorter timeout for non-critical
+
+  const data = await res.json();
+  if (!res.ok) return [];
+  return data.currencies || [];
 }

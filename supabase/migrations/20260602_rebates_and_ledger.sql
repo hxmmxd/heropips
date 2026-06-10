@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS public.wallet_transactions (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id uuid REFERENCES public.profiles(id) ON DELETE CASCADE NOT null,
   amount numeric(15, 2) NOT null,
-  tx_type text NOT null CHECK (tx_type IN ('rebate', 'referral', 'withdrawal_request', 'withdrawal_payout', 'withdrawal_declined')),
+  tx_type text NOT null CHECK (tx_type IN ('rebate', 'referral', 'withdrawal_request', 'withdrawal_payout', 'withdrawal_declined', 'course_purchase')),
   status text DEFAULT 'completed' NOT null CHECK (status IN ('pending', 'completed', 'failed')),
   reference_id varchar(100),
   metadata jsonb DEFAULT '{}'::jsonb,

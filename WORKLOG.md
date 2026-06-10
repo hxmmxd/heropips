@@ -1,6 +1,6 @@
 # TradeGPT — Development Worklog
 
-> **Last Updated:** June 7, 2026 | **Commit:** `7deba70` | **Branch:** `main`
+> **Last Updated:** June 10, 2026 | **Commit:** `7deba70` | **Branch:** `main`
 
 ---
 
@@ -360,10 +360,33 @@ Validates signals against correlated/inverse markets:
 | `src/contexts/SignalContext.tsx` | 1.4 KB | A10: Global signal state transfer |
 | `src/components/manager/SlideToExecute.tsx` | — | A10: Slide-to-execute UI |
 | `src/lib/avatar.ts` | — | User avatar generation |
+| `src/components/CoursesTab.tsx` | — | Course listing and dynamic content viewer |
+| `src/components/AdminCoursesTab.tsx` | — | Admin dashboard course management portal |
+| `src/components/SystemApisTab.tsx` | — | Real-time observability dashboard for API endpoints |
+| `supabase/migrations/20250609_courses.sql` | — | Schema migration adding course modules and levels |
+| `supabase/migrations/20250610_paid_courses.sql` | — | Ledger support modifications allowing course payments |
+| `supabase/migrations/20260610_metaapi_extended_fields.sql` | — | Timezone offset, name, and allowed symbols migration |
 
 ---
 
 ## 📝 Changelog
+
+### v2.2.0 — Paid Courses, Ledger & MetaAPI Extended (June 8-10, 2026)
+
+**Added:**
+- MetaAPI Timezone Calculation: Automatically computes timezone offsets and names from broker `/server-time` endpoints, storing them in Supabase.
+- MetaAPI Allowed Symbols Sync: Fetches instrument specifications from MetaAPI `/symbols` to synchronize valid symbol arrays to user profiles.
+- Live Server Clock UI: Interactive ticking interval display matching connection timezone.
+- Searchable Symbol Inputs: Auto-restricts symbol selects in the execution dashboard to allowed broker assets, including dynamic autocomplete search.
+- Pre-Trade Safety Checks: Blocks execution if MT5 free margin or equity is non-positive.
+- Course Purchase Wallet Engine: Direct atomic wallet deductions via Supabase query chaining.
+- NOWPayments Invoice Gateway: Replaced BTC raw addresses with 200+ currency checkouts.
+- Unified Billing API & UI: Unified sorted feeds of subscription invoices, wallet courses, and pending crypto course invoices.
+- Light-theme infographics and programmatic client-side PDF export styling.
+
+**Fixed:**
+- Self-healing ledger constraints: Dropped and re-created check constraints dynamically on database conflicts to ensure transaction logging stability.
+- Saved broker config reliability: Guaranteed async retrieval of Supabase ServerClient context to eliminate 403 authorization failures.
 
 ### v2.0.0 — Phase A+B Signal Engine (June 6-7, 2026)
 

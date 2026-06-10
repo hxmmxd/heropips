@@ -67,8 +67,8 @@
   <p>Institutional AI Signal Engine — Development Log</p>
   <div style="margin-top:16px">
     <span class="badge">📌 Branch: main</span>
-    <span class="badge">🔖 Latest: 63924dd</span>
-    <span class="badge">📅 June 7, 2026</span>
+    <span class="badge">🔖 Latest: 75361d6</span>
+    <span class="badge">📅 June 10, 2026</span>
     <span class="badge">✅ Build: Passing</span>
   </div>
 </header>
@@ -78,11 +78,11 @@
   <!-- Stats -->
   <div class="stat-row" style="margin-top:40px">
     <div class="stat"><div class="num">9</div><div class="label">Signal Gates</div></div>
-    <div class="stat"><div class="num">4</div><div class="label">Phase B Modules</div></div>
-    <div class="stat"><div class="num">22</div><div class="label">Files Changed</div></div>
-    <div class="stat"><div class="num">2,516</div><div class="label">Lines Added</div></div>
+    <div class="stat"><div class="num">6</div><div class="label">Extended Phases</div></div>
+    <div class="stat"><div class="num">42</div><div class="label">Files Changed</div></div>
+    <div class="stat"><div class="num">3,642</div><div class="label">Lines Added</div></div>
     <div class="stat"><div class="num">&lt;5s</div><div class="label">Analysis Latency</div></div>
-    <div class="stat"><div class="num">7</div><div class="label">API Services</div></div>
+    <div class="stat"><div class="num">8</div><div class="label">API Services</div></div>
   </div>
 
   <!-- Architecture -->
@@ -272,6 +272,24 @@
         <div class="tl-title">🟣 Phase B — Edge Multipliers</div>
         <div class="tl-body">B1 Finnhub sentiment, B2 Economic calendar gate, B3 RSI/MACD divergence, B4 Correlated assets. 9-gate system fully live.</div>
       </div>
+      <div class="tl-item">
+        <div class="tl-dot"></div>
+        <div class="tl-date">June 8, 2026</div>
+        <div class="tl-title">🎨 Light-Theme & Presentation Redesign</div>
+        <div class="tl-body">Optimized infographic diagrams and presentation layouts, converting technical specs to an elegant light theme.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot"></div>
+        <div class="tl-date">June 9, 2026</div>
+        <div class="tl-title">💳 Paid Courses & Crypto Gateway</div>
+        <div class="tl-body">Integrated NOWPayments invoice API for checkout using 200+ cryptocurrencies. Protected balance updates with atomic gte() query constraints.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot" style="background:#4ade80"></div>
+        <div class="tl-date">June 10, 2026</div>
+        <div class="tl-title">⏰ MetaAPI Timezones, Symbols & Ledger</div>
+        <div class="tl-body">Resolved course ledger transaction check constraint issues. Synced MT5 broker timezone offsets, allowed symbol configurations and built a live ticking clock inside dashboard. Added search filtering to manager symbol inputs.</div>
+      </div>
     </div>
   </section>
 
@@ -318,13 +336,16 @@
       <div class="card"><div class="card-icon">🔗</div><h3>correlation.ts</h3><p>6.7 KB — Correlated asset momentum checker with 5-min cache</p><span class="tag tag-purple">B4</span></div>
       <div class="card"><div class="card-icon">🔄</div><h3>SignalContext.tsx</h3><p>1.4 KB — Global React context for Terminal→Manager signal handoff</p><span class="tag tag-blue">A10</span></div>
       <div class="card"><div class="card-icon">▶️</div><h3>SlideToExecute.tsx</h3><p>Manager slide-to-execute UI component with pre-filled trade ticket</p><span class="tag tag-blue">A10</span></div>
+      <div class="card"><div class="card-icon">📚</div><h3>CoursesTab.tsx</h3><p>Course directory rendering with dynamic progress state</p><span class="tag tag-green">Course UI</span></div>
+      <div class="card"><div class="card-icon">⚙️</div><h3>AdminCoursesTab.tsx</h3><p>Admin courses portal enabling editing, creating and publishing courses</p><span class="tag tag-green">Course Admin</span></div>
+      <div class="card"><div class="card-icon">🔌</div><h3>SystemApisTab.tsx</h3><p>Live endpoint statistics, request telemetry log viewer</p><span class="tag tag-green">Observability</span></div>
     </div>
   </section>
 
 </div>
 
 <footer>
-  TradeGPT — Institutional AI Signal Engine &nbsp;·&nbsp; Commits: <code>7deba70</code> · <code>63924dd</code> &nbsp;·&nbsp; June 7, 2026
+  TradeGPT — Institutional AI Signal Engine &nbsp;·&nbsp; Commits: <code>75361d6</code> · <code>7deba70</code> &nbsp;·&nbsp; June 10, 2026
 </footer>
 </body>
 </html>
