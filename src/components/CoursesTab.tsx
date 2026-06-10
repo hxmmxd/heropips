@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Search, Play, X, Lock, Wallet, Bitcoin } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Search, Play, X, Lock, Wallet, Bitcoin, LayoutGrid, Zap, BarChart3 } from 'lucide-react';
 
 interface Course {
   id: string;
@@ -156,8 +156,56 @@ export default function CoursesTab() {
           to { opacity: 1; }
         }
         @keyframes pulse-glow {
-          0%, 100% { box-shadow: 0 0 8px rgba(99,102,241,0.3); }
-          50% { box-shadow: 0 0 20px rgba(99,102,241,0.5); }
+          0%, 100% { box-shadow: 0 0 8px rgba(180,145,108,0.3); }
+          50% { box-shadow: 0 0 20px rgba(180,145,108,0.5); }
+        }
+        .courses-floating-dock {
+          position: fixed;
+          bottom: 28px;
+          left: 50%;
+          transform: translateX(-50%);
+          z-index: 50;
+          display: flex;
+          align-items: center;
+          gap: 2px;
+          padding: 6px 8px;
+          border-radius: 999px;
+          background: var(--sidebar-bg);
+          border: 1px solid var(--border);
+          box-shadow: 0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+          backdrop-filter: blur(16px);
+          animation: dock-slide-up 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
+        }
+        @keyframes dock-slide-up {
+          from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+          to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+        .dock-item {
+          width: 44px;
+          height: 44px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          color: var(--subtext);
+          position: relative;
+        }
+        .dock-item:hover {
+          color: var(--text);
+          background: var(--input-bg);
+        }
+        .dock-item.active {
+          background: var(--accent);
+          color: #fff;
+          box-shadow: 0 2px 12px rgba(180,145,108,0.35);
+        }
+        .dock-divider {
+          width: 1px;
+          height: 24px;
+          background: var(--border);
+          margin: 0 4px;
         }
       `}</style>
 
@@ -171,7 +219,7 @@ export default function CoursesTab() {
               placeholder="Search courses..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--sidebar-bg)] text-[var(--text)] text-sm outline-none focus:border-indigo-500/50 transition"
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--sidebar-bg)] text-[var(--text)] text-sm outline-none focus:border-[var(--accent)]/50 transition"
             />
           </div>
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
@@ -184,10 +232,10 @@ export default function CoursesTab() {
                   onClick={() => setActiveCategory(c)}
                   className="px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all whitespace-nowrap shrink-0 flex items-center gap-1.5"
                   style={{
-                    background: activeCategory === c ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'var(--sidebar-bg)',
+                    background: activeCategory === c ? 'var(--accent)' : 'var(--sidebar-bg)',
                     color: activeCategory === c ? '#fff' : 'var(--subtext)',
                     border: `1px solid ${activeCategory === c ? 'transparent' : 'var(--border)'}`,
-                    boxShadow: activeCategory === c ? '0 4px 15px rgba(99,102,241,0.3)' : 'none',
+                    boxShadow: activeCategory === c ? '0 4px 15px rgba(180,145,108,0.3)' : 'none',
                   }}
                 >
                   {paid && !unlocked && <Lock className="w-3 h-3" />}
@@ -214,7 +262,7 @@ export default function CoursesTab() {
         <div className="max-w-6xl mx-auto">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3">
-              <div className="w-8 h-8 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
+              <div className="w-8 h-8 border-2 border-[var(--accent)]/30 border-t-[var(--accent)] rounded-full animate-spin" />
               <p className="text-sm text-[var(--subtext)]">Loading courses...</p>
             </div>
           ) : courses.length === 0 ? (
@@ -238,14 +286,14 @@ export default function CoursesTab() {
                 return (
                   <div key={group.category}>
                     <div className="flex items-center gap-2 mb-5">
-                      <div className="w-1 h-5 rounded-full bg-gradient-to-b from-indigo-500 to-purple-500" />
+                      <div className="w-1 h-5 rounded-full" style={{ background: 'var(--accent)' }} />
                       <h2 className="text-sm font-bold text-[var(--text)] uppercase tracking-wider">{group.category}</h2>
                       <span className="text-[10px] font-bold text-[var(--subtext)] bg-[var(--sidebar-bg)] px-2 py-0.5 rounded-lg">{group.items.length}</span>
                       {locked && (
                         <button
                           onClick={() => setPurchaseModal({ category: group.category, price, count: group.items.length })}
                           className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold text-white transition-all hover:scale-105 active:scale-95"
-                          style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', animation: 'pulse-glow 2s ease-in-out infinite' }}
+                          style={{ background: 'var(--accent)', animation: 'pulse-glow 2s ease-in-out infinite' }}
                         >
                           <Lock className="w-3 h-3" /> Unlock for ${price}
                         </button>
@@ -283,7 +331,7 @@ export default function CoursesTab() {
                             {!locked && (
                               <div className="course-play-overlay absolute inset-0 bg-black/40 flex items-center justify-center">
                                 <div className="w-14 h-14 rounded-full bg-white/95 flex items-center justify-center shadow-xl">
-                                  <Play className="w-6 h-6 text-indigo-600 ml-0.5" fill="currentColor" />
+                                  <Play className="w-6 h-6 ml-0.5" fill="currentColor" style={{ color: 'var(--accent)' }} />
                                 </div>
                               </div>
                             )}
@@ -307,7 +355,7 @@ export default function CoursesTab() {
                           </div>
                           {/* Info */}
                           <div className="p-4">
-                            <span className="text-[9px] font-bold uppercase tracking-widest text-indigo-500 mb-1.5 block">{course.category}</span>
+                            <span className="text-[9px] font-bold uppercase tracking-widest mb-1.5 block" style={{ color: 'var(--accent)' }}>{course.category}</span>
                             <h3 className={`text-sm font-bold text-[var(--text)] leading-snug mb-1.5 line-clamp-2 ${locked ? 'select-none' : ''}`}>
                               {course.title}
                             </h3>
@@ -373,7 +421,7 @@ export default function CoursesTab() {
             {/* Header */}
             <div className="p-6 pb-4 border-b border-[var(--border)]">
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: 'var(--accent)' }}>
                   <Lock className="w-5 h-5 text-white" />
                 </div>
                 <div>
@@ -393,7 +441,7 @@ export default function CoursesTab() {
               <button
                 onClick={() => handlePurchase('wallet')}
                 disabled={purchasing || walletBalance < purchaseModal.price}
-                className="w-full flex items-center gap-4 p-4 rounded-2xl border border-[var(--border)] transition-all hover:border-indigo-500/40 hover:bg-indigo-500/5 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-left"
+                className="w-full flex items-center gap-4 p-4 rounded-2xl border border-[var(--border)] transition-all hover:border-[var(--accent)]/40 hover:bg-[var(--accent)]/5 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-left"
               >
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shrink-0">
                   <Wallet className="w-5 h-5 text-white" />
@@ -414,7 +462,7 @@ export default function CoursesTab() {
               <button
                 onClick={() => handlePurchase('crypto')}
                 disabled={purchasing}
-                className="w-full flex items-center gap-4 p-4 rounded-2xl border border-[var(--border)] transition-all hover:border-indigo-500/40 hover:bg-indigo-500/5 active:scale-[0.98] disabled:opacity-50 text-left"
+                className="w-full flex items-center gap-4 p-4 rounded-2xl border border-[var(--border)] transition-all hover:border-[var(--accent)]/40 hover:bg-[var(--accent)]/5 active:scale-[0.98] disabled:opacity-50 text-left"
               >
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shrink-0">
                   <Bitcoin className="w-5 h-5 text-white" />
@@ -436,7 +484,7 @@ export default function CoursesTab() {
               {/* Loading */}
               {purchasing && (
                 <div className="flex items-center justify-center gap-2 py-2">
-                  <div className="w-4 h-4 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-[var(--accent)]/30 border-t-[var(--accent)] rounded-full animate-spin" />
                   <span className="text-xs text-[var(--subtext)]">Processing payment...</span>
                 </div>
               )}
@@ -452,6 +500,46 @@ export default function CoursesTab() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Floating Dock */}
+      {!playingVideo && !purchaseModal && courses.length > 0 && (
+        <div className="courses-floating-dock">
+          <button
+            className={`dock-item ${activeCategory === 'all' ? 'active' : ''}`}
+            onClick={() => setActiveCategory('all')}
+            title="All Courses"
+          >
+            <LayoutGrid className="w-5 h-5" />
+          </button>
+          <div className="dock-divider" />
+          {categories.filter(c => c !== 'all').slice(0, 3).map((cat) => (
+            <button
+              key={cat}
+              className={`dock-item ${activeCategory === cat ? 'active' : ''}`}
+              onClick={() => setActiveCategory(cat)}
+              title={cat}
+            >
+              <Zap className="w-5 h-5" />
+            </button>
+          ))}
+          {categories.filter(c => c !== 'all').length > 3 && (
+            <>
+              <div className="dock-divider" />
+              <button
+                className="dock-item"
+                onClick={() => {
+                  const cats = categories.filter(c => c !== 'all');
+                  const nextIdx = cats.indexOf(activeCategory);
+                  setActiveCategory(cats[(nextIdx + 1) % cats.length]);
+                }}
+                title="More Categories"
+              >
+                <BarChart3 className="w-5 h-5" />
+              </button>
+            </>
+          )}
         </div>
       )}
     </>

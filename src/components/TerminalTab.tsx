@@ -269,10 +269,10 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
               <button
                 key={asset.symbol}
                 onClick={() => onSendMessage(asset.symbol)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[var(--border)] bg-[var(--sidebar-bg)] hover:border-blue-500/40 hover:bg-blue-500/5 active:scale-95 transition-all shrink-0 group"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[var(--border)] bg-[var(--sidebar-bg)] hover:border-[var(--accent)]/40 hover:bg-[var(--accent)]/5 active:scale-95 transition-all shrink-0 group"
               >
                 <WatchIcon type={asset.iconType} />
-                <span className="text-[11px] font-semibold text-[var(--text)] group-hover:text-blue-400 transition-colors">{asset.label}</span>
+                <span className="text-[11px] font-semibold text-[var(--text)] group-hover:text-[var(--accent)] transition-colors">{asset.label}</span>
                 {livePrice !== null && (
                   <span
                     className={`text-[11px] font-mono font-bold ml-0.5 px-1 ${
@@ -310,8 +310,8 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
             }
           `}</style>
           
-          <div className="flex items-center gap-1.5 text-blue-500 font-bold tracking-wider uppercase shrink-0 bg-[var(--sidebar-bg)] pr-3 z-10 border-r border-[var(--border)]/60">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+          <div className="flex items-center gap-1.5 font-bold tracking-wider uppercase shrink-0 bg-[var(--sidebar-bg)] pr-3 z-10 border-r border-[var(--border)]/60" style={{ color: 'var(--accent)' }}>
+            <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: 'var(--accent)' }} />
             LIVE NEWS
           </div>
           
@@ -324,12 +324,12 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
                     href={item.link}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-[var(--text)] opacity-85 hover:opacity-100 hover:text-blue-400 transition-colors"
+                    className="text-[var(--text)] opacity-85 hover:opacity-100 hover:text-[var(--accent)] transition-colors"
                   >
                     {item.title}
                   </a>
                   <span className="text-[10px] text-[var(--subtext)] opacity-60">({item.source})</span>
-                  <span className="text-blue-500/50 mx-2">•</span>
+                  <span className="mx-2" style={{ color: 'color-mix(in srgb, var(--accent) 50%, transparent)' }}>•</span>
                 </div>
               ))}
               {/* Duplicate batch for seamless infinite loop */}
@@ -357,7 +357,22 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
         {messages.length === 0 ? (
           /* Initial Welcome Screen */
           <div className="h-full flex flex-col items-center justify-center text-center space-y-8 py-10 my-auto">
-            <div className="loader shrink-0" />
+            <div className="tgpt-loader shrink-0">
+              <svg width={100} height={100} viewBox="0 0 100 100">
+                <defs>
+                  <mask id="tgpt-clipping">
+                    <polygon points="0,0 100,0 100,100 0,100" fill="black" />
+                    <polygon points="25,25 75,25 50,75" fill="white" />
+                    <polygon points="50,25 75,75 25,75" fill="white" />
+                    <polygon points="35,35 65,35 50,65" fill="white" />
+                    <polygon points="35,35 65,35 50,65" fill="white" />
+                    <polygon points="35,35 65,35 50,65" fill="white" />
+                    <polygon points="35,35 65,35 50,65" fill="white" />
+                  </mask>
+                </defs>
+              </svg>
+              <div className="tgpt-loader-box" />
+            </div>
             <h2 className="text-2xl lg:text-3xl font-medium text-[var(--text)] px-8 leading-tight max-w-xl">
               Ready to trade today?
             </h2>
@@ -704,7 +719,7 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
                                 {msg.signalSymbol && !msg.ticket && (
                                   <button
                                     onClick={() => onGenerateSignal?.(msg.signalSymbol!)}
-                                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white text-[10px] font-bold uppercase tracking-wider hover:shadow-lg hover:shadow-blue-500/30 active:scale-95 transition-all whitespace-nowrap shrink-0"
+                                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-white text-[10px] font-bold uppercase tracking-wider hover:shadow-lg active:scale-95 transition-all whitespace-nowrap shrink-0" style={{ background: 'var(--accent)', boxShadow: '0 4px 12px rgba(180,145,108,0.3)' }}
                                   >
                                     <Zap className="w-3 h-3" />
                                     Generate Signal
@@ -728,7 +743,7 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
                       {msg.signalSymbol && !msg.ticket && !msg.marketData && (
                         <button
                           onClick={() => onGenerateSignal?.(msg.signalSymbol!)}
-                          className="flex items-center gap-2 mt-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-500 text-white text-[12px] font-bold uppercase tracking-wider shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 active:scale-95 transition-all whitespace-nowrap shrink-0"
+                          className="flex items-center gap-2 mt-2 px-5 py-2.5 rounded-2xl text-white text-[12px] font-bold uppercase tracking-wider shadow-lg active:scale-95 transition-all whitespace-nowrap shrink-0" style={{ background: 'var(--accent)', boxShadow: '0 4px 16px rgba(180,145,108,0.25)' }}
                         >
                           <Zap className="w-3.5 h-3.5" />
                           Generate Trade Signal
@@ -862,7 +877,7 @@ function parseMarkdown(text: string) {
       return (
         <h3 key={idx} className="text-[10px] font-bold text-[var(--subtext)] mt-4 mb-2.5 flex items-center gap-1.5 uppercase tracking-widest">
           {hasRobot && (
-            <svg className="w-3.5 h-3.5 text-blue-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+            <svg className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--accent)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V9a2 2 0 00-2-2H7a2 2 0 00-2 2v8a2 2 0 002 2zM9 9h.01M15 9h.01M8 14h8" />
             </svg>
           )}
@@ -873,7 +888,7 @@ function parseMarkdown(text: string) {
     if (cleanLine.startsWith('*')) {
       const content = cleanLine.replace(/^\*\s*/, '');
       return (
-        <div key={idx} className="text-[12.5px] leading-relaxed pl-3.5 border-l border-blue-500/40 my-2.5 text-[var(--text)] opacity-90">
+        <div key={idx} className="text-[12.5px] leading-relaxed pl-3.5 border-l-2 my-2.5 text-[var(--text)] opacity-90" style={{ borderColor: 'color-mix(in srgb, var(--accent) 40%, transparent)' }}>
           {formatBulletContent(content)}
         </div>
       );

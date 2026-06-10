@@ -147,7 +147,7 @@ export default function Header({
                     <button
                       key={b.name}
                       onClick={() => handleBrokerClick(b.name)}
-                      className="w-full text-left px-4 py-2.5 rounded-lg text-xs font-bold hover:bg-blue-500 hover:text-white dark:hover:bg-blue-600 transition"
+                      className="w-full text-left px-4 py-2.5 rounded-lg text-xs font-bold hover:bg-[var(--accent)] hover:text-white transition"
                     >
                       {b.name}
                     </button>
@@ -176,17 +176,17 @@ export default function Header({
 
       {/* Account Info Cards */}
       <div className="px-4 pb-2">
-        <div className="flex items-center justify-between p-3 px-6 border border-[var(--border)] bg-[var(--sidebar-bg)] rounded-xl shadow-sm">
+        <div className="flex items-center justify-between p-3 px-6 border border-[var(--border)] bg-[var(--sidebar-bg)] rounded-2xl shadow-sm">
           <div className="flex items-center space-x-10 md:space-x-16 overflow-x-auto no-scrollbar">
             <div className="flex flex-col shrink-0">
               <span className="text-[9px] font-bold text-[var(--subtext)] uppercase mb-1">Balance</span>
               <span className="text-xs font-bold font-mono">${activeBroker.balance}</span>
             </div>
             <div className="flex flex-col shrink-0">
-              <span className={`text-[9px] font-bold uppercase mb-1 ${isPositivePnl ? 'text-green-600' : 'text-red-500'}`}>
+              <span className={`text-[9px] font-bold uppercase mb-1 ${isPositivePnl ? 'text-[var(--positive)]' : 'text-[var(--negative)]'}`}>
                 Net P/L
               </span>
-              <span className={`text-xs font-bold font-mono ${isPositivePnl ? 'text-green-600' : 'text-red-500'}`}>
+              <span className={`text-xs font-bold font-mono ${isPositivePnl ? 'text-[var(--positive)]' : 'text-[var(--negative)]'}`}>
                 {activeBroker.pnl}
               </span>
             </div>

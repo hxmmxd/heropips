@@ -381,7 +381,7 @@ export default function SubscriptionTab({ onBack }: SubscriptionTabProps) {
           overflow: hidden;
         }
         .deposit-status-banner::before {
-          content: '';
+          content: "";
           position: absolute;
           left: 0;
           top: 0;

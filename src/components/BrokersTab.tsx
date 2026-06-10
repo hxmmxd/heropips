@@ -51,11 +51,11 @@ export default function BrokersTab({ brokers, onOpenModal, onDisconnect }: Broke
         {brokers.map((b) => (
           <div
             key={b.acc}
-            className="border border-[var(--border)] p-6 rounded-[1.5rem] bg-[var(--sidebar-bg)] flex flex-col space-y-4 hover:border-blue-500/30 transition duration-200 group"
+            className="border border-[var(--border)] p-6 rounded-[1.5rem] bg-[var(--sidebar-bg)] flex flex-col space-y-4 hover:border-[var(--accent)]/30 transition duration-200 group"
           >
             <div className="flex justify-between items-start">
               <div className="flex items-center space-x-3.5">
-                <div className="p-2.5 bg-blue-500/10 rounded-xl text-blue-500">
+                <div className="p-2.5 rounded-xl" style={{ background: 'color-mix(in srgb, var(--accent) 12%, transparent)', color: 'var(--accent)' }}>
                   <Server className="w-5 h-5 shrink-0" />
                 </div>
                 <div>
@@ -64,8 +64,8 @@ export default function BrokersTab({ brokers, onOpenModal, onDisconnect }: Broke
                     MT5 ID: #{b.acc} {b.broker_timezone_name ? `(${b.broker_timezone_name})` : ''}
                   </p>
                   {b.balance !== 'Connecting...' && b.timezone_offset !== undefined && (
-                    <p className="text-[11px] text-blue-500 font-mono mt-1.5 font-semibold flex items-center gap-1.5 bg-blue-500/5 px-2 py-0.5 rounded-md w-fit">
-                      <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-ping shrink-0" />
+                    <p className="text-[11px] font-mono mt-1.5 font-semibold flex items-center gap-1.5 px-2 py-0.5 rounded-md w-fit" style={{ color: 'var(--accent)', background: 'color-mix(in srgb, var(--accent) 6%, transparent)' }}>
+                      <span className="w-1.5 h-1.5 rounded-full animate-ping shrink-0" style={{ background: 'var(--accent)' }} />
                       Server Clock: {getBrokerTimeString(b.timezone_offset)}
                     </p>
                   )}
@@ -73,7 +73,7 @@ export default function BrokersTab({ brokers, onOpenModal, onDisconnect }: Broke
               </div>
               <div className="flex items-center gap-2">
                 {b.balance === 'Connecting...' ? (
-                  <div className="w-3.5 h-3.5 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin shrink-0" />
+                  <div className="w-3.5 h-3.5 border-2 rounded-full animate-spin shrink-0" style={{ borderColor: 'color-mix(in srgb, var(--accent) 20%, transparent)', borderTopColor: 'var(--accent)' }} />
                 ) : (
                   <span className="text-[9px] font-bold text-green-500 bg-green-500/10 px-2.5 py-1 rounded-full uppercase tracking-wider shrink-0">
                     Active Node
@@ -124,7 +124,7 @@ export default function BrokersTab({ brokers, onOpenModal, onDisconnect }: Broke
         {/* Connect Broker Button Card */}
         <button
           onClick={onOpenModal}
-          className="border-2 border-dashed border-[var(--border)] p-6 rounded-[1.5rem] flex items-center justify-center text-[var(--subtext)] hover:text-blue-500 hover:border-blue-500/50 transition duration-200 group text-sm font-semibold"
+          className="border-2 border-dashed border-[var(--border)] p-6 rounded-[1.5rem] flex items-center justify-center text-[var(--subtext)] hover:text-[var(--accent)] hover:border-[var(--accent)]/50 transition duration-200 group text-sm font-semibold"
         >
           <Plus className="w-4 h-4 mr-3 group-hover:scale-110 transition-transform shrink-0" />
           Connect Broker Node

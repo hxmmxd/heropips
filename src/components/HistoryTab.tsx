@@ -80,7 +80,7 @@ export default function HistoryTab({ logs }: HistoryTabProps) {
                     </p>
                   )}
                   <p className={`text-[9px] uppercase font-bold tracking-wider ${
-                    status === 'open' ? 'text-blue-500' : 'text-[var(--subtext)]'
+                    status === 'open' ? 'text-[var(--accent)]' : 'text-[var(--subtext)]'
                   }`}>
                     {status}
                   </p>

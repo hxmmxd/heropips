@@ -85,42 +85,18 @@ export async function syncBrokerToSupabase(node: BrokerNode, userId: string) {
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
-    const { data: existing } = await sb
-      .from('broker_accounts')
-      .select('id')
-      .eq('metaapi_id', node.id)
-      .eq('user_id', userId)
-      .maybeSingle();
 
-    let error;
-    if (existing?.id) {
-      const { error: err } = await sb
-        .from('broker_accounts')
-        .update({
-          broker_name: node.name,
-          mt5_login: node.login,
-          server: node.server,
-          status: node.status,
-          balance: node.balance,
-          equity: node.equity,
-          pnl: node.pnl,
-          timezone_offset: node.timezone_offset ?? 0.00,
-          broker_timezone_name: node.broker_timezone_name ?? 'UTC',
-          allowed_symbols: node.allowed_symbols ?? [],
-          is_active: true,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', existing.id);
-      error = err;
-    } else {
-      const { error: err } = await sb
-        .from('broker_accounts')
-        .insert({
+    // Use upsert keyed on (metaapi_id, user_id) to prevent duplicate rows.
+    // Requires a UNIQUE constraint on (metaapi_id, user_id) in the DB.
+    const { error } = await sb
+      .from('broker_accounts')
+      .upsert(
+        {
           user_id: userId,
+          metaapi_id: node.id,
           broker_name: node.name,
           mt5_login: node.login,
           server: node.server,
-          metaapi_id: node.id,
           status: node.status,
           balance: node.balance,
           equity: node.equity,
@@ -130,9 +106,10 @@ export async function syncBrokerToSupabase(node: BrokerNode, userId: string) {
           allowed_symbols: node.allowed_symbols ?? [],
           is_active: true,
           updated_at: new Date().toISOString(),
-        });
-      error = err;
-    }
+        },
+        { onConflict: 'metaapi_id,user_id' }
+      );
+
     if (error) console.error('[Broker Engine] Supabase sync error:', error.message);
     else console.log('[Broker Engine] Synced to Supabase broker_accounts');
   } catch (syncErr: any) {
