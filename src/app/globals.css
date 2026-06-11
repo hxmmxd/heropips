@@ -33,19 +33,19 @@
 
 :root.dark,
 .dark {
-  --bg: #0D0D0D;
-  --sidebar-bg: #171717;
-  --text: #F5F5F7;
-  --subtext: #A1A1A6;
-  --input-bg: #212121;
-  --border: rgba(255, 255, 255, 0.1);
-  --send-btn: #F5F5F7;
-  --send-icon: #0D0D0D;
-  --accent: #D4A843;
-  --positive: #16a34a;
-  --positive-bg: rgba(22, 163, 74, 0.12);
-  --negative: #dc2626;
-  --negative-bg: rgba(220, 38, 38, 0.12);
+  --bg: #1A1816;                /* Warm espresso/charcoal — not pure black */
+  --sidebar-bg: #211F1C;       /* Slightly lighter warm dark for sidebar */
+  --text: #F0EBE3;             /* Warm off-white / parchment text */
+  --subtext: #9B9488;          /* Warm muted sand-grey */
+  --input-bg: #272420;         /* Warm dark input — brownish undertone */
+  --border: rgba(180, 145, 108, 0.12); /* Accent-tinted warm border */
+  --send-btn: #F0EBE3;
+  --send-icon: #1A1816;
+  --accent: #D4A843;           /* Same golden accent, pops more on warm dark */
+  --positive: #2ECC8A;         /* Softer warm green for dark bg */
+  --positive-bg: rgba(46, 204, 138, 0.10);
+  --negative: #E06060;         /* Softer warm red for dark bg */
+  --negative-bg: rgba(224, 96, 96, 0.10);
 
   /* Admin theme variables mapping */
   --adm-bg: var(--bg);
@@ -2948,7 +2948,7 @@ body {
   color: #fff;
 }
 .dark .ref2-wallet {
-  background: linear-gradient(135deg, #0a0a1a 0%, #1a1740 50%, #0a0a1a 100%);
+  background: linear-gradient(135deg, #1A1816 0%, #2A2520 50%, #1A1816 100%);
 }
 .ref2-wallet-glow {
   position: absolute;
@@ -4394,7 +4394,7 @@ body {
   animation: posChartFadeIn 0.2s ease-out;
 }
 .dark .pos-chart-overlay {
-  background: rgba(0,0,0,0.85);
+  background: rgba(26, 24, 22, 0.85);
 }
 @keyframes posChartFadeIn {
   from { opacity: 0; }
@@ -4545,9 +4545,9 @@ body {
   to { transform: translate(-50%, 0); opacity: 1; }
 }
 .dark .mgr-floating-dock {
-  background: rgba(28, 28, 30, 0.8);
-  border-color: rgba(255, 255, 255, 0.1);
-  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5);
+  background: rgba(33, 31, 28, 0.85);
+  border-color: rgba(180, 145, 108, 0.12);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.4);
 }
 .mgr-dock-btn {
   width: 42px; height: 42px; border-radius: 9999px; border: none;
@@ -4574,7 +4574,7 @@ body {
   width: 1px; height: 20px; background: rgba(180, 145, 108, 0.2); margin: 0 4px;
 }
 .dark .mgr-dock-divider {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(180, 145, 108, 0.15);
 }
 .mgr-dock-svg {
   width: 20px; height: 20px;
@@ -4595,7 +4595,7 @@ body {
   animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 .dark .mgr-shortcuts-panel {
-  background: #1C1C1E; border-color: rgba(255, 255, 255, 0.1);
+  background: #211F1C; border-color: rgba(180, 145, 108, 0.12);
 }
 @keyframes slideUp {
   from { transform: translateY(100%); }
@@ -4606,7 +4606,7 @@ body {
   border-radius: 3px; align-self: center; margin-bottom: -4px;
 }
 .dark .mgr-shortcuts-drag-handle {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(180, 145, 108, 0.2);
 }
 
 /* Header */
@@ -4634,7 +4634,7 @@ body {
   border: 1px solid rgba(180, 145, 108, 0.15);
 }
 .dark .mgr-shortcuts-pnl-pill {
-  background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(180, 145, 108, 0.06); border-color: rgba(180, 145, 108, 0.1);
 }
 .mgr-shortcuts-edit-btn {
   font-size: 13px; font-weight: 700; color: var(--accent);
@@ -4663,13 +4663,13 @@ body {
   transform: translateY(3px); box-shadow: 0 0.5px 0 #C7C3BB;
 }
 .dark .mgr-shortcut-tile {
-  background: #2C2C2E; border-color: #48484A; box-shadow: 0 3.5px 0 #18181A;
+  background: #2A2722; border-color: #3D3830; box-shadow: 0 3.5px 0 #1A1816;
 }
 .dark .mgr-shortcut-tile:hover {
-  background: #323235; box-shadow: 0 4px 0 #121214;
+  background: #322F29; box-shadow: 0 4px 0 #151310;
 }
 .dark .mgr-shortcut-tile:active {
-  box-shadow: 0 0.5px 0 #121214;
+  box-shadow: 0 0.5px 0 #151310;
 }
 .mgr-shortcut-title {
   font-size: 14px; font-weight: 850; color: var(--text);
@@ -4688,8 +4688,8 @@ body {
   overflow: hidden;
 }
 .dark .mgr-swipe-container {
-  background: #2C1A1A; border-color: #5C2E2E;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  background: #2A1E1E; border-color: #4D2E2E;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 
 .mgr-swipe-bg-text {
