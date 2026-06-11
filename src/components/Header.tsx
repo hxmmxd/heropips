@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Menu, ChevronDown, Lightbulb, RefreshCw } from 'lucide-react';
+import { Menu, ChevronDown, RefreshCw } from 'lucide-react';
 import { Broker } from '../types';
 import { cleanBrokerName } from '@/utils/broker';
 
@@ -162,19 +162,57 @@ export default function Header({
           )}
         </div>
 
-        {/* Theme Toggle Button (Lightbulb) */}
         <button
           onClick={handleToggleTheme}
           className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[var(--input-bg)] transition text-[var(--subtext)]"
           aria-label="Toggle Theme Mode"
         >
-          <Lightbulb
-            className={`w-5 h-5 transition-all duration-300 ${
-              theme === 'dark'
-                ? 'text-yellow-500 fill-yellow-500/20 drop-shadow-[0_0_8px_rgba(234,179,8,0.5)]'
-                : 'text-[var(--subtext)]'
-            }`}
-          />
+          <div className="relative w-5 h-5 overflow-hidden">
+            {/* Sun Icon (Light Mode) */}
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className={`w-5 h-5 absolute inset-0 transition-all duration-500 transform ${
+                theme === 'dark'
+                  ? 'rotate-90 scale-0 opacity-0 text-[var(--subtext)]'
+                  : 'rotate-0 scale-100 opacity-100 text-[var(--accent)]'
+              }`}
+            >
+              <circle cx="12" cy="12" r="4" fill="rgba(212, 168, 67, 0.2)" />
+              <path d="M12 2v2" />
+              <path d="M12 20v2" />
+              <path d="m4.93 4.93 1.41 1.41" />
+              <path d="m17.66 17.66 1.41 1.41" />
+              <path d="M2 12h2" />
+              <path d="M20 12h2" />
+              <path d="m6.34 17.66-1.41 1.41" />
+              <path d="m19.07 4.93-1.41 1.41" />
+            </svg>
+
+            {/* Moon Icon (Dark Mode) */}
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className={`w-5 h-5 absolute inset-0 transition-all duration-500 transform ${
+                theme === 'dark'
+                  ? 'rotate-0 scale-100 opacity-100 text-[var(--accent)]'
+                  : '-rotate-90 scale-0 opacity-0 text-[var(--subtext)]'
+              }`}
+            >
+              <path
+                d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"
+                fill="rgba(212, 168, 67, 0.2)"
+              />
+            </svg>
+          </div>
         </button>
       </div>
 
