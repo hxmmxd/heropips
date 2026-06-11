@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Menu, ChevronDown, Lightbulb, RefreshCw } from 'lucide-react';
 import { Broker } from '../types';
+import { cleanBrokerName } from '@/utils/broker';
 
 interface HeaderProps {
   brokers: Broker[];
@@ -130,7 +131,7 @@ export default function Header({
             onClick={() => setDropdownOpen(!dropdownOpen)}
             className="flex items-center px-4 py-1.5 rounded-lg hover:bg-[var(--input-bg)] font-bold text-sm transition"
           >
-            <span>{activeBroker.name}</span>
+            <span>{cleanBrokerName(activeBroker.name)}</span>
             <ChevronDown className="w-3.5 h-3.5 ml-2 opacity-50 shrink-0" />
           </button>
 
@@ -147,9 +148,12 @@ export default function Header({
                     <button
                       key={b.name}
                       onClick={() => handleBrokerClick(b.name)}
-                      className="w-full text-left px-4 py-2.5 rounded-lg text-xs font-bold hover:bg-[var(--accent)] hover:text-white transition"
+                      className="w-full text-left px-4 py-2 rounded-lg hover:bg-[var(--accent)] hover:text-white transition flex flex-col items-start gap-0.5"
                     >
-                      {b.name}
+                      <span className="text-xs font-bold">{cleanBrokerName(b.name)}</span>
+                      {b.acc && b.acc !== 'none' && (
+                        <span className="text-[10px] opacity-60 font-mono">ID: #{b.acc}</span>
+                      )}
                     </button>
                   ))}
                 </div>

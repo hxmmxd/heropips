@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Server, Plus, Unplug, Loader2 } from 'lucide-react';
 import { Broker } from '../types';
+import { cleanBrokerName } from '@/utils/broker';
 
 interface BrokersTabProps {
   brokers: Broker[];
@@ -59,7 +60,7 @@ export default function BrokersTab({ brokers, onOpenModal, onDisconnect }: Broke
                   <Server className="w-5 h-5 shrink-0" />
                 </div>
                 <div>
-                  <p className="font-bold text-[14px] text-[var(--text)]">{b.name}</p>
+                  <p className="font-bold text-[14px] text-[var(--text)]">{cleanBrokerName(b.name)}</p>
                   <p className="text-[10px] text-[var(--subtext)] font-mono uppercase tracking-wider">
                     MT5 ID: #{b.acc} {b.broker_timezone_name ? `(${b.broker_timezone_name})` : ''}
                   </p>

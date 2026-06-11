@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { AccountInfo, Position, RiskStats, ClosedDeal } from '@/types';
+import { cleanBrokerName } from '@/utils/broker';
 
 interface ManagerReportsProps {
   accountInfo: AccountInfo;
@@ -97,7 +98,7 @@ export default function ManagerReports({ accountInfo, positions, activeBrokerId 
 
   const getBrokerName = () => {
     const a = accounts.find(acc => selectedAccounts.includes(acc.id));
-    return a ? `${a.name} · ${a.login}` : 'TradeGPT Account';
+    return a ? `${cleanBrokerName(a.name)} · ${a.login}` : 'TradeGPT Account';
   };
 
   // Client-side PDF via jsPDF — pure programmatic drawing, no canvas, never blank
@@ -193,7 +194,7 @@ export default function ManagerReports({ accountInfo, positions, activeBrokerId 
                 )}
               </div>
               <div className="rpt-account-info">
-                <span className="rpt-account-name">{acc.name}</span>
+                <span className="rpt-account-name">{cleanBrokerName(acc.name)}</span>
                 <span className="rpt-account-login">{acc.login} · {acc.server}</span>
               </div>
               <span className="rpt-account-balance">${fmt(acc.balance)}</span>
