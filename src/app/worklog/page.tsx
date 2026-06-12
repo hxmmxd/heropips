@@ -598,16 +598,32 @@ const worklog: WorkDay[] = [
   },
 ];
 
+interface SchemaField {
+  name: string;
+  type: string;
+  constraint: string;
+  description: string;
+}
+
+interface FileRole {
+  path: string;
+  role: string;
+}
+
 interface FeatureArchitecture {
   id: string;
   category: 'trading' | 'astro' | 'rebates' | 'courses' | 'admin';
   name: string;
   icon: string;
   description: string;
-  files: string[];
+  files: FileRole[];
   flowchart: string;
   techStack: string[];
   details: string[];
+  dbSchema?: {
+    tableName: string;
+    fields: SchemaField[];
+  };
 }
 
 const appFeatures: FeatureArchitecture[] = [
@@ -617,7 +633,11 @@ const appFeatures: FeatureArchitecture[] = [
     name: '9-Gate Confluence & Validation Engine',
     icon: '🛡️',
     description: 'An institutional-grade trading validation pipeline that processes incoming market analysis requests through 9 sequential validation gates. Forces fallback to NO_TRADE upon any critical validation failure (e.g. high-impact news blocks or correlation disagreement).',
-    files: ['src/lib/market.ts', 'src/lib/scanner.ts', 'src/app/api/chat/route.ts'],
+    files: [
+      { path: 'src/lib/market.ts', role: 'Calculates technical indicator confluences and executes indicators math (RSI, EMA, MACD).' },
+      { path: 'src/lib/scanner.ts', role: 'Monitors economic news and session boundaries to validate pre-trade guidelines.' },
+      { path: 'src/app/api/chat/route.ts', role: 'Coordinates request pipeline and intercepts queries failing critical gates.' }
+    ],
     flowchart: `[User Chat Query] ➔ [api/chat/route.ts] ➔ [getMarketSnapshot]
                                                │
                                       ┌────────┴────────┐
@@ -643,7 +663,16 @@ const appFeatures: FeatureArchitecture[] = [
       'Confluence logic maps 6 different indicators: RSI (20%), MACD (25%), EMA (15%), Stochastic (10%), Bollinger Bands (10%), and 4H bias (20%).',
       'Integrates Gates 1-9 including Session validation (Asia/London/NY active hours), ATR Volatility normal check, cooldown checks, and economic news checks.',
       'Supports an optimized Fast-Path bypassing heavy LLM prompts when standard queries are submitted, reducing response latency from 25s to <5s.'
-    ]
+    ],
+    dbSchema: {
+      tableName: 'public.risk_configs',
+      fields: [
+        { name: 'id', type: 'UUID', constraint: 'PRIMARY KEY', description: 'Unique risk configuration identifier.' },
+        { name: 'min_confluence', type: 'INTEGER', constraint: 'DEFAULT 65', description: 'Minimum confluence percentage threshold to trigger signal.' },
+        { name: 'session_gating', type: 'BOOLEAN', constraint: 'DEFAULT TRUE', description: 'Enable/disable active trading session check (London/NY).' },
+        { name: 'max_drawdown_limit', type: 'NUMERIC(5,2)', constraint: 'DEFAULT 5.00', description: 'Maximum account drawdown percentage before hard block.' }
+      ]
+    }
   },
   {
     id: 'astro-mode',
@@ -651,7 +680,11 @@ const appFeatures: FeatureArchitecture[] = [
     name: 'Astro Mode Celestial Filtering',
     icon: '🪐',
     description: 'NASA-grade ephemeris calculator integration evaluating real-time planetary aspects, moon phases, and retrogrades to dynamically scale transaction risk parameters and enforce hard-blocks.',
-    files: ['src/lib/astro.ts', 'src/components/TerminalTab.tsx', 'src/components/AstroPerformanceTab.tsx', 'src/app/api/chat/route.ts'],
+    files: [
+      { path: 'src/lib/astro.ts', role: 'Invokes astronomy-engine to compute coordinates and planetary angles.' },
+      { path: 'src/components/TerminalTab.tsx', role: 'Renders the circular orbiting Orrery backdrop and Zodiac loader.' },
+      { path: 'src/components/AstroPerformanceTab.tsx', role: 'Compiles retrogrades vs direct trading logs and wins per moon phase.' }
+    ],
     flowchart: `[Market Signal] ➔ [astroMode Check] ──(disabled)──➔ [Standard Pipeline]
                         │
                    (enabled)
@@ -677,7 +710,18 @@ const appFeatures: FeatureArchitecture[] = [
       'Gate 15: Solar & Lunar Eclipse hazard filter blocks trades during eclipse windows to protect margins.',
       'Gate 16: Major Aspect Confluence evaluates angular relationships (Conjunction, Trine, Square, Opposition) to output aspect grades.',
       'Gate 17: Zodiac House alignments for additional macro-bias validation.'
-    ]
+    ],
+    dbSchema: {
+      tableName: 'public.astro_signal_log',
+      fields: [
+        { name: 'id', type: 'UUID', constraint: 'PRIMARY KEY', description: 'Unique telemetry logging row identifier.' },
+        { name: 'symbol', type: 'TEXT', constraint: 'NOT NULL', description: 'Traded asset ticker (e.g. BTCUSD).' },
+        { name: 'moon_phase', type: 'NUMERIC(4,3)', constraint: 'CHECK (moon_phase <= 1.0)', description: 'Moon phase completion decimal (0.0 = New Moon, 0.5 = Full).' },
+        { name: 'mercury_state', type: 'TEXT', constraint: 'CHECK (state IN (\'DIRECT\', \'RETROGRADE\'))', description: 'Dynamic state of Mercury at signal execution time.' },
+        { name: 'eclipse_active', type: 'BOOLEAN', constraint: 'DEFAULT FALSE', description: 'Flags whether a solar/lunar eclipse occurred within a 24h window.' },
+        { name: 'aspects', type: 'TEXT[]', constraint: 'DEFAULT \'{}\'', description: 'Angular planetary aspects recorded during calculation.' }
+      ]
+    }
   },
   {
     id: 'smc-scanner',
@@ -685,7 +729,10 @@ const appFeatures: FeatureArchitecture[] = [
     name: 'Smart Money Concepts (SMC) Pattern Scanner',
     icon: '📊',
     description: 'Algorithmic structural scanner running multi-candle pivot calculations to detect institutional price structures, Fair Value Gaps, and liquidity traps.',
-    files: ['src/lib/scanner.ts', 'src/lib/divergence.ts'],
+    files: [
+      { path: 'src/lib/scanner.ts', role: 'Performs pivot swing high/low calculations on incoming candle arrays.' },
+      { path: 'src/lib/divergence.ts', role: 'Monitors price highs vs indicator values to detect technical divergence.' }
+    ],
     flowchart: `[1H candle data] ➔ [Swing Pivot Check] ➔ [Identify Highs / Lows]
                                                │
                                       ┌────────┴────────┐
@@ -707,7 +754,16 @@ const appFeatures: FeatureArchitecture[] = [
       'Fair Value Gaps (FVG): Detects imbalances between the wicks of candle N and N+2 to highlight target retracement zones.',
       'Break of Structure (BOS) & Change of Character (ChoCH): Highlights continuation and trend reversal milestones.',
       'Liquidity Sweeps: Monitors equal high/low clusters and flags false breakout traps prior to execution.'
-    ]
+    ],
+    dbSchema: {
+      tableName: 'public.trade_log',
+      fields: [
+        { name: 'id', type: 'UUID', constraint: 'PRIMARY KEY', description: 'Unique database deal record identifier.' },
+        { name: 'deal_id', type: 'VARCHAR(100)', constraint: 'UNIQUE NOT NULL', description: 'Unique MetaAPI deal identifier (guarantees transaction deduplication).' },
+        { name: 'volume', type: 'NUMERIC(10,4)', constraint: 'NOT NULL', description: 'Transaction lot count.' },
+        { name: 'profit', type: 'NUMERIC(15,2)', constraint: 'DEFAULT 0', description: 'Closed net profit or loss in account deposit currency.' }
+      ]
+    }
   },
   {
     id: 'trading-engine',
@@ -715,7 +771,11 @@ const appFeatures: FeatureArchitecture[] = [
     name: 'Universal Broker Trading Engine',
     icon: '🔌',
     description: 'Unified broker adapter connecting manual and AI-powered signals to Forex terminals (MetaTrader via MetaAPI REST/RPC) and Crypto exchanges (Binance, Bybit, OKX).',
-    files: ['src/lib/broker.ts', 'src/app/api/execute/route.ts', 'src/components/manager/SlideToExecute.tsx'],
+    files: [
+      { path: 'src/lib/broker.ts', role: 'Adapter classes standardizing actions like placeOrder, closePosition and marginChecks.' },
+      { path: 'src/app/api/execute/route.ts', role: 'Receives executing signals from chat, runs validation gates, and routes tickets to brokers.' },
+      { path: 'src/components/manager/SlideToExecute.tsx', role: 'Provides custom sliding slider visual button for manual execution override.' }
+    ],
     flowchart: `[Execute Signal] ➔ [TradingAdapter Router]
                            │
         ┌──────────────────┴──────────────────┐
@@ -735,7 +795,16 @@ const appFeatures: FeatureArchitecture[] = [
       'Adapter Pattern: Ensures standard trading actions (placeOrder, closePosition, syncAccount) apply equally.',
       'Forex integrations read timezone offsets from MetaAPI broker server-time to match live ticker clock widgets.',
       'Validates account equity and free margins before sending order inputs to prevent MT5 INVALID_STOPS errors.'
-    ]
+    ],
+    dbSchema: {
+      tableName: 'public.broker_accounts',
+      fields: [
+        { name: 'id', type: 'UUID', constraint: 'PRIMARY KEY', description: 'Unique connection identifier.' },
+        { name: 'broker_type', type: 'TEXT', constraint: 'CHECK (broker_type IN (\'metaapi\', \'binance\', \'bybit\'))', description: 'Categorization of active broker type.' },
+        { name: 'allowed_symbols', type: 'TEXT[]', constraint: 'DEFAULT \'{}\'', description: 'Allowed trading symbols spec synced from broker symbols endpoint.' },
+        { name: 'timezone_offset', type: 'INTEGER', constraint: 'DEFAULT 0', description: 'Calculated timezone offset offset in minutes relative to UTC.' }
+      ]
+    }
   },
   {
     id: 'rebates-milestones',
@@ -743,7 +812,11 @@ const appFeatures: FeatureArchitecture[] = [
     name: '5-Level Referrals & 40/40/20 Leg Milestone Engine',
     icon: '🌳',
     description: 'A recursive rebate distribution system traversing referral relationships up to 5 levels deep, matching milestones against a balanced contribute-leg formula (40/40/20 limit).',
-    files: ['src/lib/rebateEngine.ts', 'src/components/ReferralTab.tsx', 'supabase/migrations/20260605_multilevel_rebates_milestones.sql'],
+    files: [
+      { path: 'src/lib/rebateEngine.ts', role: 'Recursive upline distribution walk algorithms and 40/40/20 leg cap evaluator.' },
+      { path: 'src/components/ReferralTab.tsx', role: 'Visualizes the organization tree hierarchy and milestone progress sliders.' },
+      { path: 'supabase/migrations/20260605_multilevel_rebates_milestones.sql', role: 'Sets up trade log trigger bindings and get_team_user_ids database functions.' }
+    ],
     flowchart: `[Close MT5 Deal] ➔ [sync-rebates cron] ➔ [distributeRebate()]
                                                  │
                                        (Recursive CTE walk)
@@ -770,7 +843,16 @@ const appFeatures: FeatureArchitecture[] = [
       'Traverses uplines recursively in a single SQL operation using PostgreSQL Common Table Expressions (CTEs).',
       'Implements the 40/40/20 rule: no single referral leg can contribute more than 40% of the volume required for a milestone tier.',
       'Saves full contributing leg contribution summaries inside supabase milestone_progress rows for audit transparency.'
-    ]
+    ],
+    dbSchema: {
+      tableName: 'public.milestone_progress',
+      fields: [
+        { name: 'user_id', type: 'UUID', constraint: 'REFERENCES public.profiles', description: 'The referred partner account UUID.' },
+        { name: 'milestone_id', type: 'UUID', constraint: 'REFERENCES public.milestones', description: 'Target milestone level being progressed.' },
+        { name: 'total_counted_lots', type: 'NUMERIC(15,2)', constraint: 'DEFAULT 0', description: 'Volume calculated after applying target caps per leg.' },
+        { name: 'legs_breakdown', type: 'JSONB', constraint: 'DEFAULT \'[]\'', description: 'List breakdown of volume contributions from direct network legs.' }
+      ]
+    }
   },
   {
     id: 'billing-ledger',
@@ -778,7 +860,12 @@ const appFeatures: FeatureArchitecture[] = [
     name: 'Paid Courses & Wallet Ledger Billing System',
     icon: '💳',
     description: 'Secured purchase transactional ledger mapping courses purchases. Supports NOWPayments cryptocurrency hosted API with dynamic IPN webhooks alongside internal wallet balance updates.',
-    files: ['src/app/api/courses/purchase/route.ts', 'src/app/api/subscriptions/checkout/route.ts', 'src/components/CoursesTab.tsx', 'src/components/SubscriptionTab.tsx'],
+    files: [
+      { path: 'src/app/api/courses/purchase/route.ts', role: 'Performs wallet checks and wraps course purchases with automatic self-healing DB constraints.' },
+      { path: 'src/app/api/subscriptions/checkout/route.ts', role: 'Interacts with NOWPayments hosted gateway endpoints to launch crypto checkout URLs.' },
+      { path: 'src/components/CoursesTab.tsx', role: 'Renders the library of premium courses alongside payment modals.' },
+      { path: 'src/components/SubscriptionTab.tsx', role: 'Renders invoices feed mapping purchases history ledger details.' }
+    ],
     flowchart: `[Purchase Course] ➔ [Select Method]
                            │
         ┌──────────────────┴──────────────────┐
@@ -799,9 +886,19 @@ const appFeatures: FeatureArchitecture[] = [
       'Instant wallet purchases execute in a single SQL transaction chain to eliminate race conditions.',
       'Automated self-healing migration drops and adds check constraints during transaction conflict failures.',
       'Webhooks verify HMAC-SHA512 headers before updating transaction state.'
-    ]
+    ],
+    dbSchema: {
+      tableName: 'public.wallet_transactions',
+      fields: [
+        { name: 'user_id', type: 'UUID', constraint: 'REFERENCES public.profiles', description: 'Target user profile account UUID.' },
+        { name: 'amount', type: 'NUMERIC(15,2)', constraint: 'NOT NULL', description: 'Transaction cash amount (negative for wallet deductions).' },
+        { name: 'tx_type', type: 'TEXT', constraint: 'CHECK (tx_type IN (\'rebate\', \'course_purchase\', ...))', description: 'Transaction type designation.' },
+        { name: 'status', type: 'TEXT', constraint: 'CHECK (status IN (\'pending\', \'completed\', \'failed\'))', description: 'Current status state of ledger record.' }
+      ]
+    }
   }
 ];
+
 
 /* ── Icons ───────────────────────────────────────────────────────── */
 const CalendarIcon = () => (
@@ -1017,14 +1114,92 @@ export default function WorkLogPage() {
   const [expandedFeatures, setExpandedFeatures] = useState<Record<string, boolean>>({
     'gate-engine': true,
   });
+  const [cardSubTabs, setCardSubTabs] = useState<Record<string, 'overview' | 'flow' | 'schema' | 'files'>>({});
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [dark, setDark] = useState(false);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
   const [loading, setLoading] = useState(true);
 
+  // Simulations state
+  const [astroSim, setAstroSim] = useState({
+    moonPhase: 0.52,
+    mercury: 'DIRECT',
+    aspect: 'Trine',
+    risk: '1.20x lot multiplier (High Confluence)'
+  });
+  const [gateProgress, setGateProgress] = useState(0);
+  const [ledgerLogs, setLedgerLogs] = useState<string[]>([
+    'INFO: Initiating course checkout payload...'
+  ]);
+
   useEffect(() => {
     const saved = localStorage.getItem('wl-theme');
     if (saved === 'dark') setDark(true);
+  }, []);
+
+  // Simulator Intervals
+  useEffect(() => {
+    // 1. Astro Sim Interval
+    const astroTimer = setInterval(() => {
+      setAstroSim(prev => {
+        const phases = [0.12, 0.25, 0.48, 0.52, 0.76, 0.95];
+        const mercs = ['DIRECT', 'DIRECT', 'RETROGRADE', 'DIRECT'];
+        const aspects = ['Trine', 'Sextile', 'Square', 'Opposition', 'Conjunction'];
+        const risks = [
+          '1.20x lot multiplier (High Confluence)',
+          '1.00x standard size',
+          '0.50x lot size (Mercury Retrograde Check)',
+          '0.75x lot size (Waning Gibbous Phase)',
+          'TRADING LOCKED (Solar Eclipse Window Check)'
+        ];
+        const randomIdx = Math.floor(Math.random() * 5);
+        return {
+          moonPhase: phases[Math.floor(Math.random() * phases.length)],
+          mercury: mercs[Math.floor(Math.random() * mercs.length)],
+          aspect: aspects[Math.floor(Math.random() * aspects.length)],
+          risk: risks[randomIdx]
+        };
+      });
+    }, 4000);
+
+    // 2. 9-Gate Confluence Engine Interval
+    const gateTimer = setInterval(() => {
+      setGateProgress(prev => {
+        if (prev >= 10) return 0;
+        return prev + 1;
+      });
+    }, 1200);
+
+    // 3. Self-Healing Ledger Logs Simulator Interval
+    const ledgerSequence = [
+      'INFO: Initiating course checkout payload...',
+      'INFO: User wallet balance check passed ($250.00 available).',
+      'WARNING: DB insert failed. Constraint violation detected: public.wallet_transactions_status_check.',
+      'RECOVERY: Invoking self-healing DB hook: alter check constraint state...',
+      'SUCCESS: Restrictive check constraint successfully altered.',
+      'INFO: Retrying transaction sequence...',
+      'SUCCESS: Transaction committed. Access granted to "Algorithmic SMC Mastering".',
+      'INFO: Reference audit ID: tx_ledger_9841_success.'
+    ];
+    let logIndex = 1;
+    const ledgerTimer = setInterval(() => {
+      setLedgerLogs(prev => {
+        if (logIndex >= ledgerSequence.length) {
+          logIndex = 0;
+          return [ledgerSequence[0]];
+        }
+        const nextLog = ledgerSequence[logIndex];
+        logIndex++;
+        return [...prev, nextLog].slice(-6); // keep last 6 logs
+      });
+    }, 2500);
+
+    return () => {
+      clearInterval(astroTimer);
+      clearInterval(gateTimer);
+      clearInterval(ledgerTimer);
+    };
   }, []);
 
   // Fetch dynamic Markdown worklog
@@ -1120,7 +1295,7 @@ export default function WorkLogPage() {
       f.name.toLowerCase().includes(search.toLowerCase()) || 
       f.description.toLowerCase().includes(search.toLowerCase()) ||
       f.techStack.some(t => t.toLowerCase().includes(search.toLowerCase())) ||
-      f.files.some(fi => fi.toLowerCase().includes(search.toLowerCase()));
+      f.files.some(fi => fi.path.toLowerCase().includes(search.toLowerCase()) || fi.role.toLowerCase().includes(search.toLowerCase()));
     return matchesCategory && matchesSearch;
   });
 
@@ -1376,47 +1551,302 @@ export default function WorkLogPage() {
                       <span className="cl-feature-expand-arrow">▼</span>
                     </div>
 
-                    {isExpanded && (
-                      <div className="cl-feature-body">
-                        <p className="cl-feature-description">{f.description}</p>
-                        
-                        <div className="cl-architecture-section">
-                          <div className="cl-architecture-title">💻 Technical Stack</div>
-                          <div className="cl-tech-tags">
-                            {f.techStack.map((t, idx) => (
-                              <span key={idx} className="cl-tech-tag">{t}</span>
-                            ))}
+                    {isExpanded && (() => {
+                      const subTab = cardSubTabs[f.id] || 'overview';
+                      return (
+                        <div className="cl-feature-body">
+                          {/* Sub-Tabs Nav */}
+                          <div className="cl-card-tabs">
+                            <button 
+                              className={`cl-card-tab-btn ${subTab === 'overview' ? 'cl-card-tab-btn--active' : ''}`}
+                              onClick={() => setCardSubTabs(prev => ({ ...prev, [f.id]: 'overview' }))}
+                            >
+                              📝 Overview
+                            </button>
+                            <button 
+                              className={`cl-card-tab-btn ${subTab === 'flow' ? 'cl-card-tab-btn--active' : ''}`}
+                              onClick={() => setCardSubTabs(prev => ({ ...prev, [f.id]: 'flow' }))}
+                            >
+                              🏗️ Flowchart
+                            </button>
+                            {f.dbSchema && (
+                              <button 
+                                className={`cl-card-tab-btn ${subTab === 'schema' ? 'cl-card-tab-btn--active' : ''}`}
+                                onClick={() => setCardSubTabs(prev => ({ ...prev, [f.id]: 'schema' }))}
+                              >
+                                💾 DB Schema
+                              </button>
+                            )}
+                            <button 
+                              className={`cl-card-tab-btn ${subTab === 'files' ? 'cl-card-tab-btn--active' : ''}`}
+                              onClick={() => setCardSubTabs(prev => ({ ...prev, [f.id]: 'files' }))}
+                            >
+                              📂 Source Files
+                            </button>
                           </div>
-                        </div>
 
-                        {f.flowchart && (
-                          <div className="cl-architecture-section">
-                            <div className="cl-architecture-title">🏗️ System Architecture Flow</div>
-                            <pre className="cl-flowchart-box">{f.flowchart}</pre>
-                          </div>
-                        )}
+                          {/* Tab Contents: OVERVIEW */}
+                          {subTab === 'overview' && (
+                            <div>
+                              <p className="cl-feature-description">{f.description}</p>
 
-                        <div className="cl-architecture-section">
-                          <div className="cl-architecture-title">⚙️ Implementation Details</div>
-                          <ul className="cl-architecture-list">
-                            {f.details.map((detail, idx) => (
-                              <li key={idx}>{renderMarkdownText(detail)}</li>
-                            ))}
-                          </ul>
-                        </div>
+                              {/* Interactive Simulation Sandbox */}
+                              {f.id === 'gate-engine' && (
+                                <div className="cl-architecture-section">
+                                  <div className="cl-architecture-title" style={{ fontSize: '11px', color: 'var(--wl-accent)', fontWeight: '750' }}>
+                                    ⚡ LIVE CONFLUENCE GATES SIMULATOR
+                                  </div>
+                                  <div className="cl-slider-widget">
+                                    <div className="cl-slider-bar">
+                                      <div 
+                                        className="cl-slider-handle"
+                                        style={{ transform: `translateX(${gateProgress * 14.5}px)` }}
+                                      >
+                                        G
+                                      </div>
+                                      <div className="cl-slider-label">
+                                        {gateProgress === 10 
+                                          ? '🟢 GATES CLEARED - SIGNAL DISPATCHED (BUY BTCUSD)' 
+                                          : `Gate ${gateProgress + 1} checking: evaluating market filters...`}
+                                      </div>
+                                    </div>
+                                    <div className="cl-gates-nodes">
+                                      {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(gateNum => (
+                                        <div 
+                                          key={gateNum}
+                                          className={`cl-gate-node ${gateProgress >= gateNum ? 'active' : ''}`}
+                                          title={`Gate ${gateNum}`}
+                                        >
+                                          {gateNum}
+                                        </div>
+                                      ))}
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px', color: 'var(--wl-text-muted)', marginTop: '8px', opacity: 0.8 }}>
+                                      <span>1: Session</span>
+                                      <span>3: News</span>
+                                      <span>5: Trend</span>
+                                      <span>6: SMC Imbalance</span>
+                                      <span>8: Drawdown</span>
+                                      <span>9: Lot-Risk</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
 
-                        {f.files && f.files.length > 0 && (
-                          <div className="cl-architecture-section" style={{ marginTop: '24px' }}>
-                            <div className="cl-architecture-title">📁 Relevant Source Code Files</div>
-                            <div className="cl-item-files">
-                              {f.files.map((file) => (
-                                <span key={file} className="cl-file-chip">{file}</span>
-                              ))}
+                              {f.id === 'astro-mode' && (
+                                <div className="cl-architecture-section">
+                                  <div className="cl-architecture-title" style={{ fontSize: '11px', color: 'var(--wl-accent)', fontWeight: '750' }}>
+                                    🪐 CELESTIAL ORBIT & TELEMETRY LIVE FEED
+                                  </div>
+                                  <div className="cl-orrery-widget">
+                                    <div className="cl-orrery-preview">
+                                      <div className="cl-orrery-sun" />
+                                      <div className="cl-orrery-orbit o1"><div className="cl-orrery-planet p1" /></div>
+                                      <div className="cl-orrery-orbit o2"><div className="cl-orrery-planet p2" /></div>
+                                    </div>
+                                    <div className="cl-orrery-data">
+                                      <div className="cl-orrery-stat">
+                                        <span className="cl-orrery-stat-label">Moon Phase</span>
+                                        <span className="cl-orrery-stat-val">
+                                          🌕 {(astroSim.moonPhase * 100).toFixed(0)}% ({astroSim.moonPhase >= 0.5 ? 'Waning' : 'Waxing'})
+                                        </span>
+                                      </div>
+                                      <div className="cl-orrery-stat">
+                                        <span className="cl-orrery-stat-label">Mercury State</span>
+                                        <span className="cl-orrery-stat-val" style={{ color: astroSim.mercury === 'RETROGRADE' ? '#fbbf24' : 'inherit' }}>
+                                          ☿ {astroSim.mercury}
+                                        </span>
+                                      </div>
+                                      <div className="cl-orrery-stat">
+                                        <span className="cl-orrery-stat-label">Aspect Angle</span>
+                                        <span className="cl-orrery-stat-val">📐 {astroSim.aspect}</span>
+                                      </div>
+                                      <div className="cl-orrery-stat">
+                                        <span className="cl-orrery-stat-label">Risk Multiplier</span>
+                                        <span className="cl-orrery-stat-val" style={{ color: 'var(--wl-accent)' }}>⚖️ {astroSim.risk.split(' ')[0]}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
+                              {f.id === 'rebates-milestones' && (
+                                <div className="cl-architecture-section">
+                                  <div className="cl-architecture-title" style={{ fontSize: '11px', color: 'var(--wl-accent)', fontWeight: '750' }}>
+                                    🌳 PARTNER LEGS CAPPING DEMONSTRATION (40/40/20 Target)
+                                  </div>
+                                  <div className="cl-leg-widget">
+                                    <div className="cl-leg-row">
+                                      <div className="cl-leg-header">
+                                        <span className="cl-leg-name">Leg 1: Alice (Power Leg)</span>
+                                        <span className="cl-leg-details">Raw: 140 Lots | Counted: <span className="capped">40 Lots (Capped)</span></span>
+                                      </div>
+                                      <div className="cl-leg-progress-track">
+                                        <div className="cl-leg-progress-fill capped" style={{ width: '100%' }} />
+                                      </div>
+                                    </div>
+                                    <div className="cl-leg-row">
+                                      <div className="cl-leg-header">
+                                        <span className="cl-leg-name">Leg 2: Bob (Medium Leg)</span>
+                                        <span className="cl-leg-details">Raw: 30 Lots | Counted: <span>30 Lots</span></span>
+                                      </div>
+                                      <div className="cl-leg-progress-track">
+                                        <div className="cl-leg-progress-fill" style={{ width: '75%' }} />
+                                      </div>
+                                    </div>
+                                    <div className="cl-leg-row">
+                                      <div className="cl-leg-header">
+                                        <span className="cl-leg-name">Leg 3: Charlie (Minor Leg)</span>
+                                        <span className="cl-leg-details">Raw: 85 Lots | Counted: <span className="capped">40 Lots (Capped)</span></span>
+                                      </div>
+                                      <div className="cl-leg-progress-track">
+                                        <div className="cl-leg-progress-fill capped" style={{ width: '100%' }} />
+                                      </div>
+                                    </div>
+                                    <div className="cl-leg-legend">
+                                      <div className="cl-legend-item"><span className="cl-legend-dot" /> Counted volume</div>
+                                      <div className="cl-legend-item"><span className="cl-legend-dot capped" /> Capped at 40% Target Limit</div>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
+                              {f.id === 'billing-ledger' && (
+                                <div className="cl-architecture-section">
+                                  <div className="cl-architecture-title" style={{ fontSize: '11px', color: 'var(--wl-accent)', fontWeight: '750' }}>
+                                    💳 TRANSACTION SELF-HEALING SYSTEM DIAGNOSTIC LOGS
+                                  </div>
+                                  <div className="cl-sim-console">
+                                    <div className="cl-sim-console-header">
+                                      <div className="cl-sim-console-title">
+                                        <span className="cl-sim-alert-indicator" />
+                                        Ledger Transaction Recovery Stream
+                                      </div>
+                                      <span style={{ fontSize: '9px', opacity: 0.6 }}>ACTIVE LISTENER</span>
+                                    </div>
+                                    <div className="cl-sim-console-lines">
+                                      {ledgerLogs.map((log, lIdx) => {
+                                        const type = log.startsWith('SUCCESS') ? 'success' : log.startsWith('WARNING') ? 'warn' : log.startsWith('RECOVERY') ? 'error' : 'info';
+                                        return (
+                                          <div key={lIdx} className={`cl-sim-line ${type}`}>
+                                            &gt; {log}
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
+                              <div className="cl-architecture-section">
+                                <div className="cl-architecture-title">💻 Technical Stack</div>
+                                <div className="cl-tech-tags">
+                                  {f.techStack.map((t, idx) => (
+                                    <span key={idx} className="cl-tech-tag">{t}</span>
+                                  ))}
+                                </div>
+                              </div>
+
+                              <div className="cl-architecture-section">
+                                <div className="cl-architecture-title">⚙️ Implementation Details</div>
+                                <ul className="cl-architecture-list">
+                                  {f.details.map((detail, idx) => (
+                                    <li key={idx}>{renderMarkdownText(detail)}</li>
+                                  ))}
+                                </ul>
+                              </div>
                             </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                          )}
+
+                          {/* Tab Contents: FLOWCHART */}
+                          {subTab === 'flow' && (
+                            <div className="cl-architecture-section">
+                              <button
+                                className="cl-filter-btn"
+                                style={{ float: 'right', marginBottom: '12px', fontSize: '11.5px', padding: '4px 10px' }}
+                                onClick={() => {
+                                  navigator.clipboard.writeText(f.flowchart);
+                                  setCopiedId(f.id);
+                                  setTimeout(() => setCopiedId(null), 2500);
+                                }}
+                              >
+                                {copiedId === f.id ? '✓ Copied!' : '📋 Copy Flowchart'}
+                              </button>
+                              <div className="cl-architecture-title">🏗️ System Architecture Flow</div>
+                              <pre className="cl-flowchart-box" style={{ clear: 'both' }}>{f.flowchart}</pre>
+                            </div>
+                          )}
+
+                          {/* Tab Contents: DB SCHEMA */}
+                          {subTab === 'schema' && f.dbSchema && (
+                            <div className="cl-architecture-section">
+                              <div className="cl-architecture-title" style={{ marginBottom: '8px' }}>
+                                💾 Database Table: <code style={{ color: 'var(--wl-accent)', background: 'var(--wl-accent-bg)', padding: '2px 6px', borderRadius: '4px' }}>{f.dbSchema.tableName}</code>
+                              </div>
+                              <div className="cl-schema-table-container">
+                                <table className="cl-schema-table">
+                                  <thead>
+                                    <tr>
+                                      <th>Field Name</th>
+                                      <th>Type</th>
+                                      <th>Constraints</th>
+                                      <th>Description / Role</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {f.dbSchema.fields.map((field, idx) => (
+                                      <tr key={idx}>
+                                        <td><code className="cl-schema-code">{field.name}</code></td>
+                                        <td><code style={{ fontSize: '11.5px', color: 'var(--wl-text-muted)' }}>{field.type}</code></td>
+                                        <td>
+                                          {field.constraint !== 'NOT NULL' && field.constraint !== '' ? (
+                                            <span style={{ fontSize: '10.5px', fontWeight: 650, color: 'var(--wl-text)' }}>{field.constraint}</span>
+                                          ) : (
+                                            <span style={{ opacity: 0.35 }}>—</span>
+                                          )}
+                                        </td>
+                                        <td>{field.description}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Tab Contents: SOURCE CODE FILES */}
+                          {subTab === 'files' && (
+                            <div className="cl-architecture-section">
+                              <div className="cl-architecture-title">📂 Relevant Source Code Files</div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '8px' }}>
+                                {f.files.map((file, idx) => (
+                                  <div 
+                                    key={idx} 
+                                    style={{ 
+                                      padding: '12px 16px', 
+                                      borderRadius: '8px', 
+                                      background: 'var(--wl-bg-card)', 
+                                      border: '1px solid var(--wl-border)',
+                                      boxShadow: 'var(--wl-shadow)'
+                                    }}
+                                  >
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                                      <code style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--wl-accent)' }}>{file.path}</code>
+                                      <span style={{ fontSize: '10px', textTransform: 'uppercase', color: 'var(--wl-text-faint)', fontWeight: 700 }}>
+                                        {file.path.split('.').pop()} Module
+                                      </span>
+                                    </div>
+                                    <p style={{ margin: 0, fontSize: '12.5px', color: 'var(--wl-text-secondary)', lineHeight: 1.5 }}>
+                                      {file.role}
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 );
               })

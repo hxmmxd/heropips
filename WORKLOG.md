@@ -375,6 +375,9 @@ Validates signals against correlated/inverse markets:
 
 **Added:**
 - Interactive Features & Architecture Explorer: Dual-tab interface inside `/worklog` detailing app architecture, flowcharts, component routes, and database tables.
+- Upscaled Features with interactive sub-tabs: Overview, Flowchart, DB Schema, and Source Files.
+- Real-time simulations inside core features: Celestial Orrery (Astro Mode), Gate Confluence Slider (9-Gates), 40/40/20 Referral Leg progress bars (Rebates), self-healing diagnostic logging simulator terminal (Courses).
+- Monospace flowchart copy-to-clipboard widget and structured tables listing exact database fields.
 - Unicode code-point array mapping to prevent emoji splitting on surrogate pairs.
 - Self-referencing update script.
 

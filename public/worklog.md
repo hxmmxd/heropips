@@ -1,4 +1,15 @@
-# June 13, 2026 | Saturday | Commits: 2
+# June 13, 2026 | Saturday | Commits: 3
+
+## [major] 03:20 AM - Upscaled Features Page & Interactive Subsystem Explorer
+Upscaled the Subsystems & Architecture explorer page with a premium interactive sub-tab bar inside each card, real-time simulated sandbox dashboards, and diagnostic terminals for the core systems.
+
+- 🏗️ **Interactive Sub-Tabs Navigation**: Added tabs for `Overview`, `Flowchart`, `DB Schema`, and `Source Files` within each subsystem card.
+- 🪐 **Astro Orrery Simulation**: Rendered a live celestial orbit and telemetry feed displaying real-time waning/waxing moon phase percentage, mercury retrograde state, aspect angle, and risk factors.
+- ⚡ **9-Gate Confluence Engine Tracker**: Built a live sequence of 9 circular nodes evaluating market filters in real time with a slider handle indicator.
+- 🌳 **Referral Capping Demonstrator**: Visualized team leg direct contributions demonstrating the 40/40/20 PostgreSQL cap rule.
+- 💳 **Diagnostic Database Terminal Console**: Integrated a live transaction self-healing diagnostic logs output for course payments.
+- 📋 **Flowchart Copy-to-Clipboard**: Implemented a copy-to-clipboard button on the monospace ASCII flowcharts with UI success state.
+- 💾 **PostgreSQL Database Schema Tables**: Mapped table fields, type constraints, and description keys dynamically inside cards.
 
 ## [major] 02:45 AM - Dynamic Architecture Documentation & App Features Explorer
 Integrated an interactive "Features & Architecture" explorer tab directly into the internal developer Work Log. This tab compiles visual ASCII system flows, architectural diagrams, component paths, and specific details for the six core platform subsystems.
