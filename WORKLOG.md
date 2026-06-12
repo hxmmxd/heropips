@@ -371,6 +371,22 @@ Validates signals against correlated/inverse markets:
 
 ## 📝 Changelog
 
+### v2.5.0 — Dynamic Architecture & Features Explorer (June 13, 2026)
+
+**Added:**
+- Interactive Features & Architecture Explorer: Dual-tab interface inside `/worklog` detailing app architecture, flowcharts, component routes, and database tables.
+- Unicode code-point array mapping to prevent emoji splitting on surrogate pairs.
+- Self-referencing update script.
+
+### v2.3.0 — Astro Mode Gating Engine & Performance Analytics (June 12, 2026)
+
+**Added:**
+- Custom Astro Gating: Styled Gates 13–17 in Terminal Tab with amber accent stripes, special ASTRO badges, and customized glyph indicators (☽♃☿◑✦).
+- Orrery Celestial Anim: SVG-based planetary rotation background with 3 orbits, offset keyframes, and twinkling stars backdrop.
+- Astro Backtest Performance Analytics Dashboard: Wins/losses per moon phase, retrograde vs direct profitability, monthly heatmaps, and signal history logs.
+- Dynamic Celestial Typing Loader: Animated scrolling zodiac sign loaders during LLM signal processing.
+- supabase schema migration `20260612_astro_mode.sql` enabling astro settings and logs.
+
 ### v2.2.0 — Paid Courses, Ledger & MetaAPI Extended (June 8-10, 2026)
 
 **Added:**

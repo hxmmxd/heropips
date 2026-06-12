@@ -598,6 +598,211 @@ const worklog: WorkDay[] = [
   },
 ];
 
+interface FeatureArchitecture {
+  id: string;
+  category: 'trading' | 'astro' | 'rebates' | 'courses' | 'admin';
+  name: string;
+  icon: string;
+  description: string;
+  files: string[];
+  flowchart: string;
+  techStack: string[];
+  details: string[];
+}
+
+const appFeatures: FeatureArchitecture[] = [
+  {
+    id: 'gate-engine',
+    category: 'trading',
+    name: '9-Gate Confluence & Validation Engine',
+    icon: '🛡️',
+    description: 'An institutional-grade trading validation pipeline that processes incoming market analysis requests through 9 sequential validation gates. Forces fallback to NO_TRADE upon any critical validation failure (e.g. high-impact news blocks or correlation disagreement).',
+    files: ['src/lib/market.ts', 'src/lib/scanner.ts', 'src/app/api/chat/route.ts'],
+    flowchart: `[User Chat Query] ➔ [api/chat/route.ts] ➔ [getMarketSnapshot]
+                                               │
+                                      ┌────────┴────────┐
+                               [Indicators]      [SMC Patterns]
+                                      │                 │
+                                      ▼                 ▼
+                               [Confluence %]     [SMC Scanner]
+                                      │                 │
+                                      └────────┬────────┘
+                                               ▼
+                                        [Evaluate Gates]
+                                     (Gates 1-9 check loop)
+                                               │
+                        ┌──────────────────────┼──────────────────────┐
+                        ▼                      ▼                      ▼
+                  [Critical Fail]        [Confluence < 65]     [All Passed / ≥ 65]
+                   (No Conflict)          (Watch Status)         (Signal Issued)
+                        │                      │                      │
+                        ▼                      ▼                      ▼
+                   🔴 NO_TRADE             🟡 WATCH                🟢 SIGNAL`,
+    techStack: ['TypeScript', 'Technical Indicators', 'Confluence Math', 'Cache-Locks'],
+    details: [
+      'Confluence logic maps 6 different indicators: RSI (20%), MACD (25%), EMA (15%), Stochastic (10%), Bollinger Bands (10%), and 4H bias (20%).',
+      'Integrates Gates 1-9 including Session validation (Asia/London/NY active hours), ATR Volatility normal check, cooldown checks, and economic news checks.',
+      'Supports an optimized Fast-Path bypassing heavy LLM prompts when standard queries are submitted, reducing response latency from 25s to <5s.'
+    ]
+  },
+  {
+    id: 'astro-mode',
+    category: 'astro',
+    name: 'Astro Mode Celestial Filtering',
+    icon: '🪐',
+    description: 'NASA-grade ephemeris calculator integration evaluating real-time planetary aspects, moon phases, and retrogrades to dynamically scale transaction risk parameters and enforce hard-blocks.',
+    files: ['src/lib/astro.ts', 'src/components/TerminalTab.tsx', 'src/components/AstroPerformanceTab.tsx', 'src/app/api/chat/route.ts'],
+    flowchart: `[Market Signal] ➔ [astroMode Check] ──(disabled)──➔ [Standard Pipeline]
+                        │
+                   (enabled)
+                        ▼
+            [Compute Celestial Coordinates]
+             (astronomy-engine ephemeris)
+                        │
+        ┌───────────────┼───────────────┬───────────────┐
+        ▼               ▼               ▼               ▼
+   [Moon Phase]    [Mercury State]  [Eclipses]      [Aspects]
+    Win multipliers (Retrograde blocks) (No-trade zones) (Rank confluences)
+        │               │               │               │
+        └───────────────┼───────────────┴───────────────┘
+                        ▼
+              [Gates 13-17 Checks]
+                        │
+                        ▼
+              [Astro Gated Outcome]`,
+    techStack: ['astronomy-engine', 'Ephemeris calculations', 'Risk Modulators', 'SVG Orrery Engine'],
+    details: [
+      'Gate 13: Moon Phase risk assessment determines win multipliers based on full moon vs new moon volatility adjustments.',
+      'Gate 14: Mercury Retrograde check automatically locks out manual/automated execution on retrogrades.',
+      'Gate 15: Solar & Lunar Eclipse hazard filter blocks trades during eclipse windows to protect margins.',
+      'Gate 16: Major Aspect Confluence evaluates angular relationships (Conjunction, Trine, Square, Opposition) to output aspect grades.',
+      'Gate 17: Zodiac House alignments for additional macro-bias validation.'
+    ]
+  },
+  {
+    id: 'smc-scanner',
+    category: 'trading',
+    name: 'Smart Money Concepts (SMC) Pattern Scanner',
+    icon: '📊',
+    description: 'Algorithmic structural scanner running multi-candle pivot calculations to detect institutional price structures, Fair Value Gaps, and liquidity traps.',
+    files: ['src/lib/scanner.ts', 'src/lib/divergence.ts'],
+    flowchart: `[1H candle data] ➔ [Swing Pivot Check] ➔ [Identify Highs / Lows]
+                                               │
+                                      ┌────────┴────────┐
+                                      ▼                 ▼
+                               [Breakout High]    [Unfilled Gap]
+                                (BOS / ChoCH)      (Fair Value FVG)
+                                      │                 │
+                                      ▼                 ▼
+                                [Order Block]     [Liquidity Sweep]
+                                (Extreme Zone)    (Equal High Sweeps)
+                                      │                 │
+                                      └────────┬────────┘
+                                               ▼
+                                       [Confluence Score]
+                                        (Scale 1 to 10)`,
+    techStack: ['Swing Pivot Math', 'Candle series analysis', 'Pattern Recognition'],
+    details: [
+      'Swing Pivots: Implements 3-bar swing high/low calculations to map local peaks and troughs.',
+      'Fair Value Gaps (FVG): Detects imbalances between the wicks of candle N and N+2 to highlight target retracement zones.',
+      'Break of Structure (BOS) & Change of Character (ChoCH): Highlights continuation and trend reversal milestones.',
+      'Liquidity Sweeps: Monitors equal high/low clusters and flags false breakout traps prior to execution.'
+    ]
+  },
+  {
+    id: 'trading-engine',
+    category: 'trading',
+    name: 'Universal Broker Trading Engine',
+    icon: '🔌',
+    description: 'Unified broker adapter connecting manual and AI-powered signals to Forex terminals (MetaTrader via MetaAPI REST/RPC) and Crypto exchanges (Binance, Bybit, OKX).',
+    files: ['src/lib/broker.ts', 'src/app/api/execute/route.ts', 'src/components/manager/SlideToExecute.tsx'],
+    flowchart: `[Execute Signal] ➔ [TradingAdapter Router]
+                           │
+        ┌──────────────────┴──────────────────┐
+        ▼                                     ▼
+ [Forex MT5 Adapter]                   [Crypto Adapter]
+    (MetaAPI RPC)                      (Binance/Bybit/OKX)
+        │                                     │
+ [REST connectBroker]                   [HMAC-SHA256 Sign]
+ [Fetch server-time]                    [REST order place]
+ [Get allowed_symbols]                  [WebSocket tick sync]
+        │                                     │
+        └──────────────────┬──────────────────┘
+                           ▼
+                 [Exec Output / Tickets]`,
+    techStack: ['MetaAPI v29', 'HMAC-SHA256 request signing', 'Adapter Pattern', 'VisualViewport scaling'],
+    details: [
+      'Adapter Pattern: Ensures standard trading actions (placeOrder, closePosition, syncAccount) apply equally.',
+      'Forex integrations read timezone offsets from MetaAPI broker server-time to match live ticker clock widgets.',
+      'Validates account equity and free margins before sending order inputs to prevent MT5 INVALID_STOPS errors.'
+    ]
+  },
+  {
+    id: 'rebates-milestones',
+    category: 'rebates',
+    name: '5-Level Referrals & 40/40/20 Leg Milestone Engine',
+    icon: '🌳',
+    description: 'A recursive rebate distribution system traversing referral relationships up to 5 levels deep, matching milestones against a balanced contribute-leg formula (40/40/20 limit).',
+    files: ['src/lib/rebateEngine.ts', 'src/components/ReferralTab.tsx', 'supabase/migrations/20260605_multilevel_rebates_milestones.sql'],
+    flowchart: `[Close MT5 Deal] ➔ [sync-rebates cron] ➔ [distributeRebate()]
+                                                 │
+                                       (Recursive CTE walk)
+                                                 │
+                                                 ▼
+                                       [L1 - L5 Ancestors]
+                                       (Credit commissions)
+                                                 │
+                                                 ▼
+                                         [checkMilestone]
+                                                 │
+                                       (40/40/20 leg cap rule)
+                                                 │
+                         ┌───────────────────────┴───────────────────────┐
+                         ▼                                               ▼
+                  [Leg Contribution > 40%]                        [All Contributions ≤ 40%]
+                   (Cap volume to 40% target)                      (Full volume contributes)
+                         │                                               │
+                         └───────────────────────┬───────────────────────┘
+                                                 ▼
+                                        [Update progress row]`,
+    techStack: ['PostgreSQL Recursive CTEs', 'Balanced-leg algorithms', 'Genealogy Org-chart paths'],
+    details: [
+      'Traverses uplines recursively in a single SQL operation using PostgreSQL Common Table Expressions (CTEs).',
+      'Implements the 40/40/20 rule: no single referral leg can contribute more than 40% of the volume required for a milestone tier.',
+      'Saves full contributing leg contribution summaries inside supabase milestone_progress rows for audit transparency.'
+    ]
+  },
+  {
+    id: 'billing-ledger',
+    category: 'courses',
+    name: 'Paid Courses & Wallet Ledger Billing System',
+    icon: '💳',
+    description: 'Secured purchase transactional ledger mapping courses purchases. Supports NOWPayments cryptocurrency hosted API with dynamic IPN webhooks alongside internal wallet balance updates.',
+    files: ['src/app/api/courses/purchase/route.ts', 'src/app/api/subscriptions/checkout/route.ts', 'src/components/CoursesTab.tsx', 'src/components/SubscriptionTab.tsx'],
+    flowchart: `[Purchase Course] ➔ [Select Method]
+                           │
+        ┌──────────────────┴──────────────────┐
+        ▼                                     ▼
+ [NOWPayments Crypto]                  [Wallet Balance]
+        │                                     │
+ [Create Invoice URL]                  [Atomic balance check]
+ [Render Modal QR]                     [Supabase profile update]
+        │                                     │
+ [IPN Webhook Callback]                       ▼
+(finished / refund refund)              [Write Ledger Row]
+        │                               (tx_type: course_purchase)
+        └──────────────────┬──────────────────┘
+                           ▼
+                  [Grant Course Access]`,
+    techStack: ['Supabase Ledger Transactions', 'NOWPayments Gateway API', 'HMAC-SHA512 webhook signature verification'],
+    details: [
+      'Instant wallet purchases execute in a single SQL transaction chain to eliminate race conditions.',
+      'Automated self-healing migration drops and adds check constraints during transaction conflict failures.',
+      'Webhooks verify HMAC-SHA512 headers before updating transaction state.'
+    ]
+  }
+];
+
 /* ── Icons ───────────────────────────────────────────────────────── */
 const CalendarIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -807,6 +1012,11 @@ function parseWorklogMarkdown(mdContent: string): WorkDay[] {
 export default function WorkLogPage() {
   const [worklogList, setWorklogList] = useState<WorkDay[]>(worklog);
   const [activeDay, setActiveDay] = useState(worklog[0].date);
+  const [activeFeature, setActiveFeature] = useState(appFeatures[0].id);
+  const [currentTab, setCurrentTab] = useState<'timeline' | 'features'>('timeline');
+  const [expandedFeatures, setExpandedFeatures] = useState<Record<string, boolean>>({
+    'gate-engine': true,
+  });
   const [dark, setDark] = useState(false);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
@@ -839,6 +1049,7 @@ export default function WorkLogPage() {
   }, []);
 
   useEffect(() => {
+    if (currentTab !== 'timeline') return;
     const container = document.querySelector('.cl-page');
     if (!container) return;
     const handleScroll = () => {
@@ -852,11 +1063,40 @@ export default function WorkLogPage() {
     };
     container.addEventListener('scroll', handleScroll);
     return () => container.removeEventListener('scroll', handleScroll);
-  }, [worklogList]);
+  }, [worklogList, currentTab]);
 
-  const scrollTo = (date: string) => {
-    const el = document.getElementById(`day-${date.replace(/\s|,/g, '-')}`);
-    el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  useEffect(() => {
+    if (currentTab !== 'features') return;
+    const container = document.querySelector('.cl-page');
+    if (!container) return;
+    const handleScroll = () => {
+      for (const feature of appFeatures) {
+        const el = document.getElementById(`feature-${feature.id}`);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          if (rect.top <= 250) setActiveFeature(feature.id);
+        }
+      }
+    };
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [currentTab]);
+
+  const scrollTo = (id: string, isFeature = false) => {
+    const prefix = isFeature ? 'feature-' : 'day-';
+    const el = document.getElementById(`${prefix}${id.replace(/\s|,/g, '-')}`);
+    if (el) {
+      if (isFeature) {
+        setExpandedFeatures(prev => ({ ...prev, [id]: true }));
+      }
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const handleTabChange = (tab: 'timeline' | 'features') => {
+    setCurrentTab(tab);
+    setFilter('all');
+    setSearch('');
   };
 
   const totalItems = worklogList.reduce((sum, day) => sum + day.blocks.reduce((s, b) => s + b.items.length, 0), 0);
@@ -867,7 +1107,22 @@ export default function WorkLogPage() {
     });
   };
 
+  const toggleFeature = (id: string) => {
+    setExpandedFeatures(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
   const totalCommits = worklogList.reduce((s, d) => s + d.commitCount, 0);
+
+  // Filter features
+  const filteredFeatures = appFeatures.filter(f => {
+    const matchesCategory = filter === 'all' || f.category === filter;
+    const matchesSearch = search === '' || 
+      f.name.toLowerCase().includes(search.toLowerCase()) || 
+      f.description.toLowerCase().includes(search.toLowerCase()) ||
+      f.techStack.some(t => t.toLowerCase().includes(search.toLowerCase())) ||
+      f.files.some(fi => fi.toLowerCase().includes(search.toLowerCase()));
+    return matchesCategory && matchesSearch;
+  });
 
   return (
     <div className={`cl-page ${dark ? 'cl-dark' : ''}`}>
@@ -902,7 +1157,7 @@ export default function WorkLogPage() {
             <svg className="cl-search-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <input
               className="cl-search-input"
-              placeholder="Search features..."
+              placeholder={currentTab === 'timeline' ? "Search timeline..." : "Search features..."}
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
@@ -916,20 +1171,36 @@ export default function WorkLogPage() {
         </div>
 
         <nav className="cl-sidebar-nav">
-          <div className="cl-nav-section">
-            <div className="cl-nav-label">Timeline {loading && ' (syncing...)'}</div>
-            {worklogList.map((day) => (
-              <a
-                key={day.date}
-                className={`cl-nav-item ${activeDay === day.date ? 'cl-nav-item--active' : ''}`}
-                onClick={() => scrollTo(day.date)}
-              >
-                <span className="cl-nav-dot" />
-                <span>{day.dayLabel}, {day.date}</span>
-                <span className="cl-nav-commit-badge"><GitHubIcon size={9} />{day.commitCount}</span>
-              </a>
-            ))}
-          </div>
+          {currentTab === 'timeline' ? (
+            <div className="cl-nav-section">
+              <div className="cl-nav-label">Timeline {loading && ' (syncing...)'}</div>
+              {worklogList.map((day) => (
+                <a
+                  key={day.date}
+                  className={`cl-nav-item ${activeDay === day.date ? 'cl-nav-item--active' : ''}`}
+                  onClick={() => scrollTo(day.date)}
+                >
+                  <span className="cl-nav-dot" />
+                  <span>{day.dayLabel}, {day.date}</span>
+                  <span className="cl-nav-commit-badge"><GitHubIcon size={9} />{day.commitCount}</span>
+                </a>
+              ))}
+            </div>
+          ) : (
+            <div className="cl-nav-section">
+              <div className="cl-nav-label">App Core Subsystems</div>
+              {appFeatures.map((f) => (
+                <a
+                  key={f.id}
+                  className={`cl-nav-item ${activeFeature === f.id ? 'cl-nav-item--active' : ''}`}
+                  onClick={() => scrollTo(f.id, true)}
+                >
+                  <span className="cl-nav-dot" />
+                  <span>{f.icon} {f.name.split('&')[0].split('—')[0].trim()}</span>
+                </a>
+              ))}
+            </div>
+          )}
         </nav>
 
         <div className="cl-sidebar-back">
@@ -940,107 +1211,218 @@ export default function WorkLogPage() {
       {/* Main */}
       <main className="cl-main">
         <div className="cl-hero">
-          <div className="cl-hero-badge">📋 DYNAMIC WORK LOG</div>
-          <h1>Development Updates</h1>
+          <div className="cl-hero-badge">📋 DYNAMIC LOG & SPECS</div>
+          <h1>TradeGPT System Specs</h1>
           <p className="cl-hero-sub">
-            Engineering updates synchronized dynamically from the <code>WORKLOG.md</code> repository log. Markdown formatting is fully rendered.
+            Internal engineering updates and interactive architecture flows for TradeGPT core trading networks and algorithms.
           </p>
+
+          {/* Tab Selection */}
+          <div className="cl-tabs">
+            <button 
+              className={`cl-tab-btn ${currentTab === 'timeline' ? 'cl-tab-btn--active' : ''}`}
+              onClick={() => handleTabChange('timeline')}
+            >
+              📅 Updates Timeline
+            </button>
+            <button 
+              className={`cl-tab-btn ${currentTab === 'features' ? 'cl-tab-btn--active' : ''}`}
+              onClick={() => handleTabChange('features')}
+            >
+              🏗️ Subsystems & Architecture
+            </button>
+          </div>
 
           {/* Filter pills */}
           <div className="cl-filter-bar">
-            {['all','major','feature','fix','infra'].map(f => (
-              <button key={f} className={`cl-filter-btn ${filter===f?'cl-filter-btn--active':''}`} onClick={()=>setFilter(f)}>
-                {f === 'all' ? '⬡ All' : f === 'major' ? '🚀 Major' : f === 'feature' ? '✨ Feature' : f === 'fix' ? '🔧 Fix' : '⚙️ Infra'}
-              </button>
-            ))}
+            {currentTab === 'timeline' ? (
+              ['all','major','feature','fix','infra'].map(f => (
+                <button key={f} className={`cl-filter-btn ${filter===f?'cl-filter-btn--active':''}`} onClick={()=>setFilter(f)}>
+                  {f === 'all' ? '⬡ All' : f === 'major' ? '🚀 Major' : f === 'feature' ? '✨ Feature' : f === 'fix' ? '🔧 Fix' : '⚙️ Infra'}
+                </button>
+              ))
+            ) : (
+              ['all', 'trading', 'astro', 'rebates', 'courses', 'admin'].map(f => (
+                <button key={f} className={`cl-filter-btn ${filter===f?'cl-filter-btn--active':''}`} onClick={()=>setFilter(f)}>
+                  {f === 'all' ? '⬡ All Categories' : f === 'trading' ? '📈 Core Trading' : f === 'astro' ? '🪐 Astro Mode' : f === 'rebates' ? '🌳 Rebates' : f === 'courses' ? '🎓 Courses' : '⚙️ Settings'}
+                </button>
+              ))
+            )}
           </div>
 
-          <div className="cl-stats-grid">
-            <div className="cl-stat-card">
-              <div className="cl-stat-icon" style={{ background: 'rgba(91,92,246,0.08)' }}>🔀</div>
-              <span className="cl-stat-value">{totalCommits}</span>
-              <span className="cl-stat-label"><GitHubIcon size={11} /> Commits</span>
+          {currentTab === 'timeline' && (
+            <div className="cl-stats-grid">
+              <div className="cl-stat-card">
+                <div className="cl-stat-icon" style={{ background: 'rgba(91,92,246,0.08)' }}>🔀</div>
+                <span className="cl-stat-value">{totalCommits}</span>
+                <span className="cl-stat-label"><GitHubIcon size={11} /> Commits</span>
+              </div>
+              <div className="cl-stat-card">
+                <div className="cl-stat-icon" style={{ background: 'rgba(16,185,129,0.08)' }}>📝</div>
+                <span className="cl-stat-value">22.6K</span>
+                <span className="cl-stat-label">Lines Added</span>
+              </div>
+              <div className="cl-stat-card">
+                <div className="cl-stat-icon" style={{ background: 'rgba(59,130,246,0.08)' }}>⚡</div>
+                <span className="cl-stat-value">{totalItems}</span>
+                <span className="cl-stat-label">Features Built</span>
+              </div>
+              <div className="cl-stat-card">
+                <div className="cl-stat-icon" style={{ background: 'rgba(245,158,11,0.08)' }}>📅</div>
+                <span className="cl-stat-value">{worklogList.length}</span>
+                <span className="cl-stat-label">Working Days</span>
+              </div>
             </div>
-            <div className="cl-stat-card">
-              <div className="cl-stat-icon" style={{ background: 'rgba(16,185,129,0.08)' }}>📝</div>
-              <span className="cl-stat-value">22.4K</span>
-              <span className="cl-stat-label">Lines Added</span>
-            </div>
-            <div className="cl-stat-card">
-              <div className="cl-stat-icon" style={{ background: 'rgba(59,130,246,0.08)' }}>⚡</div>
-              <span className="cl-stat-value">{totalItems}</span>
-              <span className="cl-stat-label">Features Built</span>
-            </div>
-            <div className="cl-stat-card">
-              <div className="cl-stat-icon" style={{ background: 'rgba(245,158,11,0.08)' }}>📅</div>
-              <span className="cl-stat-value">{worklogList.length}</span>
-              <span className="cl-stat-label">Working Days</span>
-            </div>
-          </div>
+          )}
         </div>
 
-        {/* Day Sections */}
-        <div className="cl-days">
-          {worklogList.map((day) => {
-            const filteredBlocks = day.blocks.filter(b =>
-              (filter === 'all' || b.tag === filter) &&
-              (search === '' || b.title.toLowerCase().includes(search.toLowerCase()) || b.items.some(i => i.title.toLowerCase().includes(search.toLowerCase())))
-            );
-            if (filteredBlocks.length === 0) return null;
-            return (
-              <div key={day.date} id={`day-${day.date.replace(/\s|,/g, '-')}`} className="cl-day">
-                <div className="cl-day-header">
-                  <div className="cl-day-pill">
-                    <div className="cl-day-icon"><CalendarIcon /></div>
-                    <span className="cl-day-date">{day.dayLabel}, {day.date}</span>
+        {/* Main Contents */}
+        {currentTab === 'timeline' ? (
+          /* Day Sections */
+          <div className="cl-days">
+            {worklogList.map((day) => {
+              const filteredBlocks = day.blocks.filter(b =>
+                (filter === 'all' || b.tag === filter) &&
+                (search === '' || b.title.toLowerCase().includes(search.toLowerCase()) || b.items.some(i => i.title.toLowerCase().includes(search.toLowerCase())))
+              );
+              if (filteredBlocks.length === 0) return null;
+              return (
+                <div key={day.date} id={`day-${day.date.replace(/\s|,/g, '-')}`} className="cl-day">
+                  <div className="cl-day-header">
+                    <div className="cl-day-pill">
+                      <div className="cl-day-icon"><CalendarIcon /></div>
+                      <span className="cl-day-date">{day.dayLabel}, {day.date}</span>
+                    </div>
+                    <span className="cl-day-meta"><GitHubIcon /> {day.commitCount} commits</span>
                   </div>
-                  <span className="cl-day-meta"><GitHubIcon /> {day.commitCount} commits</span>
-                </div>
 
-                {filteredBlocks.map((block, bi) => {
-                  const tag = tagStyles[block.tag];
-                  return (
-                    <div key={bi} className="cl-block">
-                      <div className="cl-block-stripe" style={{ background: tagStripeColor[block.tag] }} />
-                      <div className="cl-block-inner">
-                        <div className="cl-block-header">
-                          <span className="cl-block-tag" data-tag={block.tag} style={{ background: tag.bg, color: tag.color }}>
-                            {tag.label}
-                          </span>
-                          <span className="cl-block-time">
-                            <ClockIcon /> {block.time}
-                          </span>
-                          <span className="cl-block-count">{block.items.length} items</span>
-                        </div>
-                        <div className="cl-block-title">{block.title}</div>
-                        <p className="cl-block-desc">{renderMarkdownText(block.summary)}</p>
+                  {filteredBlocks.map((block, bi) => {
+                    const tag = tagStyles[block.tag];
+                    return (
+                      <div key={bi} className="cl-block">
+                        <div className="cl-block-stripe" style={{ background: tagStripeColor[block.tag] }} />
+                        <div className="cl-block-inner">
+                          <div className="cl-block-header">
+                            <span className="cl-block-tag" data-tag={block.tag} style={{ background: tag.bg, color: tag.color }}>
+                              {tag.label}
+                            </span>
+                            <span className="cl-block-time">
+                              <ClockIcon /> {block.time}
+                            </span>
+                            <span className="cl-block-count">{block.items.length} items</span>
+                          </div>
+                          <div className="cl-block-title">{block.title}</div>
+                          <p className="cl-block-desc">{renderMarkdownText(block.summary)}</p>
 
-                        <div className="cl-items">
-                          {block.items.map((item, ii) => (
-                            <div key={ii} className="cl-item">
-                              <span className="cl-item-icon">{item.icon}</span>
-                              <div className="cl-item-body">
-                                <span className="cl-item-title">{item.title}</span>
-                                <p className="cl-item-desc">{renderMarkdownText(item.description)}</p>
-                                {item.files && item.files.length > 0 && (
-                                  <div className="cl-item-files">
-                                    {item.files.map((f) => (
-                                      <span key={f} className="cl-file-chip">{f}</span>
-                                    ))}
-                                  </div>
-                                )}
+                          <div className="cl-items">
+                            {block.items.map((item, ii) => (
+                              <div key={ii} className="cl-item">
+                                <span className="cl-item-icon">{item.icon}</span>
+                                <div className="cl-item-body">
+                                  <span className="cl-item-title">{item.title}</span>
+                                  <p className="cl-item-desc">{renderMarkdownText(item.description)}</p>
+                                  {item.files && item.files.length > 0 && (
+                                    <div className="cl-item-files">
+                                      {item.files.map((f) => (
+                                        <span key={f} className="cl-file-chip">{f}</span>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          /* Features & Architecture Section */
+          <div className="cl-features-container">
+            {filteredFeatures.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--wl-text-faint)' }}>
+                <p style={{ fontSize: '15px', fontWeight: '600' }}>No features match your query.</p>
+                <button 
+                  className="cl-filter-btn" 
+                  style={{ marginTop: '12px' }}
+                  onClick={() => { setSearch(''); setFilter('all'); }}
+                >
+                  Clear search parameters
+                </button>
               </div>
-            );
-          })}
-        </div>
+            ) : (
+              filteredFeatures.map((f) => {
+                const isExpanded = !!expandedFeatures[f.id];
+                return (
+                  <div 
+                    key={f.id} 
+                    id={`feature-${f.id}`}
+                    className={`cl-feature-card ${isExpanded ? 'cl-feature-card--expanded' : ''}`}
+                  >
+                    <div className="cl-feature-header" onClick={() => toggleFeature(f.id)}>
+                      <div className="cl-feature-header-left">
+                        <span className="cl-feature-icon">{f.icon}</span>
+                        <div>
+                          <div className="cl-feature-title">{f.name}</div>
+                          <span className="cl-feature-category" data-cat={f.category} style={{ marginTop: '4px', display: 'inline-block' }}>
+                            {f.category}
+                          </span>
+                        </div>
+                      </div>
+                      <span className="cl-feature-expand-arrow">▼</span>
+                    </div>
+
+                    {isExpanded && (
+                      <div className="cl-feature-body">
+                        <p className="cl-feature-description">{f.description}</p>
+                        
+                        <div className="cl-architecture-section">
+                          <div className="cl-architecture-title">💻 Technical Stack</div>
+                          <div className="cl-tech-tags">
+                            {f.techStack.map((t, idx) => (
+                              <span key={idx} className="cl-tech-tag">{t}</span>
+                            ))}
+                          </div>
+                        </div>
+
+                        {f.flowchart && (
+                          <div className="cl-architecture-section">
+                            <div className="cl-architecture-title">🏗️ System Architecture Flow</div>
+                            <pre className="cl-flowchart-box">{f.flowchart}</pre>
+                          </div>
+                        )}
+
+                        <div className="cl-architecture-section">
+                          <div className="cl-architecture-title">⚙️ Implementation Details</div>
+                          <ul className="cl-architecture-list">
+                            {f.details.map((detail, idx) => (
+                              <li key={idx}>{renderMarkdownText(detail)}</li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        {f.files && f.files.length > 0 && (
+                          <div className="cl-architecture-section" style={{ marginTop: '24px' }}>
+                            <div className="cl-architecture-title">📁 Relevant Source Code Files</div>
+                            <div className="cl-item-files">
+                              {f.files.map((file) => (
+                                <span key={file} className="cl-file-chip">{file}</span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        )}
 
         <footer className="cl-footer">
           <div className="cl-footer-inner">

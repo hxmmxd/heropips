@@ -792,3 +792,208 @@
   .cl-footer-inner { flex-direction: column; gap: 8px; text-align: center; }
   .cl-filter-bar { gap: 4px; }
 }
+
+/* ── Features & Architecture Tab Styles ─────────────────────── */
+.cl-tabs {
+  display: flex;
+  gap: 12px;
+  border-bottom: 1px solid var(--wl-border);
+  padding: 0 56px;
+  margin-top: -10px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 768px) {
+  .cl-tabs {
+    padding: 0 20px;
+    margin-bottom: 16px;
+  }
+}
+
+.cl-tab-btn {
+  font-size: 14px;
+  font-weight: 700;
+  padding: 10px 4px;
+  color: var(--wl-text-muted);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cl-tab-btn:hover {
+  color: var(--wl-text);
+}
+
+.cl-tab-btn--active {
+  color: var(--wl-accent);
+  border-bottom-color: var(--wl-accent);
+}
+
+.cl-features-container {
+  max-width: 860px;
+  padding: 0 56px 80px;
+}
+
+@media (max-width: 768px) {
+  .cl-features-container {
+    padding: 0 20px 60px;
+  }
+}
+
+.cl-feature-card {
+  background: var(--wl-bg-card);
+  border: 1px solid var(--wl-border);
+  border-radius: 14px;
+  margin-bottom: 24px;
+  box-shadow: var(--wl-shadow);
+  overflow: hidden;
+  transition: all 0.2s;
+}
+
+.cl-feature-card:hover {
+  box-shadow: var(--wl-shadow-hover);
+  border-color: var(--wl-accent-border);
+}
+
+.cl-feature-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--wl-border-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  cursor: pointer;
+}
+
+.cl-feature-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cl-feature-icon {
+  font-size: 20px;
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  background: var(--wl-bg-secondary);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid var(--wl-border-light);
+}
+
+.cl-feature-title {
+  font-size: 18px;
+  font-weight: 850;
+  color: var(--wl-text);
+  letter-spacing: -0.02em;
+}
+
+.cl-feature-category {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cl-feature-category[data-cat="trading"] { background: rgba(59,130,246,0.1); color: var(--wl-blue); }
+.cl-feature-category[data-cat="astro"]   { background: rgba(245,158,11,0.1); color: var(--wl-amber); }
+.cl-feature-category[data-cat="rebates"] { background: rgba(16,185,129,0.1); color: var(--wl-green); }
+.cl-feature-category[data-cat="courses"] { background: rgba(139,92,246,0.1); color: var(--wl-purple); }
+.cl-feature-category[data-cat="admin"]   { background: rgba(236,72,153,0.1); color: #ec4899; }
+
+.cl-feature-expand-arrow {
+  color: var(--wl-text-faint);
+  transition: transform 0.2s;
+  font-size: 14px;
+}
+
+.cl-feature-card--expanded .cl-feature-expand-arrow {
+  transform: rotate(180deg);
+}
+
+.cl-feature-body {
+  padding: 24px;
+  background: var(--wl-bg-secondary);
+}
+
+.cl-feature-description {
+  font-size: 14px;
+  color: var(--wl-text-secondary);
+  line-height: 1.65;
+  margin-top: 0;
+  margin-bottom: 20px;
+}
+
+.cl-architecture-section {
+  margin-top: 24px;
+}
+
+.cl-architecture-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--wl-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cl-flowchart-box {
+  background: #09090e;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 8px;
+  padding: 16px 20px;
+  overflow-x: auto;
+  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #a5f3fc;
+  margin-bottom: 20px;
+  box-shadow: inset 0 2px 8px rgba(0,0,0,0.5);
+  white-space: pre;
+}
+
+.cl-tech-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+.cl-tech-tag {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--wl-bg-card);
+  border: 1px solid var(--wl-border);
+  color: var(--wl-text-muted);
+}
+
+.cl-architecture-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.cl-architecture-list li {
+  font-size: 13px;
+  color: var(--wl-text-secondary);
+  line-height: 1.6;
+}
+
+.cl-architecture-list li strong {
+  color: var(--wl-text);
+}
+

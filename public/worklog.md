@@ -1,3 +1,12 @@
+# June 13, 2026 | Saturday | Commits: 2
+
+## [major] 02:45 AM - Dynamic Architecture Documentation & App Features Explorer
+Integrated an interactive "Features & Architecture" explorer tab directly into the internal developer Work Log. This tab compiles visual ASCII system flows, architectural diagrams, component paths, and specific details for the six core platform subsystems.
+
+- 📊 **Dynamic Tab Architecture Layout**: Added a tab-switcher (`Timeline` vs `Features & Architecture`) in the Work Log layout, supporting search and filter parameters across both modes. [`src/app/worklog/page.tsx`]
+- 🏗️ **Feature Architecture Visualizations**: Wrote full detailed specs for the 9-Gate Signal Engine, Astro Mode Celestial Filter, SMC Pattern Scanner, Universal Trading Adapter, Multi-Level Referral Hub, and NOWPayments Ledger billing, rendering ASCII flow diagrams for each. [`src/app/worklog/page.tsx`]
+- 📝 **Self-Referential Worklog Update**: Documented the engineering logs pipeline updates in both the root `WORKLOG.md` and the dynamic `public/worklog.md` file. [`public/worklog.md`, `WORKLOG.md`]
+
 # June 12, 2026 | Friday | Commits: 22
 
 ## [major] 08:30 PM - Astro Mode Complete Release — Gates, Orrery & Analytics
