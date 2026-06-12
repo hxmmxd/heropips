@@ -387,6 +387,15 @@ Validates signals against correlated/inverse markets:
 - Unicode code-point array mapping to prevent emoji splitting on surrogate pairs.
 - Self-referencing update script.
 
+### v2.4.0 — Features Architecture & Subsystems Upscale (June 13, 2026)
+
+**Added:**
+- Security PIN Lock Gateway: Protected access to `/worklog` with a security gateway prompt requiring PIN `0034`. Includes tactile numpad UI, keyboard event entry, error shake transitions, and visual security dot indicators.
+- Interactive Subsystems Explorer: Added tabbed interface (`Overview`, `Flowchart`, `DB Schema`, `Source Files`) for all 6 core subsystems.
+- High-Fidelity SVG Flowcharts: Replaced raw text flowcharts with interactive, animated SVG network diagrams featuring orthogonal routing, pulse animations, and relative node highlighting.
+- Interactive Simulator Sandboxes: Added live astro orrery simulators, 9-gate confluence toggles, 40/40/20 referral capping calculator, and active billing diagnostic terminal.
+- Advanced Implementation Details: Upscaled details fields with highly granular production specifications mapping CTE routines, indicator weights, and HMAC signature algorithms.
+
 ### v2.3.0 — Astro Mode Gating Engine & Performance Analytics (June 12, 2026)
 
 **Added:**

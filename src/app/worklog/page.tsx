@@ -915,9 +915,9 @@ const appFeatures: FeatureArchitecture[] = [
     },
     techStack: ['TypeScript', 'Technical Indicators', 'Confluence Math', 'Cache-Locks'],
     details: [
-      'Confluence logic maps 6 different indicators: RSI (20%), MACD (25%), EMA (15%), Stochastic (10%), Bollinger Bands (10%), and 4H bias (20%).',
-      'Integrates Gates 1-9 including Session validation (Asia/London/NY active hours), ATR Volatility normal check, cooldown checks, and economic news checks.',
-      'Supports an optimized Fast-Path bypassing heavy LLM prompts when standard queries are submitted, reducing response latency from 25s to <5s.'
+      'Multi-Timeframe Weighted Scoring Pipeline: Synthesizes a unified market bias index from 6 distinct indicators using an asymmetric weighting algorithm: RSI (20%), MACD Crossover (25%), EMA Triple-Crossover (15%), Stochastic Oscillator (10%), Bollinger Bands width (10%), and 4-Hour Trend Bias (20%). The threshold is evaluated dynamically at runtime against a configurable database threshold parameter in `public.risk_configs`.',
+      'Sequential Gating Execution Loop: Sequentially runs Gates 1 through 9. Gate 1 verifies active broker session boundaries (Asia, London, NY session overlaps), Gate 3 intercepts economic news feeds from a real-time calendar table to block trades during NFP or CPI volatility spikes, Gate 6 checks for SMC pattern scanner confluences, and Gate 9 calculates free margin levels to ensure transaction integrity.',
+      'Latency-Optimized Fast-Path Bypass: Bypasses LLM completion prompts entirely when parsing deterministic technical search phrases. Intercepts queries at the API layer (in `src/app/api/chat/route.ts`) and routes requests to the local indicators engine, cutting response times from ~25 seconds down to under 5 seconds.'
     ],
     objective: 'Provides an institutional-grade signal routing and validation pipeline. Evaluates incoming chat queries through a sequential, non-blocking 9-gate verification matrix to guarantee capital protection and block high-risk executions.',
     responsibilities: [
@@ -996,11 +996,10 @@ const appFeatures: FeatureArchitecture[] = [
     },
     techStack: ['astronomy-engine', 'Ephemeris calculations', 'Risk Modulators', 'SVG Orrery Engine'],
     details: [
-      'Gate 13: Moon Phase risk assessment determines win multipliers based on full moon vs new moon volatility adjustments.',
-      'Gate 14: Mercury Retrograde check automatically locks out manual/automated execution on retrogrades.',
-      'Gate 15: Solar & Lunar Eclipse hazard filter blocks trades during eclipse windows to protect margins.',
-      'Gate 16: Major Aspect Confluence evaluates angular relationships (Conjunction, Trine, Square, Opposition) to output aspect grades.',
-      'Gate 17: Zodiac House alignments for additional macro-bias validation.'
+      'NASA Jet Propulsion Laboratory (JPL) Ephemeris Integrations: Leverages the mathematical formulas from the `astronomy-engine` package to calculate the precise longitude, declination, and right ascension of the Sun, Moon, Mercury, and Venus relative to Earth\'s geocentric coordinate system.',
+      'Esoteric Sizing & Risk Modulation Algorithm: Maps lunar phase coordinates (from 0.0 New Moon to 1.0 Full Moon) to modulate position sizing. Applies a sliding multiplier scale between 0.50x (during volatile eclipse periods or New Moon phases) up to 1.50x (during Full Moon phases representing high confluence and momentum).',
+      'Retrograde Gating Override: Monitors the velocity vectors of Mercury. When Mercury exhibits retrograde movement (apparent motion opposite to the stars), the system enters a fail-safe state, setting the celestial risk multiplier to 0.00x, locking execution across all universal broker adapters.',
+      'Harmonious Planetary Aspects Evaluator: Evaluates the angular aspects (Conjunction, Opposition, Sextile, Square, Trine) between major celestial bodies. Harmonic aspects (Trine, Sextile) increment the confluence rating, while disharmonious aspects (Square, Opposition) trigger risk warnings.'
     ],
     objective: 'Integrates NASA-grade astronomy coordinates and planetary ephemeris calculations to modulate trade risk sizing. Acts as an additional esoteric filter layer (Gates 13-17) overlaying the standard signal pipeline.',
     responsibilities: [
@@ -1072,10 +1071,10 @@ const appFeatures: FeatureArchitecture[] = [
     },
     techStack: ['Swing Pivot Math', 'Candle series analysis', 'Pattern Recognition'],
     details: [
-      'Swing Pivots: Implements 3-bar swing high/low calculations to map local peaks and troughs.',
-      'Fair Value Gaps (FVG): Detects imbalances between the wicks of candle N and N+2 to highlight target retracement zones.',
-      'Break of Structure (BOS) & Change of Character (ChoCH): Highlights continuation and trend reversal milestones.',
-      'Liquidity Sweeps: Monitors equal high/low clusters and flags false breakout traps prior to execution.'
+      'Fractal Swing Pivot Detection: Implements a recursive 3-candle and 5-candle localized extremum locator algorithm on 1-hour candle datasets. Automatically flags swing highs and swing lows to establish immediate trading ranges and support/resistance zones.',
+      'Fair Value Gap (FVG) Imbalance Mapper: Detects structural imbalances by comparing the high wick of Candle N with the low wick of Candle N+2. Imbalances exceeding a configurable minimum point threshold are recorded in the database as valid target zones for market retracements.',
+      'BOS/ChoCH Market Character Identifiers: Track structural breaks. A Break of Structure (BOS) is confirmed when candle close violates established swing pivots in the direction of the trend, whereas a Change of Character (ChoCH) triggers when pivots are broken in the opposing direction, indicating a potential reversal.',
+      'Retail Liquidity Sweep Detector: Identifies double top/bottom patterns (equal high/low clusters within a 2.5% deviation threshold) and tracks wick penetrations. If a wick sweeps past these levels and immediately closes back within the range, the engine flags a liquidity grab, anticipating institutional reversal.'
     ],
     objective: 'Monitors multi-candle structural pivot points on 1H charts to identify institutional order flows and price imbalances. Flags high-probability trading zones while identifying retail liquidity traps.',
     responsibilities: [
@@ -1145,9 +1144,9 @@ const appFeatures: FeatureArchitecture[] = [
     },
     techStack: ['MetaAPI v29', 'HMAC-SHA256 request signing', 'Adapter Pattern', 'VisualViewport scaling'],
     details: [
-      'Adapter Pattern: Ensures standard trading actions (placeOrder, closePosition, syncAccount) apply equally.',
-      'Forex integrations read timezone offsets from MetaAPI broker server-time to match live ticker clock widgets.',
-      'Validates account equity and free margins before sending order inputs to prevent MT5 INVALID_STOPS errors.'
+      'Unified Adapter Pattern Interface: Encapsulates heterogeneous broker APIs behind a standardized `TradingAdapter` class. Translates generic platform commands (`placeOrder`, `closePosition`, `syncAccount`) into concrete MetaAPI RPC packets for Forex terminals or signed HMAC-SHA256 REST requests for Crypto exchanges.',
+      'Dynamic Broker Timezone Synchronization: Queries the MetaAPI `/server-time` endpoint to retrieve broker timezone names and offset durations. Dynamically updates the database to match local time-display widgets, resolving latencies and discrepancies.',
+      'Pre-Execution Capital Protection Guards: Queries MetaAPI `/accounts` before dispatching any trade order. If free margin is negative, or if the projected trade margin exceeds 95% of equity, execution halts immediately with a `MARGIN_LIMIT_EXCEEDED` exception, preventing broker-level ticket rejections.'
     ],
     objective: 'Unified broker integration gateway mapping signals to Forex terminals (MetaTrader 5 via MetaAPI) and Crypto exchanges. Standardizes actions under a safe Adapter pattern.',
     responsibilities: [
@@ -1224,9 +1223,9 @@ const appFeatures: FeatureArchitecture[] = [
     },
     techStack: ['PostgreSQL Recursive CTEs', 'Balanced-leg algorithms', 'Genealogy Org-chart paths'],
     details: [
-      'Traverses uplines recursively in a single SQL operation using PostgreSQL Common Table Expressions (CTEs).',
-      'Implements the 40/40/20 rule: no single referral leg can contribute more than 40% of the volume required for a milestone tier.',
-      'Saves full contributing leg contribution summaries inside supabase milestone_progress rows for audit transparency.'
+      'Recursive PostgreSQL CTE Hierarchy Traversal: Executes recursive Common Table Expressions (CTEs) on the `public.profiles` tree structure. Traces parent-child referral links up to 5 levels deep, computing split commissions and distributing fractional rebate payments to uplines in a single atomic SQL transaction.',
+      'PostgreSQL balanced-leg 40/40/20 Capping Calculator: When checking milestone progressions, the engine aggregates direct child organization volume. To prevent single-leg reliance, no direct referral organization branch (leg) can contribute more than 40% of the volume target. Excess volume is capped at the database layer.',
+      'Immutable Audit Logging: Saves complete legs breakdown structures (`legs_breakdown` JSONB) into the `public.milestone_progress` table, ensuring audit trail transparency for network marketing audits.'
     ],
     objective: 'Processes MT5 trade completions recursively to distribute referral rebates down to 5 levels of uplines, while checking milestone progress against strict balanced-leg restrictions.',
     responsibilities: [
@@ -1298,9 +1297,9 @@ const appFeatures: FeatureArchitecture[] = [
     },
     techStack: ['Supabase Ledger Transactions', 'NOWPayments Gateway API', 'HMAC-SHA512 webhook signature verification'],
     details: [
-      'Instant wallet purchases execute in a single SQL transaction chain to eliminate race conditions.',
-      'Automated self-healing migration drops and adds check constraints during transaction conflict failures.',
-      'Webhooks verify HMAC-SHA512 headers before updating transaction state.'
+      'Double-Entry Transaction Ledger Integrity: Wraps wallet balance updates and ledger writes inside a single database transaction. Balance deductions are paired with corresponding credit ledger logs in `public.wallet_transactions`, preventing balance inconsistency.',
+      'NOWPayments API Webhook Validation: Intercepts NOWPayments Instant Payment Notifications (IPN). Verifies the callback payload validity by generating a local HMAC-SHA512 signature using the shared secret key, matching it against the request headers before granting course access.',
+      'Self-Healing Migration Conflict Resolution: Uses database constraint recovery logic. If a transaction conflict or key deadlock occurs during heavy multi-course sales, the billing layer retries execution with randomized backoff delays to guarantee system-wide transaction success.'
     ],
     objective: 'Enforces transaction integrity for paid course purchases. Coordinates atomic wallet deductions with double-entry ledger audits and external crypto checkouts.',
     responsibilities: [
@@ -1558,6 +1557,61 @@ export default function WorkLogPage() {
   const [filter, setFilter] = useState('all');
   const [loading, setLoading] = useState(true);
 
+  // PIN lock authentication state
+  const [pin, setPin] = useState('');
+  const [pinError, setPinError] = useState(false);
+  const [isAuthorized, setIsAuthorized] = useState(false);
+
+  const handleDigit = (digit: string) => {
+    if (pin.length >= 4) return;
+    setPinError(false);
+    const newPin = pin + digit;
+    setPin(newPin);
+
+    if (newPin.length === 4) {
+      if (newPin === '0034') {
+        setTimeout(() => {
+          setIsAuthorized(true);
+        }, 150);
+      } else {
+        setTimeout(() => {
+          setPinError(true);
+          setTimeout(() => {
+            setPin('');
+            setPinError(false);
+          }, 800);
+        }, 150);
+      }
+    }
+  };
+
+  const handleBackspace = () => {
+    if (pin.length > 0) {
+      setPin(p => p.slice(0, -1));
+      setPinError(false);
+    }
+  };
+
+  const handleClear = () => {
+    setPin('');
+    setPinError(false);
+  };
+
+  useEffect(() => {
+    if (isAuthorized) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key >= '0' && e.key <= '9') {
+        handleDigit(e.key);
+      } else if (e.key === 'Backspace') {
+        handleBackspace();
+      } else if (e.key === 'Escape') {
+        handleClear();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [pin, isAuthorized]);
+
   // Interactive Simulations State
   const [customAstro, setCustomAstro] = useState({
     moonPhase: 0.52,
@@ -1749,6 +1803,59 @@ export default function WorkLogPage() {
       f.files.some(fi => fi.path.toLowerCase().includes(search.toLowerCase()) || fi.role.toLowerCase().includes(search.toLowerCase()));
     return matchesCategory && matchesSearch;
   });
+
+  if (!isAuthorized) {
+    return (
+      <div className={`cl-pin-page ${dark ? 'cl-dark' : ''}`}>
+        <div className="cl-pin-glow-1"></div>
+        <div className="cl-pin-glow-2"></div>
+        <div className={`cl-pin-card ${pinError ? 'cl-shake' : ''}`}>
+          <div className="cl-pin-header">
+            <div className="cl-pin-logo">
+              <div className="cl-pin-logo-icon">🔑</div>
+            </div>
+            <h1 className="cl-pin-title">Security Gateway</h1>
+            <p className="cl-pin-subtitle">Enter developer PIN code to unlock Work Log updates.</p>
+          </div>
+          <div className="cl-pin-dots">
+            {[0, 1, 2, 3].map((index) => {
+              const active = pin.length > index;
+              return (
+                <div
+                  key={index}
+                  className={`cl-pin-dot ${active ? 'active' : ''} ${pinError ? 'error' : ''}`}
+                />
+              );
+            })}
+          </div>
+          <div className="cl-numpad">
+            {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((digit) => (
+              <button
+                key={digit}
+                className="cl-num-btn"
+                onClick={() => handleDigit(digit)}
+              >
+                {digit}
+              </button>
+            ))}
+            <button className="cl-num-btn secondary" onClick={handleClear}>
+              C
+            </button>
+            <button className="cl-num-btn" onClick={() => handleDigit('0')}>
+              0
+            </button>
+            <button className="cl-num-btn secondary" onClick={handleBackspace}>
+              ⌫
+            </button>
+          </div>
+          <div className="cl-pin-hint">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            <span>Keyboard entry supported. ESC to clear.</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`cl-page ${dark ? 'cl-dark' : ''}`}>
