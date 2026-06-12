@@ -625,23 +625,224 @@ const tagStripeColor: Record<string, string> = {
   infra:       'linear-gradient(180deg,#8b5cf6,#c084fc)',
 };
 
+/* ── Inline Markdown Renderer ────────────────────────────────────── */
+function renderMarkdownText(text: string): React.ReactNode {
+  if (!text) return '';
+  const tokenRegex = /(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/g;
+  const parts = text.split(tokenRegex);
+  
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={i} style={{ fontWeight: '600', color: 'var(--text-main)' }}>{part.slice(2, -2)}</strong>;
+    } else if (part.startsWith('`') && part.endsWith('`')) {
+      return (
+        <code 
+          key={i} 
+          style={{ 
+            padding: '2px 5px', 
+            borderRadius: '4px', 
+            background: 'var(--accent-tint)', 
+            color: 'var(--accent)', 
+            fontFamily: 'monospace', 
+            fontSize: '0.85em',
+            border: '1px solid var(--border)',
+            wordBreak: 'break-all'
+          }}
+        >
+          {part.slice(1, -1)}
+        </code>
+      );
+    } else if (part.startsWith('[') && part.includes('](')) {
+      const match = part.match(/\[([^\]]+)\]\(([^)]+)\)/);
+      if (match) {
+        return (
+          <a key={i} href={match[2]} target="_blank" rel="noopener noreferrer" className="cl-inline-link" style={{ color: 'var(--accent)', textDecoration: 'underline' }}>
+            {match[1]}
+          </a>
+        );
+      }
+    }
+    return part;
+  });
+}
+
+/* ── Worklog Markdown Parser ────────────────────────────────────── */
+function parseWorklogMarkdown(mdContent: string): WorkDay[] {
+  const lines = mdContent.split('\n');
+  const days: WorkDay[] = [];
+  let currentDay: WorkDay | null = null;
+  let currentBlock: WorkBlock | null = null;
+  let blockSummaryLines: string[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+
+    // 1. Day Header: e.g., "# June 12, 2026 | Friday | Commits: 22"
+    if (line.startsWith('# ')) {
+      if (currentDay && currentBlock) {
+        currentBlock.summary = blockSummaryLines.join('\n').trim();
+        currentDay.blocks.push(currentBlock);
+        currentBlock = null;
+        blockSummaryLines = [];
+      }
+      if (currentDay) {
+        days.push(currentDay);
+      }
+
+      const headerText = line.substring(2).trim();
+      const parts = headerText.split('|').map(p => p.trim());
+      const date = parts[0] || '';
+      const dayLabel = parts[1] || '';
+      let commitCount = 0;
+      if (parts[2]) {
+        const match = parts[2].match(/commits?:?\s*(\d+)/i);
+        if (match) commitCount = parseInt(match[1], 10);
+      }
+
+      currentDay = {
+        date,
+        dayLabel,
+        commitCount,
+        blocks: []
+      };
+      continue;
+    }
+
+    if (!currentDay) continue;
+
+    // 2. Block Header: e.g., "## [major] 08:30 PM - Astro Mode Complete Release"
+    if (line.startsWith('## ')) {
+      if (currentBlock) {
+        currentBlock.summary = blockSummaryLines.join('\n').trim();
+        currentDay.blocks.push(currentBlock);
+        currentBlock = null;
+        blockSummaryLines = [];
+      }
+
+      const blockText = line.substring(3).trim();
+      const tagMatch = blockText.match(/^\[(major|feature|fix|improvement|infra)\]/i);
+      const tag = (tagMatch ? tagMatch[1].toLowerCase() : 'feature') as WorkBlock['tag'];
+      
+      let rest = tagMatch ? blockText.substring(tagMatch[0].length).trim() : blockText;
+      
+      const timeMatch = rest.match(/^(\d{2}:\d{2}\s*(?:AM|PM))/i);
+      const time = timeMatch ? timeMatch[1] : '12:00 PM';
+      
+      rest = timeMatch ? rest.substring(timeMatch[0].length).replace(/^[-\s]+/, '').trim() : rest;
+      const title = rest;
+
+      currentBlock = {
+        tag,
+        time,
+        title,
+        summary: '',
+        items: []
+      };
+      continue;
+    }
+
+    if (!currentBlock) continue;
+
+    // 3. Item: e.g., "- 🪐 **Solar System Orrery Animation**: Created... [`src/...`]"
+    if (line.startsWith('- ') || line.startsWith('* ')) {
+      const itemText = line.substring(2).trim();
+      let icon = '✨';
+      let restOfItem = itemText;
+
+      const chars = Array.from(itemText);
+      const firstChar = chars[0];
+      const isEmojiOrSymbol = firstChar && (
+        firstChar.charCodeAt(0) > 127 || 
+        ['🎨', '📊', '🧾', '🛠️', '⏰', '🌍', '🔍', '🛡️', '💳', '🔒', '🔑', '📄', '🔄', '🎯', '⚙️', '🏆', '🔌', '📝', '📋', '📈', '🔗', '🪐', '☄️', '🛸', '🐞', '🚀', '💡'].includes(firstChar)
+      );
+
+      if (isEmojiOrSymbol) {
+        icon = firstChar;
+        let remaining = chars.slice(1).join('');
+        if (remaining.startsWith('\uFE0F') || remaining.startsWith('\uFE0E')) {
+          remaining = remaining.substring(1);
+        }
+        restOfItem = remaining.trim();
+      }
+
+      const boldMatch = restOfItem.match(/^\*\*([^*]+)\*\*:?/);
+      const title = boldMatch ? boldMatch[1] : 'Update';
+      restOfItem = boldMatch ? restOfItem.substring(boldMatch[0].length).replace(/^:\s*/, '').trim() : restOfItem;
+
+      let files: string[] = [];
+      const filesMatch = restOfItem.match(/\[([^\]]+)\]$/);
+      if (filesMatch) {
+        const filesStr = filesMatch[1];
+        files = filesStr.split(',').map(f => f.trim().replace(/`/g, ''));
+        restOfItem = restOfItem.substring(0, restOfItem.length - filesMatch[0].length).trim();
+      }
+
+      const description = restOfItem;
+
+      currentBlock.items.push({
+        icon,
+        title,
+        description,
+        files
+      });
+      continue;
+    }
+
+    blockSummaryLines.push(line);
+  }
+
+  if (currentDay && currentBlock) {
+    currentBlock.summary = blockSummaryLines.join('\n').trim();
+    currentDay.blocks.push(currentBlock);
+  }
+  if (currentDay) {
+    days.push(currentDay);
+  }
+
+  return days;
+}
+
 /* ── Page Component ──────────────────────────────────────────────── */
 export default function WorkLogPage() {
+  const [worklogList, setWorklogList] = useState<WorkDay[]>(worklog);
   const [activeDay, setActiveDay] = useState(worklog[0].date);
   const [dark, setDark] = useState(false);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const saved = localStorage.getItem('wl-theme');
     if (saved === 'dark') setDark(true);
   }, []);
 
+  // Fetch dynamic Markdown worklog
+  useEffect(() => {
+    fetch('/worklog.md')
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to fetch worklog.md');
+        return res.text();
+      })
+      .then((text) => {
+        const parsed = parseWorklogMarkdown(text);
+        if (parsed.length > 0) {
+          setWorklogList(parsed);
+          setActiveDay(parsed[0].date);
+        }
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.warn('Could not load dynamic worklog.md, falling back to static array.', err);
+        setLoading(false);
+      });
+  }, []);
+
   useEffect(() => {
     const container = document.querySelector('.cl-page');
     if (!container) return;
     const handleScroll = () => {
-      for (const day of worklog) {
+      for (const day of worklogList) {
         const el = document.getElementById(`day-${day.date.replace(/\s|,/g, '-')}`);
         if (el) {
           const rect = el.getBoundingClientRect();
@@ -651,14 +852,14 @@ export default function WorkLogPage() {
     };
     container.addEventListener('scroll', handleScroll);
     return () => container.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [worklogList]);
 
   const scrollTo = (date: string) => {
     const el = document.getElementById(`day-${date.replace(/\s|,/g, '-')}`);
     el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  const totalItems = worklog.reduce((sum, day) => sum + day.blocks.reduce((s, b) => s + b.items.length, 0), 0);
+  const totalItems = worklogList.reduce((sum, day) => sum + day.blocks.reduce((s, b) => s + b.items.length, 0), 0);
   const toggleTheme = () => {
     setDark(prev => {
       localStorage.setItem('wl-theme', !prev ? 'dark' : 'light');
@@ -666,7 +867,7 @@ export default function WorkLogPage() {
     });
   };
 
-  const totalCommits = worklog.reduce((s, d) => s + d.commitCount, 0);
+  const totalCommits = worklogList.reduce((s, d) => s + d.commitCount, 0);
 
   return (
     <div className={`cl-page ${dark ? 'cl-dark' : ''}`}>
@@ -716,8 +917,8 @@ export default function WorkLogPage() {
 
         <nav className="cl-sidebar-nav">
           <div className="cl-nav-section">
-            <div className="cl-nav-label">Timeline</div>
-            {worklog.map((day) => (
+            <div className="cl-nav-label">Timeline {loading && ' (syncing...)'}</div>
+            {worklogList.map((day) => (
               <a
                 key={day.date}
                 className={`cl-nav-item ${activeDay === day.date ? 'cl-nav-item--active' : ''}`}
@@ -739,10 +940,10 @@ export default function WorkLogPage() {
       {/* Main */}
       <main className="cl-main">
         <div className="cl-hero">
-          <div className="cl-hero-badge">📋 INTERNAL WORK LOG</div>
+          <div className="cl-hero-badge">📋 DYNAMIC WORK LOG</div>
           <h1>Development Updates</h1>
           <p className="cl-hero-sub">
-            Daily progress tracker for the engineering team. Every feature, fix, and infrastructure change — documented with file references.
+            Engineering updates synchronized dynamically from the <code>WORKLOG.md</code> repository log. Markdown formatting is fully rendered.
           </p>
 
           {/* Filter pills */}
@@ -762,7 +963,7 @@ export default function WorkLogPage() {
             </div>
             <div className="cl-stat-card">
               <div className="cl-stat-icon" style={{ background: 'rgba(16,185,129,0.08)' }}>📝</div>
-              <span className="cl-stat-value">21.8K</span>
+              <span className="cl-stat-value">22.4K</span>
               <span className="cl-stat-label">Lines Added</span>
             </div>
             <div className="cl-stat-card">
@@ -772,7 +973,7 @@ export default function WorkLogPage() {
             </div>
             <div className="cl-stat-card">
               <div className="cl-stat-icon" style={{ background: 'rgba(245,158,11,0.08)' }}>📅</div>
-              <span className="cl-stat-value">{worklog.length}</span>
+              <span className="cl-stat-value">{worklogList.length}</span>
               <span className="cl-stat-label">Working Days</span>
             </div>
           </div>
@@ -780,7 +981,7 @@ export default function WorkLogPage() {
 
         {/* Day Sections */}
         <div className="cl-days">
-          {worklog.map((day) => {
+          {worklogList.map((day) => {
             const filteredBlocks = day.blocks.filter(b =>
               (filter === 'all' || b.tag === filter) &&
               (search === '' || b.title.toLowerCase().includes(search.toLowerCase()) || b.items.some(i => i.title.toLowerCase().includes(search.toLowerCase())))
@@ -812,7 +1013,7 @@ export default function WorkLogPage() {
                           <span className="cl-block-count">{block.items.length} items</span>
                         </div>
                         <div className="cl-block-title">{block.title}</div>
-                        <p className="cl-block-desc">{block.summary}</p>
+                        <p className="cl-block-desc">{renderMarkdownText(block.summary)}</p>
 
                         <div className="cl-items">
                           {block.items.map((item, ii) => (
@@ -820,8 +1021,8 @@ export default function WorkLogPage() {
                               <span className="cl-item-icon">{item.icon}</span>
                               <div className="cl-item-body">
                                 <span className="cl-item-title">{item.title}</span>
-                                <p className="cl-item-desc">{item.description}</p>
-                                {item.files && (
+                                <p className="cl-item-desc">{renderMarkdownText(item.description)}</p>
+                                {item.files && item.files.length > 0 && (
                                   <div className="cl-item-files">
                                     {item.files.map((f) => (
                                       <span key={f} className="cl-file-chip">{f}</span>
