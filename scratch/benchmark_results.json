@@ -1,0 +1,1079 @@
+{
+  "timestamp": "2026-06-09T09:44:44.772Z",
+  "ranked": [
+    {
+      "model": "meta/llama-3.1-8b-instruct",
+      "label": "Llama 3.1 8B",
+      "size": "8B",
+      "runs": 2,
+      "successes": 2,
+      "failures": 0,
+      "avgTotalMs": 1290,
+      "avgTTFBMs": 1287,
+      "avgTokensPerSec": "131.5",
+      "avgOutputTokens": 170,
+      "jsonParseRate": "100%",
+      "errors": [],
+      "details": [
+        {
+          "run": 1,
+          "ttfb": 1232,
+          "totalTime": 1235,
+          "outputTokens": 165,
+          "promptTokens": 408,
+          "totalTokens": 573,
+          "tokensPerSec": "133.6",
+          "jsonValid": true,
+          "error": null,
+          "responsePreview": "{\"text\":\"### 🤖 Multi-Agent Consensus\\n* **Technical Analysis**: RSI=46.6, MACD=-2.4500, EMA=3376.95\\n* **Macro News**: "
+        },
+        {
+          "run": 2,
+          "ttfb": 1341,
+          "totalTime": 1345,
+          "outputTokens": 174,
+          "promptTokens": 408,
+          "totalTokens": 582,
+          "tokensPerSec": "129.4",
+          "jsonValid": true,
+          "error": null,
+          "responsePreview": "{\"text\":\"### 🤖 Multi-Agent Consensus\\n* **Technical Analysis**: RSI 46.6, MACD -2.4500, EMA 3376.95, ATR 16.30\\n* **Mac"
+        }
+      ]
+    },
+    {
+      "model": "meta/llama-3.2-3b-instruct",
+      "label": "Llama 3.2 3B",
+      "size": "3B",
+      "runs": 2,
+      "successes": 2,
+      "failures": 0,
+      "avgTotalMs": 1690,
+      "avgTTFBMs": 1689,
+      "avgTokensPerSec": "65.7",
+      "avgOutputTokens": 115,
+      "jsonParseRate": "50%",
+      "errors": [],
+      "details": [
+        {
+          "run": 1,
+          "ttfb": 2226,
+          "totalTime": 2227,
+          "outputTokens": 163,
+          "promptTokens": 408,
+          "totalTokens": 571,
+          "tokensPerSec": "73.2",
+          "jsonValid": true,
+          "error": null,
+          "responsePreview": "{\"text\":\"### 🤖 Multi-Agent Consensus\\n* **Technical Analysis**: RSI 46.6, MACD Histogram=-2.4500\\n* **Macro News**: BEA"
+        },
+        {
+          "run": 2,
+          "ttfb": 1151,
+          "totalTime": 1152,
+          "outputTokens": 67,
+          "promptTokens": 408,
+          "totalTokens": 475,
+          "tokensPerSec": "58.2",
+          "jsonValid": false,
+          "error": null,
+          "responsePreview": "{\"text\":\"### 🤖 Multi-Agent Consensus\\n* **Technical Analysis**: RSI 46.6, MACD Histogram=-2.4500\\n* **Macro News**: BEA"
+        }
+      ]
+    },
+    {
+      "model": "nvidia/nemotron-3-nano-30b-a3b",
+      "label": "Nemotron Nano 30B (MoE 3B)",
+      "size": "3B active",
+      "runs": 2,
+      "successes": 2,
+      "failures": 0,
+      "avgTotalMs": 2856,
+      "avgTTFBMs": 2854,
+      "avgTokensPerSec": "179.7",
+      "avgOutputTokens": 512,
+      "jsonParseRate": "0%",
+      "errors": [],
+      "details": [
+        {
+          "run": 1,
+          "ttfb": 2715,
+          "totalTime": 2717,
+          "outputTokens": 512,
+          "promptTokens": 414,
+          "totalTokens": 926,
+          "tokensPerSec": "188.4",
+          "jsonValid": false,
+          "error": null,
+          "responsePreview": ""
+        },
+        {
+          "run": 2,
+          "ttfb": 2992,
+          "totalTime": 2994,
+          "outputTokens": 512,
+          "promptTokens": 414,
+          "totalTokens": 926,
+          "tokensPerSec": "171.0",
+          "jsonValid": false,
+          "error": null,
+          "responsePreview": ""
+        }
+      ]
+    },
+    {
+      "model": "microsoft/phi-4-mini-instruct",
+      "label": "Phi-4 Mini",
+      "size": "~3.8B",
+      "runs": 2,
+      "successes": 2,
+      "failures": 0,
+      "avgTotalMs": 4084,
+      "avgTTFBMs": 4084,
+      "avgTokensPerSec": "59.9",
+      "avgOutputTokens": 245,
+      "jsonParseRate": "0%",
+      "errors": [],
+      "details": [
+        {
+          "run": 1,
+          "ttfb": 4014,
+          "totalTime": 4015,
+          "outputTokens": 240,
+          "promptTokens": 11,
+          "totalTokens": 251,
+          "tokensPerSec": "59.8",
+          "jsonValid": false,
+          "error": null,
+          "responsePreview": "I'm sorry, but I can't generate real-time or future market signals. However, I can provide some general guidance on how "
+        },
+        {
+          "run": 2,
+          "ttfb": 4153,
+          "totalTime": 4153,
+          "outputTokens": 249,
+          "promptTokens": 11,
+          "totalTokens": 260,
+          "tokensPerSec": "60.0",
+          "jsonValid": false,
+          "error": null,
+          "responsePreview": "I'm sorry, but I can't provide real-time or future market data, including trade signals for XAUUSD gold. However, I can "
+        }
+      ]
+    },
+    {
+      "model": "qwen/qwen3-next-80b-a3b-instruct",
+      "label": "Qwen3 Next 80B (MoE 3B)",
+      "size": "3B active",
+      "runs": 2,
+      "successes": 2,
+      "failures": 0,
+      "avgTotalMs": 5134,
+      "avgTTFBMs": 5132,
+      "avgTokensPerSec": "37.0",
+      "avgOutputTokens": 183,
+      "jsonParseRate": "100%",
+      "errors": [],
+      "details": [
+        {
+          "run": 1,
+          "ttfb": 4160,
+          "totalTime": 4162,
+          "outputTokens": 183,
+          "promptTokens": 403,
+          "totalTokens": 586,
+          "tokensPerSec": "44.0",
+          "jsonValid": true,
+          "error": null,
+          "responsePreview": "{\"text\":\"### 🤖 Multi-Agent Consensus\\n* **Technical Analysis**: RSI neutral, MACD bearish, price below EMA50\\n* **Macro"
+        },
+        {
+          "run": 2,
+          "ttfb": 6104,
+          "totalTime": 6106,
+          "outputTokens": 183,
+          "promptTokens": 403,
+          "totalTokens": 586,
+          "tokensPerSec": "30.0",
+          "jsonValid": true,
+          "error": null,
+          "responsePreview": "{\"text\":\"### 🤖 Multi-Agent Consensus\\n* **Technical Analysis**: RSI neutral, MACD bearish, price below EMA50\\n* **Macro"
+        }
+      ]
+    },
+    {
+      "model": "google/gemma-3n-e4b-it",
+      "label": "Gemma 3n E4B",
+      "size": "4B",
+      "runs": 2,
+      "successes": 2,
+      "failures": 0,
+      "avgTotalMs": 9781,
+      "avgTTFBMs": 9780,
+      "avgTokensPerSec": "17.1",
+      "avgOutputTokens": 167,
+      "jsonParseRate": "100%",
+      "errors": [],
+      "details": [
+        {
+          "run": 1,
+          "ttfb": 9605,
+          "totalTime": 9606,
+          "outputTokens": 168,
+          "promptTokens": 399,
+          "totalTokens": 567,
+          "tokensPerSec": "17.5",
+          "jsonValid": true,
+          "error": null,
+          "responsePreview": "```json\n{\"text\":\"### 🤖 Multi-Agent Consensus\\n* **Technical Analysis**: RSI: 46.6, MACD: -2.45, ATR: 16.30\\n* **Macro N"
+        },
+        {
+          "run": 2,
+          "ttfb": 9954,
+          "totalTime": 9956,
+          "outputTokens": 165,
+          "promptTokens": 399,
+          "totalTokens": 564,
+          "tokensPerSec": "16.6",
+          "jsonValid": true,
+          "error": null,
+          "responsePreview": "```json\n{\"text\":\"### 🤖 Multi-Agent Consensus\\n* **Technical Analysis**: RSI 46.6, MACD -2.4500\\n* **Macro News**: Neutr"
+        }
+      ]
+    },
+    {
+      "model": "meta/llama-3.3-70b-instruct",
+      "label": "Llama 3.3 70B (current)",
+      "size": "70B",
+      "runs": 2,
+      "successes": 2,
+      "failures": 0,
+      "avgTotalMs": 22286,
+      "avgTTFBMs": 22283,
+      "avgTokensPerSec": "5.5",
+      "avgOutputTokens": 123,
+      "jsonParseRate": "100%",
+      "errors": [],
+      "details": [
+        {
+          "run": 1,
+          "ttfb": 21928,
+          "totalTime": 21932,
+          "outputTokens": 119,
+          "promptTokens": 404,
+          "totalTokens": 523,
+          "tokensPerSec": "5.4",
+          "jsonValid": true,
+          "error": null,
+          "responsePreview": "{\"text\":\"### 🤖 Multi-Agent Consensus\\n* **Technical Analysis**: SELL\\n* **Macro News**: BEARISH\\n* **Master Synthesis**"
+        },
+        {
+          "run": 2,
+          "ttfb": 22637,
+          "totalTime": 22640,
+          "outputTokens": 127,
+          "promptTokens": 404,
+          "totalTokens": 531,
+          "tokensPerSec": "5.6",
+          "jsonValid": true,
+          "error": null,
+          "responsePreview": "{\"text\":\"### 🤖 Multi-Agent Consensus\\n* **Technical Analysis**: SELL\\n* **Macro News**: BEARISH\\n* **Master Synthesis**"
+        }
+      ]
+    },
+    {
+      "model": "nvidia/llama-3.3-nemotron-super-49b-v1.5",
+      "label": "Nemotron Super 49B v1.5",
+      "size": "49B",
+      "runs": 2,
+      "successes": 2,
+      "failures": 0,
+      "avgTotalMs": 23368,
+      "avgTTFBMs": 23367,
+      "avgTokensPerSec": "22.3",
+      "avgOutputTokens": 512,
+      "jsonParseRate": "0%",
+      "errors": [],
+      "details": [
+        {
+          "run": 1,
+          "ttfb": 20292,
+          "totalTime": 20292,
+          "outputTokens": 512,
+          "promptTokens": 385,
+          "totalTokens": 897,
+          "tokensPerSec": "25.2",
+          "jsonValid": false,
+          "error": null,
+          "responsePreview": ""
+        },
+        {
+          "run": 2,
+          "ttfb": 26442,
+          "totalTime": 26444,
+          "outputTokens": 512,
+          "promptTokens": 385,
+          "totalTokens": 897,
+          "tokensPerSec": "19.4",
+          "jsonValid": false,
+          "error": null,
+          "responsePreview": ""
+        }
+      ]
+    }
+  ],
+  "failed": [
+    {
+      "model": "nvidia/llama-3.1-nemotron-nano-8b-v1",
+      "label": "Nemotron Nano 8B",
+      "size": "8B",
+      "runs": 2,
+      "successes": 0,
+      "failures": 2,
+      "avgTotalMs": null,
+      "avgTTFBMs": null,
+      "avgTokensPerSec": "0",
+      "avgOutputTokens": 0,
+      "jsonParseRate": "0%",
+      "errors": [
+        "This operation was aborted",
+        "This operation was aborted"
+      ],
+      "details": [
+        {
+          "run": 1,
+          "ttfb": null,
+          "totalTime": 45006,
+          "outputTokens": 0,
+          "promptTokens": 0,
+          "totalTokens": 0,
+          "tokensPerSec": "0",
+          "jsonValid": false,
+          "error": "This operation was aborted",
+          "responsePreview": ""
+        },
+        {
+          "run": 2,
+          "ttfb": null,
+          "totalTime": 45004,
+          "outputTokens": 0,
+          "promptTokens": 0,
+          "totalTokens": 0,
+          "tokensPerSec": "0",
+          "jsonValid": false,
+          "error": "This operation was aborted",
+          "responsePreview": ""
+        }
+      ]
+    },
+    {
+      "model": "nv-mistralai/mistral-nemo-12b-instruct",
+      "label": "Mistral Nemo 12B",
+      "size": "12B",
+      "runs": 2,
+      "successes": 0,
+      "failures": 2,
+      "avgTotalMs": null,
+      "avgTTFBMs": null,
+      "avgTokensPerSec": "0",
+      "avgOutputTokens": 0,
+      "jsonParseRate": "0%",
+      "errors": [
+        "HTTP 404: {\"status\":404,\"title\":\"Not Found\",\"detail\":\"Function 'f8c05193-d2e2-4f0f-bb4d-7ad70070002b': Not found for account 'z-rXMyKu82QXxSzPlE9Rebf-Jw8jbwUHdpoM5i82030'\"}",
+        "HTTP 404: {\"status\":404,\"title\":\"Not Found\",\"detail\":\"Function 'f8c05193-d2e2-4f0f-bb4d-7ad70070002b': Not found for account 'z-rXMyKu82QXxSzPlE9Rebf-Jw8jbwUHdpoM5i82030'\"}"
+      ],
+      "details": [
+        {
+          "run": 1,
+          "ttfb": 361,
+          "totalTime": null,
+          "outputTokens": 0,
+          "promptTokens": 0,
+          "totalTokens": 0,
+          "tokensPerSec": "0",
+          "jsonValid": false,
+          "error": "HTTP 404: {\"status\":404,\"title\":\"Not Found\",\"detail\":\"Function 'f8c05193-d2e2-4f0f-bb4d-7ad70070002b': Not found for account 'z-rXMyKu82QXxSzPlE9Rebf-Jw8jbwUHdpoM5i82030'\"}",
+          "responsePreview": ""
+        },
+        {
+          "run": 2,
+          "ttfb": 148,
+          "totalTime": null,
+          "outputTokens": 0,
+          "promptTokens": 0,
+          "totalTokens": 0,
+          "tokensPerSec": "0",
+          "jsonValid": false,
+          "error": "HTTP 404: {\"status\":404,\"title\":\"Not Found\",\"detail\":\"Function 'f8c05193-d2e2-4f0f-bb4d-7ad70070002b': Not found for account 'z-rXMyKu82QXxSzPlE9Rebf-Jw8jbwUHdpoM5i82030'\"}",
+          "responsePreview": ""
+        }
+      ]
+    },
+    {
+      "model": "meta/llama-4-maverick-17b-128e-instruct",
+      "label": "Llama 4 Maverick 17B",
+      "size": "17B",
+      "runs": 2,
+      "successes": 0,
+      "failures": 2,
+      "avgTotalMs": null,
+      "avgTTFBMs": null,
+      "avgTokensPerSec": "0",
+      "avgOutputTokens": 0,
+      "jsonParseRate": "0%",
+      "errors": [
+        "This operation was aborted",
+        "This operation was aborted"
+      ],
+      "details": [
+        {
+          "run": 1,
+          "ttfb": null,
+          "totalTime": 45006,
+          "outputTokens": 0,
+          "promptTokens": 0,
+          "totalTokens": 0,
+          "tokensPerSec": "0",
+          "jsonValid": false,
+          "error": "This operation was aborted",
+          "responsePreview": ""
+        },
+        {
+          "run": 2,
+          "ttfb": null,
+          "totalTime": 45000,
+          "outputTokens": 0,
+          "promptTokens": 0,
+          "totalTokens": 0,
+          "tokensPerSec": "0",
+          "jsonValid": false,
+          "error": "This operation was aborted",
+          "responsePreview": ""
+        }
+      ]
+    },
+    {
+      "model": "deepseek-ai/deepseek-v4-flash",
+      "label": "DeepSeek V4 Flash",
+      "size": "large",
+      "runs": 2,
+      "successes": 0,
+      "failures": 2,
+      "avgTotalMs": null,
+      "avgTTFBMs": null,
+      "avgTokensPerSec": "0",
+      "avgOutputTokens": 0,
+      "jsonParseRate": "0%",
+      "errors": [
+        "This operation was aborted",
+        "This operation was aborted"
+      ],
+      "details": [
+        {
+          "run": 1,
+          "ttfb": null,
+          "totalTime": 45000,
+          "outputTokens": 0,
+          "promptTokens": 0,
+          "totalTokens": 0,
+          "tokensPerSec": "0",
+          "jsonValid": false,
+          "error": "This operation was aborted",
+          "responsePreview": ""
+        },
+        {
+          "run": 2,
+          "ttfb": null,
+          "totalTime": 45004,
+          "outputTokens": 0,
+          "promptTokens": 0,
+          "totalTokens": 0,
+          "tokensPerSec": "0",
+          "jsonValid": false,
+          "error": "This operation was aborted",
+          "responsePreview": ""
+        }
+      ]
+    },
+    {
+      "model": "mistralai/mistral-medium-3.5-128b",
+      "label": "Mistral Medium 3.5 128B",
+      "size": "128B",
+      "runs": 2,
+      "successes": 0,
+      "failures": 2,
+      "avgTotalMs": null,
+      "avgTTFBMs": null,
+      "avgTokensPerSec": "0",
+      "avgOutputTokens": 0,
+      "jsonParseRate": "0%",
+      "errors": [
+        "This operation was aborted",
+        "This operation was aborted"
+      ],
+      "details": [
+        {
+          "run": 1,
+          "ttfb": null,
+          "totalTime": 45033,
+          "outputTokens": 0,
+          "promptTokens": 0,
+          "totalTokens": 0,
+          "tokensPerSec": "0",
+          "jsonValid": false,
+          "error": "This operation was aborted",
+          "responsePreview": ""
+        },
+        {
+          "run": 2,
+          "ttfb": null,
+          "totalTime": 45008,
+          "outputTokens": 0,
+          "promptTokens": 0,
+          "totalTokens": 0,
+          "tokensPerSec": "0",
+          "jsonValid": false,
+          "error": "This operation was aborted",
+          "responsePreview": ""
+        }
+      ]
+    }
+  ],
+  "allResults": [
+    {
+      "model": "meta/llama-3.3-70b-instruct",
+      "label": "Llama 3.3 70B (current)",
+      "size": "70B",
+      "runs": 2,
+      "successes": 2,
+      "failures": 0,
+      "avgTotalMs": 22286,
+      "avgTTFBMs": 22283,
+      "avgTokensPerSec": "5.5",
+      "avgOutputTokens": 123,
+      "jsonParseRate": "100%",
+      "errors": [],
+      "details": [
+        {
+          "run": 1,
+          "ttfb": 21928,
+          "totalTime": 21932,
+          "outputTokens": 119,
+          "promptTokens": 404,
+          "totalTokens": 523,
+          "tokensPerSec": "5.4",
+          "jsonValid": true,
+          "error": null,
+          "responsePreview": "{\"text\":\"### 🤖 Multi-Agent Consensus\\n* **Technical Analysis**: SELL\\n* **Macro News**: BEARISH\\n* **Master Synthesis**"
+        },
+        {
+          "run": 2,
+          "ttfb": 22637,
+          "totalTime": 22640,
+          "outputTokens": 127,
+          "promptTokens": 404,
+          "totalTokens": 531,
+          "tokensPerSec": "5.6",
+          "jsonValid": true,
+          "error": null,
+          "responsePreview": "{\"text\":\"### 🤖 Multi-Agent Consensus\\n* **Technical Analysis**: SELL\\n* **Macro News**: BEARISH\\n* **Master Synthesis**"
+        }
+      ]
+    },
+    {
+      "model": "meta/llama-3.2-3b-instruct",
+      "label": "Llama 3.2 3B",
+      "size": "3B",
+      "runs": 2,
+      "successes": 2,
+      "failures": 0,
+      "avgTotalMs": 1690,
+      "avgTTFBMs": 1689,
+      "avgTokensPerSec": "65.7",
+      "avgOutputTokens": 115,
+      "jsonParseRate": "50%",
+      "errors": [],
+      "details": [
+        {
+          "run": 1,
+          "ttfb": 2226,
+          "totalTime": 2227,
+          "outputTokens": 163,
+          "promptTokens": 408,
+          "totalTokens": 571,
+          "tokensPerSec": "73.2",
+          "jsonValid": true,
+          "error": null,
+          "responsePreview": "{\"text\":\"### 🤖 Multi-Agent Consensus\\n* **Technical Analysis**: RSI 46.6, MACD Histogram=-2.4500\\n* **Macro News**: BEA"
+        },
+        {
+          "run": 2,
+          "ttfb": 1151,
+          "totalTime": 1152,
+          "outputTokens": 67,
+          "promptTokens": 408,
+          "totalTokens": 475,
+          "tokensPerSec": "58.2",
+          "jsonValid": false,
+          "error": null,
+          "responsePreview": "{\"text\":\"### 🤖 Multi-Agent Consensus\\n* **Technical Analysis**: RSI 46.6, MACD Histogram=-2.4500\\n* **Macro News**: BEA"
+        }
+      ]
+    },
+    {
+      "model": "meta/llama-3.1-8b-instruct",
+      "label": "Llama 3.1 8B",
+      "size": "8B",
+      "runs": 2,
+      "successes": 2,
+      "failures": 0,
+      "avgTotalMs": 1290,
+      "avgTTFBMs": 1287,
+      "avgTokensPerSec": "131.5",
+      "avgOutputTokens": 170,
+      "jsonParseRate": "100%",
+      "errors": [],
+      "details": [
+        {
+          "run": 1,
+          "ttfb": 1232,
+          "totalTime": 1235,
+          "outputTokens": 165,
+          "promptTokens": 408,
+          "totalTokens": 573,
+          "tokensPerSec": "133.6",
+          "jsonValid": true,
+          "error": null,
+          "responsePreview": "{\"text\":\"### 🤖 Multi-Agent Consensus\\n* **Technical Analysis**: RSI=46.6, MACD=-2.4500, EMA=3376.95\\n* **Macro News**: "
+        },
+        {
+          "run": 2,
+          "ttfb": 1341,
+          "totalTime": 1345,
+          "outputTokens": 174,
+          "promptTokens": 408,
+          "totalTokens": 582,
+          "tokensPerSec": "129.4",
+          "jsonValid": true,
+          "error": null,
+          "responsePreview": "{\"text\":\"### 🤖 Multi-Agent Consensus\\n* **Technical Analysis**: RSI 46.6, MACD -2.4500, EMA 3376.95, ATR 16.30\\n* **Mac"
+        }
+      ]
+    },
+    {
+      "model": "nvidia/nemotron-3-nano-30b-a3b",
+      "label": "Nemotron Nano 30B (MoE 3B)",
+      "size": "3B active",
+      "runs": 2,
+      "successes": 2,
+      "failures": 0,
+      "avgTotalMs": 2856,
+      "avgTTFBMs": 2854,
+      "avgTokensPerSec": "179.7",
+      "avgOutputTokens": 512,
+      "jsonParseRate": "0%",
+      "errors": [],
+      "details": [
+        {
+          "run": 1,
+          "ttfb": 2715,
+          "totalTime": 2717,
+          "outputTokens": 512,
+          "promptTokens": 414,
+          "totalTokens": 926,
+          "tokensPerSec": "188.4",
+          "jsonValid": false,
+          "error": null,
+          "responsePreview": ""
+        },
+        {
+          "run": 2,
+          "ttfb": 2992,
+          "totalTime": 2994,
+          "outputTokens": 512,
+          "promptTokens": 414,
+          "totalTokens": 926,
+          "tokensPerSec": "171.0",
+          "jsonValid": false,
+          "error": null,
+          "responsePreview": ""
+        }
+      ]
+    },
+    {
+      "model": "nvidia/llama-3.1-nemotron-nano-8b-v1",
+      "label": "Nemotron Nano 8B",
+      "size": "8B",
+      "runs": 2,
+      "successes": 0,
+      "failures": 2,
+      "avgTotalMs": null,
+      "avgTTFBMs": null,
+      "avgTokensPerSec": "0",
+      "avgOutputTokens": 0,
+      "jsonParseRate": "0%",
+      "errors": [
+        "This operation was aborted",
+        "This operation was aborted"
+      ],
+      "details": [
+        {
+          "run": 1,
+          "ttfb": null,
+          "totalTime": 45006,
+          "outputTokens": 0,
+          "promptTokens": 0,
+          "totalTokens": 0,
+          "tokensPerSec": "0",
+          "jsonValid": false,
+          "error": "This operation was aborted",
+          "responsePreview": ""
+        },
+        {
+          "run": 2,
+          "ttfb": null,
+          "totalTime": 45004,
+          "outputTokens": 0,
+          "promptTokens": 0,
+          "totalTokens": 0,
+          "tokensPerSec": "0",
+          "jsonValid": false,
+          "error": "This operation was aborted",
+          "responsePreview": ""
+        }
+      ]
+    },
+    {
+      "model": "google/gemma-3n-e4b-it",
+      "label": "Gemma 3n E4B",
+      "size": "4B",
+      "runs": 2,
+      "successes": 2,
+      "failures": 0,
+      "avgTotalMs": 9781,
+      "avgTTFBMs": 9780,
+      "avgTokensPerSec": "17.1",
+      "avgOutputTokens": 167,
+      "jsonParseRate": "100%",
+      "errors": [],
+      "details": [
+        {
+          "run": 1,
+          "ttfb": 9605,
+          "totalTime": 9606,
+          "outputTokens": 168,
+          "promptTokens": 399,
+          "totalTokens": 567,
+          "tokensPerSec": "17.5",
+          "jsonValid": true,
+          "error": null,
+          "responsePreview": "```json\n{\"text\":\"### 🤖 Multi-Agent Consensus\\n* **Technical Analysis**: RSI: 46.6, MACD: -2.45, ATR: 16.30\\n* **Macro N"
+        },
+        {
+          "run": 2,
+          "ttfb": 9954,
+          "totalTime": 9956,
+          "outputTokens": 165,
+          "promptTokens": 399,
+          "totalTokens": 564,
+          "tokensPerSec": "16.6",
+          "jsonValid": true,
+          "error": null,
+          "responsePreview": "```json\n{\"text\":\"### 🤖 Multi-Agent Consensus\\n* **Technical Analysis**: RSI 46.6, MACD -2.4500\\n* **Macro News**: Neutr"
+        }
+      ]
+    },
+    {
+      "model": "microsoft/phi-4-mini-instruct",
+      "label": "Phi-4 Mini",
+      "size": "~3.8B",
+      "runs": 2,
+      "successes": 2,
+      "failures": 0,
+      "avgTotalMs": 4084,
+      "avgTTFBMs": 4084,
+      "avgTokensPerSec": "59.9",
+      "avgOutputTokens": 245,
+      "jsonParseRate": "0%",
+      "errors": [],
+      "details": [
+        {
+          "run": 1,
+          "ttfb": 4014,
+          "totalTime": 4015,
+          "outputTokens": 240,
+          "promptTokens": 11,
+          "totalTokens": 251,
+          "tokensPerSec": "59.8",
+          "jsonValid": false,
+          "error": null,
+          "responsePreview": "I'm sorry, but I can't generate real-time or future market signals. However, I can provide some general guidance on how "
+        },
+        {
+          "run": 2,
+          "ttfb": 4153,
+          "totalTime": 4153,
+          "outputTokens": 249,
+          "promptTokens": 11,
+          "totalTokens": 260,
+          "tokensPerSec": "60.0",
+          "jsonValid": false,
+          "error": null,
+          "responsePreview": "I'm sorry, but I can't provide real-time or future market data, including trade signals for XAUUSD gold. However, I can "
+        }
+      ]
+    },
+    {
+      "model": "nv-mistralai/mistral-nemo-12b-instruct",
+      "label": "Mistral Nemo 12B",
+      "size": "12B",
+      "runs": 2,
+      "successes": 0,
+      "failures": 2,
+      "avgTotalMs": null,
+      "avgTTFBMs": null,
+      "avgTokensPerSec": "0",
+      "avgOutputTokens": 0,
+      "jsonParseRate": "0%",
+      "errors": [
+        "HTTP 404: {\"status\":404,\"title\":\"Not Found\",\"detail\":\"Function 'f8c05193-d2e2-4f0f-bb4d-7ad70070002b': Not found for account 'z-rXMyKu82QXxSzPlE9Rebf-Jw8jbwUHdpoM5i82030'\"}",
+        "HTTP 404: {\"status\":404,\"title\":\"Not Found\",\"detail\":\"Function 'f8c05193-d2e2-4f0f-bb4d-7ad70070002b': Not found for account 'z-rXMyKu82QXxSzPlE9Rebf-Jw8jbwUHdpoM5i82030'\"}"
+      ],
+      "details": [
+        {
+          "run": 1,
+          "ttfb": 361,
+          "totalTime": null,
+          "outputTokens": 0,
+          "promptTokens": 0,
+          "totalTokens": 0,
+          "tokensPerSec": "0",
+          "jsonValid": false,
+          "error": "HTTP 404: {\"status\":404,\"title\":\"Not Found\",\"detail\":\"Function 'f8c05193-d2e2-4f0f-bb4d-7ad70070002b': Not found for account 'z-rXMyKu82QXxSzPlE9Rebf-Jw8jbwUHdpoM5i82030'\"}",
+          "responsePreview": ""
+        },
+        {
+          "run": 2,
+          "ttfb": 148,
+          "totalTime": null,
+          "outputTokens": 0,
+          "promptTokens": 0,
+          "totalTokens": 0,
+          "tokensPerSec": "0",
+          "jsonValid": false,
+          "error": "HTTP 404: {\"status\":404,\"title\":\"Not Found\",\"detail\":\"Function 'f8c05193-d2e2-4f0f-bb4d-7ad70070002b': Not found for account 'z-rXMyKu82QXxSzPlE9Rebf-Jw8jbwUHdpoM5i82030'\"}",
+          "responsePreview": ""
+        }
+      ]
+    },
+    {
+      "model": "nvidia/llama-3.3-nemotron-super-49b-v1.5",
+      "label": "Nemotron Super 49B v1.5",
+      "size": "49B",
+      "runs": 2,
+      "successes": 2,
+      "failures": 0,
+      "avgTotalMs": 23368,
+      "avgTTFBMs": 23367,
+      "avgTokensPerSec": "22.3",
+      "avgOutputTokens": 512,
+      "jsonParseRate": "0%",
+      "errors": [],
+      "details": [
+        {
+          "run": 1,
+          "ttfb": 20292,
+          "totalTime": 20292,
+          "outputTokens": 512,
+          "promptTokens": 385,
+          "totalTokens": 897,
+          "tokensPerSec": "25.2",
+          "jsonValid": false,
+          "error": null,
+          "responsePreview": ""
+        },
+        {
+          "run": 2,
+          "ttfb": 26442,
+          "totalTime": 26444,
+          "outputTokens": 512,
+          "promptTokens": 385,
+          "totalTokens": 897,
+          "tokensPerSec": "19.4",
+          "jsonValid": false,
+          "error": null,
+          "responsePreview": ""
+        }
+      ]
+    },
+    {
+      "model": "meta/llama-4-maverick-17b-128e-instruct",
+      "label": "Llama 4 Maverick 17B",
+      "size": "17B",
+      "runs": 2,
+      "successes": 0,
+      "failures": 2,
+      "avgTotalMs": null,
+      "avgTTFBMs": null,
+      "avgTokensPerSec": "0",
+      "avgOutputTokens": 0,
+      "jsonParseRate": "0%",
+      "errors": [
+        "This operation was aborted",
+        "This operation was aborted"
+      ],
+      "details": [
+        {
+          "run": 1,
+          "ttfb": null,
+          "totalTime": 45006,
+          "outputTokens": 0,
+          "promptTokens": 0,
+          "totalTokens": 0,
+          "tokensPerSec": "0",
+          "jsonValid": false,
+          "error": "This operation was aborted",
+          "responsePreview": ""
+        },
+        {
+          "run": 2,
+          "ttfb": null,
+          "totalTime": 45000,
+          "outputTokens": 0,
+          "promptTokens": 0,
+          "totalTokens": 0,
+          "tokensPerSec": "0",
+          "jsonValid": false,
+          "error": "This operation was aborted",
+          "responsePreview": ""
+        }
+      ]
+    },
+    {
+      "model": "qwen/qwen3-next-80b-a3b-instruct",
+      "label": "Qwen3 Next 80B (MoE 3B)",
+      "size": "3B active",
+      "runs": 2,
+      "successes": 2,
+      "failures": 0,
+      "avgTotalMs": 5134,
+      "avgTTFBMs": 5132,
+      "avgTokensPerSec": "37.0",
+      "avgOutputTokens": 183,
+      "jsonParseRate": "100%",
+      "errors": [],
+      "details": [
+        {
+          "run": 1,
+          "ttfb": 4160,
+          "totalTime": 4162,
+          "outputTokens": 183,
+          "promptTokens": 403,
+          "totalTokens": 586,
+          "tokensPerSec": "44.0",
+          "jsonValid": true,
+          "error": null,
+          "responsePreview": "{\"text\":\"### 🤖 Multi-Agent Consensus\\n* **Technical Analysis**: RSI neutral, MACD bearish, price below EMA50\\n* **Macro"
+        },
+        {
+          "run": 2,
+          "ttfb": 6104,
+          "totalTime": 6106,
+          "outputTokens": 183,
+          "promptTokens": 403,
+          "totalTokens": 586,
+          "tokensPerSec": "30.0",
+          "jsonValid": true,
+          "error": null,
+          "responsePreview": "{\"text\":\"### 🤖 Multi-Agent Consensus\\n* **Technical Analysis**: RSI neutral, MACD bearish, price below EMA50\\n* **Macro"
+        }
+      ]
+    },
+    {
+      "model": "deepseek-ai/deepseek-v4-flash",
+      "label": "DeepSeek V4 Flash",
+      "size": "large",
+      "runs": 2,
+      "successes": 0,
+      "failures": 2,
+      "avgTotalMs": null,
+      "avgTTFBMs": null,
+      "avgTokensPerSec": "0",
+      "avgOutputTokens": 0,
+      "jsonParseRate": "0%",
+      "errors": [
+        "This operation was aborted",
+        "This operation was aborted"
+      ],
+      "details": [
+        {
+          "run": 1,
+          "ttfb": null,
+          "totalTime": 45000,
+          "outputTokens": 0,
+          "promptTokens": 0,
+          "totalTokens": 0,
+          "tokensPerSec": "0",
+          "jsonValid": false,
+          "error": "This operation was aborted",
+          "responsePreview": ""
+        },
+        {
+          "run": 2,
+          "ttfb": null,
+          "totalTime": 45004,
+          "outputTokens": 0,
+          "promptTokens": 0,
+          "totalTokens": 0,
+          "tokensPerSec": "0",
+          "jsonValid": false,
+          "error": "This operation was aborted",
+          "responsePreview": ""
+        }
+      ]
+    },
+    {
+      "model": "mistralai/mistral-medium-3.5-128b",
+      "label": "Mistral Medium 3.5 128B",
+      "size": "128B",
+      "runs": 2,
+      "successes": 0,
+      "failures": 2,
+      "avgTotalMs": null,
+      "avgTTFBMs": null,
+      "avgTokensPerSec": "0",
+      "avgOutputTokens": 0,
+      "jsonParseRate": "0%",
+      "errors": [
+        "This operation was aborted",
+        "This operation was aborted"
+      ],
+      "details": [
+        {
+          "run": 1,
+          "ttfb": null,
+          "totalTime": 45033,
+          "outputTokens": 0,
+          "promptTokens": 0,
+          "totalTokens": 0,
+          "tokensPerSec": "0",
+          "jsonValid": false,
+          "error": "This operation was aborted",
+          "responsePreview": ""
+        },
+        {
+          "run": 2,
+          "ttfb": null,
+          "totalTime": 45008,
+          "outputTokens": 0,
+          "promptTokens": 0,
+          "totalTokens": 0,
+          "tokensPerSec": "0",
+          "jsonValid": false,
+          "error": "This operation was aborted",
+          "responsePreview": ""
+        }
+      ]
+    }
+  ]
+}

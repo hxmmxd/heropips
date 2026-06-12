@@ -9,6 +9,8 @@ import {
 } from '@/lib/market';
 
 import { callLLM } from '@/lib/llmRouter';
+import { getAstroGate } from '@/lib/astro';
+import { createClient as createServerClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,11 +31,25 @@ export async function POST(request: Request) {
     const userMessages = body.messages || [];
     const lastUserMessage = userMessages[userMessages.length - 1]?.content || '';
     const accountBalance = body.accountBalance ? parseFloat(body.accountBalance.replace(/,/g, '')) : 10000;
-    const forceSignal = body.forceSignal === true; // From "Generate Signal" button
+    const forceSignal = body.forceSignal === true;
+    const astroMode = body.astroMode === true;
 
     // 1. Detect asset from user message
     const symbol = detectSymbol(lastUserMessage);
     const explicitSignal = forceSignal || wantsSignal(lastUserMessage);
+
+    // ── Astro Gate (Phase 5) ─────────────────────────────────────
+    const astroGate = astroMode && symbol ? getAstroGate(symbol) : null;
+    const astroContext = astroGate ? `\n\n${astroGate.contextBlock}` : '';
+
+    // Hard block: Mercury Retrograde / VOC / Eclipse — return immediately, no signal
+    if (astroGate && !astroGate.allowed) {
+      return NextResponse.json({
+        text: `**${astroGate.statusLine}**\n\n${astroGate.blockReason}\n\nI can still provide market analysis, but no trade ticket will be issued due to celestial blocks.`,
+        ticket: null,
+        astroGate: { allowed: false, lotMultiplier: 0, statusLine: astroGate.statusLine, blockReason: astroGate.blockReason },
+      });
+    }
 
     // Keywords that trigger the analysis card (even in longer messages)
     const ANALYSIS_KEYWORDS = [
@@ -49,7 +65,7 @@ export async function POST(request: Request) {
 
     // 2. No asset detected OR conversational mention → general conversation
     if (!symbol || !isDirectQuery) {
-      const chatSystemPrompt = `You are TradeGPT, an institutional AI trading terminal. Be friendly, concise (2 sentences max). Suggest analyzing Gold, EURUSD, Bitcoin, or Nasdaq. Respond ONLY as JSON: {"text":"your response"}`;
+      const chatSystemPrompt = `You are TradeGPT, an institutional AI trading terminal. Be friendly, concise (2 sentences max). Suggest analyzing Gold, EURUSD, Bitcoin, or Nasdaq. Respond ONLY as JSON: {"text":"your response"}${astroContext}`;
 
       // Chat path — LLM Router handles failover (Groq → NVIDIA → fallback)
       const chatResult = await callLLM(userMessages, chatSystemPrompt, 150);
@@ -78,7 +94,7 @@ export async function POST(request: Request) {
     // 3. Asset detected — fetch live market data and news headlines (parallel)
     const symDisplay = displaySymbol(symbol);
     const [snapshot, news] = await Promise.all([
-      getMarketSnapshot(symbol),
+      getMarketSnapshot(symbol, astroMode),
       fetchNewsHeadlines(5),
     ]);
 
@@ -139,7 +155,7 @@ ${newsBlock}
 
 Rules: Each bullet MUST be under 8 words. Use only real numbers. No explanation.
 
-${marketContextBlock}
+${marketContextBlock}${astroContext}
 
 Respond ONLY with JSON (no code fences):
 {"text":"### 🤖 Multi-Agent Consensus\\n* **Technical Analysis**: [data]\\n* **Macro News**: [sentiment]\\n* **Master Synthesis**: [action target]","newsSentiment":"BULLISH or BEARISH or NEUTRAL"}`;
@@ -176,6 +192,13 @@ Respond ONLY with JSON (no code fences):
         1.5,
         symbol
       );
+
+      // ── Apply Astro lot multiplier ────────────────────────────
+      const rawLot = parseFloat(riskParams.lotVolume);
+      const adjustedLot = astroGate
+        ? Math.max(0.01, parseFloat((rawLot * astroGate.lotMultiplier).toFixed(2)))
+        : rawLot;
+
       parsed.ticket = {
         ticketId: parsed.ticket?.ticketId || Math.floor(10000 + Math.random() * 90000).toString(),
         symbol: symDisplay,
@@ -183,7 +206,7 @@ Respond ONLY with JSON (no code fences):
         entryPrice: snapshot.price.toFixed(2),
         stopLoss: riskParams.stopLoss,
         takeProfit: riskParams.takeProfit,
-        lotVolume: riskParams.lotVolume,
+        lotVolume: adjustedLot.toFixed(2),
         margin: riskParams.margin,
         risk: riskParams.risk,
         profit: riskParams.profit,
@@ -191,6 +214,16 @@ Respond ONLY with JSON (no code fences):
         confidence: snapshot.confidenceGrade,
         executionStatus: 'PENDING',
         apiSymbol: symbol,
+        astroMode: astroMode,
+        astroDetails: astroMode && snapshot.astroData ? {
+          moonPhase: snapshot.astroData.lunarPhase,
+          moonEmoji: snapshot.astroData.lunarEmoji,
+          moonSign: snapshot.astroData.moonSignName,
+          mercuryState: snapshot.astroData.mercuryState,
+          voidOfCourse: snapshot.astroData.moonVoidOfCourse,
+          eclipse: snapshot.astroData.eclipseBlackout,
+          seasonal: snapshot.astroData.seasonalBias > 0 ? 'bullish' : snapshot.astroData.seasonalBias < 0 ? 'bearish' : 'neutral',
+        } : undefined,
       };
       // Mark cooldown
       markSignalFired(symbol);
@@ -217,12 +250,41 @@ Respond ONLY with JSON (no code fences):
     const gatingOutcome = snapshot?.signalOutcome || 'NO_TRADE';
     const shouldSendTicket = explicitSignal && parsed.ticket && gatingOutcome === 'SIGNAL';
 
+    if (shouldSendTicket && astroMode && snapshot && snapshot.astroData) {
+      try {
+        const supabase = createServerClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const astro = snapshot.astroData;
+          await supabase.from('astro_signal_log').insert({
+            user_id: user.id,
+            symbol: symbol,
+            direction: parsed.ticket.action,
+            confluence_score: snapshot.confluenceScore,
+            gates_passed: snapshot.gateResults.filter(g => g.passed).length,
+            outcome: snapshot.signalOutcome,
+            moon_phase: astro.moonPhase,
+            moon_phase_name: astro.lunarPhase,
+            moon_sign: astro.moonSignName,
+            mercury_state: astro.mercuryState,
+            eclipse_active: astro.eclipseBlackout,
+            void_of_course: astro.moonVoidOfCourse,
+            aspects: astro.aspects.map(a => `${a.planet1} ${a.type} ${a.planet2}`),
+            seasonal_bias: astro.seasonalBias,
+            astro_mode_on: true,
+          });
+          console.log(`[Astro Telemetry] Successfully logged signal for ${symbol} to astro_signal_log`);
+        }
+      } catch (dbErr) {
+        console.error('[Astro Telemetry] Failed to log signal to database:', dbErr);
+      }
+    }
+
     return NextResponse.json({
       text: parsed.text || 'Analysis complete.',
       ticket: shouldSendTicket ? parsed.ticket : null,
       signalSymbol: !explicitSignal ? symbol : null,
       marketData: marketData,
-      // Phase A: Gating data for frontend
       gating: {
         outcome: gatingOutcome,
         reason: snapshot?.outcomeReason || '',
@@ -230,6 +292,12 @@ Respond ONLY with JSON (no code fences):
         smcPatterns: snapshot?.smcPatterns || [],
         smcConfirmations: snapshot?.smcConfirmations || 0,
       },
+      astroGate: astroGate ? {
+        allowed: astroGate.allowed,
+        lotMultiplier: astroGate.lotMultiplier,
+        statusLine: astroGate.statusLine,
+        blockReason: astroGate.blockReason,
+      } : null,
     });
   } catch (error: any) {
     console.error('[Chat API] Unexpected error:', error);

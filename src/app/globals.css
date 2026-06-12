@@ -100,10 +100,9 @@ body {
   width: 100px;
   height: 100px;
   transform: scale(var(--size));
-  box-shadow:
-    0 0 25px 0 var(--color-three),
-    0 20px 50px 0 var(--color-four);
-  animation: tgpt-colorize calc(var(--time-animation) * 3) ease-in-out infinite;
+  box-shadow: none;
+  overflow: hidden;
+  filter: none;
 }
 .tgpt-loader::before {
   content: "";
@@ -113,16 +112,14 @@ body {
   width: 100px;
   height: 100px;
   border-radius: 50%;
-  border-top: solid 1px var(--color-one);
-  border-bottom: solid 1px var(--color-two);
-  background: linear-gradient(180deg, var(--color-five), var(--color-four));
-  box-shadow:
-    inset 0 10px 10px 0 var(--color-three),
-    inset 0 -10px 10px 0 var(--color-four);
+  border: none;
+  background: transparent;
+  box-shadow: none;
 }
 .tgpt-loader .tgpt-loader-box {
   width: 100px;
   height: 100px;
+  overflow: hidden;
   background: linear-gradient(180deg, var(--color-one) 30%, var(--color-two) 70%);
   mask: url(#tgpt-clipping);
   -webkit-mask: url(#tgpt-clipping);
@@ -188,6 +185,448 @@ body {
   80% { filter: hue-rotate(-45deg); }
   100% { filter: hue-rotate(0deg); }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   ASTRO MODE — Reimagined
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Theme Variable Overrides ─────────────────────────────── */
+.astro-mode {
+  --accent:     #d97706;
+  --border:     rgba(217, 119, 6, 0.2);
+  --sidebar-bg: #fffbeb;
+  --input-bg:   #fef3c7;
+}
+.dark.astro-mode,
+.astro-mode.dark {
+  --accent:     #f59e0b;
+  --border:     rgba(245, 158, 11, 0.18);
+  --sidebar-bg: #0c0a00;
+  --input-bg:   #1a1200;
+}
+
+/* ═══════════════════════════════════════════════════
+   ASTRO PILL TOGGLE
+   ═══════════════════════════════════════════════════ */
+
+/* Pill ON glow pulse */
+@keyframes astro-btn-glow {
+  0%, 100% { box-shadow: 0 0 10px rgba(245,158,11,0.35), 0 0 20px rgba(245,158,11,0.1); }
+  50%       { box-shadow: 0 0 18px rgba(245,158,11,0.6),  0 0 36px rgba(245,158,11,0.2); }
+}
+.astro-toggle-on {
+  animation: astro-btn-glow 2.5s ease-in-out infinite;
+}
+
+/* Moon orbit around the planet thumb */
+@keyframes toggle-moon-orbit {
+  from { transform: rotate(0deg)   translateX(10px) rotate(0deg); }
+  to   { transform: rotate(360deg) translateX(10px) rotate(-360deg); }
+}
+.astro-toggle-moon {
+  transform-box: fill-box;
+  transform-origin: 12px 12px;
+  animation: toggle-moon-orbit 4s linear infinite;
+}
+.astro-toggle-moon-slow {
+  transform-box: fill-box;
+  transform-origin: 12px 12px;
+  animation: toggle-moon-orbit 9s linear infinite;
+}
+
+/* Planet ring drift */
+@keyframes planet-ring-drift {
+  0%   { transform: rotate(-20deg) scaleY(1);    }
+  50%  { transform: rotate(-20deg) scaleY(0.85); }
+  100% { transform: rotate(-20deg) scaleY(1);    }
+}
+.astro-planet-ring {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: planet-ring-drift 3s ease-in-out infinite;
+}
+.astro-planet-ring-off {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: planet-ring-drift 5s ease-in-out infinite;
+}
+
+/* Shimmer sweep across the chip when ON */
+@keyframes chip-shimmer {
+  0%   { transform: translateX(-200%) skewX(-20deg); }
+  100% { transform: translateX(400%)  skewX(-20deg); }
+}
+
+/* Chip glow pulse */
+@keyframes chip-glow {
+  0%, 100% {
+    box-shadow: 0 0 12px rgba(245,158,11,0.3), 0 0 24px rgba(245,158,11,0.1),
+                inset 0 1px 0 rgba(251,191,36,0.2);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(245,158,11,0.55), 0 0 40px rgba(245,158,11,0.2),
+                inset 0 1px 0 rgba(251,191,36,0.35);
+  }
+}
+
+/* Sparkle icon rotation */
+@keyframes chip-sparkle {
+  0%, 100% { transform: scale(1)    rotate(0deg);  opacity: 1;   }
+  25%       { transform: scale(1.3)  rotate(20deg); opacity: 0.8; }
+  75%       { transform: scale(0.85) rotate(-10deg);opacity: 0.9; }
+}
+
+.astro-toggle-chip {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 11px;
+  height: 30px;
+  border-radius: 99px;
+  border: 1px solid;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.34,1.3,0.64,1);
+  overflow: hidden;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.astro-chip-off {
+  border-color: var(--border);
+  background: var(--input-bg);
+  color: var(--subtext);
+  opacity: 0.55;
+}
+.astro-chip-off:hover {
+  opacity: 1;
+  border-color: rgba(245,158,11,0.5);
+  color: rgba(245,158,11,0.85);
+}
+
+.astro-chip-on {
+  border-color: rgba(245,158,11,0.6);
+  background: linear-gradient(135deg,
+    rgba(120,53,15,0.5)   0%,
+    rgba(180,83,9,0.3)    50%,
+    rgba(217,119,6,0.2)   100%
+  );
+  color: #fde68a;
+  animation: chip-glow 2.8s ease-in-out infinite;
+}
+
+/* Shimmer overlay */
+.astro-chip-shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(251,191,36,0.18) 50%,
+    transparent 100%
+  );
+  animation: chip-shimmer 2.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Sparkle icon */
+.astro-chip-icon {
+  font-size: 12px;
+  line-height: 1;
+  transition: color 0.3s ease;
+  position: relative;
+  z-index: 1;
+}
+.astro-chip-on .astro-chip-icon {
+  animation: chip-sparkle 2s ease-in-out infinite;
+  filter: drop-shadow(0 0 5px rgba(245,158,11,0.9));
+  color: #fef3c7;
+}
+
+.astro-chip-label {
+  position: relative;
+  z-index: 1;
+}
+
+/* ═══════════════════════════════════════════════════
+   EMPTY STATE — COSMOS ORRERY
+   ═══════════════════════════════════════════════════ */
+
+/* Cosmos gradient wash behind the orrery */
+.astro-cosmos-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 55% 40% at 50% 42%,
+      rgba(120,53,15,0.12) 0%,
+      rgba(180,83,9,0.06)  45%,
+      transparent 75%
+    ),
+    radial-gradient(ellipse 30% 25% at 25% 75%,
+      rgba(217,119,6,0.06) 0%,
+      transparent 60%
+    );
+  animation: cosmos-drift 8s ease-in-out infinite alternate;
+}
+@keyframes cosmos-drift {
+  from { opacity: 0.6; }
+  to   { opacity: 1;   }
+}
+
+/* Star field: fixed-position tiny dots, no randomness at render */
+.astro-starfield {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(1.2px 1.2px at  8% 12%, rgba(167,139,250,0.70) 0%, transparent 100%),
+    radial-gradient(1px   1px   at 22%  6%, rgba(255,255,255,0.55)  0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 38% 18%, rgba(167,139,250,0.50) 0%, transparent 100%),
+    radial-gradient(1px   1px   at 55%  9%, rgba(255,255,255,0.45)  0%, transparent 100%),
+    radial-gradient(1.2px 1.2px at 70% 15%, rgba(251,191,36, 0.55) 0%, transparent 100%),
+    radial-gradient(1px   1px   at 84% 22%, rgba(167,139,250,0.45) 0%, transparent 100%),
+    radial-gradient(1px   1px   at 93%  8%, rgba(255,255,255,0.40)  0%, transparent 100%),
+    radial-gradient(1px   1px   at 12% 38%, rgba(255,255,255,0.35)  0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 91% 42%, rgba(251,191,36, 0.45) 0%, transparent 100%),
+    radial-gradient(1.2px 1.2px at 48% 55%, rgba(167,139,250,0.40) 0%, transparent 100%),
+    radial-gradient(1px   1px   at 28% 72%, rgba(255,255,255,0.40)  0%, transparent 100%),
+    radial-gradient(1px   1px   at 76% 68%, rgba(167,139,250,0.38) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at  5% 82%, rgba(251,191,36, 0.40) 0%, transparent 100%),
+    radial-gradient(1px   1px   at 95% 80%, rgba(255,255,255,0.38)  0%, transparent 100%),
+    radial-gradient(1px   1px   at 62% 88%, rgba(167,139,250,0.35) 0%, transparent 100%),
+    radial-gradient(1.2px 1.2px at 18% 92%, rgba(255,255,255,0.32)  0%, transparent 100%);
+  animation: starfield-twinkle 4s ease-in-out infinite alternate;
+}
+@keyframes starfield-twinkle {
+  from { opacity: 0.7; }
+  to   { opacity: 1;   }
+}
+
+/* Orrery frame — the container that holds orbit rings + planets */
+.astro-orrery {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.astro-orrery svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* Orbit rings — dashed, fade-draw on appear */
+@keyframes orbit-draw {
+  from { stroke-dashoffset: 900; opacity: 0; }
+  to   { stroke-dashoffset: 0;   opacity: 1; }
+}
+.orbit-ring {
+  fill: none;
+  stroke-dasharray: 4 5;
+  animation: orbit-draw 1s ease-out forwards;
+  opacity: 0;
+}
+.orbit-ring-1 { stroke: rgba(245,158,11,0.4);  stroke-width: 0.9; animation-delay: 0.1s; }
+.orbit-ring-2 { stroke: rgba(217,119,6,0.3);   stroke-width: 0.9; animation-delay: 0.3s; }
+.orbit-ring-3 { stroke: rgba(180,83,9,0.22);   stroke-width: 0.9; animation-delay: 0.5s; }
+
+/* Planet orbit keyframes */
+@keyframes orbit-p1 {
+  from { transform: rotate(40deg)  translateX(68px)  rotate(-40deg);  }
+  to   { transform: rotate(400deg) translateX(68px)  rotate(-400deg); }
+}
+@keyframes orbit-p2 {
+  from { transform: rotate(180deg) translateX(108px) rotate(-180deg); }
+  to   { transform: rotate(540deg) translateX(108px) rotate(-540deg); }
+}
+@keyframes orbit-p3 {
+  from { transform: rotate(300deg) translateX(146px) rotate(-300deg); }
+  to   { transform: rotate(660deg) translateX(146px) rotate(-660deg); }
+}
+
+/* Planet base */
+.astro-planet {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border-radius: 50%;
+}
+
+/* Mercury */
+.astro-p1 {
+  width: 9px; height: 9px;
+  margin: -4.5px 0 0 -4.5px;
+  background: radial-gradient(circle at 32% 28%, #bfdbfe 0%, #2563eb 55%, #1e3a8a 100%);
+  box-shadow: 0 0 8px rgba(59,130,246,0.9), 0 0 16px rgba(59,130,246,0.4);
+  animation: orbit-p1 9s linear infinite;
+}
+/* Moon */
+.astro-p2 {
+  width: 12px; height: 12px;
+  margin: -6px 0 0 -6px;
+  background: radial-gradient(circle at 32% 28%, #fef9c3 0%, #eab308 55%, #713f12 100%);
+  box-shadow: 0 0 10px rgba(234,179,8,0.95), 0 0 20px rgba(234,179,8,0.4);
+  animation: orbit-p2 15s linear infinite;
+}
+/* Jupiter */
+.astro-p3 {
+  width: 15px; height: 15px;
+  margin: -7.5px 0 0 -7.5px;
+  background: radial-gradient(circle at 32% 28%, #fecaca 0%, #dc2626 40%, #ea580c 70%, #431407 100%);
+  box-shadow: 0 0 12px rgba(220,38,38,0.7), 0 0 22px rgba(234,88,12,0.35);
+  animation: orbit-p3 24s linear infinite;
+}
+
+/* Mascot corona / nebula glow */
+@keyframes corona-pulse {
+  0%, 100% { opacity: 0.55; transform: scale(1);    }
+  50%       { opacity: 0.90; transform: scale(1.06); }
+}
+.astro-corona {
+  position: absolute;
+  inset: -28px;
+  border-radius: 50%;
+  background: radial-gradient(circle at center,
+    rgba(245,158,11,0.30) 0%,
+    rgba(217,119,6,0.15)  35%,
+    rgba(180,83,9,0.07)   60%,
+    transparent 75%
+  );
+  pointer-events: none;
+  animation: corona-pulse 3.5s ease-in-out infinite;
+}
+
+/* Mascot glow when astro active */
+@keyframes astro-mascot-glow {
+  0%, 100% { filter: drop-shadow(0 0 10px rgba(245,158,11,0.4)); }
+  50%       { filter: drop-shadow(0 0 26px rgba(245,158,11,0.75)); }
+}
+.astro-mode .tgpt-loader {
+  animation: tgpt-colorize calc(var(--time-animation)*3) ease-in-out infinite,
+             astro-mascot-glow 3s ease-in-out infinite;
+}
+
+/* Label text fade in */
+@keyframes astro-text-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+.astro-label-active {
+  animation: astro-text-in 0.6s ease forwards;
+  color: #d97706;
+}
+.dark .astro-label-active { color: #f59e0b; }
+
+/* ── Solar System Orrery Animations ──────────────── */
+.astro-orbit-ring {
+  animation: astro-ring-rotate 30s linear infinite;
+  transform-origin: center;
+}
+@keyframes astro-ring-rotate {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes astro-orbit-planet {
+  from { offset-distance: 0%; }
+  to   { offset-distance: 100%; }
+}
+.astro-twinkle {
+  animation: astro-twinkle-kf 2.4s ease-in-out infinite alternate;
+}
+@keyframes astro-twinkle-kf {
+  0%   { opacity: 0.15; transform: scale(0.7); }
+  50%  { opacity: 0.7;  transform: scale(1.2); }
+  100% { opacity: 0.25; transform: scale(0.8); }
+}
+
+/* Status badge chips under label */
+.astro-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 3px 9px;
+  border-radius: 99px;
+  border: 1px solid rgba(139,92,246,0.3);
+  background: rgba(124,58,237,0.08);
+  color: #7c3aed;
+}
+.dark .astro-badge {
+  border-color: rgba(167,139,250,0.25);
+  background: rgba(139,92,246,0.12);
+  color: #c4b5fd;
+}
+
+/* ── Activation card (bot message when first toggled ON) ── */
+.astro-activation-card {
+  background: linear-gradient(135deg, #0f0820 0%, #1a0d35 50%, #0d1124 100%);
+  border: 1px solid rgba(139,92,246,0.35);
+  border-radius: 20px;
+  padding: 20px 24px;
+  position: relative;
+  overflow: hidden;
+  color: #e9d5ff;
+  box-shadow: 0 8px 32px rgba(139,92,246,0.15), 0 2px 8px rgba(0,0,0,0.3);
+}
+.astro-activation-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(1.2px 1.2px at 12% 18%, rgba(167,139,250,0.6) 0%, transparent 100%),
+    radial-gradient(1px   1px   at 72% 12%, rgba(167,139,250,0.4) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 35% 82%, rgba(251,191,36, 0.45) 0%, transparent 100%),
+    radial-gradient(1px   1px   at 88% 55%, rgba(167,139,250,0.35) 0%, transparent 100%),
+    radial-gradient(1px   1px   at 55% 38%, rgba(167,139,250,0.30) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 20% 65%, rgba(251,191,36, 0.35) 0%, transparent 100%);
+  pointer-events: none;
+}
+.astro-activation-card .astro-card-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #c4b5fd;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.astro-activation-card .astro-card-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: #ddd6fe;
+  padding: 4px 0;
+}
+.astro-activation-card .astro-card-row .astro-tag {
+  background: rgba(139,92,246,0.2);
+  border: 1px solid rgba(139,92,246,0.3);
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #c4b5fd;
+}
+.astro-activation-card .astro-card-footer {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(139,92,246,0.2);
+  font-size: 12px;
+  color: #9b8dc4;
+  line-height: 1.5;
+}
+
+
+
 
 .status-dot {
   width: 6px;
@@ -629,6 +1068,36 @@ body {
   100% {
     transform: translateY(-100%);
   }
+}
+
+/* ── Astro Typing Indicator ────────────────────── */
+.astro-typing-orbit-wrap {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+.astro-typing-orbit-svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 0 4px rgba(245,158,11,0.4));
+}
+
+.astro-typing-loader {
+  width: fit-content;
+  font-weight: bold;
+  font-family: monospace;
+  white-space: pre;
+  font-size: 16px;
+  line-height: 1.2em;
+  height: 1.2em;
+  overflow: hidden;
+  color: #f59e0b;
+}
+.astro-typing-loader::before {
+  content: "Aligning..\A♈♉♊♋♌♍..\A☿ scanning..\A♎♏♐♑♒♓..\A🌙 syncing..\A✦ celestial..\A♃♄ transit..\A⚹ mapping..\A☽ phasing..\A✧ reading..\A♈♉♊♋♌♍♎♏";
+  white-space: pre;
+  display: inline-block;
+  animation: typing-scroll 1.2s infinite steps(11) alternate;
 }
 
 /* ── Auth Page (ChatGPT-style) ────────────────── */

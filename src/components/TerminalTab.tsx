@@ -1,14 +1,16 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Mic, ArrowUp, Zap } from 'lucide-react';
 import { ChatMessage } from '../types';
 import TradeTicket from './TradeTicket';
 import dynamic from 'next/dynamic';
 import { useLivePrices } from '@/hooks/useLivePrices';
 import { useSignal, SignalData } from '@/contexts/SignalContext';
+import { useSearchParams } from 'next/navigation';
 
 const MiniChart = dynamic(() => import('./MiniChart'), { ssr: false });
+const AstroCard = dynamic(() => import('./AstroCard'), { ssr: false });
 
 interface TerminalTabProps {
   messages: ChatMessage[];
@@ -17,6 +19,113 @@ interface TerminalTabProps {
   activeBrokerId: string;
   onTradeExecuted?: (result: { orderId: string; fillPrice?: number; ticket: any }) => void;
   onOpenManager?: () => void;
+  astroMode?: boolean;
+}
+
+// Star particle positions (fixed, no random on render)
+const STAR_POSITIONS = [
+  { top: '12%',  left: '18%',  delay: '0s'    },
+  { top: '8%',   left: '68%',  delay: '0.6s'  },
+  { top: '22%',  left: '88%',  delay: '1.1s'  },
+  { top: '75%',  left: '82%',  delay: '0.3s'  },
+  { top: '85%',  left: '25%',  delay: '1.4s'  },
+  { top: '78%',  left: '10%',  delay: '0.9s'  },
+  { top: '45%',  left: '92%',  delay: '1.8s'  },
+  { top: '50%',  left: '5%',   delay: '0.5s'  },
+];
+
+// ── Astro Activation Body (fetches live celestial data) ──
+function AstroActivationBody() {
+  const [data, setData] = React.useState<any>(null);
+  React.useEffect(() => {
+    fetch('/api/astro?symbol=XAU/USD')
+      .then(r => r.json())
+      .then(d => { if (d.success) setData(d.snapshot); })
+      .catch(() => {});
+  }, []);
+  if (!data) return (
+    <div className="px-5 py-6 flex items-center justify-center">
+      <span className="text-[10px] text-amber-400/60 uppercase tracking-widest font-bold animate-pulse">Syncing ephemeris...</span>
+    </div>
+  );
+  return (
+    <div className="px-5 py-4 space-y-2.5 text-[11px] text-slate-200">
+      <div className="flex items-center justify-between">
+        <span className="flex items-center gap-1.5">
+          <span className="text-base">{data.lunarEmoji}</span>
+          <span className="font-bold">{data.lunarPhase}</span>
+          <span className="text-slate-400">— Day {data.moonAge?.toFixed(1)} in {data.moonSignName}</span>
+        </span>
+      </div>
+      <div className="flex items-center justify-between">
+        <span className="text-slate-400">☿ Mercury</span>
+        <span className={`px-2 py-0.5 rounded text-[9px] font-black ${
+          data.mercuryState === 'retrograde' ? 'bg-red-500/20 text-red-300 border border-red-500/30'
+          : data.mercuryState === 'direct' ? 'bg-green-500/20 text-green-300 border border-green-500/30'
+          : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+        }`}>
+          {data.mercuryState?.toUpperCase()} {data.mercuryState === 'direct' ? '✓' : '⚠'}
+        </span>
+      </div>
+      {data.aspects && data.aspects.length > 0 && (
+        <div className="pt-1 border-t border-white/5 space-y-1">
+          {data.aspects.slice(0, 3).map((a: any, i: number) => (
+            <div key={i} className="flex items-center justify-between text-[10px]">
+              <span className="text-slate-300">{a.planet1} {a.type} {a.planet2}</span>
+              <span className={`text-[9px] font-bold ${a.nature === 'harmonious' ? 'text-emerald-400' : a.nature === 'tense' ? 'text-red-400' : 'text-slate-400'}`}>
+                {a.nature} ({a.orb}°)
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+      {data.moonVoidOfCourse && (
+        <div className="mt-1 bg-amber-500/15 text-amber-300 border border-amber-500/20 rounded-lg px-3 py-1.5 text-[9px] font-bold">
+          ⚠ Moon Void of Course — new entries deferred
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Solar System Orrery (empty-state animation) ──
+function SolarSystemOrrery() {
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden">
+      {/* SVG Orbit Rings */}
+      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 400 400">
+        <defs>
+          <radialGradient id="orrery-glow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="rgba(139,92,246,0.08)" />
+            <stop offset="100%" stopColor="transparent" />
+          </radialGradient>
+        </defs>
+        {/* Nebula glow */}
+        <circle cx="200" cy="200" r="180" fill="url(#orrery-glow)" />
+        {/* Inner orbit */}
+        <circle cx="200" cy="200" r="55" fill="none" stroke="rgba(168,85,247,0.15)" strokeWidth="1" strokeDasharray="4 3" className="astro-orbit-ring" style={{ animationDuration: '25s' }} />
+        {/* Middle orbit */}
+        <circle cx="200" cy="200" r="95" fill="none" stroke="rgba(139,92,246,0.12)" strokeWidth="1" strokeDasharray="5 4" className="astro-orbit-ring" style={{ animationDuration: '40s', animationDirection: 'reverse' }} />
+        {/* Outer orbit */}
+        <circle cx="200" cy="200" r="140" fill="none" stroke="rgba(124,58,237,0.10)" strokeWidth="1" strokeDasharray="6 5" className="astro-orbit-ring" style={{ animationDuration: '60s' }} />
+      </svg>
+      {/* Orbiting Planet Dots */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        {/* Mercury (ice blue) — inner orbit */}
+        <div className="absolute w-2.5 h-2.5 rounded-full bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.7)]" style={{ animation: 'astro-orbit-planet 8s linear infinite', offsetPath: 'circle(55px at center)', offsetDistance: '0%' }} />
+        {/* Moon (gold) — middle orbit */}
+        <div className="absolute w-3 h-3 rounded-full bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.7)]" style={{ animation: 'astro-orbit-planet 14s linear infinite', offsetPath: 'circle(95px at center)', offsetDistance: '33%' }} />
+        {/* Jupiter (amber-orange) — outer orbit */}
+        <div className="absolute w-3.5 h-3.5 rounded-full bg-orange-400 shadow-[0_0_12px_rgba(251,146,60,0.6)]" style={{ animation: 'astro-orbit-planet 22s linear infinite', offsetPath: 'circle(140px at center)', offsetDistance: '66%' }} />
+      </div>
+      {/* Star particles */}
+      {STAR_POSITIONS.map((star, i) => (
+        <span key={i} className="absolute text-amber-400/40 text-[10px] astro-twinkle" style={{ top: star.top, left: star.left, animationDelay: star.delay }}>
+          ✦
+        </span>
+      ))}
+    </div>
+  );
 }
 
 // Coin/Asset icons for analysis cards (larger versions of WatchIcon)
@@ -106,7 +215,10 @@ const WATCHLIST_ASSETS = [
   { symbol: 'SPY', label: 'SP500', iconType: 'spy' },
 ];
 
-export default function TerminalTab({ messages, onSendMessage, onGenerateSignal, activeBrokerId, onTradeExecuted, onOpenManager }: TerminalTabProps) {
+export default function TerminalTab({ messages, onSendMessage, onGenerateSignal, activeBrokerId, onTradeExecuted, onOpenManager, astroMode: astroModeProp }: TerminalTabProps) {
+  // Allow ?astro=1 URL param to test animation without wiring the header toggle
+  const searchParams = useSearchParams();
+  const astroMode = astroModeProp ?? searchParams.get('astro') === '1';
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -356,31 +468,37 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
       <div className="flex-1 overflow-y-auto no-scrollbar p-4 lg:p-8">
         {messages.length === 0 ? (
           /* Initial Welcome Screen */
-          <div className="h-full flex flex-col items-center justify-center text-center space-y-8 py-10 my-auto">
-            <div className="tgpt-loader shrink-0">
-              <svg width={100} height={100} viewBox="0 0 100 100">
-                <defs>
-                  <mask id="tgpt-clipping">
-                    <polygon points="0,0 100,0 100,100 0,100" fill="black" />
-                    <polygon points="25,25 75,25 50,75" fill="white" />
-                    <polygon points="50,25 75,75 25,75" fill="white" />
-                    <polygon points="35,35 65,35 50,65" fill="white" />
-                    <polygon points="35,35 65,35 50,65" fill="white" />
-                    <polygon points="35,35 65,35 50,65" fill="white" />
-                    <polygon points="35,35 65,35 50,65" fill="white" />
-                  </mask>
-                </defs>
-              </svg>
-              <div className="tgpt-loader-box" />
+          <div className="h-full flex flex-col items-center justify-center text-center py-10 my-auto gap-6 relative">
+
+            {/* Solar System Orrery backdrop (astro mode only) */}
+            {astroMode && <SolarSystemOrrery />}
+
+            {/* Label */}
+            <div key={astroMode ? 'astro' : 'normal'} className="px-8 z-10">
+              {astroMode ? (
+                <h2 className="text-xl lg:text-2xl font-medium px-8 leading-tight max-w-xl astro-label-active">
+                  ✦ Celestial signals active
+                </h2>
+              ) : (
+                <h2 className="text-2xl lg:text-3xl font-medium text-[var(--text)] px-8 leading-tight max-w-xl">
+                  Ready to trade today?
+                </h2>
+              )}
             </div>
-            <h2 className="text-2xl lg:text-3xl font-medium text-[var(--text)] px-8 leading-tight max-w-xl">
-              Ready to trade today?
-            </h2>
+
+            {/* Astro Card in welcome state */}
+            {astroMode && (
+              <div className="w-full max-w-[460px] px-4">
+                <AstroCard />
+              </div>
+            )}
+
           </div>
         ) : (
           /* Messages List */
           <div className="max-w-4xl mx-auto w-full space-y-6 pb-10 px-2">
             {messages.map((msg) => {
+              // ── User message ──
               if (msg.sender === 'user') {
                 return (
                   <div key={msg.id} className="flex flex-col items-end px-4 mb-6">
@@ -389,29 +507,84 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
                     </div>
                   </div>
                 );
-              } else {
-                const isTyping = msg.text === '__TYPING__';
+              }
+
+              // ── Astro Activation Card ──
+              if (msg.astroCard && msg.text === 'ASTRO_ACTIVATION') {
                 return (
-                  <div
-                    key={msg.id}
-                    className={`flex px-4 mb-6 animate-in slide-in-from-bottom-2 ${
-                      isTyping ? 'space-x-3 items-center' : 'flex-col items-start'
-                    }`}
-                  >
-                    {isTyping && (
-                      <div className="bot-typing-heartbeat-wrap">
-                        <svg className="bot-typing-heartbeat-svg" viewBox="0 0 64 48">
-                          <polyline className="bot-hb-back" points="0.157 23.954, 14 23.954, 21.843 48, 43 0, 50 24, 64 24" />
-                          <polyline className="bot-hb-front" points="0.157 23.954, 14 23.954, 21.843 48, 43 0, 50 24, 64 24" />
-                        </svg>
+                  <div key={msg.id} className="flex px-4 mb-6 animate-in slide-in-from-bottom-3 duration-500">
+                    <div className="w-full max-w-md bg-gradient-to-br from-slate-950 via-indigo-950/80 to-slate-950 border border-amber-500/25 rounded-2xl shadow-[0_0_25px_rgba(245,158,11,0.12)] overflow-hidden">
+                      {/* Header */}
+                      <div className="px-5 py-3.5 border-b border-amber-500/15 flex items-center gap-2.5">
+                        <span className="text-lg">✦</span>
+                        <h3 className="text-sm font-black text-amber-400 uppercase tracking-[0.18em]">
+                          Astro Mode Activated
+                        </h3>
                       </div>
+                      {/* Live Ephemeris Data (fetched inline) */}
+                      <AstroActivationBody />
+                      {/* Footer */}
+                      <div className="px-5 py-2.5 border-t border-amber-500/10 bg-amber-950/10">
+                        <p className="text-[9px] text-slate-400 leading-relaxed">
+                          Celestial cycles are now layered into every signal. Ask me to analyze any asset.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+
+              // ── Bot message ──
+              const isTyping = msg.text === '__TYPING__';
+              return (
+                <div
+                  key={msg.id}
+                  className={`flex px-4 mb-6 animate-in slide-in-from-bottom-2 ${
+                    isTyping ? 'space-x-3 items-center' : 'flex-col items-start'
+                  }`}
+                >
+                    {isTyping && (
+                      astroMode ? (
+                        /* ── Astro Planet Orbit Typing Indicator ── */
+                        <div className="astro-typing-orbit-wrap">
+                          <svg className="astro-typing-orbit-svg" viewBox="0 0 48 48">
+                            {/* Orbit ring */}
+                            <circle cx="24" cy="24" r="18" fill="none" stroke="rgba(245,158,11,0.2)" strokeWidth="1" strokeDasharray="3 2" />
+                            {/* Center star */}
+                            <circle cx="24" cy="24" r="3" fill="rgba(245,158,11,0.6)">
+                              <animate attributeName="r" values="2.5;3.5;2.5" dur="2s" repeatCount="indefinite" />
+                              <animate attributeName="opacity" values="0.5;1;0.5" dur="2s" repeatCount="indefinite" />
+                            </circle>
+                            {/* Orbiting planet */}
+                            <circle r="2.5" fill="#fbbf24">
+                              <animateMotion dur="2.4s" repeatCount="indefinite" path="M24,6 A18,18 0 1,1 23.99,6" />
+                              <animate attributeName="opacity" values="0.7;1;0.7" dur="1.2s" repeatCount="indefinite" />
+                            </circle>
+                            {/* Tiny moon */}
+                            <circle r="1.2" fill="#38bdf8" opacity="0.8">
+                              <animateMotion dur="4s" repeatCount="indefinite" path="M24,6 A18,18 0 1,1 23.99,6" begin="-1.5s" />
+                            </circle>
+                          </svg>
+                        </div>
+                      ) : (
+                        <div className="bot-typing-heartbeat-wrap">
+                          <svg className="bot-typing-heartbeat-svg" viewBox="0 0 64 48">
+                            <polyline className="bot-hb-back" points="0.157 23.954, 14 23.954, 21.843 48, 43 0, 50 24, 64 24" />
+                            <polyline className="bot-hb-front" points="0.157 23.954, 14 23.954, 21.843 48, 43 0, 50 24, 64 24" />
+                          </svg>
+                        </div>
+                      )
                     )}
                     {/* Bot Response Content */}
                     <div className="flex-1 space-y-2 w-full">
                       {/* Typing animation */}
                       {isTyping && (
-                        <div className="bg-[var(--sidebar-bg)] border border-[var(--border)] px-5 py-3 rounded-[20px] max-w-full shadow-sm">
-                          <div className="typing-loader" />
+                        <div className={`border px-5 py-3 rounded-[20px] max-w-full shadow-sm ${
+                          astroMode
+                            ? 'bg-gradient-to-r from-amber-950/20 to-slate-950/40 border-amber-500/15'
+                            : 'bg-[var(--sidebar-bg)] border-[var(--border)]'
+                        }`}>
+                          <div className={astroMode ? 'astro-typing-loader' : 'typing-loader'} />
                         </div>
                       )}
 
@@ -600,7 +773,7 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
                                     ? 'bg-red-500/8 text-red-500 border-red-500/15'
                                     : 'bg-[var(--input-bg)] text-[var(--subtext)] border-[var(--border)]'
                                 }`}>
-                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                  <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                                     <path d={msg.marketData.confluenceDirection === 'SELL' ? "M12 5v14M19 12l-7 7-7-7" : "M12 19V5M5 12l7-7 7 7"} strokeLinecap="round" strokeLinejoin="round"/>
                                   </svg>
                                   4H {msg.marketData.confluenceDirection === 'BUY' ? 'Bullish' : msg.marketData.confluenceDirection === 'SELL' ? 'Bearish' : 'Neutral'}
@@ -613,6 +786,19 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
                               }`}>
                                 📰 {msg.marketData.newsSentiment || 'NEUTRAL'}
                               </span>
+
+                              {/* ── Astro Gate Chip ── */}
+                              {msg.astroGate && (
+                                <span className={`text-[10px] font-bold tracking-wider px-2.5 py-1.5 rounded-lg border ${
+                                  !msg.astroGate.allowed
+                                    ? 'bg-red-500/8 text-red-400 border-red-500/20'
+                                    : msg.astroGate.lotMultiplier < 1
+                                    ? 'bg-amber-500/8 text-amber-400 border-amber-500/20'
+                                    : 'bg-emerald-500/8 text-emerald-400 border-emerald-500/20'
+                                }`}>
+                                  {msg.astroGate.statusLine}
+                                </span>
+                              )}
                             </div>
                           </div>
 
@@ -652,37 +838,66 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
                                     </svg>
                                   </summary>
                                   <div className="mt-2 space-y-1">
-                                    {msg.gating.gates.map((gate: any, gi: number) => (
+                                    {msg.gating.gates.map((gate: any, gi: number) => {
+                                      const isAstroGate = ['Lunar Alignment','Planetary Aspect','Mercury Risk','Eclipse / VOC Block','Seasonal Cycle'].includes(gate.name);
+                                      return (
                                       <div key={gi} className={`relative flex items-start gap-2.5 pl-3 pr-3 py-2 rounded-xl overflow-hidden ${
                                         gate.passed
-                                          ? 'bg-emerald-500/5 border border-emerald-500/10'
+                                          ? isAstroGate ? 'bg-amber-500/5 border border-amber-500/10' : 'bg-emerald-500/5 border border-emerald-500/10'
                                           : 'bg-red-500/5 border border-red-500/10'
                                       }`}>
                                         {/* Left accent stripe */}
                                         <div className={`absolute left-0 top-0 bottom-0 w-[2px] ${
-                                          gate.passed ? 'bg-emerald-500' : 'bg-red-500'
+                                          gate.passed ? (isAstroGate ? 'bg-amber-500' : 'bg-emerald-500') : 'bg-red-500'
                                         }`} />
-                                        {/* Icon */}
-                                        <div className={`w-4 h-4 rounded-md flex items-center justify-center shrink-0 mt-0.5 ${
-                                          gate.passed ? 'bg-emerald-500/15 text-emerald-500' : 'bg-red-500/15 text-red-500'
-                                        }`}>
-                                          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                                            {gate.passed
-                                              ? <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/>
-                                              : <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round"/>}
-                                          </svg>
-                                        </div>
+                                        {/* Icon — planet symbol for astro gates, tick/cross for tech gates */}
+                                        {(() => {
+                                          const ASTRO_GATE_ICONS: Record<string, string> = {
+                                            'Lunar Alignment': '☽',
+                                            'Planetary Aspect': '♃',
+                                            'Mercury Risk': '☿',
+                                            'Eclipse / VOC Block': '◑',
+                                            'Seasonal Cycle': '✦',
+                                          };
+                                          const astroIcon = ASTRO_GATE_ICONS[gate.name];
+                                          if (astroIcon) {
+                                            return (
+                                              <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 mt-0.5 text-[11px] ${
+                                                gate.passed
+                                                  ? 'bg-amber-500/15 text-amber-400'
+                                                  : 'bg-red-500/15 text-red-400'
+                                              }`}>
+                                                {astroIcon}
+                                              </div>
+                                            );
+                                          }
+                                          return (
+                                            <div className={`w-4 h-4 rounded-md flex items-center justify-center shrink-0 mt-0.5 ${
+                                              gate.passed ? 'bg-emerald-500/15 text-emerald-500' : 'bg-red-500/15 text-red-500'
+                                            }`}>
+                                              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                                {gate.passed
+                                                  ? <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/>
+                                                  : <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round"/>}
+                                              </svg>
+                                            </div>
+                                          );
+                                        })()}
                                         <div className="flex-1 min-w-0">
                                           <div className="flex items-center gap-1.5">
                                             <span className="text-[10px] font-bold text-[var(--text)]">{gate.name}</span>
                                             {['Confluence','News Event','MTF Stack'].includes(gate.name) && (
                                               <span className="text-[7px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-orange-500/12 text-orange-400 border border-orange-500/15">CRITICAL</span>
                                             )}
+                                            {isAstroGate && (
+                                              <span className="text-[7px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/12 text-amber-400 border border-amber-500/15">ASTRO</span>
+                                            )}
                                           </div>
                                           <p className="text-[9px] text-[var(--subtext)] leading-relaxed mt-0.5 font-mono">{gate.detail}</p>
                                         </div>
                                       </div>
-                                    ))}
+                                      );
+                                    })}
                                   </div>
                                 </details>
                               )}
@@ -802,7 +1017,6 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
                     </div>
                   </div>
                 );
-              }
             })}
             <div ref={messagesEndRef} />
           </div>

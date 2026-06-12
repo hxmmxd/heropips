@@ -4,75 +4,40 @@ import React, { useState } from 'react';
 import { Menu, ChevronDown, RefreshCw } from 'lucide-react';
 import { Broker } from '../types';
 import { cleanBrokerName } from '@/utils/broker';
+import CelestialMonitor from './CelestialMonitor';
 
 interface HeaderProps {
   brokers: Broker[];
   activeBroker: Broker;
   onSelectBroker: (name: string) => void;
   onToggleSidebar: () => void;
-  theme: 'light' | 'dark';
-  onToggleTheme: () => void;
   onRefresh?: () => Promise<void>;
+  astroMode?: boolean;
+  onToggleAstroMode?: () => void;
 }
 
-// Programmatic synthesizer for physical switch toggle sounds using Web Audio API
-const playSwitchSound = (isLight: boolean) => {
+// Cosmic chime for Astro Mode toggle
+const playAstroSound = (on: boolean) => {
   try {
     const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
     if (!AudioContext) return;
     const ctx = new AudioContext();
-
-    // 1. Mechanical switch click (high pass noise)
-    const bufferSize = ctx.sampleRate * 0.04; // 40ms transient buffer
-    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      data[i] = Math.random() * 2 - 1;
-    }
-
-    const noise = ctx.createBufferSource();
-    noise.buffer = buffer;
-
-    const filter = ctx.createBiquadFilter();
-    filter.type = 'highpass';
-    filter.frequency.value = 1800;
-
-    const noiseGain = ctx.createGain();
-    noiseGain.gain.setValueAtTime(0.06, ctx.currentTime);
-    noiseGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.035);
-
-    noise.connect(filter);
-    filter.connect(noiseGain);
-    noiseGain.connect(ctx.destination);
-
-    // 2. Sine tone chime (ON chime vs OFF deep click)
-    const osc = ctx.createOscillator();
-    const oscGain = ctx.createGain();
-
-    osc.type = 'sine';
-    if (isLight) {
-      // Switch ON: bright, rising chime tone
-      osc.frequency.setValueAtTime(800, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(1300, ctx.currentTime + 0.05);
-      oscGain.gain.setValueAtTime(0.04, ctx.currentTime);
-      oscGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
-    } else {
-      // Switch OFF: deeper, falling off tone
-      osc.frequency.setValueAtTime(500, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(250, ctx.currentTime + 0.05);
-      oscGain.gain.setValueAtTime(0.04, ctx.currentTime);
-      oscGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
-    }
-
-    osc.connect(oscGain);
-    oscGain.connect(ctx.destination);
-
-    noise.start();
-    osc.start();
-    noise.stop(ctx.currentTime + 0.04);
-    osc.stop(ctx.currentTime + 0.12);
+    const notes = on ? [528, 660, 792] : [792, 660, 528];
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.08);
+      gain.gain.linearRampToValueAtTime(0.03, ctx.currentTime + i * 0.08 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.08 + 0.25);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(ctx.currentTime + i * 0.08);
+      osc.stop(ctx.currentTime + i * 0.08 + 0.3);
+    });
   } catch (e) {
-    console.warn("AudioContext not allowed or supported:", e);
+    console.warn('Astro audio failed:', e);
   }
 };
 
@@ -81,12 +46,18 @@ export default function Header({
   activeBroker,
   onSelectBroker,
   onToggleSidebar,
-  theme,
-  onToggleTheme,
   onRefresh,
+  astroMode = false,
+  onToggleAstroMode,
 }: HeaderProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [monitorOpen, setMonitorOpen] = useState(false);
+
+  const handleToggleAstro = () => {
+    playAstroSound(!astroMode);
+    onToggleAstroMode?.();
+  };
 
   const handleRefresh = async () => {
     if (!onRefresh || refreshing) return;
@@ -105,18 +76,15 @@ export default function Header({
     setDropdownOpen(false);
   };
 
-  const handleToggleTheme = () => {
-    // Play lightbulb click sound effect (switching to light mode if current theme is dark)
-    playSwitchSound(theme === 'dark');
-    onToggleTheme();
-  };
-
   const isPositivePnl = activeBroker.pnl.startsWith('+');
 
   return (
     <header className="flex flex-col z-40 bg-[var(--bg)] shrink-0 pt-[env(safe-area-inset-top)]">
-      {/* Top Navbar */}
+
+      {/* ── Top Navbar ── */}
       <div className="flex items-center justify-between px-4 py-2">
+
+        {/* Hamburger (mobile) */}
         <button
           onClick={onToggleSidebar}
           className="lg:hidden w-10 h-10 flex items-center justify-center rounded-full hover:bg-[var(--input-bg)] transition text-[var(--subtext)]"
@@ -125,7 +93,7 @@ export default function Header({
           <Menu className="w-5 h-5" />
         </button>
 
-        {/* Broker Dropdown Selector */}
+        {/* Broker Dropdown */}
         <div className="relative">
           <button
             onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -137,11 +105,7 @@ export default function Header({
 
           {dropdownOpen && (
             <>
-              {/* Overlay to close dropdown on click outside */}
-              <div
-                className="fixed inset-0 z-40"
-                onClick={() => setDropdownOpen(false)}
-              />
+              <div className="fixed inset-0 z-40" onClick={() => setDropdownOpen(false)} />
               <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-56 bg-[var(--sidebar-bg)] border border-[var(--border)] rounded-xl shadow-xl p-2 z-50">
                 <div className="space-y-1">
                   {brokers.map((b) => (
@@ -162,61 +126,137 @@ export default function Header({
           )}
         </div>
 
-        <button
-          onClick={handleToggleTheme}
-          className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[var(--input-bg)] transition text-[var(--subtext)]"
-          aria-label="Toggle Theme Mode"
-        >
-          <div className="relative w-5 h-5 overflow-hidden">
-            {/* Sun Icon (Light Mode) */}
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className={`w-5 h-5 absolute inset-0 transition-all duration-500 transform ${
-                theme === 'dark'
-                  ? 'rotate-90 scale-0 opacity-0 text-[var(--subtext)]'
-                  : 'rotate-0 scale-100 opacity-100 text-[var(--accent)]'
+        {/* ── ASTRO Planet Pill Toggle ── */}
+        <div className="flex items-center space-x-1.5 relative">
+          <button
+            onClick={handleToggleAstro}
+            aria-label={astroMode ? 'Astro Mode ON — click to disable' : 'Enable Astro Mode'}
+            title={astroMode
+              ? 'Astro Mode ON — celestial cycles layered into signals. Click to disable.'
+              : 'Astro Mode — overlays lunar cycles, Mercury retrograde & planetary aspects. Not financial advice.'
+            }
+            style={{ width: 72, height: 30 }}
+            className={`relative flex items-center shrink-0 rounded-full px-[3px] border transition-all duration-300 cursor-pointer ${
+              astroMode
+                ? 'border-amber-500/50 bg-gradient-to-r from-amber-600/20 to-yellow-500/10 astro-toggle-on'
+                : 'border-[var(--border)] bg-[var(--input-bg)] hover:border-amber-400/40'
+            }`}
+          >
+            {/* ASTRO label — flips side based on state */}
+            <span
+              className={`absolute text-[8.5px] font-bold tracking-[0.12em] transition-all duration-300 select-none ${
+                astroMode
+                  ? 'left-[8px] text-amber-400'
+                  : 'right-[8px] text-[var(--subtext)] opacity-60'
               }`}
             >
-              <circle cx="12" cy="12" r="4" fill="rgba(212, 168, 67, 0.2)" />
-              <path d="M12 2v2" />
-              <path d="M12 20v2" />
-              <path d="m4.93 4.93 1.41 1.41" />
-              <path d="m17.66 17.66 1.41 1.41" />
-              <path d="M2 12h2" />
-              <path d="M20 12h2" />
-              <path d="m6.34 17.66-1.41 1.41" />
-              <path d="m19.07 4.93-1.41 1.41" />
-            </svg>
+              ASTRO
+            </span>
 
-            {/* Moon Icon (Dark Mode) */}
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className={`w-5 h-5 absolute inset-0 transition-all duration-500 transform ${
-                theme === 'dark'
-                  ? 'rotate-0 scale-100 opacity-100 text-[var(--accent)]'
-                  : '-rotate-90 scale-0 opacity-0 text-[var(--subtext)]'
-              }`}
+            {/* Sliding planet thumb */}
+            <div
+              className="relative z-10 flex items-center justify-center rounded-full transition-all duration-[400ms] ease-[cubic-bezier(0.34,1.56,0.64,1)]"
+              style={{
+                width: 24,
+                height: 24,
+                transform: astroMode ? 'translateX(42px)' : 'translateX(0px)',
+              }}
             >
-              <path
-                d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"
-                fill="rgba(212, 168, 67, 0.2)"
-              />
-            </svg>
-          </div>
-        </button>
+              <svg viewBox="0 0 24 24" width="24" height="24" style={{ overflow: 'visible' }}>
+                <defs>
+                  <radialGradient id="pill-planet-grad" cx="36%" cy="30%" r="68%">
+                    {astroMode ? (
+                      <>
+                        <stop offset="0%"   stopColor="#fef9c3" />
+                        <stop offset="45%"  stopColor="#f59e0b" />
+                        <stop offset="100%" stopColor="#78350f" />
+                      </>
+                    ) : (
+                      <>
+                        <stop offset="0%"   stopColor="#cbd5e1" />
+                        <stop offset="45%"  stopColor="#64748b" />
+                        <stop offset="100%" stopColor="#1e293b" />
+                      </>
+                    )}
+                  </radialGradient>
+                  <clipPath id="pill-ring-front">
+                    <rect x="0" y="11.5" width="24" height="13" />
+                  </clipPath>
+                  <clipPath id="pill-ring-back">
+                    <rect x="0" y="0" width="24" height="12.5" />
+                  </clipPath>
+                </defs>
+
+                {/* Back ring arc */}
+                <ellipse cx="12" cy="12" rx="10.5" ry="3.4"
+                  fill="none"
+                  stroke={astroMode ? '#d97706' : '#94a3b8'}
+                  strokeWidth="1.4"
+                  opacity={astroMode ? 0.35 : 0.2}
+                  transform="rotate(-18 12 12)"
+                  clipPath="url(#pill-ring-back)"
+                />
+
+                {/* Planet body */}
+                <circle cx="12" cy="12" r="5.8" fill="url(#pill-planet-grad)" />
+
+                {/* Atmospheric band */}
+                <path d="M 8.2 10.2 Q 12 8.8 15.8 10.2"
+                  fill="none"
+                  stroke={astroMode ? 'rgba(254,243,199,0.3)' : 'rgba(255,255,255,0.12)'}
+                  strokeWidth="1.4"
+                  strokeLinecap="round"
+                />
+
+                {/* Specular spot */}
+                <circle cx="9.8" cy="9.2" r="2" fill="white"
+                  opacity={astroMode ? 0.22 : 0.15}
+                />
+
+                {/* Front ring arc */}
+                <ellipse cx="12" cy="12" rx="10.5" ry="3.4"
+                  fill="none"
+                  stroke={astroMode ? '#fbbf24' : '#94a3b8'}
+                  strokeWidth="1.5"
+                  opacity={astroMode ? 0.9 : 0.3}
+                  transform="rotate(-18 12 12)"
+                  clipPath="url(#pill-ring-front)"
+                  className={astroMode ? 'astro-planet-ring' : 'astro-planet-ring-off'}
+                />
+
+                {/* Orbiting moon */}
+                <circle
+                  cx="12" cy="12"
+                  r={astroMode ? 1.6 : 1.3}
+                  fill={astroMode ? '#fbbf24' : '#94a3b8'}
+                  style={astroMode
+                    ? { filter: 'drop-shadow(0 0 3px rgba(251,191,36,0.9))' }
+                    : { opacity: 0.6 }
+                  }
+                  className={astroMode ? 'astro-toggle-moon' : 'astro-toggle-moon-slow'}
+                />
+              </svg>
+            </div>
+          </button>
+
+          {astroMode && (
+            <button
+              onClick={() => setMonitorOpen(!monitorOpen)}
+              className="w-[28px] h-[28px] flex items-center justify-center rounded-full bg-indigo-950/80 border border-amber-500/30 text-amber-400 hover:bg-indigo-900 transition-colors shrink-0 animate-pulse text-xs font-bold"
+              title="Open Celestial Ephemeris Monitor"
+            >
+              ☄
+            </button>
+          )}
+
+          {astroMode && monitorOpen && (
+            <CelestialMonitor onClose={() => setMonitorOpen(false)} />
+          )}
+        </div>
+
       </div>
 
-      {/* Account Info Cards */}
+      {/* ── Account Info Bar ── */}
       <div className="px-4 pb-2">
         <div className="flex items-center justify-between p-3 px-6 border border-[var(--border)] bg-[var(--sidebar-bg)] rounded-2xl shadow-sm">
           <div className="flex items-center space-x-10 md:space-x-16 overflow-x-auto no-scrollbar">

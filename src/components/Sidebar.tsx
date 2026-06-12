@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Terminal, Server, Receipt, Network, X, LogOut, Settings, ChevronDown, BarChart3, GraduationCap, Star } from 'lucide-react';
+import { Terminal, Server, Receipt, Network, X, LogOut, Settings, ChevronDown, BarChart3, GraduationCap, Star, Telescope } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { getUserAvatar } from '@/lib/avatar';
 
@@ -10,9 +10,12 @@ interface SidebarProps {
   switchTab: (tabId: string) => void;
   isOpen: boolean;
   onToggle: () => void;
+  theme: 'light' | 'dark';
+  onToggleTheme: () => void;
+  astroMode?: boolean;
 }
 
-export default function Sidebar({ currentTab, switchTab, isOpen, onToggle }: SidebarProps) {
+export default function Sidebar({ currentTab, switchTab, isOpen, onToggle, theme, onToggleTheme, astroMode }: SidebarProps) {
   const [user, setUser] = useState<any>(null);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const supabase = createClient();
@@ -46,6 +49,7 @@ export default function Sidebar({ currentTab, switchTab, isOpen, onToggle }: Sid
     { id: 'history', label: 'Trade Logs', icon: Receipt },
     { id: 'referral', label: 'Referral Hub', icon: Network },
     { id: 'courses', label: 'Courses', icon: GraduationCap },
+    ...(astroMode ? [{ id: 'astro-performance', label: 'Astro Analytics', icon: Telescope }] : []),
   ];
 
   const bottomLinks = [
@@ -148,6 +152,60 @@ export default function Sidebar({ currentTab, switchTab, isOpen, onToggle }: Sid
 
           {/* ── Bottom Section ── */}
           <div className="px-3 pb-2 pt-2 space-y-[2px]">
+
+            {/* ── Light / Dark Mode Toggle ── */}
+            <div className="flex items-center justify-between px-3 py-2.5 rounded-xl mb-1">
+              <div className="flex items-center gap-2.5">
+                {/* Sun / Moon icon */}
+                <div className="relative w-[18px] h-[18px]">
+                  {/* Sun */}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"
+                    strokeLinecap="round" strokeLinejoin="round"
+                    className={`w-[18px] h-[18px] absolute inset-0 transition-all duration-500 ${
+                      theme === 'dark' ? 'opacity-0 scale-0 rotate-90' : 'opacity-100 scale-100 rotate-0'
+                    } text-[var(--accent)]`}
+                  >
+                    <circle cx="12" cy="12" r="4" fill="rgba(212,168,67,0.2)" />
+                    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+                  </svg>
+                  {/* Moon */}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"
+                    strokeLinecap="round" strokeLinejoin="round"
+                    className={`w-[18px] h-[18px] absolute inset-0 transition-all duration-500 ${
+                      theme === 'dark' ? 'opacity-100 scale-100 rotate-0' : 'opacity-0 scale-0 -rotate-90'
+                    } text-[var(--accent)]`}
+                  >
+                    <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" fill="rgba(212,168,67,0.2)" />
+                  </svg>
+                </div>
+                <span className="sb-nav-label text-[13px]">
+                  {theme === 'dark' ? 'Dark Mode' : 'Light Mode'}
+                </span>
+              </div>
+
+              {/* Pill toggle switch */}
+              <button
+                onClick={onToggleTheme}
+                aria-label="Toggle light/dark mode"
+                className={`relative flex items-center rounded-full border transition-all duration-300 shrink-0 ${
+                  theme === 'dark'
+                    ? 'bg-[var(--accent)]/15 border-[var(--accent)]/30'
+                    : 'bg-[var(--input-bg)] border-[var(--border)]'
+                }`}
+                style={{ width: 40, height: 22 }}
+              >
+                <span
+                  className="absolute rounded-full transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
+                  style={{
+                    width: 16, height: 16,
+                    background: theme === 'dark' ? 'var(--accent)' : 'var(--subtext)',
+                    opacity: theme === 'dark' ? 1 : 0.45,
+                    left: theme === 'dark' ? '20px' : '3px',
+                  }}
+                />
+              </button>
+            </div>
+
             {/* Settings link */}
             <button
               onClick={() => { switchTab('profile'); if (isOpen) onToggle(); }}

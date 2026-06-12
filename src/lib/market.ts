@@ -12,6 +12,7 @@ import { computeVWAP, type VWAPResult } from './vwap';
 import { getMTFBias, type MTFBias } from './mtfBias';
 import { detectCandlePatterns, type PatternResult } from './candlePatterns';
 import { computeKellySizing, type KellyResult } from './kellyCriterion';
+import { computeAstroSnapshot, getAstroGate, type AstroSnapshot } from './astro';
 
 const BASE_URL = 'https://api.twelvedata.com';
 
@@ -194,6 +195,10 @@ export interface MarketSnapshot {
   mtfBias: MTFBias;
   candlePatterns: PatternResult;
   kellySizing: KellyResult;
+  // Phase D additions
+  astroMode?: boolean;
+  astroData?: AstroSnapshot;
+  astroGates?: GateResult[];
 }
 
 // ── Fetch Helpers ──────────────────────────────────────────
@@ -523,11 +528,12 @@ export function markSignalFired(symbol: string) {
 
 // ── Main Market Snapshot Assembler ─────────────────────────
 
-export async function getMarketSnapshot(symbol: string): Promise<MarketSnapshot | null> {
+export async function getMarketSnapshot(symbol: string, astroMode?: boolean): Promise<MarketSnapshot | null> {
+  const cacheKey = `${symbol}:${astroMode ? 'astro' : 'normal'}`;
   // Return cached result if still fresh
-  const cached = SNAPSHOT_CACHE.get(symbol);
+  const cached = SNAPSHOT_CACHE.get(cacheKey);
   if (cached && Date.now() < cached.expiresAt) {
-    console.log(`[Market Engine] Cache hit for ${symbol} (expires in ${Math.round((cached.expiresAt - Date.now()) / 1000)}s)`);
+    console.log(`[Market Engine] Cache hit for ${cacheKey} (expires in ${Math.round((cached.expiresAt - Date.now()) / 1000)}s)`);
     return cached.snapshot;
   }
 
@@ -668,31 +674,127 @@ export async function getMarketSnapshot(symbol: string): Promise<MarketSnapshot 
     const patternConflict = patternResult.signal !== 'neutral' && patternResult.signal !== direction.toLowerCase() as 'bullish' | 'bearish';
     gates.push({ name: 'Candle Pattern', passed: !patternConflict, detail: patternResult.detail });
 
-    // ── Determine Outcome (12-gate system) ────────────────
+    // ── Gates 13–17 (Astro Mode) ─────────────────────────
+    let astroSnap: AstroSnapshot | undefined = undefined;
+    let astroGates: GateResult[] = [];
+
+    if (astroMode) {
+      astroSnap = computeAstroSnapshot(symbol);
+
+      // Gate 13: Lunar Phase Alignment
+      const lunarPassed = (direction === 'BUY' && astroSnap.lunaBias === 'bullish') ||
+                          (direction === 'SELL' && astroSnap.lunaBias === 'bearish') ||
+                          astroSnap.lunaBias === 'neutral';
+      const g13 = {
+        name: 'Lunar Alignment',
+        passed: lunarPassed,
+        detail: `Phase: ${astroSnap.lunarPhase} (${astroSnap.lunaBias}) vs Signal: ${direction}`
+      };
+      gates.push(g13);
+      astroGates.push(g13);
+
+      // Gate 14: Planetary Aspect
+      const aspectsPassed = astroSnap.aspects.length > 0;
+      const g14 = {
+        name: 'Planetary Aspect',
+        passed: aspectsPassed,
+        detail: `${astroSnap.aspects.length} aspects: ${astroSnap.aspects.map(a => `${a.planet1} ${a.type} ${a.planet2}`).join(', ') || 'none'}`
+      };
+      gates.push(g14);
+      astroGates.push(g14);
+
+      // Gate 15: Mercury Risk
+      const mercuryPassed = astroSnap.mercuryState !== 'retrograde';
+      const g15 = {
+        name: 'Mercury Risk',
+        passed: mercuryPassed,
+        detail: `Mercury state: ${astroSnap.mercuryState}`
+      };
+      gates.push(g15);
+      astroGates.push(g15);
+
+      // Gate 16: Eclipse / VOC Block
+      const blockPassed = !astroSnap.eclipseBlackout && !astroSnap.moonVoidOfCourse;
+      const g16 = {
+        name: 'Eclipse / VOC Block',
+        passed: blockPassed,
+        detail: `Eclipse: ${astroSnap.eclipseBlackout ? 'Blocked' : 'Clear'}, Moon VOC: ${astroSnap.moonVoidOfCourse ? 'Void' : 'Clear'}`
+      };
+      gates.push(g16);
+      astroGates.push(g16);
+
+      // Gate 17: Seasonal Cycle
+      const seasonalPassed = (direction === 'BUY' && astroSnap.seasonalBias >= 0) ||
+                             (direction === 'SELL' && astroSnap.seasonalBias <= 0);
+      const g17 = {
+        name: 'Seasonal Cycle',
+        passed: seasonalPassed,
+        detail: `Seasonal bias: ${astroSnap.seasonalBias > 0 ? 'Bullish' : astroSnap.seasonalBias < 0 ? 'Bearish' : 'Neutral'}`
+      };
+      gates.push(g17);
+      astroGates.push(g17);
+    }
+
+    // ── Determine Outcome ────────────────
     const passedCount = gates.filter(g => g.passed).length;
-    const totalGates = gates.length; // now 12
+    const totalGates = gates.length;
     const criticalGates = ['Confluence', 'News Event', 'MTF Stack'];
     const criticalFailed = gates.filter(g => criticalGates.includes(g.name) && !g.passed);
 
     let signalOutcome: SignalOutcome;
     let outcomeReason: string;
 
+    const techPassed = gates.slice(0, 12).filter(g => g.passed).length;
+
     if (criticalFailed.length > 0) {
       signalOutcome = 'NO_TRADE';
       outcomeReason = `Critical gate failed: ${criticalFailed.map(g => g.name).join(', ')}`;
-    } else if (passedCount >= 8) {
-      signalOutcome = 'SIGNAL';
-      outcomeReason = `${passedCount}/${totalGates} gates passed — high-confluence setup`;
-    } else if (passedCount >= 5) {
-      signalOutcome = 'WATCH';
-      const failed = gates.filter(g => !g.passed).map(g => g.name);
-      outcomeReason = `${passedCount}/${totalGates} gates passed — watching: ${failed.join(', ')}`;
+    } else if (astroMode && astroSnap) {
+      if (techPassed < 5) {
+        signalOutcome = 'NO_TRADE';
+        outcomeReason = `Astro Mode active. Technical gates failed threshold (${techPassed}/12 passed, need ≥5). Hard block.`;
+      } else if (passedCount >= 9) {
+        signalOutcome = 'SIGNAL';
+        if (techPassed >= 8) {
+          outcomeReason = `Astro Mode active: ${passedCount}/17 gates passed (Tech: ${techPassed}/12, Astro: ${passedCount - techPassed}/5). Confluence confirmed.`;
+        } else {
+          outcomeReason = `Astro Mode UPGRADE: Technical baseline WATCH (${techPassed}/12), celestial confluence pushes total to ${passedCount}/17. Signal dispatched.`;
+        }
+      } else if (passedCount >= 6) {
+        signalOutcome = 'WATCH';
+        const failed = gates.filter(g => !g.passed).map(g => g.name);
+        outcomeReason = `Astro Mode active: ${passedCount}/17 gates passed. Watching: ${failed.join(', ')}`;
+      } else {
+        signalOutcome = 'NO_TRADE';
+        outcomeReason = `Only ${passedCount}/17 gates passed — insufficient confluence`;
+      }
     } else {
-      signalOutcome = 'NO_TRADE';
-      outcomeReason = `Only ${passedCount}/${totalGates} gates passed — insufficient confluence`;
+      // Standard 12-gate logic
+      if (passedCount >= 8) {
+        signalOutcome = 'SIGNAL';
+        outcomeReason = `${passedCount}/${totalGates} gates passed — high-confluence setup`;
+      } else if (passedCount >= 5) {
+        signalOutcome = 'WATCH';
+        const failed = gates.filter(g => !g.passed).map(g => g.name);
+        outcomeReason = `${passedCount}/${totalGates} gates passed — watching: ${failed.join(', ')}`;
+      } else {
+        signalOutcome = 'NO_TRADE';
+        outcomeReason = `Only ${passedCount}/${totalGates} gates passed — insufficient confluence`;
+      }
     }
 
     console.log(`[Market Engine] Outcome: ${signalOutcome} — ${outcomeReason}`);
+
+    // Apply Astro lot multiplier to Kelly sizing result if active
+    let finalLots = kellyResult.recommendedLots;
+    let finalDetail = kellyResult.detail;
+    if (astroMode) {
+      const astroGate = getAstroGate(symbol);
+      if (astroGate) {
+        finalLots = Math.max(0.01, parseFloat((finalLots * astroGate.lotMultiplier).toFixed(2)));
+        finalDetail = `${finalDetail} | Astro Sizing adjustment x${astroGate.lotMultiplier} → ${finalLots} lots`;
+      }
+    }
 
     const snapshot: MarketSnapshot = {
       symbol,
@@ -721,11 +823,19 @@ export async function getMarketSnapshot(symbol: string): Promise<MarketSnapshot 
       vwap: vwapResult,
       mtfBias: mtfResult,
       candlePatterns: patternResult,
-      kellySizing: kellyResult,
+      kellySizing: {
+        ...kellyResult,
+        recommendedLots: finalLots,
+        detail: finalDetail
+      },
+      // Phase D additions
+      astroMode,
+      astroData: astroSnap,
+      astroGates: astroGates.length > 0 ? astroGates : undefined
     };
 
     // Store in cache
-    SNAPSHOT_CACHE.set(symbol, { snapshot, expiresAt: Date.now() + SNAPSHOT_TTL_MS });
+    SNAPSHOT_CACHE.set(cacheKey, { snapshot, expiresAt: Date.now() + SNAPSHOT_TTL_MS });
 
     return snapshot;
   } catch (error) {
