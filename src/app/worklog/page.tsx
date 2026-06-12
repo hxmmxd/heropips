@@ -35,6 +35,28 @@ const tagStyles: Record<string, { bg: string; color: string; label: string }> = 
 
 const worklog: WorkDay[] = [
   {
+    date: 'June 12, 2026',
+    dayLabel: 'Friday',
+    commitCount: 22,
+    blocks: [
+      {
+        tag: 'major',
+        time: '08:30 PM',
+        title: 'Astro Mode Complete Release — Gates, Orrery & Analytics',
+        summary: 'Completed the remaining specifications for Astro Mode: automated activation cards, solar system orrery animation backdrop, a comprehensive backtest performance analytics dashboard tab, dynamic celestial typing loaders, and verified the full 17-gate pipeline.',
+        items: [
+          { icon: '🪐', title: 'Solar System Orrery Animation (TerminalTab.tsx)', description: 'Created an SVG backdrop with 3 concentric rotating orbital tracks, planet markers on offset-path keyframes (Mercury, Moon, Jupiter), and an 8-star twinkling particle grid.', files: ['src/components/TerminalTab.tsx', 'src/app/globals.css'] },
+          { icon: '☄️', title: 'Astro Activation Card (TerminalTab.tsx)', description: 'Implemented a chat-injected cosmic card showing live moon phase, mercury state, aspects, and dynamic risk/bias summary to provide visual feedback upon first activation.', files: ['src/components/TerminalTab.tsx'] },
+          { icon: '📈', title: 'Astro Performance Tab Dashboard (AstroPerformanceTab.tsx)', description: 'Built an analytics dashboard visualizing Moon phase win rate stats, Mercury direct/retrograde avg PnL, seasonal monthly heatmaps, aspect rankings, and a historical signal table.', files: ['src/components/AstroPerformanceTab.tsx'] },
+          { icon: '📡', title: 'Analytics API Aggregation (api/astro/analytics/route.ts)', description: 'Created API query aggregating telemetry data from the astro_signal_log database table, returning aggregated metrics per celestial factor.', files: ['src/app/api/astro/analytics/route.ts'] },
+          { icon: '🐛', title: 'Fix: Gating Parameter Passthrough (api/chat/route.ts)', description: 'Resolved critical bug where getMarketSnapshot was called without astroMode, preventing Gates 13-17 from running during chat query signal checks.', files: ['src/app/api/chat/route.ts'] },
+          { icon: '🛸', title: 'Astro Typing Loader (TerminalTab.tsx)', description: 'Rebuilt bot typing state under astro mode to show a rotating planet-and-moon orbit SVG alongside scrolling zodiac symbols (♈♉♊♋♌♍♎♏) instead of standard loading text.', files: ['src/components/TerminalTab.tsx', 'src/app/globals.css'] },
+          { icon: '✨', title: 'Amber Gate Styling & Icons (TerminalTab.tsx)', description: 'Replaced generic check/cross icons for Gates 13-17 with custom planet symbols (☽♃☿◑✦), amber accent stripes, and custom ASTRO badges.', files: ['src/components/TerminalTab.tsx'] }
+        ]
+      }
+    ]
+  },
+  {
     date: 'June 10, 2026',
     dayLabel: 'Wednesday',
     commitCount: 5,
