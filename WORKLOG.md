@@ -375,8 +375,14 @@ Validates signals against correlated/inverse markets:
 
 **Added:**
 - Interactive Features & Architecture Explorer: Dual-tab interface inside `/worklog` detailing app architecture, flowcharts, component routes, and database tables.
+- High-Fidelity SVG Flowcharts: Replaced ASCII layout with custom interactive SVG diagrams drawing orthogonal elbow connectors, neon path pulses, node category indicators, and hover-state node highlighting.
+- Collapsible raw ASCII flowchart representation fallback inside native `<details>` toggle.
 - Upscaled Features with interactive sub-tabs: Overview, Flowchart, DB Schema, and Source Files.
-- Real-time simulations inside core features: Celestial Orrery (Astro Mode), Gate Confluence Slider (9-Gates), 40/40/20 Referral Leg progress bars (Rebates), self-healing diagnostic logging simulator terminal (Courses).
+- Real-time interactive simulations inside core features:
+  - **Astro Orrery**: Select presets for Moon Phase, Mercury Orbit State, and Aspects to instantly adjust orbital speeds, color indicators, risk recommendations, and lot multipliers.
+  - **9-Gate Confluence Evaluator**: Checkbox overrides to toggle pass/fail confluences (Session, ATR, SMC Imbalance, etc.) and run sequential evaluator step trials.
+  - **Referral Capping Calculator**: Number inputs for Alice, Bob, and Charlie to recalculate leg contributions under the 40/40/20 PostgreSQL rule and milestone target progress.
+  - **Diagnostic Console**: active triggers simulating wallet payment ledger checks, DB constraint lockout recovery, and insufficient balance exceptions.
 - Monospace flowchart copy-to-clipboard widget and structured tables listing exact database fields.
 - Unicode code-point array mapping to prevent emoji splitting on surrogate pairs.
 - Self-referencing update script.

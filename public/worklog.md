@@ -1,13 +1,22 @@
-# June 13, 2026 | Saturday | Commits: 3
+# June 13, 2026 | Saturday | Commits: 5
+
+## [major] 04:30 PM - Interactive SVG & Grid Flowchart Diagrams
+Upscaled the Subsystems & Architecture tab to render high-fidelity, interactive SVG and Grid flowcharts instead of static text ASCII diagrams. Includes orthogonal path routing, neon data pulse animations, and relative node highlighting.
+
+- 📐 **Interactive SVG Connectors**: Designed orthogonal elbow connectors routing paths dynamically between column and row coordinates.
+- ⚡ **Neon Pulse Animation**: Configured SVG `<animateMotion>` circles traversing the path of hovered confluences in real time.
+- 🎨 **Status-Coded Node Badges**: Color coded node types (`start`, `process`, `decision`, `success`, `fail`, `warning`) with glassmorphism and matching shadows.
+- 🔍 **Relative Node Highlighting**: Hovering over any node dynamically highlights connected paths and fades out unrelated nodes.
+- 📋 **Collapsible ASCII Fallback**: Enclosed the raw ASCII flowchart diagram inside a native `<details>` toggle to preserve compatibility.
 
 ## [major] 03:20 AM - Upscaled Features Page & Interactive Subsystem Explorer
 Upscaled the Subsystems & Architecture explorer page with a premium interactive sub-tab bar inside each card, real-time simulated sandbox dashboards, and diagnostic terminals for the core systems.
 
 - 🏗️ **Interactive Sub-Tabs Navigation**: Added tabs for `Overview`, `Flowchart`, `DB Schema`, and `Source Files` within each subsystem card.
-- 🪐 **Astro Orrery Simulation**: Rendered a live celestial orbit and telemetry feed displaying real-time waning/waxing moon phase percentage, mercury retrograde state, aspect angle, and risk factors.
-- ⚡ **9-Gate Confluence Engine Tracker**: Built a live sequence of 9 circular nodes evaluating market filters in real time with a slider handle indicator.
-- 🌳 **Referral Capping Demonstrator**: Visualized team leg direct contributions demonstrating the 40/40/20 PostgreSQL cap rule.
-- 💳 **Diagnostic Database Terminal Console**: Integrated a live transaction self-healing diagnostic logs output for course payments.
+- 🪐 **Interactive Astro Orrery Simulator**: Configured preset selectors for Moon Phase (Waxing, Waning, Full, Eclipse), Mercury Orbit State (Direct vs Retrograde), and Aspect Alignments to dynamically alter SVG orbit speed, colors, risk recommendations, and lot multipliers in real time.
+- ⚡ **Interactive 9-Gate Confluence Evaluator**: Built an override checkbox board allowing testers to toggle pass/fail status on individual confluences (Session, ATR Volatility, SMC Confirmation, Drawdown, etc.) and run sequential gate evaluation trials.
+- 🌳 **Referral Capping Calculator**: Implemented an interactive input calculator for Alice, Bob, and Charlie's raw lots that instantly applies the 40% leg cap rule and computes total milestone progress.
+- 💳 **Active Diagnostic Console**: Created clickable triggers simulating wallet checkout outcomes (Successful purchase log stream, Database lockout recovery self-healing, and Insufficient balance exceptions).
 - 📋 **Flowchart Copy-to-Clipboard**: Implemented a copy-to-clipboard button on the monospace ASCII flowcharts with UI success state.
 - 💾 **PostgreSQL Database Schema Tables**: Mapped table fields, type constraints, and description keys dynamically inside cards.
 

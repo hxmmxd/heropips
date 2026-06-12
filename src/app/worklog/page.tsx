@@ -610,6 +610,235 @@ interface FileRole {
   role: string;
 }
 
+interface FlowchartNode {
+  id: string;
+  label: string;
+  type: 'start' | 'process' | 'decision' | 'success' | 'fail' | 'warning';
+  col: number;
+  row: number;
+}
+
+interface FlowchartEdge {
+  from: string;
+  to: string;
+  label?: string;
+}
+
+interface FlowchartData {
+  nodes: FlowchartNode[];
+  edges: FlowchartEdge[];
+}
+
+const InteractiveFlowchart: React.FC<{ data: FlowchartData }> = ({ data }) => {
+  const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+
+  // Grid mapping for absolute layout
+  const nodeMap = new Map<string, FlowchartNode>();
+  data.nodes.forEach(n => {
+    nodeMap.set(n.id, n);
+  });
+
+  return (
+    <div style={{ 
+      position: 'relative', 
+      width: '100%', 
+      background: 'var(--wl-bg-tertiary)', 
+      border: '1px solid var(--wl-border)', 
+      borderRadius: '12px', 
+      padding: '24px 12px', 
+      overflowX: 'auto',
+      boxSizing: 'border-box',
+      boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.15)'
+    }}>
+      {/* Grid Pattern Backdrop */}
+      <div style={{ 
+        position: 'absolute', 
+        inset: 0, 
+        opacity: 0.07, 
+        pointerEvents: 'none', 
+        backgroundImage: 'radial-gradient(var(--wl-accent) 1px, transparent 1px)', 
+        backgroundSize: '20px 20px' 
+      }} />
+
+      {/* Connection Canvas */}
+      <svg style={{ 
+        position: 'absolute', 
+        top: 0, 
+        left: 0, 
+        width: '600px', 
+        height: '460px', 
+        pointerEvents: 'none', 
+        zIndex: 1 
+      }}>
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="22" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--wl-border)" opacity="0.6" />
+          </marker>
+          <marker id="arrow-hover" viewBox="0 0 10 10" refX="22" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--wl-accent)" />
+          </marker>
+        </defs>
+
+        {data.edges.map((edge, idx) => {
+          const fromNode = nodeMap.get(edge.from);
+          const toNode = nodeMap.get(edge.to);
+          if (!fromNode || !toNode) return null;
+
+          const isHovered = hoveredNode === edge.from || hoveredNode === edge.to;
+
+          // Compute coordinate system layout:
+          // X: col * 140 - 50 (col 1 to 4 maps to 90px, 230px, 370px, 510px)
+          // Y: row * 70 - 20 (row 1 to 6 maps to 50px, 120px, 190px, 260px, 330px, 400px)
+          const pFrom = { x: fromNode.col * 140 - 50, y: fromNode.row * 70 - 20 };
+          const pTo = { x: toNode.col * 140 - 50, y: toNode.row * 70 - 20 };
+
+          const yMid = (pFrom.y + pTo.y) / 2;
+          let pathData = `M ${pFrom.x} ${pFrom.y} L ${pFrom.x} ${yMid} L ${pTo.x} ${yMid} L ${pTo.x} ${pTo.y}`;
+
+          if (pFrom.x === pTo.x) {
+            pathData = `M ${pFrom.x} ${pFrom.y} L ${pTo.x} ${pTo.y}`;
+          }
+
+          return (
+            <g key={idx}>
+              {/* Outer stroke shadow for high visibility */}
+              <path 
+                d={pathData} 
+                fill="none" 
+                stroke={isHovered ? 'var(--wl-accent)' : 'var(--wl-border)'}
+                strokeWidth={isHovered ? 2.5 : 1.5}
+                opacity={isHovered ? 0.95 : 0.3}
+                markerEnd={`url(#${isHovered ? 'arrow-hover' : 'arrow'})`}
+                style={{ transition: 'all 0.2s', strokeDasharray: isHovered ? 'none' : '4 4' }}
+              />
+              
+              {/* Animated pulse data stream */}
+              <circle r="3.5" fill="var(--wl-accent)" style={{ display: isHovered ? 'block' : 'none' }}>
+                <animateMotion dur="1.5s" repeatCount="indefinite" path={pathData} />
+              </circle>
+
+              {edge.label && (
+                <text
+                  x={(pFrom.x + pTo.x) / 2}
+                  y={yMid - 5}
+                  textAnchor="middle"
+                  fill={isHovered ? 'var(--wl-accent)' : 'var(--wl-text-muted)'}
+                  style={{ fontSize: '8px', fontFamily: 'monospace', fontWeight: 700 }}
+                >
+                  {edge.label}
+                </text>
+              )}
+            </g>
+          );
+        })}
+      </svg>
+
+      {/* Absolute Node grid positioning wrapper */}
+      <div style={{ position: 'relative', width: '600px', height: '440px', margin: '0 auto', zIndex: 2 }}>
+        {data.nodes.map((node) => {
+          const x = node.col * 140 - 50;
+          const y = node.row * 70 - 20;
+          
+          let bg = 'var(--wl-bg-card)';
+          let border = '1px solid var(--wl-border)';
+          let color = 'var(--wl-text)';
+          let glow = '';
+
+          if (node.type === 'start') {
+            bg = 'var(--wl-accent-bg)';
+            border = '1.25px solid var(--wl-accent)';
+            color = 'var(--wl-accent)';
+          } else if (node.type === 'decision') {
+            bg = 'var(--wl-bg-secondary)';
+            border = '1px dashed var(--wl-border)';
+            color = 'var(--wl-text)';
+          } else if (node.type === 'success') {
+            bg = 'rgba(16,185,129,0.08)';
+            border = '1.5px solid #10b981';
+            color = '#10b981';
+            glow = '0 0 10px rgba(16,185,129,0.25)';
+          } else if (node.type === 'fail') {
+            bg = 'rgba(239,68,68,0.08)';
+            border = '1.5px solid #ef4444';
+            color = '#ef4444';
+            glow = '0 0 10px rgba(239,68,68,0.25)';
+          } else if (node.type === 'warning') {
+            bg = 'rgba(245,158,11,0.08)';
+            border = '1.5px solid #f59e0b';
+            color = '#f59e0b';
+            glow = '0 0 10px rgba(245,158,11,0.25)';
+          }
+
+          const isHovered = hoveredNode === node.id;
+          const isRelated = hoveredNode && (
+            data.edges.some(e => (e.from === hoveredNode && e.to === node.id) || (e.to === hoveredNode && e.from === node.id)) ||
+            hoveredNode === node.id
+          );
+
+          return (
+            <div
+              key={node.id}
+              onMouseEnter={() => setHoveredNode(node.id)}
+              onMouseLeave={() => setHoveredNode(null)}
+              style={{
+                position: 'absolute',
+                left: `${x}px`,
+                top: `${y}px`,
+                transform: 'translate(-50%, -50%)' + (isHovered ? ' scale(1.05)' : ''),
+                width: '120px',
+                minHeight: '38px',
+                background: bg,
+                border: isHovered ? '1.5px solid var(--wl-accent)' : border,
+                borderRadius: '8px',
+                color: color,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '6px 8px',
+                boxSizing: 'border-box',
+                textAlign: 'center',
+                fontSize: '9.5px',
+                fontWeight: 750,
+                fontFamily: 'monospace',
+                cursor: 'pointer',
+                boxShadow: isHovered ? '0 4px 14px rgba(91,92,246,0.3)' : glow || '0 2px 4px rgba(0,0,0,0.08)',
+                opacity: hoveredNode && !isRelated ? 0.45 : 1,
+                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                zIndex: isHovered ? 10 : 5
+              }}
+            >
+              {node.label}
+              
+              <span style={{
+                position: 'absolute',
+                top: '-6px',
+                right: '4px',
+                fontSize: '6.5px',
+                fontWeight: 800,
+                textTransform: 'uppercase',
+                padding: '0.5px 3px',
+                borderRadius: '3px',
+                background: isHovered ? 'var(--wl-accent)' : 'var(--wl-bg-tertiary)',
+                color: isHovered ? '#fff' : 'var(--wl-text-muted)',
+                border: '1px solid var(--wl-border)',
+                letterSpacing: '0.2px'
+              }}>
+                {node.type}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+interface SystemEdgeCase {
+  title: string;
+  desc: string;
+}
+
 interface FeatureArchitecture {
   id: string;
   category: 'trading' | 'astro' | 'rebates' | 'courses' | 'admin';
@@ -618,8 +847,12 @@ interface FeatureArchitecture {
   description: string;
   files: FileRole[];
   flowchart: string;
+  flowchartData: FlowchartData;
   techStack: string[];
   details: string[];
+  objective: string;
+  responsibilities: string[];
+  edgeCases: SystemEdgeCase[];
   dbSchema?: {
     tableName: string;
     fields: SchemaField[];
@@ -648,21 +881,54 @@ const appFeatures: FeatureArchitecture[] = [
                                       │                 │
                                       └────────┬────────┘
                                                ▼
-                                        [Evaluate Gates]
-                                     (Gates 1-9 check loop)
+                                         [Evaluate Gates]
+                                      (Gates 1-9 check loop)
                                                │
-                        ┌──────────────────────┼──────────────────────┐
-                        ▼                      ▼                      ▼
-                  [Critical Fail]        [Confluence < 65]     [All Passed / ≥ 65]
-                   (No Conflict)          (Watch Status)         (Signal Issued)
-                        │                      │                      │
-                        ▼                      ▼                      ▼
-                   🔴 NO_TRADE             🟡 WATCH                🟢 SIGNAL`,
+                         ┌──────────────────────┼──────────────────────┐
+                         ▼                      ▼                      ▼
+                   [Critical Fail]        [Confluence < 65]     [All Passed / ≥ 65]
+                    (No Conflict)          (Watch Status)         (Signal Issued)
+                         │                      │                      │
+                         ▼                      ▼                      ▼
+                    🔴 NO_TRADE             🟡 WATCH                🟢 SIGNAL`,
+    flowchartData: {
+      nodes: [
+        { id: 'start', label: 'User Chat Query', type: 'start', col: 2, row: 1 },
+        { id: 'api', label: 'api/chat/route.ts', type: 'process', col: 2, row: 2 },
+        { id: 'snapshot', label: 'getMarketSnapshot()', type: 'process', col: 2, row: 3 },
+        { id: 'indicators', label: 'Indicators Math', type: 'process', col: 1, row: 4 },
+        { id: 'smc', label: 'SMC Scanner', type: 'process', col: 3, row: 4 },
+        { id: 'evaluate', label: 'Evaluate Gates 1-9', type: 'decision', col: 2, row: 5 },
+        { id: 'pass', label: '🟢 SIGNAL DISPATCH', type: 'success', col: 3, row: 6 },
+        { id: 'fail', label: '🔴 NO_TRADE FALLBACK', type: 'fail', col: 1, row: 6 }
+      ],
+      edges: [
+        { from: 'start', to: 'api' },
+        { from: 'api', to: 'snapshot' },
+        { from: 'snapshot', to: 'indicators' },
+        { from: 'snapshot', to: 'smc' },
+        { from: 'indicators', to: 'evaluate' },
+        { from: 'smc', to: 'evaluate' },
+        { from: 'evaluate', to: 'pass', label: 'PASS (≥65)' },
+        { from: 'evaluate', to: 'fail', label: 'FAIL (<65)' }
+      ]
+    },
     techStack: ['TypeScript', 'Technical Indicators', 'Confluence Math', 'Cache-Locks'],
     details: [
       'Confluence logic maps 6 different indicators: RSI (20%), MACD (25%), EMA (15%), Stochastic (10%), Bollinger Bands (10%), and 4H bias (20%).',
       'Integrates Gates 1-9 including Session validation (Asia/London/NY active hours), ATR Volatility normal check, cooldown checks, and economic news checks.',
       'Supports an optimized Fast-Path bypassing heavy LLM prompts when standard queries are submitted, reducing response latency from 25s to <5s.'
+    ],
+    objective: 'Provides an institutional-grade signal routing and validation pipeline. Evaluates incoming chat queries through a sequential, non-blocking 9-gate verification matrix to guarantee capital protection and block high-risk executions.',
+    responsibilities: [
+      'Computes weighted indicator confluences across RSI, MACD, Stochastic, Bollinger Bands, and EMA crossovers.',
+      'Validates active session boundaries (Asia/London/NY) to confirm volume and liquidity thresholds.',
+      'Intercepts news feeds dynamically from economic calendars to prevent execution during high-impact events.',
+      'Enforces minimum confluence thresholds (65% standard) before generating valid trade execution signals.'
+    ],
+    edgeCases: [
+      { title: 'High-Impact Economic News Block', desc: 'Automatically intercepts NFP, CPI, and FOMC calendar alerts. Shuts down execution paths 30 minutes before and after the scheduled release timestamp.' },
+      { title: 'Fast-Path Sub-5s Routing', desc: 'Bypasses heavy LLM agent prompts when the user submits standard queries, routing raw indicators straight to card-rendering widgets to limit latency.' }
     ],
     dbSchema: {
       tableName: 'public.risk_configs',
@@ -703,6 +969,31 @@ const appFeatures: FeatureArchitecture[] = [
                         │
                         ▼
               [Astro Gated Outcome]`,
+    flowchartData: {
+      nodes: [
+        { id: 'start', label: 'Market Signal Event', type: 'start', col: 2, row: 1 },
+        { id: 'check', label: 'Astro Mode Active?', type: 'decision', col: 2, row: 2 },
+        { id: 'std', label: 'Standard Pipeline', type: 'warning', col: 4, row: 2 },
+        { id: 'ephemeris', label: 'Astronomy Ephemeris', type: 'process', col: 2, row: 3 },
+        { id: 'moon', label: 'Moon Sizing Multiplier', type: 'process', col: 1, row: 4 },
+        { id: 'mercury', label: 'Mercury Retrograde Check', type: 'process', col: 2, row: 4 },
+        { id: 'aspect', label: 'Planetary Aspect Angle', type: 'process', col: 3, row: 4 },
+        { id: 'gates', label: 'Astro Gates 13-17', type: 'decision', col: 2, row: 5 },
+        { id: 'outcome', label: 'Adjusted Signal', type: 'success', col: 2, row: 6 }
+      ],
+      edges: [
+        { from: 'start', to: 'check' },
+        { from: 'check', to: 'std', label: 'NO' },
+        { from: 'check', to: 'ephemeris', label: 'YES' },
+        { from: 'ephemeris', to: 'moon' },
+        { from: 'ephemeris', to: 'mercury' },
+        { from: 'ephemeris', to: 'aspect' },
+        { from: 'moon', to: 'gates' },
+        { from: 'mercury', to: 'gates' },
+        { from: 'aspect', to: 'gates' },
+        { from: 'gates', to: 'outcome' }
+      ]
+    },
     techStack: ['astronomy-engine', 'Ephemeris calculations', 'Risk Modulators', 'SVG Orrery Engine'],
     details: [
       'Gate 13: Moon Phase risk assessment determines win multipliers based on full moon vs new moon volatility adjustments.',
@@ -710,6 +1001,17 @@ const appFeatures: FeatureArchitecture[] = [
       'Gate 15: Solar & Lunar Eclipse hazard filter blocks trades during eclipse windows to protect margins.',
       'Gate 16: Major Aspect Confluence evaluates angular relationships (Conjunction, Trine, Square, Opposition) to output aspect grades.',
       'Gate 17: Zodiac House alignments for additional macro-bias validation.'
+    ],
+    objective: 'Integrates NASA-grade astronomy coordinates and planetary ephemeris calculations to modulate trade risk sizing. Acts as an additional esoteric filter layer (Gates 13-17) overlaying the standard signal pipeline.',
+    responsibilities: [
+      'Queries astronomy-engine libraries to calculate precise heliocentric and geocentric planet coordinates.',
+      'Computes current lunar phase metrics, mapping win multiplier modifiers (0.5x to 1.5x risk scaling).',
+      'Monitors Mercury retrograde status, enforcing hard blocks on execution during retrograde intervals.',
+      'Calculates angular planet aspects (Trine, Square, Opposition, Conjunction) to output macro celestial ratings.'
+    ],
+    edgeCases: [
+      { title: 'Solar/Lunar Eclipse Hazard Filter', desc: 'Detects eclipse windows within 24 hours of occurrence, outputting a zero-risk recommendation to lock out executing adapters.' },
+      { title: 'Zodiac House Transition Latencies', desc: 'Calculates ingress/egress boundaries to avoid signal splits when a planet is on the cusp of transitioning houses.' }
     ],
     dbSchema: {
       tableName: 'public.astro_signal_log',
@@ -738,22 +1040,53 @@ const appFeatures: FeatureArchitecture[] = [
                                       ┌────────┴────────┐
                                       ▼                 ▼
                                [Breakout High]    [Unfilled Gap]
-                                (BOS / ChoCH)      (Fair Value FVG)
-                                      │                 │
-                                      ▼                 ▼
-                                [Order Block]     [Liquidity Sweep]
-                                (Extreme Zone)    (Equal High Sweeps)
-                                      │                 │
-                                      └────────┬────────┘
-                                               ▼
-                                       [Confluence Score]
-                                        (Scale 1 to 10)`,
+                                 (BOS / ChoCH)      (Fair Value FVG)
+                                       │                 │
+                                       ▼                 ▼
+                                 [Order Block]     [Liquidity Sweep]
+                                 (Extreme Zone)    (Equal High Sweeps)
+                                       │                 │
+                                       └────────┬────────┘
+                                                ▼
+                                        [Confluence Score]
+                                         (Scale 1 to 10)`,
+    flowchartData: {
+      nodes: [
+        { id: 'start', label: '1H Candle Data Feed', type: 'start', col: 2, row: 1 },
+        { id: 'pivots', label: 'Swing Pivot Calculator', type: 'process', col: 2, row: 2 },
+        { id: 'bos', label: 'BOS / ChoCH Breakout', type: 'decision', col: 1, row: 3 },
+        { id: 'fvg', label: 'Fair Value Gaps (FVG)', type: 'decision', col: 3, row: 3 },
+        { id: 'ob', label: 'Order Block Finder', type: 'process', col: 1, row: 4 },
+        { id: 'sweep', label: 'Liquidity Sweeps', type: 'process', col: 3, row: 4 },
+        { id: 'score', label: 'Confluence Score (1-10)', type: 'success', col: 2, row: 5 }
+      ],
+      edges: [
+        { from: 'start', to: 'pivots' },
+        { from: 'pivots', to: 'bos' },
+        { from: 'pivots', to: 'fvg' },
+        { from: 'bos', to: 'ob' },
+        { from: 'fvg', to: 'sweep' },
+        { from: 'ob', to: 'score' },
+        { from: 'sweep', to: 'score' }
+      ]
+    },
     techStack: ['Swing Pivot Math', 'Candle series analysis', 'Pattern Recognition'],
     details: [
       'Swing Pivots: Implements 3-bar swing high/low calculations to map local peaks and troughs.',
       'Fair Value Gaps (FVG): Detects imbalances between the wicks of candle N and N+2 to highlight target retracement zones.',
       'Break of Structure (BOS) & Change of Character (ChoCH): Highlights continuation and trend reversal milestones.',
       'Liquidity Sweeps: Monitors equal high/low clusters and flags false breakout traps prior to execution.'
+    ],
+    objective: 'Monitors multi-candle structural pivot points on 1H charts to identify institutional order flows and price imbalances. Flags high-probability trading zones while identifying retail liquidity traps.',
+    responsibilities: [
+      'Calculates Swing Highs and Swing Lows using recursive multi-bar local extremum algorithms.',
+      'Detects Break of Structure (BOS) and Change of Character (ChoCH) structural breakout events.',
+      'Locates Fair Value Gaps (FVG) where candle imbalances create unfilled price pockets.',
+      'Identifies institutional Order Blocks at swing pivots to highlight high-confluence entry zones.'
+    ],
+    edgeCases: [
+      { title: 'False Breakout Liquidity Sweeps', desc: 'Identifies equal high/low clusters and flags false breakouts where wicks sweep liquidity prior to reversal.' },
+      { title: 'Historical Data Gap Ingestion', desc: 'Self-heals indicator series calculations by interpolating missing candles from secondary REST providers during WebSocket connection drops.' }
     ],
     dbSchema: {
       tableName: 'public.trade_log',
@@ -790,11 +1123,42 @@ const appFeatures: FeatureArchitecture[] = [
         └──────────────────┬──────────────────┘
                            ▼
                  [Exec Output / Tickets]`,
+    flowchartData: {
+      nodes: [
+        { id: 'start', label: 'Validated Exec Signal', type: 'start', col: 2, row: 1 },
+        { id: 'adapter', label: 'TradingAdapter Router', type: 'decision', col: 2, row: 2 },
+        { id: 'forex', label: 'MetaAPI Forex (MT5)', type: 'process', col: 1, row: 3 },
+        { id: 'crypto', label: 'Exchange Crypto', type: 'process', col: 3, row: 3 },
+        { id: 'timezone', label: 'Broker Server Offset', type: 'process', col: 1, row: 4 },
+        { id: 'signing', label: 'HMAC-SHA256 Signer', type: 'process', col: 3, row: 4 },
+        { id: 'tickets', label: 'Deal Ticket Executed', type: 'success', col: 2, row: 5 }
+      ],
+      edges: [
+        { from: 'start', to: 'adapter' },
+        { from: 'adapter', to: 'forex', label: 'Forex' },
+        { from: 'adapter', to: 'crypto', label: 'Crypto' },
+        { from: 'forex', to: 'timezone' },
+        { from: 'crypto', to: 'signing' },
+        { from: 'timezone', to: 'tickets' },
+        { from: 'signing', to: 'tickets' }
+      ]
+    },
     techStack: ['MetaAPI v29', 'HMAC-SHA256 request signing', 'Adapter Pattern', 'VisualViewport scaling'],
     details: [
       'Adapter Pattern: Ensures standard trading actions (placeOrder, closePosition, syncAccount) apply equally.',
       'Forex integrations read timezone offsets from MetaAPI broker server-time to match live ticker clock widgets.',
       'Validates account equity and free margins before sending order inputs to prevent MT5 INVALID_STOPS errors.'
+    ],
+    objective: 'Unified broker integration gateway mapping signals to Forex terminals (MetaTrader 5 via MetaAPI) and Crypto exchanges. Standardizes actions under a safe Adapter pattern.',
+    responsibilities: [
+      'Adapts standardized execution parameters (Symbol, Volume, SL, TP) across heterogeneous broker platforms.',
+      'Synchronizes live broker account equity, margins, and leverage data to execute pre-trade validation checks.',
+      'Tracks server-time offsets from MetaAPI broker endpoints to match ticks with local UI display widgets.',
+      'Calculates available lot limits dynamically to prevent trade failure due to insufficient margins.'
+    ],
+    edgeCases: [
+      { title: 'Broker Server Timeout Fallback', desc: 'Retries connection via secondary backup RPC endpoints if the primary MetaAPI connection experiences high latency.' },
+      { title: 'Stop Loss Slippage Guard', desc: 'Automatically adjusts stop levels by 1.5x ATR during high volatility to prevent broker ticket rejection.' }
     ],
     dbSchema: {
       tableName: 'public.broker_accounts',
@@ -838,11 +1202,42 @@ const appFeatures: FeatureArchitecture[] = [
                          └───────────────────────┬───────────────────────┘
                                                  ▼
                                         [Update progress row]`,
+    flowchartData: {
+      nodes: [
+        { id: 'start', label: 'Closed Deal Event', type: 'start', col: 2, row: 1 },
+        { id: 'cron', label: 'sync-rebates Cron', type: 'process', col: 2, row: 2 },
+        { id: 'rebate', label: 'distributeRebate() CTE', type: 'process', col: 2, row: 3 },
+        { id: 'levels', label: 'L1-L5 Commissions', type: 'process', col: 1, row: 4 },
+        { id: 'check', label: 'checkMilestone() Rule', type: 'decision', col: 3, row: 4 },
+        { id: 'cap', label: '40/40/20 Capping Check', type: 'process', col: 3, row: 5 },
+        { id: 'update', label: 'Update Progress DB Row', type: 'success', col: 2, row: 6 }
+      ],
+      edges: [
+        { from: 'start', to: 'cron' },
+        { from: 'cron', to: 'rebate' },
+        { from: 'rebate', to: 'levels' },
+        { from: 'rebate', to: 'check' },
+        { from: 'levels', to: 'update' },
+        { from: 'check', to: 'cap' },
+        { from: 'cap', to: 'update' }
+      ]
+    },
     techStack: ['PostgreSQL Recursive CTEs', 'Balanced-leg algorithms', 'Genealogy Org-chart paths'],
     details: [
       'Traverses uplines recursively in a single SQL operation using PostgreSQL Common Table Expressions (CTEs).',
       'Implements the 40/40/20 rule: no single referral leg can contribute more than 40% of the volume required for a milestone tier.',
       'Saves full contributing leg contribution summaries inside supabase milestone_progress rows for audit transparency.'
+    ],
+    objective: 'Processes MT5 trade completions recursively to distribute referral rebates down to 5 levels of uplines, while checking milestone progress against strict balanced-leg restrictions.',
+    responsibilities: [
+      'Walks genealogy uplines dynamically up to 5 tiers to credit split rebate percentages.',
+      'Aggregates referral team trading volumes via optimized PostgreSQL database CTE functions.',
+      'Applies the 40/40/20 leg capping rule to ensure balanced team recruitment contributions.',
+      'Updates Supabase milestone progress indicators to unlock bonuses upon tier graduation.'
+    ],
+    edgeCases: [
+      { title: 'Recursive Upline Loop Prevention', desc: 'Validates referral parent IDs to prevent circular referencing loops during recursion walks.' },
+      { title: 'Leg Contribution Re-calculation on Refund', desc: 'Deducts volume from milestone counts if a broker refund or deal cancellation event is logged.' }
     ],
     dbSchema: {
       tableName: 'public.milestone_progress',
@@ -881,11 +1276,42 @@ const appFeatures: FeatureArchitecture[] = [
         └──────────────────┬──────────────────┘
                            ▼
                   [Grant Course Access]`,
+    flowchartData: {
+      nodes: [
+        { id: 'start', label: 'Course Purchase Click', type: 'start', col: 2, row: 1 },
+        { id: 'method', label: 'Payment Method', type: 'decision', col: 2, row: 2 },
+        { id: 'nowpayments', label: 'NOWPayments Crypto API', type: 'process', col: 1, row: 3 },
+        { id: 'wallet', label: 'Internal Wallet Balance', type: 'process', col: 3, row: 3 },
+        { id: 'webhook', label: 'IPN Callback Check', type: 'process', col: 1, row: 4 },
+        { id: 'ledger', label: 'Write Ledger Record & Lock', type: 'process', col: 3, row: 4 },
+        { id: 'grant', label: 'Grant Access to Course', type: 'success', col: 2, row: 5 }
+      ],
+      edges: [
+        { from: 'start', to: 'method' },
+        { from: 'method', to: 'nowpayments', label: 'Crypto' },
+        { from: 'method', to: 'wallet', label: 'Wallet' },
+        { from: 'nowpayments', to: 'webhook' },
+        { from: 'wallet', to: 'ledger' },
+        { from: 'webhook', to: 'grant' },
+        { from: 'ledger', to: 'grant' }
+      ]
+    },
     techStack: ['Supabase Ledger Transactions', 'NOWPayments Gateway API', 'HMAC-SHA512 webhook signature verification'],
     details: [
       'Instant wallet purchases execute in a single SQL transaction chain to eliminate race conditions.',
       'Automated self-healing migration drops and adds check constraints during transaction conflict failures.',
       'Webhooks verify HMAC-SHA512 headers before updating transaction state.'
+    ],
+    objective: 'Enforces transaction integrity for paid course purchases. Coordinates atomic wallet deductions with double-entry ledger audits and external crypto checkouts.',
+    responsibilities: [
+      'Processes external crypto checkouts by routing payments through NOWPayments IPN webhook endpoints.',
+      'Runs atomic wallet deductions using Supabase update locks to eliminate balance race conditions.',
+      'Secures IPN webhook callbacks via HMAC-SHA512 verification to validate payment payloads.',
+      'Generates permanent, immutable transaction logs in the ledger for compliance tracking.'
+    ],
+    edgeCases: [
+      { title: 'Database Lockout Self-Healing', desc: 'Automatically alters database check constraints on transaction conflict failures to restore wallet purchase operations.' },
+      { title: 'Double Spend Prevention', desc: 'Locks account profile records at database level prior to deduction, preventing double-tap course purchases.' }
     ],
     dbSchema: {
       tableName: 'public.wallet_transactions',
@@ -1107,6 +1533,17 @@ function parseWorklogMarkdown(mdContent: string): WorkDay[] {
 
 /* ── Page Component ──────────────────────────────────────────────── */
 export default function WorkLogPage() {
+  const gateNames = [
+    'Session Filter',
+    'ATR Volatility Filter',
+    'News Event Blocker',
+    'Spread Verification',
+    'HTF Trend Alignment',
+    'SMC Imbalance Scan',
+    'Cooldown Period',
+    'Max Drawdown Limit',
+    'Lot-Risk Cap'
+  ];
   const [worklogList, setWorklogList] = useState<WorkDay[]>(worklog);
   const [activeDay, setActiveDay] = useState(worklog[0].date);
   const [activeFeature, setActiveFeature] = useState(appFeatures[0].id);
@@ -1121,16 +1558,35 @@ export default function WorkLogPage() {
   const [filter, setFilter] = useState('all');
   const [loading, setLoading] = useState(true);
 
-  // Simulations state
-  const [astroSim, setAstroSim] = useState({
+  // Interactive Simulations State
+  const [customAstro, setCustomAstro] = useState({
     moonPhase: 0.52,
     mercury: 'DIRECT',
-    aspect: 'Trine',
-    risk: '1.20x lot multiplier (High Confluence)'
+    aspect: 'Trine'
   });
-  const [gateProgress, setGateProgress] = useState(0);
+
+  const [gateOverride, setGateOverride] = useState<Record<number, boolean>>({
+    1: true,
+    2: true,
+    3: true,
+    4: true,
+    5: true,
+    6: true,
+    7: true,
+    8: true,
+    9: true
+  });
+  const [gateProgress, setGateProgress] = useState(0); // auto-cycling preview indicator
+  const [gateEvalStep, setGateEvalStep] = useState<number>(-1); // -1 = idle, 0..8 = evaluating, 9 = passed, 10 = blocked
+  const [gateEvalBlockedAt, setGateEvalBlockedAt] = useState<number>(-1);
+
+  // Referral Legs Interactive calculator state
+  const [legAlice, setLegAlice] = useState('140');
+  const [legBob, setLegBob] = useState('30');
+  const [legCharlie, setLegCharlie] = useState('85');
+
   const [ledgerLogs, setLedgerLogs] = useState<string[]>([
-    'INFO: Initiating course checkout payload...'
+    'SYSTEM READY: Select a diagnostic routine above to simulate database events.'
   ]);
 
   useEffect(() => {
@@ -1138,69 +1594,64 @@ export default function WorkLogPage() {
     if (saved === 'dark') setDark(true);
   }, []);
 
-  // Simulator Intervals
+  // background gate progress rotation (when not in custom evaluation mode)
   useEffect(() => {
-    // 1. Astro Sim Interval
-    const astroTimer = setInterval(() => {
-      setAstroSim(prev => {
-        const phases = [0.12, 0.25, 0.48, 0.52, 0.76, 0.95];
-        const mercs = ['DIRECT', 'DIRECT', 'RETROGRADE', 'DIRECT'];
-        const aspects = ['Trine', 'Sextile', 'Square', 'Opposition', 'Conjunction'];
-        const risks = [
-          '1.20x lot multiplier (High Confluence)',
-          '1.00x standard size',
-          '0.50x lot size (Mercury Retrograde Check)',
-          '0.75x lot size (Waning Gibbous Phase)',
-          'TRADING LOCKED (Solar Eclipse Window Check)'
-        ];
-        const randomIdx = Math.floor(Math.random() * 5);
-        return {
-          moonPhase: phases[Math.floor(Math.random() * phases.length)],
-          mercury: mercs[Math.floor(Math.random() * mercs.length)],
-          aspect: aspects[Math.floor(Math.random() * aspects.length)],
-          risk: risks[randomIdx]
-        };
-      });
-    }, 4000);
+    const timer = setInterval(() => {
+      if (gateEvalStep === -1) {
+        setGateProgress(prev => (prev >= 9 ? 0 : prev + 1));
+      }
+    }, 1500);
+    return () => clearInterval(timer);
+  }, [gateEvalStep]);
 
-    // 2. 9-Gate Confluence Engine Interval
-    const gateTimer = setInterval(() => {
-      setGateProgress(prev => {
-        if (prev >= 10) return 0;
-        return prev + 1;
-      });
-    }, 1200);
+  // gate evaluation evaluator executor
+  const triggerGateEvaluation = () => {
+    setGateEvalStep(0);
+    setGateEvalBlockedAt(-1);
+    let currentStep = 0;
+    
+    const interval = setInterval(() => {
+      const gateNum = currentStep + 1;
+      const isPassed = gateOverride[gateNum];
+      
+      if (!isPassed) {
+        setGateEvalStep(10); // blocked
+        setGateEvalBlockedAt(currentStep);
+        clearInterval(interval);
+        return;
+      }
+      
+      if (currentStep >= 8) {
+        setGateEvalStep(9); // success
+        clearInterval(interval);
+        return;
+      }
+      
+      currentStep++;
+      setGateEvalStep(currentStep);
+    }, 600);
+  };
 
-    // 3. Self-Healing Ledger Logs Simulator Interval
-    const ledgerSequence = [
-      'INFO: Initiating course checkout payload...',
-      'INFO: User wallet balance check passed ($250.00 available).',
-      'WARNING: DB insert failed. Constraint violation detected: public.wallet_transactions_status_check.',
-      'RECOVERY: Invoking self-healing DB hook: alter check constraint state...',
-      'SUCCESS: Restrictive check constraint successfully altered.',
-      'INFO: Retrying transaction sequence...',
-      'SUCCESS: Transaction committed. Access granted to "Algorithmic SMC Mastering".',
-      'INFO: Reference audit ID: tx_ledger_9841_success.'
-    ];
-    let logIndex = 1;
-    const ledgerTimer = setInterval(() => {
-      setLedgerLogs(prev => {
-        if (logIndex >= ledgerSequence.length) {
-          logIndex = 0;
-          return [ledgerSequence[0]];
-        }
-        const nextLog = ledgerSequence[logIndex];
-        logIndex++;
-        return [...prev, nextLog].slice(-6); // keep last 6 logs
-      });
-    }, 2500);
-
-    return () => {
-      clearInterval(astroTimer);
-      clearInterval(gateTimer);
-      clearInterval(ledgerTimer);
-    };
-  }, []);
+  const triggerDiagnosticSimulation = (type: 'success' | 'healing' | 'insufficient') => {
+    if (type === 'success') {
+      setLedgerLogs(['[03:20:01] INFO: Initializing wallet purchase verification...']);
+      setTimeout(() => setLedgerLogs(p => [...p, '[03:20:02] INFO: Wallet account balance check: $250.00 available.']), 300);
+      setTimeout(() => setLedgerLogs(p => [...p, '[03:20:03] INFO: Deducting $150.00 from profile wallet ledger...']), 600);
+      setTimeout(() => setLedgerLogs(p => [...p, '[03:20:04] SUCCESS: Purchase committed. Course access granted. Reference: TX_9810_OK']), 900);
+    } else if (type === 'healing') {
+      setLedgerLogs(['[03:20:01] INFO: Initializing wallet purchase verification...']);
+      setTimeout(() => setLedgerLogs(p => [...p, '[03:20:02] WARNING: DB insert failed. Constraint violation: check_constraint (23514).']), 300);
+      setTimeout(() => setLedgerLogs(p => [...p, '[03:20:03] RECOVERY: Invoking self-healing hooks. Dropping public.wallet_transactions_status_check...']), 600);
+      setTimeout(() => setLedgerLogs(p => [...p, '[03:20:04] RECOVERY: Alter check constraint state to allow purchase updates...']), 900);
+      setTimeout(() => setLedgerLogs(p => [...p, '[03:20:05] SUCCESS: Constraint modified. Retrying purchase transaction...']), 1200);
+      setTimeout(() => setLedgerLogs(p => [...p, '[03:20:06] SUCCESS: Purchase committed. Reference: TX_9810_HEALED_OK']), 1500);
+    } else {
+      setLedgerLogs(['[03:20:01] INFO: Initializing wallet purchase verification...']);
+      setTimeout(() => setLedgerLogs(p => [...p, '[03:20:02] INFO: Wallet account balance check: $50.00 available.']), 300);
+      setTimeout(() => setLedgerLogs(p => [...p, '[03:20:03] ERROR: Course purchase rejected. Wallet balance is lower than price ($150.00).']), 600);
+      setTimeout(() => setLedgerLogs(p => [...p, '[03:20:04] ERROR: Aborting transaction chain. Wallet state rolled back.']), 900);
+    }
+  };
 
   // Fetch dynamic Markdown worklog
   useEffect(() => {
@@ -1587,40 +2038,147 @@ export default function WorkLogPage() {
 
                           {/* Tab Contents: OVERVIEW */}
                           {subTab === 'overview' && (
-                            <div>
-                              <p className="cl-feature-description">{f.description}</p>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                              
+                              {/* 1. Core Technical Objective */}
+                              <div className="cl-architecture-section" style={{ marginBottom: 0 }}>
+                                <div className="cl-architecture-title">🎯 Technical Objective</div>
+                                <p className="cl-feature-description" style={{ fontSize: '13px', lineHeight: '1.6', color: 'var(--wl-text)', marginTop: 0, marginBottom: 0 }}>
+                                  {f.objective}
+                                </p>
+                              </div>
+
+                              {/* 2. Key Architectural Responsibilities */}
+                              <div className="cl-architecture-section" style={{ marginBottom: 0 }}>
+                                <div className="cl-architecture-title">📋 Architectural Responsibilities</div>
+                                <ul className="cl-architecture-list" style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingLeft: '18px', margin: 0 }}>
+                                  {f.responsibilities.map((resp, idx) => (
+                                    <li key={idx} style={{ fontSize: '12.5px', lineHeight: '1.5', color: 'var(--wl-text-muted)' }}>
+                                      {renderMarkdownText(resp)}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+
+                              {/* 3. Critical System Edge Cases */}
+                              <div className="cl-architecture-section" style={{ marginBottom: 0 }}>
+                                <div className="cl-architecture-title">⚠️ Critical Failsafes & Edge Cases</div>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' }}>
+                                  {f.edgeCases.map((ec, idx) => (
+                                    <div key={idx} style={{ 
+                                      background: 'var(--wl-bg-secondary)', 
+                                      border: '1px solid var(--wl-border)', 
+                                      borderRadius: '8px', 
+                                      padding: '12px',
+                                      boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                                    }}>
+                                      <div style={{ fontWeight: 800, fontSize: '11px', color: 'var(--wl-accent)', textTransform: 'uppercase', marginBottom: '4px' }}>
+                                        {ec.title}
+                                      </div>
+                                      <div style={{ fontSize: '11.5px', color: 'var(--wl-text-muted)', lineHeight: '1.4' }}>
+                                        {ec.desc}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
 
                               {/* Interactive Simulation Sandbox */}
                               {f.id === 'gate-engine' && (
                                 <div className="cl-architecture-section">
                                   <div className="cl-architecture-title" style={{ fontSize: '11px', color: 'var(--wl-accent)', fontWeight: '750' }}>
-                                    ⚡ LIVE CONFLUENCE GATES SIMULATOR
+                                    ⚡ LIVE CONFLUENCE GATES SIMULATOR & OVERRIDES
                                   </div>
+                                  
+                                  {/* Controls */}
+                                  <div className="cl-sandbox-controls">
+                                    <div style={{ width: '100%', marginBottom: '4px', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', color: 'var(--wl-text-muted)', letterSpacing: '0.5px' }}>
+                                      Configure Gates Override (Toggle Pass/Block)
+                                    </div>
+                                    <div className="cl-sandbox-checkbox-grid">
+                                      {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
+                                        <label key={num} className={`cl-sandbox-checkbox-label ${gateOverride[num] ? 'checked' : ''}`}>
+                                          <input 
+                                            type="checkbox" 
+                                            checked={gateOverride[num]} 
+                                            onChange={() => setGateOverride(p => ({ ...p, [num]: !p[num] }))} 
+                                          />
+                                          {gateOverride[num] ? '🟢' : '🔴'} Gate {num}: {gateNames[num - 1].split(' ')[0]}
+                                        </label>
+                                      ))}
+                                    </div>
+                                  </div>
+
+                                  <div className="cl-sandbox-btn-group">
+                                    <button 
+                                      className="cl-sandbox-btn cl-sandbox-btn--primary" 
+                                      onClick={triggerGateEvaluation}
+                                      disabled={gateEvalStep !== -1 && gateEvalStep !== 9 && gateEvalStep !== 10}
+                                    >
+                                      {gateEvalStep === -1 || gateEvalStep === 9 || gateEvalStep === 10 ? '⚡ Evaluate Gate Confluence' : 'Evaluating...'}
+                                    </button>
+                                    <button 
+                                      className="cl-sandbox-btn" 
+                                      onClick={() => {
+                                        setGateOverride({ 1: true, 2: true, 3: true, 4: true, 5: true, 6: true, 7: true, 8: true, 9: true });
+                                        setGateEvalStep(-1);
+                                        setGateEvalBlockedAt(-1);
+                                      }}
+                                    >
+                                      Reset All Passed
+                                    </button>
+                                  </div>
+
                                   <div className="cl-slider-widget">
                                     <div className="cl-slider-bar">
                                       <div 
                                         className="cl-slider-handle"
-                                        style={{ transform: `translateX(${gateProgress * 14.5}px)` }}
+                                        style={{ 
+                                          transform: `translateX(${(gateEvalStep === -1 ? gateProgress : (gateEvalStep === 10 ? gateEvalBlockedAt : gateEvalStep)) * 14.5}px)`,
+                                          background: gateEvalStep === 10 ? '#ef4444' : gateEvalStep === 9 ? '#10b981' : 'linear-gradient(135deg, var(--wl-accent), #3b82f6)'
+                                        }}
                                       >
-                                        G
+                                        {gateEvalStep === 10 ? '❌' : gateEvalStep === 9 ? '✅' : 'G'}
                                       </div>
                                       <div className="cl-slider-label">
-                                        {gateProgress === 10 
-                                          ? '🟢 GATES CLEARED - SIGNAL DISPATCHED (BUY BTCUSD)' 
-                                          : `Gate ${gateProgress + 1} checking: evaluating market filters...`}
+                                        {gateEvalStep === -1 && (
+                                          <span>Auto-Cycling Preview: evaluating Gate {gateProgress + 1}...</span>
+                                        )}
+                                        {gateEvalStep >= 0 && gateEvalStep < 9 && (
+                                          <span>Evaluating Gate {gateEvalStep + 1}: {gateNames[gateEvalStep]}...</span>
+                                        )}
+                                        {gateEvalStep === 9 && (
+                                          <span style={{ color: '#10b981', fontWeight: '800' }}>🟢 9/9 GATES CLEARED - SIGNAL DISPATCHED!</span>
+                                        )}
+                                        {gateEvalStep === 10 && (
+                                          <span style={{ color: '#ef4444', fontWeight: '800' }}>❌ BLOCKED AT GATE {gateEvalBlockedAt + 1}: {gateNames[gateEvalBlockedAt]}</span>
+                                        )}
                                       </div>
                                     </div>
+                                    
                                     <div className="cl-gates-nodes">
-                                      {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(gateNum => (
-                                        <div 
-                                          key={gateNum}
-                                          className={`cl-gate-node ${gateProgress >= gateNum ? 'active' : ''}`}
-                                          title={`Gate ${gateNum}`}
-                                        >
-                                          {gateNum}
-                                        </div>
-                                      ))}
+                                      {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(gateNum => {
+                                        const isCurrent = gateEvalStep === -1 ? (gateProgress + 1 === gateNum) : (gateEvalStep + 1 === gateNum);
+                                        const isPassed = gateEvalStep === -1 ? (gateProgress >= gateNum) : (gateEvalStep >= gateNum || gateEvalStep === 9);
+                                        const isBlocked = gateEvalStep === 10 && gateEvalBlockedAt + 1 === gateNum;
+                                        
+                                        return (
+                                          <div 
+                                            key={gateNum}
+                                            className={`cl-gate-node ${isPassed ? 'active' : ''}`}
+                                            style={{ 
+                                              borderColor: isBlocked ? '#ef4444' : isCurrent ? 'var(--wl-accent)' : '',
+                                              background: isBlocked ? '#ef4444' : '',
+                                              color: isBlocked ? '#fff' : ''
+                                            }}
+                                            title={gateNames[gateNum - 1]}
+                                          >
+                                            {gateNum}
+                                          </div>
+                                        );
+                                      })}
                                     </div>
+                                    
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px', color: 'var(--wl-text-muted)', marginTop: '8px', opacity: 0.8 }}>
                                       <span>1: Session</span>
                                       <span>3: News</span>
@@ -1638,84 +2196,230 @@ export default function WorkLogPage() {
                                   <div className="cl-architecture-title" style={{ fontSize: '11px', color: 'var(--wl-accent)', fontWeight: '750' }}>
                                     🪐 CELESTIAL ORBIT & TELEMETRY LIVE FEED
                                   </div>
+                                  
+                                  {/* Controls */}
+                                  <div className="cl-sandbox-controls">
+                                    <div className="cl-sandbox-control">
+                                      <label>Moon Phase Preset</label>
+                                      <select 
+                                        className="cl-sandbox-input" 
+                                        value={customAstro.moonPhase} 
+                                        onChange={e => setCustomAstro(p => ({ ...p, moonPhase: Number(e.target.value) }))}
+                                      >
+                                        <option value={0.48}>Waxing Crescent (48%)</option>
+                                        <option value={0.76}>Waning Gibbous (76%)</option>
+                                        <option value={1.00}>Full Moon Peak (100%)</option>
+                                        <option value={0.00}>Solar Eclipse Window (0%)</option>
+                                      </select>
+                                    </div>
+                                    <div className="cl-sandbox-control">
+                                      <label>Mercury Orbit State</label>
+                                      <select 
+                                        className="cl-sandbox-input" 
+                                        value={customAstro.mercury} 
+                                        onChange={e => setCustomAstro(p => ({ ...p, mercury: e.target.value }))}
+                                      >
+                                        <option value="DIRECT">☿ DIRECT (Harmonious)</option>
+                                        <option value="RETROGRADE">☿ RETROGRADE (Hard Block)</option>
+                                      </select>
+                                    </div>
+                                    <div className="cl-sandbox-control">
+                                      <label>Aspect Alignment</label>
+                                      <select 
+                                        className="cl-sandbox-input" 
+                                        value={customAstro.aspect} 
+                                        onChange={e => setCustomAstro(p => ({ ...p, aspect: e.target.value }))}
+                                      >
+                                        <option value="Trine">Trine (Harmonious)</option>
+                                        <option value="Sextile">Sextile (Harmonious)</option>
+                                        <option value="Square">Square (Disharmonious)</option>
+                                        <option value="Opposition">Opposition (Disharmonious)</option>
+                                      </select>
+                                    </div>
+                                  </div>
+
                                   <div className="cl-orrery-widget">
                                     <div className="cl-orrery-preview">
                                       <div className="cl-orrery-sun" />
-                                      <div className="cl-orrery-orbit o1"><div className="cl-orrery-planet p1" /></div>
-                                      <div className="cl-orrery-orbit o2"><div className="cl-orrery-planet p2" /></div>
+                                      <div className="cl-orrery-orbit o1" style={{ animationDuration: customAstro.mercury === 'RETROGRADE' ? '12s' : '6s' }}>
+                                        <div className="cl-orrery-planet p1" style={{ background: customAstro.mercury === 'RETROGRADE' ? '#fbbf24' : '#60a5fa' }} />
+                                      </div>
+                                      <div className="cl-orrery-orbit o2">
+                                        <div className="cl-orrery-planet p2" />
+                                      </div>
                                     </div>
                                     <div className="cl-orrery-data">
                                       <div className="cl-orrery-stat">
                                         <span className="cl-orrery-stat-label">Moon Phase</span>
                                         <span className="cl-orrery-stat-val">
-                                          🌕 {(astroSim.moonPhase * 100).toFixed(0)}% ({astroSim.moonPhase >= 0.5 ? 'Waning' : 'Waxing'})
+                                          🌕 {Math.round(customAstro.moonPhase * 100)}% ({
+                                            customAstro.moonPhase === 0.00 ? 'New Moon / Eclipse' :
+                                            customAstro.moonPhase === 1.00 ? 'Full Moon' :
+                                            customAstro.moonPhase >= 0.5 ? 'Waning' : 'Waxing'
+                                          })
                                         </span>
                                       </div>
                                       <div className="cl-orrery-stat">
                                         <span className="cl-orrery-stat-label">Mercury State</span>
-                                        <span className="cl-orrery-stat-val" style={{ color: astroSim.mercury === 'RETROGRADE' ? '#fbbf24' : 'inherit' }}>
-                                          ☿ {astroSim.mercury}
+                                        <span className="cl-orrery-stat-val" style={{ color: customAstro.mercury === 'RETROGRADE' ? '#fbbf24' : 'inherit' }}>
+                                          ☿ {customAstro.mercury}
                                         </span>
                                       </div>
                                       <div className="cl-orrery-stat">
                                         <span className="cl-orrery-stat-label">Aspect Angle</span>
-                                        <span className="cl-orrery-stat-val">📐 {astroSim.aspect}</span>
+                                        <span className="cl-orrery-stat-val">📐 {customAstro.aspect}</span>
                                       </div>
                                       <div className="cl-orrery-stat">
                                         <span className="cl-orrery-stat-label">Risk Multiplier</span>
-                                        <span className="cl-orrery-stat-val" style={{ color: 'var(--wl-accent)' }}>⚖️ {astroSim.risk.split(' ')[0]}</span>
+                                        <span className="cl-orrery-stat-val" style={{ 
+                                          color: customAstro.moonPhase === 0.00 ? '#ef4444' : 
+                                                 customAstro.mercury === 'RETROGRADE' ? '#fbbf24' : 
+                                                 customAstro.moonPhase === 1.00 ? 'var(--wl-green)' : 'inherit'
+                                        }}>
+                                          ⚖️ {
+                                            customAstro.moonPhase === 0.00 ? 'BLOCKED' :
+                                            customAstro.mercury === 'RETROGRADE' ? '0.50x' :
+                                            customAstro.moonPhase === 1.00 ? '1.25x' :
+                                            (customAstro.aspect === 'Opposition' || customAstro.aspect === 'Square') ? '0.75x' : '1.00x'
+                                          }
+                                        </span>
                                       </div>
                                     </div>
+                                  </div>
+                                  
+                                  {/* Result Status Message */}
+                                  <div className={`cl-sandbox-output-card ${
+                                    customAstro.moonPhase === 0.00 ? 'danger' :
+                                    customAstro.mercury === 'RETROGRADE' || customAstro.aspect === 'Opposition' || customAstro.aspect === 'Square' ? 'warning' : 'optimal'
+                                  }`}>
+                                    <span style={{ fontWeight: '700', textTransform: 'uppercase', fontSize: '10px', display: 'block', marginBottom: '2px' }}>
+                                      Status Recommendation:
+                                    </span>
+                                    {
+                                      customAstro.moonPhase === 0.00 ? 'Solar Eclipse Window active. Hard-block active on automated orders due to volatility.' :
+                                      customAstro.mercury === 'RETROGRADE' ? 'Mercury Retrograde detected. Enforcing 50% lot size reduction and double stop-loss buffer.' :
+                                      customAstro.moonPhase === 1.00 ? 'Full Moon Peak liquidity alignment. High historical completion rate; position boosted 1.25x.' :
+                                      (customAstro.aspect === 'Opposition' || customAstro.aspect === 'Square') ? 'Disharmonious aspect detected. Restricting lot risk by 25% to account for correlation drag.' :
+                                      'Harmonious aspect, normal risk environment. 1.00x normal lot sizing.'
+                                    }
                                   </div>
                                 </div>
                               )}
 
-                              {f.id === 'rebates-milestones' && (
-                                <div className="cl-architecture-section">
-                                  <div className="cl-architecture-title" style={{ fontSize: '11px', color: 'var(--wl-accent)', fontWeight: '750' }}>
-                                    🌳 PARTNER LEGS CAPPING DEMONSTRATION (40/40/20 Target)
+                              {f.id === 'rebates-milestones' && (() => {
+                                const rawAlice = Number(legAlice) || 0;
+                                const rawBob = Number(legBob) || 0;
+                                const rawCharlie = Number(legCharlie) || 0;
+
+                                const countedAlice = Math.min(rawAlice, 40);
+                                const countedBob = Math.min(rawBob, 40);
+                                const countedCharlie = Math.min(rawCharlie, 40);
+
+                                const totalCounted = countedAlice + countedBob + countedCharlie;
+                                const progressPercent = Math.min((totalCounted / 100) * 100, 100);
+
+                                return (
+                                  <div className="cl-architecture-section">
+                                    <div className="cl-architecture-title" style={{ fontSize: '11px', color: 'var(--wl-accent)', fontWeight: '750' }}>
+                                      🌳 PARTNER LEGS CAPPING DEMONSTRATION (40/40/20 Target)
+                                    </div>
+                                    
+                                    {/* Controls */}
+                                    <div className="cl-sandbox-controls">
+                                      <div className="cl-sandbox-control">
+                                        <label>Alice Raw Lots</label>
+                                        <input 
+                                          type="number" 
+                                          className="cl-sandbox-input" 
+                                          value={legAlice} 
+                                          onChange={e => setLegAlice(e.target.value)} 
+                                          placeholder="Alice raw lots"
+                                        />
+                                      </div>
+                                      <div className="cl-sandbox-control">
+                                        <label>Bob Raw Lots</label>
+                                        <input 
+                                          type="number" 
+                                          className="cl-sandbox-input" 
+                                          value={legBob} 
+                                          onChange={e => setLegBob(e.target.value)} 
+                                          placeholder="Bob raw lots"
+                                        />
+                                      </div>
+                                      <div className="cl-sandbox-control">
+                                        <label>Charlie Raw Lots</label>
+                                        <input 
+                                          type="number" 
+                                          className="cl-sandbox-input" 
+                                          value={legCharlie} 
+                                          onChange={e => setLegCharlie(e.target.value)} 
+                                          placeholder="Charlie raw lots"
+                                        />
+                                      </div>
+                                    </div>
+
+                                    <div className="cl-leg-widget">
+                                      <div className="cl-leg-row">
+                                        <div className="cl-leg-header">
+                                          <span className="cl-leg-name">Leg 1: Alice (Power Leg)</span>
+                                          <span className="cl-leg-details">Raw: {rawAlice} Lots | Counted: <span className={rawAlice > 40 ? 'capped' : ''}>{countedAlice} Lots {rawAlice > 40 && '(Capped)'}</span></span>
+                                        </div>
+                                        <div className="cl-leg-progress-track">
+                                          <div className={`cl-leg-progress-fill ${rawAlice > 40 ? 'capped' : ''}`} style={{ width: `${Math.min((rawAlice / 40) * 100, 100)}%` }} />
+                                        </div>
+                                      </div>
+                                      <div className="cl-leg-row">
+                                        <div className="cl-leg-header">
+                                          <span className="cl-leg-name">Leg 2: Bob (Medium Leg)</span>
+                                          <span className="cl-leg-details">Raw: {rawBob} Lots | Counted: <span className={rawBob > 40 ? 'capped' : ''}>{countedBob} Lots {rawBob > 40 && '(Capped)'}</span></span>
+                                        </div>
+                                        <div className="cl-leg-progress-track">
+                                          <div className={`cl-leg-progress-fill ${rawBob > 40 ? 'capped' : ''}`} style={{ width: `${Math.min((rawBob / 40) * 100, 100)}%` }} />
+                                        </div>
+                                      </div>
+                                      <div className="cl-leg-row">
+                                        <div className="cl-leg-header">
+                                          <span className="cl-leg-name">Leg 3: Charlie (Minor Leg)</span>
+                                          <span className="cl-leg-details">Raw: {rawCharlie} Lots | Counted: <span className={rawCharlie > 40 ? 'capped' : ''}>{countedCharlie} Lots {rawCharlie > 40 && '(Capped)'}</span></span>
+                                        </div>
+                                        <div className="cl-leg-progress-track">
+                                          <div className={`cl-leg-progress-fill ${rawCharlie > 40 ? 'capped' : ''}`} style={{ width: `${Math.min((rawCharlie / 40) * 100, 100)}%` }} />
+                                        </div>
+                                      </div>
+                                      
+                                      <div className="cl-leg-legend" style={{ justifyContent: 'space-between' }}>
+                                        <div style={{ display: 'flex', gap: '14px' }}>
+                                          <div className="cl-legend-item"><span className="cl-legend-dot" /> Counted volume</div>
+                                          <div className="cl-legend-item"><span className="cl-legend-dot capped" /> Capped at 40% Target Limit</div>
+                                        </div>
+                                        <div style={{ fontWeight: '750', color: 'var(--wl-text)' }}>
+                                          Total Contribution: <span style={{ color: 'var(--wl-accent)' }}>{totalCounted} / 100 Lots ({progressPercent.toFixed(0)}%)</span>
+                                        </div>
+                                      </div>
+                                    </div>
                                   </div>
-                                  <div className="cl-leg-widget">
-                                    <div className="cl-leg-row">
-                                      <div className="cl-leg-header">
-                                        <span className="cl-leg-name">Leg 1: Alice (Power Leg)</span>
-                                        <span className="cl-leg-details">Raw: 140 Lots | Counted: <span className="capped">40 Lots (Capped)</span></span>
-                                      </div>
-                                      <div className="cl-leg-progress-track">
-                                        <div className="cl-leg-progress-fill capped" style={{ width: '100%' }} />
-                                      </div>
-                                    </div>
-                                    <div className="cl-leg-row">
-                                      <div className="cl-leg-header">
-                                        <span className="cl-leg-name">Leg 2: Bob (Medium Leg)</span>
-                                        <span className="cl-leg-details">Raw: 30 Lots | Counted: <span>30 Lots</span></span>
-                                      </div>
-                                      <div className="cl-leg-progress-track">
-                                        <div className="cl-leg-progress-fill" style={{ width: '75%' }} />
-                                      </div>
-                                    </div>
-                                    <div className="cl-leg-row">
-                                      <div className="cl-leg-header">
-                                        <span className="cl-leg-name">Leg 3: Charlie (Minor Leg)</span>
-                                        <span className="cl-leg-details">Raw: 85 Lots | Counted: <span className="capped">40 Lots (Capped)</span></span>
-                                      </div>
-                                      <div className="cl-leg-progress-track">
-                                        <div className="cl-leg-progress-fill capped" style={{ width: '100%' }} />
-                                      </div>
-                                    </div>
-                                    <div className="cl-leg-legend">
-                                      <div className="cl-legend-item"><span className="cl-legend-dot" /> Counted volume</div>
-                                      <div className="cl-legend-item"><span className="cl-legend-dot capped" /> Capped at 40% Target Limit</div>
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
+                                );
+                              })()}
 
                               {f.id === 'billing-ledger' && (
                                 <div className="cl-architecture-section">
                                   <div className="cl-architecture-title" style={{ fontSize: '11px', color: 'var(--wl-accent)', fontWeight: '750' }}>
                                     💳 TRANSACTION SELF-HEALING SYSTEM DIAGNOSTIC LOGS
                                   </div>
+                                  
+                                  {/* Controls */}
+                                  <div className="cl-sandbox-btn-group">
+                                    <button className="cl-sandbox-btn cl-sandbox-btn--primary" onClick={() => triggerDiagnosticSimulation('success')}>
+                                      Simulate Success Purchase
+                                    </button>
+                                    <button className="cl-sandbox-btn" onClick={() => triggerDiagnosticSimulation('healing')}>
+                                      Simulate DB Lockout Healing
+                                    </button>
+                                    <button className="cl-sandbox-btn" onClick={() => triggerDiagnosticSimulation('insufficient')}>
+                                      Simulate Low Balance
+                                    </button>
+                                  </div>
+
                                   <div className="cl-sim-console">
                                     <div className="cl-sim-console-header">
                                       <div className="cl-sim-console-title">
@@ -1726,7 +2430,11 @@ export default function WorkLogPage() {
                                     </div>
                                     <div className="cl-sim-console-lines">
                                       {ledgerLogs.map((log, lIdx) => {
-                                        const type = log.startsWith('SUCCESS') ? 'success' : log.startsWith('WARNING') ? 'warn' : log.startsWith('RECOVERY') ? 'error' : 'info';
+                                        let type = 'info';
+                                        if (log.includes('SUCCESS') || log.includes('passed')) type = 'success';
+                                        else if (log.includes('WARNING') || log.includes('RECOVERY')) type = 'warn';
+                                        else if (log.includes('ERROR') || log.includes('rejected') || log.includes('failed')) type = 'error';
+                                        
                                         return (
                                           <div key={lIdx} className={`cl-sim-line ${type}`}>
                                             &gt; {log}
@@ -1772,8 +2480,14 @@ export default function WorkLogPage() {
                               >
                                 {copiedId === f.id ? '✓ Copied!' : '📋 Copy Flowchart'}
                               </button>
-                              <div className="cl-architecture-title">🏗️ System Architecture Flow</div>
-                              <pre className="cl-flowchart-box" style={{ clear: 'both' }}>{f.flowchart}</pre>
+                              <div className="cl-architecture-title" style={{ marginBottom: '16px' }}>🏗️ System Architecture Flow</div>
+                              
+                              <InteractiveFlowchart data={f.flowchartData} />
+
+                              <details style={{ marginTop: '16px', cursor: 'pointer' }}>
+                                <summary style={{ fontSize: '11.5px', color: 'var(--wl-text-muted)', userSelect: 'none' }}>Show Raw ASCII Diagram</summary>
+                                <pre className="cl-flowchart-box" style={{ marginTop: '8px', clear: 'both' }}>{f.flowchart}</pre>
+                              </details>
                             </div>
                           )}
 
