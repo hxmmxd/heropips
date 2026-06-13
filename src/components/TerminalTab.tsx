@@ -23,16 +23,8 @@ interface TerminalTabProps {
 }
 
 // Star particle positions (fixed, no random on render)
-const STAR_POSITIONS = [
-  { top: '12%',  left: '18%',  delay: '0s'    },
-  { top: '8%',   left: '68%',  delay: '0.6s'  },
-  { top: '22%',  left: '88%',  delay: '1.1s'  },
-  { top: '75%',  left: '82%',  delay: '0.3s'  },
-  { top: '85%',  left: '25%',  delay: '1.4s'  },
-  { top: '78%',  left: '10%',  delay: '0.9s'  },
-  { top: '45%',  left: '92%',  delay: '1.8s'  },
-  { top: '50%',  left: '5%',   delay: '0.5s'  },
-];
+
+
 
 // ── Astro Activation Body (fetches live celestial data) ──
 function AstroActivationBody() {
@@ -90,38 +82,44 @@ function AstroActivationBody() {
 
 // ── Solar System Orrery (empty-state animation) ──
 function SolarSystemOrrery() {
+  // Stars placed only along edges/corners — never near center content
+  const edgeStars = [
+    // top edge
+    { top: '4%',  left: '8%',  size: 9,  delay: '0s',    glyph: '✦' },
+    { top: '6%',  left: '25%', size: 7,  delay: '1.2s',  glyph: '·' },
+    { top: '3%',  left: '72%', size: 8,  delay: '0.6s',  glyph: '✦' },
+    { top: '7%',  left: '88%', size: 7,  delay: '2s',    glyph: '·' },
+    // bottom edge
+    { top: '91%', left: '6%',  size: 8,  delay: '1.5s',  glyph: '✦' },
+    { top: '94%', left: '22%', size: 6,  delay: '0.3s',  glyph: '·' },
+    { top: '89%', left: '74%', size: 9,  delay: '1.8s',  glyph: '✦' },
+    { top: '93%', left: '91%', size: 7,  delay: '0.9s',  glyph: '·' },
+    // left edge
+    { top: '28%', left: '2%',  size: 7,  delay: '2.2s',  glyph: '·' },
+    { top: '55%', left: '1%',  size: 8,  delay: '0.4s',  glyph: '✦' },
+    { top: '75%', left: '3%',  size: 6,  delay: '1.6s',  glyph: '·' },
+    // right edge
+    { top: '22%', left: '97%', size: 8,  delay: '1.1s',  glyph: '✦' },
+    { top: '48%', left: '96%', size: 6,  delay: '2.5s',  glyph: '·' },
+    { top: '68%', left: '97%', size: 9,  delay: '0.7s',  glyph: '✦' },
+  ];
+
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden">
-      {/* SVG Orbit Rings */}
-      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 400 400">
-        <defs>
-          <radialGradient id="orrery-glow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="rgba(139,92,246,0.08)" />
-            <stop offset="100%" stopColor="transparent" />
-          </radialGradient>
-        </defs>
-        {/* Nebula glow */}
-        <circle cx="200" cy="200" r="180" fill="url(#orrery-glow)" />
-        {/* Inner orbit */}
-        <circle cx="200" cy="200" r="55" fill="none" stroke="rgba(168,85,247,0.15)" strokeWidth="1" strokeDasharray="4 3" className="astro-orbit-ring" style={{ animationDuration: '25s' }} />
-        {/* Middle orbit */}
-        <circle cx="200" cy="200" r="95" fill="none" stroke="rgba(139,92,246,0.12)" strokeWidth="1" strokeDasharray="5 4" className="astro-orbit-ring" style={{ animationDuration: '40s', animationDirection: 'reverse' }} />
-        {/* Outer orbit */}
-        <circle cx="200" cy="200" r="140" fill="none" stroke="rgba(124,58,237,0.10)" strokeWidth="1" strokeDasharray="6 5" className="astro-orbit-ring" style={{ animationDuration: '60s' }} />
-      </svg>
-      {/* Orbiting Planet Dots */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        {/* Mercury (ice blue) — inner orbit */}
-        <div className="absolute w-2.5 h-2.5 rounded-full bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.7)]" style={{ animation: 'astro-orbit-planet 8s linear infinite', offsetPath: 'circle(55px at center)', offsetDistance: '0%' }} />
-        {/* Moon (gold) — middle orbit */}
-        <div className="absolute w-3 h-3 rounded-full bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.7)]" style={{ animation: 'astro-orbit-planet 14s linear infinite', offsetPath: 'circle(95px at center)', offsetDistance: '33%' }} />
-        {/* Jupiter (amber-orange) — outer orbit */}
-        <div className="absolute w-3.5 h-3.5 rounded-full bg-orange-400 shadow-[0_0_12px_rgba(251,146,60,0.6)]" style={{ animation: 'astro-orbit-planet 22s linear infinite', offsetPath: 'circle(140px at center)', offsetDistance: '66%' }} />
-      </div>
-      {/* Star particles */}
-      {STAR_POSITIONS.map((star, i) => (
-        <span key={i} className="absolute text-amber-400/40 text-[10px] astro-twinkle" style={{ top: star.top, left: star.left, animationDelay: star.delay }}>
-          ✦
+      {edgeStars.map((s, i) => (
+        <span
+          key={i}
+          className="absolute astro-twinkle select-none"
+          style={{
+            top: s.top,
+            left: s.left,
+            fontSize: s.size,
+            color: 'rgba(245,158,11,0.28)',
+            animationDelay: s.delay,
+            lineHeight: 1,
+          }}
+        >
+          {s.glyph}
         </span>
       ))}
     </div>
