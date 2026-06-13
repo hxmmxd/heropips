@@ -80,72 +80,241 @@ function AstroActivationBody() {
   );
 }
 
-// ── Solar System Orrery — fixed corner planets, never over content ──
-function SolarSystemOrrery() {
-  const planets = [
-    // top-right
-    {
-      top: '8%', right: '6%', left: 'auto',
-      size: 14,
-      color: 'rgb(251,191,36)',
-      glow: 'rgba(251,191,36,0.55)',
-      dur: '3.2s',
-      label: 'Moon',
-    },
-    // bottom-right
-    {
-      top: 'auto', bottom: '10%', right: '4%', left: 'auto',
-      size: 18,
-      color: 'rgb(251,146,60)',
-      glow: 'rgba(251,146,60,0.45)',
-      dur: '4.5s',
-      label: 'Jupiter',
-    },
-    // top-left
-    {
-      top: '12%', left: '3%',
-      size: 10,
-      color: 'rgb(125,211,252)',
-      glow: 'rgba(125,211,252,0.5)',
-      dur: '2.8s',
-      label: 'Mercury',
-    },
-    // bottom-left
-    {
-      bottom: '14%', left: '5%', top: 'auto',
-      size: 12,
-      color: 'rgb(252,165,165)',
-      glow: 'rgba(239,68,68,0.4)',
-      dur: '3.8s',
-      label: 'Mars',
-    },
-  ];
+// ─── Detailed SVG Planet Components ───────────────────────────────────────────
 
+function PlanetMoon({ size = 64 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="mn-base" cx="38%" cy="34%" r="62%">
+          <stop offset="0%"   stopColor="#d1d8e8" />
+          <stop offset="45%"  stopColor="#8e99b0" />
+          <stop offset="100%" stopColor="#3d4758" />
+        </radialGradient>
+        <radialGradient id="mn-shade" cx="72%" cy="72%" r="58%">
+          <stop offset="0%"   stopColor="rgba(0,0,0,0.52)" />
+          <stop offset="100%" stopColor="transparent" />
+        </radialGradient>
+        <radialGradient id="mn-spec" cx="30%" cy="28%" r="35%">
+          <stop offset="0%"   stopColor="rgba(255,255,255,0.28)" />
+          <stop offset="100%" stopColor="transparent" />
+        </radialGradient>
+        <radialGradient id="mn-atm" cx="50%" cy="50%" r="50%">
+          <stop offset="82%"  stopColor="transparent" />
+          <stop offset="100%" stopColor="rgba(180,195,230,0.18)" />
+        </radialGradient>
+        <clipPath id="mn-clip"><circle cx="32" cy="32" r="29"/></clipPath>
+        <filter id="mn-glow"><feGaussianBlur stdDeviation="3.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+      {/* Atmospheric halo */}
+      <circle cx="32" cy="32" r="31" fill="url(#mn-atm)" filter="url(#mn-glow)" opacity="0.7" />
+      {/* Base sphere */}
+      <circle cx="32" cy="32" r="29" fill="url(#mn-base)" />
+      {/* Surface craters */}
+      <g clipPath="url(#mn-clip)" opacity="0.9">
+        <circle cx="20" cy="21" r="5.5" fill="rgba(80,92,115,0.55)" stroke="rgba(155,168,190,0.35)" strokeWidth="0.6"/>
+        <circle cx="20" cy="21" r="3.8" fill="rgba(60,72,92,0.50)"/>
+        <circle cx="40" cy="17" r="3.5" fill="rgba(80,92,115,0.50)" stroke="rgba(155,168,190,0.28)" strokeWidth="0.5"/>
+        <circle cx="40" cy="17" r="2.2" fill="rgba(58,70,90,0.45)"/>
+        <circle cx="27" cy="40" r="4.5" fill="rgba(75,87,110,0.55)" stroke="rgba(148,162,185,0.28)" strokeWidth="0.5"/>
+        <circle cx="27" cy="40" r="2.8" fill="rgba(55,68,88,0.48)"/>
+        <circle cx="44" cy="38" r="3" fill="rgba(78,90,112,0.50)"/>
+        <circle cx="44" cy="38" r="1.8" fill="rgba(58,70,90,0.42)"/>
+        <circle cx="14" cy="39" r="2.2" fill="rgba(75,87,110,0.48)"/>
+        <circle cx="35" cy="28" r="1.8" fill="rgba(72,84,106,0.42)"/>
+        <circle cx="48" cy="24" r="1.5" fill="rgba(70,82,104,0.40)"/>
+        <circle cx="22" cy="30" r="1.2" fill="rgba(68,80,102,0.38)"/>
+      </g>
+      {/* Specular highlight */}
+      <circle cx="32" cy="32" r="29" fill="url(#mn-spec)" />
+      {/* Terminator shadow */}
+      <circle cx="32" cy="32" r="29" fill="url(#mn-shade)" />
+    </svg>
+  );
+}
+
+function PlanetJupiter({ size = 84 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 84 84" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="jp-base" cx="50%" cy="50%" r="50%">
+          <stop offset="0%"   stopColor="#c87941" />
+          <stop offset="100%" stopColor="#7a4010" />
+        </radialGradient>
+        <radialGradient id="jp-shade" cx="72%" cy="70%" r="58%">
+          <stop offset="0%"   stopColor="rgba(0,0,0,0.48)" />
+          <stop offset="100%" stopColor="transparent" />
+        </radialGradient>
+        <radialGradient id="jp-spec" cx="32%" cy="30%" r="40%">
+          <stop offset="0%"   stopColor="rgba(255,240,210,0.30)" />
+          <stop offset="100%" stopColor="transparent" />
+        </radialGradient>
+        <radialGradient id="jp-atm" cx="50%" cy="50%" r="50%">
+          <stop offset="80%"  stopColor="transparent" />
+          <stop offset="100%" stopColor="rgba(200,140,80,0.20)" />
+        </radialGradient>
+        <clipPath id="jp-clip"><circle cx="42" cy="42" r="38"/></clipPath>
+        <filter id="jp-glow"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+      {/* Atmospheric halo */}
+      <circle cx="42" cy="42" r="41" fill="url(#jp-atm)" filter="url(#jp-glow)" opacity="0.65" />
+      {/* Base */}
+      <circle cx="42" cy="42" r="38" fill="url(#jp-base)" />
+      {/* Horizontal cloud bands */}
+      <g clipPath="url(#jp-clip)">
+        <rect x="4" y="10" width="76" height="7"  fill="rgba(240,210,165,0.75)"/>
+        <rect x="4" y="17" width="76" height="5"  fill="rgba(130,62,20,0.65)"/>
+        <rect x="4" y="22" width="76" height="8"  fill="rgba(215,165,100,0.70)"/>
+        <rect x="4" y="30" width="76" height="4"  fill="rgba(100,48,12,0.60)"/>
+        <rect x="4" y="34" width="76" height="7"  fill="rgba(200,145,80,0.68)"/>
+        <rect x="4" y="41" width="76" height="5"  fill="rgba(240,200,145,0.72)"/>
+        <rect x="4" y="46" width="76" height="6"  fill="rgba(120,58,18,0.62)"/>
+        <rect x="4" y="52" width="76" height="8"  fill="rgba(210,160,95,0.70)"/>
+        <rect x="4" y="60" width="76" height="5"  fill="rgba(160,90,30,0.60)"/>
+        <rect x="4" y="65" width="76" height="9"  fill="rgba(235,195,135,0.68)"/>
+        {/* Great Red Spot */}
+        <ellipse cx="55" cy="43" rx="10" ry="7"  fill="rgba(185,50,20,0.82)"/>
+        <ellipse cx="55" cy="43" rx="7"  ry="5"  fill="rgba(210,65,28,0.70)"/>
+        <ellipse cx="55" cy="43" rx="4"  ry="2.8" fill="rgba(235,80,35,0.55)"/>
+        <ellipse cx="54.5" cy="42.5" rx="1.8" ry="1.2" fill="rgba(255,120,60,0.35)"/>
+        {/* Subtle swirl streaks */}
+        <path d="M 4 28 Q 30 25 60 30 Q 80 32 84 30" stroke="rgba(180,110,50,0.25)" strokeWidth="1.5" fill="none"/>
+        <path d="M 4 50 Q 35 47 65 52 Q 78 54 84 51" stroke="rgba(160,90,30,0.22)" strokeWidth="1.2" fill="none"/>
+      </g>
+      {/* Specular */}
+      <circle cx="42" cy="42" r="38" fill="url(#jp-spec)" />
+      {/* Shadow */}
+      <circle cx="42" cy="42" r="38" fill="url(#jp-shade)" />
+    </svg>
+  );
+}
+
+function PlanetMercury({ size = 52 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="mc-base" cx="36%" cy="33%" r="64%">
+          <stop offset="0%"   stopColor="#a8bbd0" />
+          <stop offset="50%"  stopColor="#6882a0" />
+          <stop offset="100%" stopColor="#2e3f58" />
+        </radialGradient>
+        <radialGradient id="mc-shade" cx="70%" cy="70%" r="58%">
+          <stop offset="0%"   stopColor="rgba(0,0,0,0.55)" />
+          <stop offset="100%" stopColor="transparent" />
+        </radialGradient>
+        <radialGradient id="mc-spec" cx="30%" cy="28%" r="38%">
+          <stop offset="0%"   stopColor="rgba(200,220,255,0.25)" />
+          <stop offset="100%" stopColor="transparent" />
+        </radialGradient>
+        <clipPath id="mc-clip"><circle cx="26" cy="26" r="23"/></clipPath>
+        <filter id="mc-glow"><feGaussianBlur stdDeviation="2.8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+      <circle cx="26" cy="26" r="25" fill="rgba(100,130,175,0.14)" filter="url(#mc-glow)" />
+      <circle cx="26" cy="26" r="23" fill="url(#mc-base)" />
+      <g clipPath="url(#mc-clip)" opacity="0.92">
+        <circle cx="17" cy="18" r="4.5" fill="rgba(36,52,76,0.58)" stroke="rgba(100,125,160,0.32)" strokeWidth="0.6"/>
+        <circle cx="17" cy="18" r="2.8" fill="rgba(26,40,62,0.52)"/>
+        <circle cx="32" cy="14" r="3"   fill="rgba(36,52,76,0.52)" stroke="rgba(100,125,160,0.26)" strokeWidth="0.5"/>
+        <circle cx="32" cy="14" r="1.8" fill="rgba(26,40,62,0.46)"/>
+        <circle cx="34" cy="32" r="3.5" fill="rgba(36,52,76,0.56)" stroke="rgba(100,125,160,0.28)" strokeWidth="0.5"/>
+        <circle cx="34" cy="32" r="2"   fill="rgba(26,40,62,0.48)"/>
+        <circle cx="14" cy="35" r="2.2" fill="rgba(36,52,76,0.50)"/>
+        <circle cx="14" cy="35" r="1.2" fill="rgba(26,40,62,0.42)"/>
+        <circle cx="22" cy="30" r="1.4" fill="rgba(36,52,76,0.44)"/>
+        <circle cx="38" cy="22" r="1.6" fill="rgba(36,52,76,0.46)"/>
+        <circle cx="26" cy="22" r="1.0" fill="rgba(36,52,76,0.40)"/>
+      </g>
+      <circle cx="26" cy="26" r="23" fill="url(#mc-spec)" />
+      <circle cx="26" cy="26" r="23" fill="url(#mc-shade)" />
+    </svg>
+  );
+}
+
+function PlanetSaturn({ size = 80 }: { size?: number }) {
+  // viewBox 130×90 — extra width for rings
+  const w = Math.round(size * 1.44);
+  return (
+    <svg width={w} height={size} viewBox="0 0 130 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="st-base" cx="36%" cy="33%" r="64%">
+          <stop offset="0%"   stopColor="#fde9a0" />
+          <stop offset="55%"  stopColor="#c8952e" />
+          <stop offset="100%" stopColor="#7a5510" />
+        </radialGradient>
+        <radialGradient id="st-shade" cx="70%" cy="70%" r="58%">
+          <stop offset="0%"   stopColor="rgba(0,0,0,0.44)" />
+          <stop offset="100%" stopColor="transparent" />
+        </radialGradient>
+        <radialGradient id="st-spec" cx="32%" cy="30%" r="40%">
+          <stop offset="0%"   stopColor="rgba(255,250,220,0.32)" />
+          <stop offset="100%" stopColor="transparent" />
+        </radialGradient>
+        <radialGradient id="st-atm" cx="50%" cy="50%" r="50%">
+          <stop offset="78%"  stopColor="transparent" />
+          <stop offset="100%" stopColor="rgba(220,180,90,0.22)" />
+        </radialGradient>
+        <clipPath id="st-clip"><circle cx="65" cy="45" r="31"/></clipPath>
+        {/* Clip for front-half rings (below center of planet) */}
+        <clipPath id="st-rf"><rect x="0" y="45" width="130" height="45"/></clipPath>
+        <filter id="st-glow"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+
+      {/* ── Back half of rings ── */}
+      <ellipse cx="65" cy="49" rx="53" ry="14"  stroke="rgba(200,155,55,0.32)" strokeWidth="6"  fill="none"/>
+      <ellipse cx="65" cy="49" rx="45" ry="11.5" stroke="rgba(220,175,80,0.28)" strokeWidth="4.5" fill="none"/>
+      <ellipse cx="65" cy="49" rx="58" ry="15.5" stroke="rgba(175,130,45,0.22)" strokeWidth="4"  fill="none"/>
+      <ellipse cx="65" cy="49" rx="38" ry="9.5"  stroke="rgba(240,200,100,0.20)" strokeWidth="3" fill="none"/>
+
+      {/* ── Atmosphere halo ── */}
+      <circle cx="65" cy="45" r="33" fill="url(#st-atm)" filter="url(#st-glow)" opacity="0.6"/>
+
+      {/* ── Planet sphere ── */}
+      <circle cx="65" cy="45" r="31" fill="url(#st-base)"/>
+      <g clipPath="url(#st-clip)">
+        <rect x="34" y="26" width="62" height="6"  fill="rgba(255,245,195,0.55)"/>
+        <rect x="34" y="33" width="62" height="4"  fill="rgba(170,115,35,0.42)"/>
+        <rect x="34" y="40" width="62" height="5"  fill="rgba(200,150,55,0.38)"/>
+        <rect x="34" y="50" width="62" height="4"  fill="rgba(155,105,28,0.40)"/>
+        <rect x="34" y="57" width="62" height="6"  fill="rgba(235,190,95,0.45)"/>
+      </g>
+      <circle cx="65" cy="45" r="31" fill="url(#st-spec)"/>
+      <circle cx="65" cy="45" r="31" fill="url(#st-shade)"/>
+
+      {/* ── Front half of rings (over the bottom of the sphere) ── */}
+      <g clipPath="url(#st-rf)">
+        <ellipse cx="65" cy="49" rx="53" ry="14"  stroke="rgba(200,155,55,0.60)" strokeWidth="6"  fill="none"/>
+        <ellipse cx="65" cy="49" rx="45" ry="11.5" stroke="rgba(220,175,80,0.52)" strokeWidth="4.5" fill="none"/>
+        <ellipse cx="65" cy="49" rx="58" ry="15.5" stroke="rgba(175,130,45,0.42)" strokeWidth="4"  fill="none"/>
+        <ellipse cx="65" cy="49" rx="38" ry="9.5"  stroke="rgba(240,200,100,0.40)" strokeWidth="3" fill="none"/>
+      </g>
+    </svg>
+  );
+}
+
+// ── Solar System Orrery — detailed SVG planets at 4 corners ──
+function SolarSystemOrrery() {
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
-      {planets.map((p, i) => (
-        <div
-          key={i}
-          className="absolute"
-          style={{
-            top: p.top,
-            bottom: (p as any).bottom,
-            left: p.left,
-            right: (p as any).right,
-            width: p.size,
-            height: p.size,
-            borderRadius: '50%',
-            background: p.color,
-            boxShadow: `0 0 ${p.size * 1.8}px ${p.glow}, 0 0 ${p.size * 3.5}px ${p.glow.replace('0.', '0.2').replace('0.55', '0.2').replace('0.45', '0.18').replace('0.5', '0.2').replace('0.4', '0.15')}`,
-            animation: `planet-pulse ${p.dur} ease-in-out infinite`,
-            animationDelay: `${i * 0.6}s`,
-          }}
-        />
-      ))}
+      {/* Mercury — top-left */}
+      <div className="absolute" style={{ top: '5%', left: '1.5%', animation: 'planet-float 6s ease-in-out infinite', animationDelay: '0s', filter: 'drop-shadow(0 0 14px rgba(100,140,200,0.40))' }}>
+        <PlanetMercury size={58} />
+      </div>
+      {/* Moon — top-right */}
+      <div className="absolute" style={{ top: '4%', right: '2%', animation: 'planet-float 7s ease-in-out infinite', animationDelay: '1.2s', filter: 'drop-shadow(0 0 18px rgba(180,200,240,0.38))' }}>
+        <PlanetMoon size={70} />
+      </div>
+      {/* Saturn — bottom-left */}
+      <div className="absolute" style={{ bottom: '6%', left: '0%', animation: 'planet-float 9s ease-in-out infinite', animationDelay: '2.5s', filter: 'drop-shadow(0 0 22px rgba(210,170,70,0.35))' }}>
+        <PlanetSaturn size={82} />
+      </div>
+      {/* Jupiter — bottom-right */}
+      <div className="absolute" style={{ bottom: '5%', right: '1.5%', animation: 'planet-float 8s ease-in-out infinite', animationDelay: '0.8s', filter: 'drop-shadow(0 0 24px rgba(210,130,60,0.38))' }}>
+        <PlanetJupiter size={90} />
+      </div>
       <style>{`
-        @keyframes planet-pulse {
-          0%, 100% { transform: scale(1);    opacity: 0.85; }
-          50%       { transform: scale(1.12); opacity: 1;    }
+        @keyframes planet-float {
+          0%, 100% { transform: translateY(0px)   scale(1);    opacity: 0.82; }
+          50%       { transform: translateY(-6px)  scale(1.03); opacity: 0.96; }
         }
       `}</style>
     </div>
