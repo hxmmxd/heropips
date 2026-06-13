@@ -81,47 +81,130 @@ function AstroActivationBody() {
 }
 
 // ── Solar System Orrery (empty-state animation) ──
+// All planets live inside a full-bleed SVG — they can never overlap content
+// which sits on z-index 10 above this z-index 0 layer.
 function SolarSystemOrrery() {
-  // Stars placed only along edges/corners — never near center content
-  const edgeStars = [
-    // top edge
-    { top: '4%',  left: '8%',  size: 9,  delay: '0s',    glyph: '✦' },
-    { top: '6%',  left: '25%', size: 7,  delay: '1.2s',  glyph: '·' },
-    { top: '3%',  left: '72%', size: 8,  delay: '0.6s',  glyph: '✦' },
-    { top: '7%',  left: '88%', size: 7,  delay: '2s',    glyph: '·' },
-    // bottom edge
-    { top: '91%', left: '6%',  size: 8,  delay: '1.5s',  glyph: '✦' },
-    { top: '94%', left: '22%', size: 6,  delay: '0.3s',  glyph: '·' },
-    { top: '89%', left: '74%', size: 9,  delay: '1.8s',  glyph: '✦' },
-    { top: '93%', left: '91%', size: 7,  delay: '0.9s',  glyph: '·' },
-    // left edge
-    { top: '28%', left: '2%',  size: 7,  delay: '2.2s',  glyph: '·' },
-    { top: '55%', left: '1%',  size: 8,  delay: '0.4s',  glyph: '✦' },
-    { top: '75%', left: '3%',  size: 6,  delay: '1.6s',  glyph: '·' },
-    // right edge
-    { top: '22%', left: '97%', size: 8,  delay: '1.1s',  glyph: '✦' },
-    { top: '48%', left: '96%', size: 6,  delay: '2.5s',  glyph: '·' },
-    { top: '68%', left: '97%', size: 9,  delay: '0.7s',  glyph: '✦' },
+  // viewBox is 800×600 — SVG stretches to fill the panel
+  // Center is at (400, 300)
+  const cx = 400, cy = 300;
+  // orbit radii (safe — outermost is 195px, content is ~250px wide centered)
+  const r1 = 90, r2 = 145, r3 = 195;
+
+  // Build circular path strings for animateMotion mpath
+  const orbitPath = (r: number) =>
+    `M ${cx + r},${cy} A ${r},${r} 0 1,1 ${cx + r - 0.001},${cy}`;
+
+  // Scattered background stars (x, y, opacity, size)
+  const stars = [
+    [60,  40,  0.5, 1.2], [200, 20,  0.3, 0.9], [620, 55,  0.45,1.1],
+    [740, 30,  0.4, 0.8], [700,120,  0.35,1.0], [120,140,  0.3, 0.8],
+    [50, 220,  0.4, 1.1], [760,220,  0.45,0.9], [30, 400,  0.35,1.0],
+    [770,370,  0.4, 1.2], [80, 520,  0.45,0.8], [680,490,  0.3, 1.1],
+    [200,560,  0.4, 0.9], [550,570,  0.35,1.0], [730,540,  0.5, 1.2],
+    [330, 30,  0.3, 0.8], [500, 15,  0.45,1.1], [160,300,  0.3, 0.9],
+    [640,300,  0.35,1.0], [400, 80,  0.4, 0.8], [400,520,  0.3, 0.9],
   ];
 
   return (
-    <div className="absolute inset-0 pointer-events-none overflow-hidden">
-      {edgeStars.map((s, i) => (
-        <span
-          key={i}
-          className="absolute astro-twinkle select-none"
-          style={{
-            top: s.top,
-            left: s.left,
-            fontSize: s.size,
-            color: 'rgba(245,158,11,0.28)',
-            animationDelay: s.delay,
-            lineHeight: 1,
-          }}
-        >
-          {s.glyph}
-        </span>
-      ))}
+    <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
+      <svg
+        viewBox="0 0 800 600"
+        preserveAspectRatio="xMidYMid slice"
+        className="absolute inset-0 w-full h-full"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <defs>
+          {/* Orbit path definitions for animateMotion */}
+          <path id="op1" d={orbitPath(r1)} fill="none" />
+          <path id="op2" d={orbitPath(r2)} fill="none" />
+          <path id="op3" d={orbitPath(r3)} fill="none" />
+
+          {/* Planet glows */}
+          <filter id="glow-blue" x="-100%" y="-100%" width="300%" height="300%">
+            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <filter id="glow-gold" x="-100%" y="-100%" width="300%" height="300%">
+            <feGaussianBlur stdDeviation="4" result="blur" />
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <filter id="glow-orange" x="-100%" y="-100%" width="300%" height="300%">
+            <feGaussianBlur stdDeviation="5" result="blur" />
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <filter id="glow-sun" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="12" result="blur" />
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+
+        {/* Scattered star field */}
+        {stars.map(([x, y, op, r], i) => (
+          <circle key={i} cx={x} cy={y} r={r} fill={`rgba(245,158,11,${op * 0.55})`}>
+            <animate
+              attributeName="opacity"
+              values={`${op * 0.4};${op};${op * 0.4}`}
+              dur={`${2.5 + (i % 5) * 0.7}s`}
+              repeatCount="indefinite"
+              begin={`${(i * 0.37) % 3}s`}
+            />
+          </circle>
+        ))}
+
+        {/* Orbit ring 1 — innermost */}
+        <circle cx={cx} cy={cy} r={r1}
+          fill="none"
+          stroke="rgba(245,158,11,0.10)"
+          strokeWidth="0.8"
+          strokeDasharray="3 4"
+        />
+        {/* Orbit ring 2 */}
+        <circle cx={cx} cy={cy} r={r2}
+          fill="none"
+          stroke="rgba(245,158,11,0.08)"
+          strokeWidth="0.8"
+          strokeDasharray="4 5"
+        />
+        {/* Orbit ring 3 — outermost */}
+        <circle cx={cx} cy={cy} r={r3}
+          fill="none"
+          stroke="rgba(245,158,11,0.06)"
+          strokeWidth="0.8"
+          strokeDasharray="5 6"
+        />
+
+        {/* Center sun */}
+        <circle cx={cx} cy={cy} r={5} fill="rgba(245,158,11,0.6)" filter="url(#glow-sun)">
+          <animate attributeName="opacity" values="0.5;0.85;0.5" dur="3s" repeatCount="indefinite" />
+        </circle>
+
+        {/* Mercury — orbit 1 — sky blue — fast */}
+        <g filter="url(#glow-blue)">
+          <circle r="4" fill="rgb(125,211,252)">
+            <animateMotion dur="9s" repeatCount="indefinite" rotate="none">
+              <mpath href="#op1" />
+            </animateMotion>
+          </circle>
+        </g>
+
+        {/* Moon — orbit 2 — gold — medium */}
+        <g filter="url(#glow-gold)">
+          <circle r="5.5" fill="rgb(251,191,36)">
+            <animateMotion dur="16s" repeatCount="indefinite" rotate="none" begin="-5s">
+              <mpath href="#op2" />
+            </animateMotion>
+          </circle>
+        </g>
+
+        {/* Jupiter — orbit 3 — amber-orange — slow */}
+        <g filter="url(#glow-orange)">
+          <circle r="7" fill="rgb(251,146,60)">
+            <animateMotion dur="27s" repeatCount="indefinite" rotate="none" begin="-10s">
+              <mpath href="#op3" />
+            </animateMotion>
+          </circle>
+        </g>
+      </svg>
     </div>
   );
 }
