@@ -80,242 +80,276 @@ function AstroActivationBody() {
   );
 }
 
-// ─── Detailed SVG Planet Components ───────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// CSS-gradient planet art — layered radial-gradients produce photorealistic
+// spheres with atmosphere, specular highlights, and terminator shadows.
+// border-radius: 50% clips all background layers to the circle automatically.
+// ─────────────────────────────────────────────────────────────────────────────
 
-function PlanetMoon({ size = 64 }: { size?: number }) {
+
+// ── Moon ─────────────────────────────────────────────────────────────────────
+function PlanetMoon({ size = 82 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <radialGradient id="mn-base" cx="38%" cy="34%" r="62%">
-          <stop offset="0%"   stopColor="#d1d8e8" />
-          <stop offset="45%"  stopColor="#8e99b0" />
-          <stop offset="100%" stopColor="#3d4758" />
-        </radialGradient>
-        <radialGradient id="mn-shade" cx="72%" cy="72%" r="58%">
-          <stop offset="0%"   stopColor="rgba(0,0,0,0.52)" />
-          <stop offset="100%" stopColor="transparent" />
-        </radialGradient>
-        <radialGradient id="mn-spec" cx="30%" cy="28%" r="35%">
-          <stop offset="0%"   stopColor="rgba(255,255,255,0.28)" />
-          <stop offset="100%" stopColor="transparent" />
-        </radialGradient>
-        <radialGradient id="mn-atm" cx="50%" cy="50%" r="50%">
-          <stop offset="82%"  stopColor="transparent" />
-          <stop offset="100%" stopColor="rgba(180,195,230,0.18)" />
-        </radialGradient>
-        <clipPath id="mn-clip"><circle cx="32" cy="32" r="29"/></clipPath>
-        <filter id="mn-glow"><feGaussianBlur stdDeviation="3.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-      </defs>
-      {/* Atmospheric halo */}
-      <circle cx="32" cy="32" r="31" fill="url(#mn-atm)" filter="url(#mn-glow)" opacity="0.7" />
-      {/* Base sphere */}
-      <circle cx="32" cy="32" r="29" fill="url(#mn-base)" />
-      {/* Surface craters */}
-      <g clipPath="url(#mn-clip)" opacity="0.9">
-        <circle cx="20" cy="21" r="5.5" fill="rgba(80,92,115,0.55)" stroke="rgba(155,168,190,0.35)" strokeWidth="0.6"/>
-        <circle cx="20" cy="21" r="3.8" fill="rgba(60,72,92,0.50)"/>
-        <circle cx="40" cy="17" r="3.5" fill="rgba(80,92,115,0.50)" stroke="rgba(155,168,190,0.28)" strokeWidth="0.5"/>
-        <circle cx="40" cy="17" r="2.2" fill="rgba(58,70,90,0.45)"/>
-        <circle cx="27" cy="40" r="4.5" fill="rgba(75,87,110,0.55)" stroke="rgba(148,162,185,0.28)" strokeWidth="0.5"/>
-        <circle cx="27" cy="40" r="2.8" fill="rgba(55,68,88,0.48)"/>
-        <circle cx="44" cy="38" r="3" fill="rgba(78,90,112,0.50)"/>
-        <circle cx="44" cy="38" r="1.8" fill="rgba(58,70,90,0.42)"/>
-        <circle cx="14" cy="39" r="2.2" fill="rgba(75,87,110,0.48)"/>
-        <circle cx="35" cy="28" r="1.8" fill="rgba(72,84,106,0.42)"/>
-        <circle cx="48" cy="24" r="1.5" fill="rgba(70,82,104,0.40)"/>
-        <circle cx="22" cy="30" r="1.2" fill="rgba(68,80,102,0.38)"/>
-      </g>
-      {/* Specular highlight */}
-      <circle cx="32" cy="32" r="29" fill="url(#mn-spec)" />
-      {/* Terminator shadow */}
-      <circle cx="32" cy="32" r="29" fill="url(#mn-shade)" />
-    </svg>
+    <div style={{
+      width: size, height: size,
+      borderRadius: '50%',
+      flexShrink: 0,
+      background: [
+        // Specular highlight — top-left
+        'radial-gradient(circle at 30% 27%, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.04) 38%, transparent 55%)',
+        // Crater 1 — large, upper-left
+        'radial-gradient(ellipse 26% 22% at 21% 26%, rgba(42,55,78,0.82) 0%, transparent 100%)',
+        // Crater 2 — medium, upper-right
+        'radial-gradient(ellipse 16% 13% at 61% 20%, rgba(38,50,72,0.72) 0%, transparent 100%)',
+        // Crater 3 — medium, lower-center
+        'radial-gradient(ellipse 20% 17% at 33% 60%, rgba(40,53,76,0.78) 0%, transparent 100%)',
+        // Crater 4 — small, right
+        'radial-gradient(ellipse 13% 11% at 71% 62%, rgba(36,48,70,0.68) 0%, transparent 100%)',
+        // Crater 5 — tiny, left
+        'radial-gradient(ellipse 11% 9% at 14% 52%, rgba(38,50,72,0.65) 0%, transparent 100%)',
+        // Crater 6 — tiny, center
+        'radial-gradient(ellipse 9% 7% at 50% 42%, rgba(36,48,70,0.60) 0%, transparent 100%)',
+        // Terminator shadow — bottom-right
+        'radial-gradient(circle at 70% 70%, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.20) 40%, transparent 65%)',
+        // Atmospheric rim
+        'radial-gradient(circle at 50% 50%, transparent 68%, rgba(165,185,220,0.28) 82%, rgba(130,155,200,0.55) 100%)',
+        // Sphere base
+        'radial-gradient(circle at 38% 36%, #dce4f2 0%, #9dadc8 28%, #5c6e8c 55%, #2e3f5c 76%, #192030 100%)',
+      ].join(','),
+      boxShadow: [
+        '0 0 28px rgba(155,180,235,0.32)',
+        '0 0 60px rgba(135,162,218,0.16)',
+        '0 0 100px rgba(115,142,200,0.08)',
+        'inset -8px -7px 22px rgba(0,0,0,0.55)',
+        'inset 4px 4px 14px rgba(225,238,255,0.09)',
+      ].join(','),
+    }} />
   );
 }
 
-function PlanetJupiter({ size = 84 }: { size?: number }) {
+// ── Jupiter ───────────────────────────────────────────────────────────────────
+function PlanetJupiter({ size = 104 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 84 84" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <radialGradient id="jp-base" cx="50%" cy="50%" r="50%">
-          <stop offset="0%"   stopColor="#c87941" />
-          <stop offset="100%" stopColor="#7a4010" />
-        </radialGradient>
-        <radialGradient id="jp-shade" cx="72%" cy="70%" r="58%">
-          <stop offset="0%"   stopColor="rgba(0,0,0,0.48)" />
-          <stop offset="100%" stopColor="transparent" />
-        </radialGradient>
-        <radialGradient id="jp-spec" cx="32%" cy="30%" r="40%">
-          <stop offset="0%"   stopColor="rgba(255,240,210,0.30)" />
-          <stop offset="100%" stopColor="transparent" />
-        </radialGradient>
-        <radialGradient id="jp-atm" cx="50%" cy="50%" r="50%">
-          <stop offset="80%"  stopColor="transparent" />
-          <stop offset="100%" stopColor="rgba(200,140,80,0.20)" />
-        </radialGradient>
-        <clipPath id="jp-clip"><circle cx="42" cy="42" r="38"/></clipPath>
-        <filter id="jp-glow"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-      </defs>
-      {/* Atmospheric halo */}
-      <circle cx="42" cy="42" r="41" fill="url(#jp-atm)" filter="url(#jp-glow)" opacity="0.65" />
-      {/* Base */}
-      <circle cx="42" cy="42" r="38" fill="url(#jp-base)" />
-      {/* Horizontal cloud bands */}
-      <g clipPath="url(#jp-clip)">
-        <rect x="4" y="10" width="76" height="7"  fill="rgba(240,210,165,0.75)"/>
-        <rect x="4" y="17" width="76" height="5"  fill="rgba(130,62,20,0.65)"/>
-        <rect x="4" y="22" width="76" height="8"  fill="rgba(215,165,100,0.70)"/>
-        <rect x="4" y="30" width="76" height="4"  fill="rgba(100,48,12,0.60)"/>
-        <rect x="4" y="34" width="76" height="7"  fill="rgba(200,145,80,0.68)"/>
-        <rect x="4" y="41" width="76" height="5"  fill="rgba(240,200,145,0.72)"/>
-        <rect x="4" y="46" width="76" height="6"  fill="rgba(120,58,18,0.62)"/>
-        <rect x="4" y="52" width="76" height="8"  fill="rgba(210,160,95,0.70)"/>
-        <rect x="4" y="60" width="76" height="5"  fill="rgba(160,90,30,0.60)"/>
-        <rect x="4" y="65" width="76" height="9"  fill="rgba(235,195,135,0.68)"/>
-        {/* Great Red Spot */}
-        <ellipse cx="55" cy="43" rx="10" ry="7"  fill="rgba(185,50,20,0.82)"/>
-        <ellipse cx="55" cy="43" rx="7"  ry="5"  fill="rgba(210,65,28,0.70)"/>
-        <ellipse cx="55" cy="43" rx="4"  ry="2.8" fill="rgba(235,80,35,0.55)"/>
-        <ellipse cx="54.5" cy="42.5" rx="1.8" ry="1.2" fill="rgba(255,120,60,0.35)"/>
-        {/* Subtle swirl streaks */}
-        <path d="M 4 28 Q 30 25 60 30 Q 80 32 84 30" stroke="rgba(180,110,50,0.25)" strokeWidth="1.5" fill="none"/>
-        <path d="M 4 50 Q 35 47 65 52 Q 78 54 84 51" stroke="rgba(160,90,30,0.22)" strokeWidth="1.2" fill="none"/>
-      </g>
-      {/* Specular */}
-      <circle cx="42" cy="42" r="38" fill="url(#jp-spec)" />
-      {/* Shadow */}
-      <circle cx="42" cy="42" r="38" fill="url(#jp-shade)" />
-    </svg>
+    <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
+      {/* Sphere with horizontal bands */}
+      <div style={{
+        width: size, height: size,
+        borderRadius: '50%',
+        overflow: 'hidden',
+        background: [
+          // Specular
+          'radial-gradient(circle at 30% 27%, rgba(255,245,220,0.30) 0%, rgba(255,240,200,0.06) 36%, transparent 52%)',
+          // Terminator
+          'radial-gradient(circle at 71% 69%, rgba(0,0,0,0.56) 0%, rgba(0,0,0,0.20) 38%, transparent 58%)',
+          // Atmosphere rim
+          'radial-gradient(circle at 50% 50%, transparent 66%, rgba(150,85,22,0.38) 82%, rgba(90,45,8,0.65) 100%)',
+          // Cloud bands
+          `repeating-linear-gradient(
+            180deg,
+            rgba(248,218,162,0.92)  0%,  rgba(248,218,162,0.92)  7%,
+            rgba(128, 62, 18,0.82)  7%,  rgba(128, 62, 18,0.82) 13%,
+            rgba(222,172,100,0.88) 13%,  rgba(222,172,100,0.88) 21%,
+            rgba( 92, 44, 11,0.76) 21%,  rgba( 92, 44, 11,0.76) 27%,
+            rgba(240,200,132,0.90) 27%,  rgba(240,200,132,0.90) 35%,
+            rgba(118, 56, 14,0.80) 35%,  rgba(118, 56, 14,0.80) 41%,
+            rgba(214,162, 88,0.86) 41%,  rgba(214,162, 88,0.86) 49%,
+            rgba(144, 78, 22,0.78) 49%,  rgba(144, 78, 22,0.78) 55%,
+            rgba(246,210,146,0.90) 55%,  rgba(246,210,146,0.90) 63%,
+            rgba(108, 50, 13,0.78) 63%,  rgba(108, 50, 13,0.78) 70%,
+            rgba(220,168, 92,0.86) 70%,  rgba(220,168, 92,0.86) 78%,
+            rgba(128, 60, 16,0.80) 78%,  rgba(128, 60, 16,0.80) 85%,
+            rgba(242,206,136,0.90) 85%,  rgba(242,206,136,0.90) 93%,
+            rgba( 98, 46, 12,0.76) 93%,  rgba( 98, 46, 12,0.76) 100%
+          )`,
+          // Base
+          'radial-gradient(circle at 50% 50%, #c07530 0%, #7b3d0c 100%)',
+        ].join(','),
+        boxShadow: [
+          '0 0 32px rgba(215,140,55,0.35)',
+          '0 0 68px rgba(195,118,42,0.18)',
+          '0 0 110px rgba(175,100,30,0.09)',
+          'inset -10px -9px 28px rgba(0,0,0,0.52)',
+          'inset 5px 5px 16px rgba(255,228,152,0.10)',
+        ].join(','),
+      }} />
+      {/* Great Red Spot */}
+      <div style={{
+        position: 'absolute',
+        width: '28%', height: '20%',
+        borderRadius: '50%',
+        top: '42%', left: '54%',
+        transform: 'translate(-50%, -50%)',
+        background: 'radial-gradient(ellipse at 50% 50%, rgba(255,100,40,0.55) 0%, rgba(200,55,18,0.72) 45%, rgba(140,28,8,0.55) 100%)',
+        filter: 'blur(1.5px)',
+      }} />
+    </div>
   );
 }
 
-function PlanetMercury({ size = 52 }: { size?: number }) {
+// ── Mercury ───────────────────────────────────────────────────────────────────
+function PlanetMercury({ size = 66 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <radialGradient id="mc-base" cx="36%" cy="33%" r="64%">
-          <stop offset="0%"   stopColor="#a8bbd0" />
-          <stop offset="50%"  stopColor="#6882a0" />
-          <stop offset="100%" stopColor="#2e3f58" />
-        </radialGradient>
-        <radialGradient id="mc-shade" cx="70%" cy="70%" r="58%">
-          <stop offset="0%"   stopColor="rgba(0,0,0,0.55)" />
-          <stop offset="100%" stopColor="transparent" />
-        </radialGradient>
-        <radialGradient id="mc-spec" cx="30%" cy="28%" r="38%">
-          <stop offset="0%"   stopColor="rgba(200,220,255,0.25)" />
-          <stop offset="100%" stopColor="transparent" />
-        </radialGradient>
-        <clipPath id="mc-clip"><circle cx="26" cy="26" r="23"/></clipPath>
-        <filter id="mc-glow"><feGaussianBlur stdDeviation="2.8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-      </defs>
-      <circle cx="26" cy="26" r="25" fill="rgba(100,130,175,0.14)" filter="url(#mc-glow)" />
-      <circle cx="26" cy="26" r="23" fill="url(#mc-base)" />
-      <g clipPath="url(#mc-clip)" opacity="0.92">
-        <circle cx="17" cy="18" r="4.5" fill="rgba(36,52,76,0.58)" stroke="rgba(100,125,160,0.32)" strokeWidth="0.6"/>
-        <circle cx="17" cy="18" r="2.8" fill="rgba(26,40,62,0.52)"/>
-        <circle cx="32" cy="14" r="3"   fill="rgba(36,52,76,0.52)" stroke="rgba(100,125,160,0.26)" strokeWidth="0.5"/>
-        <circle cx="32" cy="14" r="1.8" fill="rgba(26,40,62,0.46)"/>
-        <circle cx="34" cy="32" r="3.5" fill="rgba(36,52,76,0.56)" stroke="rgba(100,125,160,0.28)" strokeWidth="0.5"/>
-        <circle cx="34" cy="32" r="2"   fill="rgba(26,40,62,0.48)"/>
-        <circle cx="14" cy="35" r="2.2" fill="rgba(36,52,76,0.50)"/>
-        <circle cx="14" cy="35" r="1.2" fill="rgba(26,40,62,0.42)"/>
-        <circle cx="22" cy="30" r="1.4" fill="rgba(36,52,76,0.44)"/>
-        <circle cx="38" cy="22" r="1.6" fill="rgba(36,52,76,0.46)"/>
-        <circle cx="26" cy="22" r="1.0" fill="rgba(36,52,76,0.40)"/>
-      </g>
-      <circle cx="26" cy="26" r="23" fill="url(#mc-spec)" />
-      <circle cx="26" cy="26" r="23" fill="url(#mc-shade)" />
-    </svg>
+    <div style={{
+      width: size, height: size,
+      borderRadius: '50%',
+      flexShrink: 0,
+      background: [
+        // Specular
+        'radial-gradient(circle at 32% 29%, rgba(210,228,255,0.26) 0%, rgba(190,210,245,0.05) 40%, transparent 56%)',
+        // Crater 1
+        'radial-gradient(ellipse 24% 20% at 23% 28%, rgba(28,40,62,0.82) 0%, transparent 100%)',
+        // Crater 2
+        'radial-gradient(ellipse 15% 12% at 64% 21%, rgba(26,38,58,0.74) 0%, transparent 100%)',
+        // Crater 3
+        'radial-gradient(ellipse 18% 15% at 66% 58%, rgba(28,40,62,0.78) 0%, transparent 100%)',
+        // Crater 4
+        'radial-gradient(ellipse 11% 9% at 20% 62%, rgba(26,38,58,0.68) 0%, transparent 100%)',
+        // Crater 5
+        'radial-gradient(ellipse 8% 7% at 44% 44%, rgba(24,36,56,0.62) 0%, transparent 100%)',
+        // Terminator
+        'radial-gradient(circle at 70% 70%, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.22) 38%, transparent 60%)',
+        // Rim
+        'radial-gradient(circle at 50% 50%, transparent 70%, rgba(80,105,145,0.32) 84%, rgba(55,75,115,0.52) 100%)',
+        // Base
+        'radial-gradient(circle at 36% 34%, #b0c2d8 0%, #6a82a0 30%, #3c5070 55%, #1e2e45 78%, #101c2e 100%)',
+      ].join(','),
+      boxShadow: [
+        '0 0 22px rgba(100,132,188,0.30)',
+        '0 0 50px rgba(85,115,172,0.14)',
+        '0 0 85px rgba(70,100,158,0.07)',
+        'inset -7px -6px 20px rgba(0,0,0,0.58)',
+        'inset 3px 3px 12px rgba(200,220,255,0.08)',
+      ].join(','),
+    }} />
   );
 }
 
-function PlanetSaturn({ size = 80 }: { size?: number }) {
-  // viewBox 130×90 — extra width for rings
-  const w = Math.round(size * 1.44);
+// ── Saturn ────────────────────────────────────────────────────────────────────
+function PlanetSaturn({ size = 86 }: { size?: number }) {
+  const rW = size * 2.3;        // ring total width
+  const rH = size * 0.36;       // ring height (ellipse)
+  const rT = (size - rH) / 2;  // top offset to vertically center rings on sphere
+
+  const sphere: React.CSSProperties = {
+    width: size, height: size,
+    borderRadius: '50%',
+    flexShrink: 0,
+    position: 'relative', zIndex: 1,
+    background: [
+      // Specular
+      'radial-gradient(circle at 31% 28%, rgba(255,252,218,0.34) 0%, rgba(255,248,200,0.07) 38%, transparent 54%)',
+      // Terminator
+      'radial-gradient(circle at 70% 68%, rgba(0,0,0,0.50) 0%, rgba(0,0,0,0.18) 38%, transparent 58%)',
+      // Atmospheric rim (warm amber edge)
+      'radial-gradient(circle at 50% 50%, transparent 68%, rgba(170,118,28,0.40) 84%, rgba(110,70,10,0.65) 100%)',
+      // Subtle bands
+      `repeating-linear-gradient(
+        180deg,
+        rgba(255,245,188,0.72)  0%,  rgba(255,245,188,0.72) 12%,
+        rgba(178,128, 36,0.60) 12%,  rgba(178,128, 36,0.60) 22%,
+        rgba(238,200,108,0.68) 22%,  rgba(238,200,108,0.68) 34%,
+        rgba(148,102, 24,0.58) 34%,  rgba(148,102, 24,0.58) 44%,
+        rgba(248,215,128,0.70) 44%,  rgba(248,215,128,0.70) 56%,
+        rgba(162,115, 28,0.60) 56%,  rgba(162,115, 28,0.60) 66%,
+        rgba(235,195, 95,0.68) 66%,  rgba(235,195, 95,0.68) 78%,
+        rgba(138, 98, 22,0.58) 78%,  rgba(138, 98, 22,0.58) 88%,
+        rgba(245,208,118,0.70) 88%,  rgba(245,208,118,0.70) 100%
+      )`,
+      // Base
+      'radial-gradient(circle at 44% 42%, #e8c060 0%, #c09030 38%, #885e0e 65%, #4a3208 85%, #2a1c04 100%)',
+    ].join(','),
+    boxShadow: [
+      '0 0 28px rgba(215,172,58,0.38)',
+      '0 0 62px rgba(195,150,42,0.20)',
+      '0 0 105px rgba(175,130,28,0.10)',
+      'inset -10px -8px 26px rgba(0,0,0,0.50)',
+      'inset 5px 4px 15px rgba(255,238,160,0.12)',
+    ].join(','),
+  };
+
+  const ringBase: React.CSSProperties = {
+    position: 'absolute',
+    width: rW, height: rH,
+    borderRadius: '50%',
+    left: `${-(rW - size) / 2}px`,
+    top: `${rT}px`,
+  };
+
   return (
-    <svg width={w} height={size} viewBox="0 0 130 90" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <radialGradient id="st-base" cx="36%" cy="33%" r="64%">
-          <stop offset="0%"   stopColor="#fde9a0" />
-          <stop offset="55%"  stopColor="#c8952e" />
-          <stop offset="100%" stopColor="#7a5510" />
-        </radialGradient>
-        <radialGradient id="st-shade" cx="70%" cy="70%" r="58%">
-          <stop offset="0%"   stopColor="rgba(0,0,0,0.44)" />
-          <stop offset="100%" stopColor="transparent" />
-        </radialGradient>
-        <radialGradient id="st-spec" cx="32%" cy="30%" r="40%">
-          <stop offset="0%"   stopColor="rgba(255,250,220,0.32)" />
-          <stop offset="100%" stopColor="transparent" />
-        </radialGradient>
-        <radialGradient id="st-atm" cx="50%" cy="50%" r="50%">
-          <stop offset="78%"  stopColor="transparent" />
-          <stop offset="100%" stopColor="rgba(220,180,90,0.22)" />
-        </radialGradient>
-        <clipPath id="st-clip"><circle cx="65" cy="45" r="31"/></clipPath>
-        {/* Clip for front-half rings (below center of planet) */}
-        <clipPath id="st-rf"><rect x="0" y="45" width="130" height="45"/></clipPath>
-        <filter id="st-glow"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-      </defs>
-
-      {/* ── Back half of rings ── */}
-      <ellipse cx="65" cy="49" rx="53" ry="14"  stroke="rgba(200,155,55,0.32)" strokeWidth="6"  fill="none"/>
-      <ellipse cx="65" cy="49" rx="45" ry="11.5" stroke="rgba(220,175,80,0.28)" strokeWidth="4.5" fill="none"/>
-      <ellipse cx="65" cy="49" rx="58" ry="15.5" stroke="rgba(175,130,45,0.22)" strokeWidth="4"  fill="none"/>
-      <ellipse cx="65" cy="49" rx="38" ry="9.5"  stroke="rgba(240,200,100,0.20)" strokeWidth="3" fill="none"/>
-
-      {/* ── Atmosphere halo ── */}
-      <circle cx="65" cy="45" r="33" fill="url(#st-atm)" filter="url(#st-glow)" opacity="0.6"/>
-
-      {/* ── Planet sphere ── */}
-      <circle cx="65" cy="45" r="31" fill="url(#st-base)"/>
-      <g clipPath="url(#st-clip)">
-        <rect x="34" y="26" width="62" height="6"  fill="rgba(255,245,195,0.55)"/>
-        <rect x="34" y="33" width="62" height="4"  fill="rgba(170,115,35,0.42)"/>
-        <rect x="34" y="40" width="62" height="5"  fill="rgba(200,150,55,0.38)"/>
-        <rect x="34" y="50" width="62" height="4"  fill="rgba(155,105,28,0.40)"/>
-        <rect x="34" y="57" width="62" height="6"  fill="rgba(235,190,95,0.45)"/>
-      </g>
-      <circle cx="65" cy="45" r="31" fill="url(#st-spec)"/>
-      <circle cx="65" cy="45" r="31" fill="url(#st-shade)"/>
-
-      {/* ── Front half of rings (over the bottom of the sphere) ── */}
-      <g clipPath="url(#st-rf)">
-        <ellipse cx="65" cy="49" rx="53" ry="14"  stroke="rgba(200,155,55,0.60)" strokeWidth="6"  fill="none"/>
-        <ellipse cx="65" cy="49" rx="45" ry="11.5" stroke="rgba(220,175,80,0.52)" strokeWidth="4.5" fill="none"/>
-        <ellipse cx="65" cy="49" rx="58" ry="15.5" stroke="rgba(175,130,45,0.42)" strokeWidth="4"  fill="none"/>
-        <ellipse cx="65" cy="49" rx="38" ry="9.5"  stroke="rgba(240,200,100,0.40)" strokeWidth="3" fill="none"/>
-      </g>
-    </svg>
+    <div style={{ position: 'relative', width: rW, height: size, flexShrink: 0 }}>
+      {/* Back rings (behind sphere) */}
+      <div style={{
+        ...ringBase, zIndex: 0,
+        border: `${Math.round(size * 0.065)}px solid rgba(205,162,52,0.30)`,
+        boxShadow: [
+          `0 0 0 ${Math.round(size * 0.045)}px rgba(185,145,42,0.20)`,
+          `0 0 0 ${Math.round(size * 0.098)}px rgba(165,128,35,0.12)`,
+          `0 0 0 ${Math.round(size * 0.145)}px rgba(145,112,28,0.06)`,
+        ].join(','),
+      }} />
+      {/* Planet sphere */}
+      <div style={{ ...sphere, position: 'absolute', left: `${(rW - size) / 2}px`, top: 0 }} />
+      {/* Front rings (above sphere lower half) — clipped to bottom */}
+      <div style={{
+        ...ringBase, zIndex: 2,
+        border: `${Math.round(size * 0.065)}px solid rgba(210,168,58,0.60)`,
+        boxShadow: [
+          `0 0 0 ${Math.round(size * 0.045)}px rgba(190,150,46,0.42)`,
+          `0 0 0 ${Math.round(size * 0.098)}px rgba(170,132,38,0.26)`,
+          `0 0 0 ${Math.round(size * 0.145)}px rgba(150,115,30,0.12)`,
+        ].join(','),
+        clipPath: 'inset(50% 0 0 0)',
+      }} />
+    </div>
   );
 }
 
-// ── Solar System Orrery — detailed SVG planets at 4 corners ──
+// ── Solar System Orrery — CSS planet art at 4 corners ────────────────────────
 function SolarSystemOrrery() {
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
-      {/* Mercury — top-left */}
-      <div className="absolute" style={{ top: '5%', left: '1.5%', animation: 'planet-float 6s ease-in-out infinite', animationDelay: '0s', filter: 'drop-shadow(0 0 14px rgba(100,140,200,0.40))' }}>
-        <PlanetMercury size={58} />
+      {/* Mercury — top-left, partially off-screen for depth */}
+      <div className="absolute" style={{
+        top: '-2%', left: '-1%',
+        animation: 'planet-float 6.5s ease-in-out infinite',
+        animationDelay: '0s',
+        opacity: 0.88,
+      }}>
+        <PlanetMercury size={72} />
       </div>
+
       {/* Moon — top-right */}
-      <div className="absolute" style={{ top: '4%', right: '2%', animation: 'planet-float 7s ease-in-out infinite', animationDelay: '1.2s', filter: 'drop-shadow(0 0 18px rgba(180,200,240,0.38))' }}>
-        <PlanetMoon size={70} />
+      <div className="absolute" style={{
+        top: '-1%', right: '-1%',
+        animation: 'planet-float 8s ease-in-out infinite',
+        animationDelay: '1.5s',
+        opacity: 0.90,
+      }}>
+        <PlanetMoon size={86} />
       </div>
-      {/* Saturn — bottom-left */}
-      <div className="absolute" style={{ bottom: '6%', left: '0%', animation: 'planet-float 9s ease-in-out infinite', animationDelay: '2.5s', filter: 'drop-shadow(0 0 22px rgba(210,170,70,0.35))' }}>
-        <PlanetSaturn size={82} />
+
+      {/* Saturn — bottom-left, partially off-screen for epic scale */}
+      <div className="absolute" style={{
+        bottom: '-4%', left: '-4%',
+        animation: 'planet-float 10s ease-in-out infinite',
+        animationDelay: '3s',
+        opacity: 0.85,
+      }}>
+        <PlanetSaturn size={90} />
       </div>
-      {/* Jupiter — bottom-right */}
-      <div className="absolute" style={{ bottom: '5%', right: '1.5%', animation: 'planet-float 8s ease-in-out infinite', animationDelay: '0.8s', filter: 'drop-shadow(0 0 24px rgba(210,130,60,0.38))' }}>
-        <PlanetJupiter size={90} />
+
+      {/* Jupiter — bottom-right, largest and most impressive */}
+      <div className="absolute" style={{
+        bottom: '-3%', right: '-2%',
+        animation: 'planet-float 9s ease-in-out infinite',
+        animationDelay: '1s',
+        opacity: 0.88,
+      }}>
+        <PlanetJupiter size={110} />
       </div>
     </div>
-
   );
 }
-
 
 // Coin/Asset icons for analysis cards (larger versions of WatchIcon)
 function CoinIcon({ symbol }: { symbol: string }) {
