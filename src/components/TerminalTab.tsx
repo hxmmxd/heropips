@@ -215,6 +215,41 @@ const WATCHLIST_ASSETS = [
   { symbol: 'SPY', label: 'SP500', iconType: 'spy' },
 ];
 
+/* ─── Astro Welcome Status: Elegant inline indicators ─────────────────── */
+function AstroWelcomeStatus() {
+  const [snap, setSnap] = useState<any>(null);
+
+  useEffect(() => {
+    import('@/lib/astro').then(({ getAstroSnapshot }) => {
+      setSnap(getAstroSnapshot());
+    });
+  }, []);
+
+  if (!snap) return null;
+
+  const riskColor = snap.riskLevel === 'LOW' ? '#22c55e' : snap.riskLevel === 'HIGH' ? '#ef4444' : '#f59e0b';
+  const biasColor = snap.marketBias === 'bullish' ? '#22c55e' : snap.marketBias === 'bearish' ? '#ef4444' : 'var(--subtext)';
+
+  const items = [
+    { emoji: snap.lunarEmoji, label: snap.lunarPhase, sub: `in ${snap.moonSignName}` },
+    { emoji: '☿', label: snap.mercuryRetrograde ? 'Retrograde' : 'Direct', color: snap.mercuryRetrograde ? '#ef4444' : '#22c55e' },
+    { emoji: '◎', label: snap.marketBias.charAt(0).toUpperCase() + snap.marketBias.slice(1), color: biasColor, sub: 'bias' },
+    { emoji: '◆', label: snap.riskLevel, color: riskColor, sub: 'risk' },
+  ];
+
+  return (
+    <div className="wlc-status-row">
+      {items.map((item, i) => (
+        <div key={i} className="wlc-status-item" style={{ animationDelay: `${0.3 + i * 0.08}s` }}>
+          <span className="wlc-status-emoji">{item.emoji}</span>
+          <span className="wlc-status-text" style={item.color ? { color: item.color } : {}}>{item.label}</span>
+          {item.sub && <span className="wlc-status-sub">{item.sub}</span>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function TerminalTab({ messages, onSendMessage, onGenerateSignal, activeBrokerId, onTradeExecuted, onOpenManager, astroMode: astroModeProp }: TerminalTabProps) {
   // Allow ?astro=1 URL param to test animation without wiring the header toggle
   const searchParams = useSearchParams();
@@ -467,31 +502,208 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
       {/* Scrollable Chat Feed */}
       <div className="flex-1 overflow-y-auto no-scrollbar p-4 lg:p-8">
         {messages.length === 0 ? (
-          /* Initial Welcome Screen */
-          <div className="h-full flex flex-col items-center justify-center text-center py-10 my-auto gap-6 relative">
+          /* ═══════════════════════════════════════════════════════════════
+             WELCOME SCREEN — World-class, impactful, minimal
+             ═══════════════════════════════════════════════════════════════ */
+          <div className="h-full w-full flex flex-col items-center justify-center relative overflow-hidden">
 
-            {/* Solar System Orrery backdrop (astro mode only) */}
+            {/* ── Ambient Glow Backdrop ── */}
+            <div className="wlc-glow" />
             {astroMode && <SolarSystemOrrery />}
 
-            {/* Label */}
-            <div key={astroMode ? 'astro' : 'normal'} className="px-8 z-10">
-              {astroMode ? (
-                <h2 className="text-xl lg:text-2xl font-medium px-8 leading-tight max-w-xl astro-label-active">
-                  ✦ Celestial signals active
-                </h2>
-              ) : (
-                <h2 className="text-2xl lg:text-3xl font-medium text-[var(--text)] px-8 leading-tight max-w-xl">
-                  Ready to trade today?
-                </h2>
-              )}
+            {/* ── Main Content ── */}
+            <div className="z-10 w-full max-w-xl flex flex-col items-center text-center gap-7 px-6">
+
+              {/* Greeting */}
+              <div className="wlc-hero">
+                {astroMode ? (
+                  <>
+                    <p className="wlc-eyebrow wlc-fade" style={{ animationDelay: '0.05s' }}>
+                      <span className="wlc-dot wlc-dot--amber" />Celestial engine active
+                    </p>
+                    <h2 className="wlc-title wlc-fade wlc-title--amber" style={{ animationDelay: '0.12s' }}>
+                      Ask about any asset
+                    </h2>
+                    <p className="wlc-sub wlc-fade" style={{ animationDelay: '0.18s' }}>
+                      Planetary aspects, lunar phases, and Mercury retrograde gates are layered into every signal automatically.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="wlc-eyebrow wlc-fade" style={{ animationDelay: '0.05s' }}>
+                      <span className="wlc-dot wlc-dot--green" />Ready
+                    </p>
+                    <h2 className="wlc-title wlc-fade" style={{ animationDelay: '0.12s' }}>
+                      What would you like to analyze?
+                    </h2>
+                    <p className="wlc-sub wlc-fade" style={{ animationDelay: '0.18s' }}>
+                      AI-powered trade signals, technical analysis, and live broker management.
+                    </p>
+                  </>
+                )}
+              </div>
+
+              {/* ── Astro Status Strip ── */}
+              {astroMode && <AstroWelcomeStatus />}
+
+              {/* ── Suggestion Grid ── */}
+              <div className="wlc-grid wlc-fade" style={{ animationDelay: '0.28s' }}>
+                {(astroMode ? [
+                  { label: 'Gold signal', icon: '🏆', action: () => onGenerateSignal?.("Gold") },
+                  { label: 'Bitcoin signal', icon: '₿', action: () => onGenerateSignal?.("Bitcoin") },
+                  { label: 'EUR/USD signal', icon: '€', action: () => onGenerateSignal?.("EURUSD") },
+                  { label: 'Lunar influence', icon: '🌙', action: () => onSendMessage("What is the current lunar phase influence on trading?") },
+                  { label: 'Mercury status', icon: '☿', action: () => onSendMessage("Is Mercury retrograde right now?") },
+                  { label: 'Full astro report', icon: '✦', action: () => onSendMessage("Give me a full celestial report for today") },
+                ] : [
+                  { label: 'Analyze XAUUSD', icon: '🏆', action: () => onGenerateSignal?.("Gold") },
+                  { label: 'Analyze BTCUSD', icon: '₿', action: () => onGenerateSignal?.("Bitcoin") },
+                  { label: 'Analyze EUR/USD', icon: '€', action: () => onGenerateSignal?.("EURUSD") },
+                  { label: 'Market overview', icon: '📊', action: () => onSendMessage("Give me a market overview") },
+                  { label: 'My positions', icon: '💼', action: () => onSendMessage("Show my open positions") },
+                  { label: 'Analyze NAS100', icon: '📈', action: () => onGenerateSignal?.("NAS100") },
+                ]).map((item, i) => (
+                  <button
+                    key={i}
+                    onClick={item.action}
+                    className={`wlc-card ${astroMode ? 'wlc-card--astro' : ''}`}
+                    style={{ animationDelay: `${0.3 + i * 0.04}s` }}
+                  >
+                    <span className="wlc-card-icon">{item.icon}</span>
+                    <span className="wlc-card-label">{item.label}</span>
+                    <svg className="wlc-card-arrow" viewBox="0 0 16 16" fill="none">
+                      <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {/* Astro Card in welcome state */}
-            {astroMode && (
-              <div className="w-full max-w-[460px] px-4">
-                <AstroCard />
-              </div>
-            )}
+            {/* ── Welcome Screen Styles ── */}
+            <style>{`
+              /* Ambient glow */
+              .wlc-glow {
+                position: absolute;
+                width: 500px; height: 500px;
+                top: 50%; left: 50%;
+                transform: translate(-50%, -50%);
+                border-radius: 50%;
+                background: ${astroMode
+                  ? 'radial-gradient(circle, rgba(245,158,11,0.07) 0%, rgba(245,158,11,0.02) 50%, transparent 70%)'
+                  : 'radial-gradient(circle, color-mix(in srgb, var(--accent) 7%, transparent) 0%, color-mix(in srgb, var(--accent) 2%, transparent) 50%, transparent 70%)'
+                };
+                pointer-events: none;
+                animation: wlc-glow-pulse 6s ease-in-out infinite alternate;
+              }
+              @keyframes wlc-glow-pulse {
+                from { opacity: 0.4; transform: translate(-50%, -50%) scale(0.9); }
+                to   { opacity: 1;   transform: translate(-50%, -50%) scale(1.1); }
+              }
+
+              /* Fade-up entrance */
+              .wlc-fade {
+                opacity: 0;
+                animation: wlc-fade-up 0.5s ease-out forwards;
+              }
+              @keyframes wlc-fade-up {
+                from { opacity: 0; transform: translateY(12px); }
+                to   { opacity: 1; transform: translateY(0); }
+              }
+
+              /* Hero section */
+              .wlc-hero { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+              .wlc-eyebrow {
+                display: inline-flex; align-items: center; gap: 6px;
+                font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
+                color: var(--subtext); text-transform: uppercase;
+              }
+              .wlc-dot {
+                width: 6px; height: 6px; border-radius: 50%;
+                display: inline-block; flex-shrink: 0;
+              }
+              .wlc-dot--green { background: #22c55e; box-shadow: 0 0 6px rgba(34,197,94,0.5); }
+              .wlc-dot--amber { background: #f59e0b; box-shadow: 0 0 6px rgba(245,158,11,0.5); }
+              .wlc-title {
+                font-size: 26px; font-weight: 600; letter-spacing: -0.025em;
+                color: var(--text); line-height: 1.25; margin: 0;
+              }
+              .wlc-title--amber { color: #f59e0b; }
+              .wlc-sub {
+                font-size: 13px; color: var(--subtext); opacity: 0.65;
+                line-height: 1.6; max-width: 400px;
+              }
+
+              /* Astro status row */
+              .wlc-status-row {
+                display: flex; flex-wrap: wrap; align-items: center;
+                justify-content: center; gap: 4px 12px;
+                opacity: 0; animation: wlc-fade-up 0.5s ease-out forwards;
+                animation-delay: 0.22s;
+              }
+              .wlc-status-item {
+                display: inline-flex; align-items: center; gap: 4px;
+                font-size: 12px; color: var(--subtext); white-space: nowrap;
+              }
+              .wlc-status-emoji { font-size: 13px; line-height: 1; }
+              .wlc-status-text { font-weight: 600; color: #f59e0b; }
+              .wlc-status-sub { font-weight: 400; opacity: 0.5; font-size: 11px; }
+
+              /* Suggestion grid */
+              .wlc-grid {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 6px;
+                width: 100%;
+              }
+              @media (max-width: 640px) {
+                .wlc-grid { grid-template-columns: repeat(2, 1fr); }
+              }
+
+              /* Suggestion card */
+              .wlc-card {
+                display: flex; align-items: center; gap: 8px;
+                padding: 10px 12px;
+                border-radius: 12px;
+                border: 1px solid var(--border);
+                background: var(--sidebar-bg);
+                color: var(--text);
+                font-size: 12.5px; font-weight: 500;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                text-align: left;
+                position: relative;
+                opacity: 0;
+                animation: wlc-fade-up 0.4s ease-out forwards;
+              }
+              .wlc-card:hover {
+                border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+                background: color-mix(in srgb, var(--accent) 5%, var(--sidebar-bg));
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 8%, transparent);
+              }
+              .wlc-card:active { transform: scale(0.98) translateY(0); }
+
+              .wlc-card--astro:hover {
+                border-color: rgba(245, 158, 11, 0.35);
+                background: rgba(245, 158, 11, 0.05);
+                box-shadow: 0 4px 16px rgba(245,158,11,0.08);
+              }
+
+              .wlc-card-icon {
+                font-size: 14px; line-height: 1;
+                width: 22px; text-align: center; flex-shrink: 0;
+              }
+              .wlc-card-label { flex: 1; letter-spacing: -0.01em; }
+              .wlc-card-arrow {
+                width: 14px; height: 14px; flex-shrink: 0;
+                color: var(--subtext); opacity: 0;
+                transition: all 0.2s ease;
+                transform: translateX(-3px);
+              }
+              .wlc-card:hover .wlc-card-arrow {
+                opacity: 0.5; transform: translateX(0);
+              }
+            `}</style>
 
           </div>
         ) : (
