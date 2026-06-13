@@ -311,13 +311,8 @@ function SolarSystemOrrery() {
       <div className="absolute" style={{ bottom: '5%', right: '1.5%', animation: 'planet-float 8s ease-in-out infinite', animationDelay: '0.8s', filter: 'drop-shadow(0 0 24px rgba(210,130,60,0.38))' }}>
         <PlanetJupiter size={90} />
       </div>
-      <style>{`
-        @keyframes planet-float {
-          0%, 100% { transform: translateY(0px)   scale(1);    opacity: 0.82; }
-          50%       { transform: translateY(-6px)  scale(1.03); opacity: 0.96; }
-        }
-      `}</style>
     </div>
+
   );
 }
 
