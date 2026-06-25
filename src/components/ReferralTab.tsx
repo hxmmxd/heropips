@@ -1060,7 +1060,7 @@ export default function ReferralTab({ switchTab }: ReferralTabProps) {
             <span className="rh-how-n">02</span>
             <div className="rh-how-icon">🤝</div>
             <span className="rh-how-label">Traders join</span>
-            <span className="rh-how-sub">Your invitees connect MetaAPI broker accounts.</span>
+            <span className="rh-how-sub">Your invitees connect their MT5 broker accounts.</span>
           </div>
           <div className="rh-how-step">
             <span className="rh-how-n">03</span>

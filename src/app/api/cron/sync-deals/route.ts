@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { FARM_HEADERS, sidecarUrl, resolveAccountId } from '@/lib/mt5farm';
 
 export const dynamic = 'force-dynamic';
 
-const MT_CLIENT_BASE = 'https://mt-client-api-v1.london.agiliumtrade.ai';
-const token = process.env.META_API_TOKEN || '';
 const CRON_SECRET = process.env.CRON_SECRET || '';
 
 function getAdmin() {
@@ -26,12 +25,12 @@ export async function GET(request: Request) {
   const results: any[] = [];
 
   try {
-    // Get all brokers from the brokers_db
+    // Get all brokers from the local DB
     let brokers: any[] = [];
     try {
-      const fs = await import('fs');
+      const fs   = await import('fs');
       const path = await import('path');
-      const os = await import('os');
+      const os   = await import('os');
       const DB_FILE = process.env.VERCEL || process.env.NODE_ENV === 'production'
         ? path.join(os.tmpdir(), 'brokers_db.json')
         : path.join(process.cwd(), 'src/lib/brokers_db.json');
@@ -44,41 +43,45 @@ export async function GET(request: Request) {
       return NextResponse.json({ message: 'No brokers found', results: [] });
     }
 
-    // Process each broker
     for (const broker of brokers) {
-      const metaApiId = broker.id;
-      const brokerId = broker.id;
-      const userId = broker.userId;
+      const accountId = broker.id || broker.login;
+      const brokerId  = broker.id;
+      const userId    = broker.userId;
 
-      if (!userId || !metaApiId) continue;
+      if (!userId || !accountId) continue;
 
       try {
-        const headers = { 'auth-token': token };
-        const base = `${MT_CLIENT_BASE}/users/current/accounts/${metaApiId}`;
-
-        // Fetch last 24h of deals
-        const now = new Date();
-        const startTime = new Date(now.getTime() - 86400000).toISOString();
-        const endTime = now.toISOString();
+        const resolvedId = await resolveAccountId(accountId);
+        // Fetch last 24h of deals — use unix timestamps for MT5 Farm API
+        const now       = new Date();
+        const fromTs    = Math.floor((now.getTime() - 86400000) / 1000);
+        const toTs      = Math.floor(now.getTime() / 1000);
 
         const [dealsRes, infoRes, posRes] = await Promise.all([
-          fetch(`${base}/history-deals/time/${startTime}/${endTime}`, {
-            headers, signal: AbortSignal.timeout(12000),
+          fetch(sidecarUrl(resolvedId, `history/deals?from_ts=${fromTs}&to_ts=${toTs}`), {
+            headers: FARM_HEADERS, signal: AbortSignal.timeout(15000),
           }),
-          fetch(`${base}/account-information`, { headers, signal: AbortSignal.timeout(8000) }),
-          fetch(`${base}/positions`, { headers, signal: AbortSignal.timeout(8000) }),
+          fetch(sidecarUrl(resolvedId, 'account-information'), {
+            headers: FARM_HEADERS, signal: AbortSignal.timeout(8000),
+          }),
+          fetch(sidecarUrl(resolvedId, 'positions'), {
+            headers: FARM_HEADERS, signal: AbortSignal.timeout(8000),
+          }),
         ]);
 
-        const rawDeals = dealsRes.ok ? await dealsRes.json() : [];
-        const info = infoRes.ok ? await infoRes.json() : {};
-        const rawPositions = posRes.ok ? await posRes.json() : [];
+        const rawDeals    = dealsRes.ok ? await dealsRes.json() : [];
+        const info        = infoRes.ok  ? await infoRes.json()  : {};
+        const rawPositions = posRes.ok  ? await posRes.json()   : [];
 
         const allDeals = Array.isArray(rawDeals) ? rawDeals : [];
+
+        // Farm API uses 'entry' field ('DEAL_ENTRY_IN'/'DEAL_ENTRY_OUT')
+        // and 'type' = 'ORDER_TYPE_BUY' | 'ORDER_TYPE_SELL'
         const tradingDeals = allDeals.filter((d: any) =>
-          d.type === 'DEAL_TYPE_BUY' || d.type === 'DEAL_TYPE_SELL'
+          d.type === 'ORDER_TYPE_BUY' || d.type === 'ORDER_TYPE_SELL'
         );
 
-        // Group and pair deals
+        // Group and pair deals by positionId
         const positionDeals: Record<string, any[]> = {};
         for (const d of tradingDeals) {
           const posId = d.positionId || d.id;
@@ -88,29 +91,29 @@ export async function GET(request: Request) {
 
         const closedTrades: any[] = [];
         for (const [, deals] of Object.entries(positionDeals)) {
-          const entryDeal = deals.find((d: any) => d.entryType === 'DEAL_ENTRY_IN') || deals[0];
-          const exitDeal = deals.find((d: any) => d.entryType === 'DEAL_ENTRY_OUT') || deals[deals.length - 1];
+          const entryDeal = deals.find((d: any) => d.entry === 'DEAL_ENTRY_IN')  || deals[0];
+          const exitDeal  = deals.find((d: any) => d.entry === 'DEAL_ENTRY_OUT') || deals[deals.length - 1];
           if (exitDeal && exitDeal.profit !== undefined) {
             closedTrades.push({
-              user_id: userId,
-              broker_id: brokerId,
-              deal_id: exitDeal.id || entryDeal.id,
-              symbol: exitDeal.symbol || entryDeal.symbol,
-              type: entryDeal.type || 'DEAL_TYPE_BUY',
-              volume: entryDeal.volume || exitDeal.volume || 0,
-              profit: exitDeal.profit || 0,
-              commission: (entryDeal.commission || 0) + (exitDeal.commission || 0),
-              swap: exitDeal.swap || 0,
+              user_id:     userId,
+              broker_id:   brokerId,
+              deal_id:     exitDeal.id || entryDeal.id,
+              symbol:      exitDeal.symbol || entryDeal.symbol,
+              type:        entryDeal.type || 'ORDER_TYPE_BUY',
+              volume:      entryDeal.volume || exitDeal.volume || 0,
+              profit:      exitDeal.profit  || 0,
+              commission:  (entryDeal.commission || 0) + (exitDeal.commission || 0),
+              swap:        exitDeal.swap || 0,
               entry_price: entryDeal.price || 0,
-              exit_price: exitDeal.price || 0,
-              open_time: entryDeal.time || null,
-              close_time: exitDeal.time || null,
+              exit_price:  exitDeal.price  || 0,
+              open_time:   entryDeal.time  || null,
+              close_time:  exitDeal.time   || null,
               position_id: exitDeal.positionId || entryDeal.positionId || null,
             });
           }
         }
 
-        // Upsert deals to closed_deals archive
+        // Upsert to closed_deals
         let dealsUpserted = 0;
         if (closedTrades.length > 0) {
           const { error } = await admin
@@ -118,17 +121,15 @@ export async function GET(request: Request) {
             .upsert(closedTrades, { onConflict: 'deal_id', ignoreDuplicates: true });
           if (!error) dealsUpserted = closedTrades.length;
 
-          // Sync back to the 'trades' table: update open entries with close data
+          // Sync back to trades table
           for (const ct of closedTrades) {
-            // Match by user_id + symbol + status=open + broker_id
-            // Update with close_price, pnl, status=closed
             await admin
               .from('trades')
               .update({
                 close_price: ct.exit_price,
-                pnl: ct.profit,
-                status: 'closed',
-                updated_at: new Date().toISOString(),
+                pnl:         ct.profit,
+                status:      'closed',
+                updated_at:  new Date().toISOString(),
               })
               .eq('user_id', ct.user_id)
               .eq('symbol', ct.symbol)
@@ -139,76 +140,68 @@ export async function GET(request: Request) {
           }
         }
 
-        // Also close any trades whose positions are no longer open on the broker
-        const openPositionSymbols = (Array.isArray(rawPositions) ? rawPositions : []).map((p: any) => p.symbol);
-        if (openPositionSymbols.length >= 0) {
-          // Get open trades in DB for this user+broker
-          const { data: dbOpenTrades } = await admin
-            .from('trades')
-            .select('id, symbol')
-            .eq('user_id', userId)
-            .eq('broker_id', brokerId)
-            .eq('status', 'open');
+        // Reconcile open positions
+        const positions = Array.isArray(rawPositions) ? rawPositions : [];
+        const openPositionSymbols = positions.map((p: any) => p.symbol);
+        const { data: dbOpenTrades } = await admin
+          .from('trades')
+          .select('id, symbol')
+          .eq('user_id', userId)
+          .eq('broker_id', brokerId)
+          .eq('status', 'open');
 
-          for (const ot of (dbOpenTrades || [])) {
-            if (!openPositionSymbols.includes(ot.symbol)) {
-              // This trade is no longer open on the broker — mark it closed
-              // Try to find a matching closed deal for PnL data
-              const matchedClosed = closedTrades.find(ct => ct.symbol === ot.symbol);
-              await admin
-                .from('trades')
-                .update({
-                  status: 'closed',
-                  close_price: matchedClosed?.exit_price || null,
-                  pnl: matchedClosed?.profit || 0,
-                  updated_at: new Date().toISOString(),
-                })
-                .eq('id', ot.id);
-            }
+        for (const ot of (dbOpenTrades || [])) {
+          if (!openPositionSymbols.includes(ot.symbol)) {
+            const matchedClosed = closedTrades.find(ct => ct.symbol === ot.symbol);
+            await admin
+              .from('trades')
+              .update({
+                status:      'closed',
+                close_price: matchedClosed?.exit_price || null,
+                pnl:         matchedClosed?.profit     || 0,
+                updated_at:  new Date().toISOString(),
+              })
+              .eq('id', ot.id);
           }
         }
 
         // Save daily snapshot
-        const positions = Array.isArray(rawPositions) ? rawPositions : [];
-        const today = new Date().toISOString().split('T')[0];
-        const openPnl = positions.reduce((a: number, p: any) => a + (p.profit || 0), 0);
+        const today    = new Date().toISOString().split('T')[0];
+        const openPnl  = positions.reduce((a: number, p: any) => a + (p.profit || 0), 0);
         const netProfit = closedTrades.reduce((a: number, d: any) => a + (d.profit || 0), 0);
 
         await admin.from('daily_snapshots').upsert({
-          user_id: userId,
-          broker_id: brokerId,
-          date: today,
-          balance: info.balance || 0,
-          equity: info.equity || info.balance || 0,
-          margin: info.margin || 0,
-          open_positions: positions.length,
-          open_pnl: Math.round(openPnl * 100) / 100,
+          user_id:          userId,
+          broker_id:        brokerId,
+          date:             today,
+          balance:          info.balance || 0,
+          equity:           info.equity  || info.balance || 0,
+          margin:           info.margin  || 0,
+          open_positions:   positions.length,
+          open_pnl:         Math.round(openPnl   * 100) / 100,
           net_profit_closed: Math.round(netProfit * 100) / 100,
-          total_trades: closedTrades.length,
-          win_rate: closedTrades.length > 0
+          total_trades:     closedTrades.length,
+          win_rate:         closedTrades.length > 0
             ? Math.round((closedTrades.filter(d => d.profit > 0).length / closedTrades.length) * 1000) / 10
             : 0,
         }, { onConflict: 'user_id,broker_id,date' });
 
         results.push({
-          broker: broker.login || brokerId,
-          rawDeals: allDeals.length,
+          broker:       broker.login || brokerId,
+          rawDeals:     allDeals.length,
           closedTrades: closedTrades.length,
           dealsUpserted,
           snapshotSaved: true,
-          balance: info.balance,
+          balance:      info.balance,
         });
       } catch (err: any) {
-        results.push({
-          broker: broker.login || brokerId,
-          error: err.message,
-        });
+        results.push({ broker: broker.login || brokerId, error: err.message });
       }
     }
 
     return NextResponse.json({
-      success: true,
-      timestamp: new Date().toISOString(),
+      success:          true,
+      timestamp:        new Date().toISOString(),
       brokersProcessed: results.length,
       results,
     });

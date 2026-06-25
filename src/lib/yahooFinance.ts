@@ -29,6 +29,26 @@ const YAHOO_SYMBOL_MAP: Record<string, string> = {
   'USO':     'USO',
 };
 
+export function getYahooSymbol(symbol: string): string {
+  const upper = symbol.toUpperCase();
+  if (YAHOO_SYMBOL_MAP[upper]) return YAHOO_SYMBOL_MAP[upper];
+  if (YAHOO_SYMBOL_MAP[symbol]) return YAHOO_SYMBOL_MAP[symbol];
+  
+  if (upper.includes('/')) {
+    const parts = upper.split('/');
+    if (parts.length === 2) {
+      const [base, quote] = parts;
+      const cryptos = ['BTC', 'ETH', 'SOL', 'ADA', 'XRP', 'DOT', 'LTC', 'LINK'];
+      if (cryptos.includes(base) || (upper.endsWith('/USD') && (base.length > 4 || base === 'BTC' || base === 'ETH'))) {
+        return `${base}-${quote}`;
+      }
+      return `${base}${quote}=X`;
+    }
+  }
+  
+  return upper;
+}
+
 /**
  * Fetch current prices for an array of TradeGPT symbols from Yahoo Finance.
  * Returns a map of symbol → price. Missing symbols are omitted.
@@ -36,8 +56,15 @@ const YAHOO_SYMBOL_MAP: Record<string, string> = {
 export async function fetchYahooPrices(
   symbols: string[]
 ): Promise<Record<string, number>> {
+  const symbolMap: Record<string, string> = {};
   const yahooSymbols = symbols
-    .map(s => YAHOO_SYMBOL_MAP[s])
+    .map(s => {
+      const ySym = YAHOO_SYMBOL_MAP[s] || YAHOO_SYMBOL_MAP[s.toUpperCase()] || getYahooSymbol(s);
+      if (ySym) {
+        symbolMap[ySym] = s;
+      }
+      return ySym;
+    })
     .filter(Boolean);
 
   if (yahooSymbols.length === 0) return {};
@@ -69,9 +96,7 @@ export async function fetchYahooPrices(
           const closes = (entry as any).close || [];
           const price = closes.filter((v: any) => v != null).pop();
           if (price != null) {
-            const tradeSymbol = Object.entries(YAHOO_SYMBOL_MAP).find(
-              ([, v]) => v === yahooSym
-            )?.[0];
+            const tradeSymbol = symbolMap[yahooSym];
             if (tradeSymbol) out[tradeSymbol] = price;
           }
         }
@@ -85,9 +110,7 @@ export async function fetchYahooPrices(
         const price = closes?.filter((v: number | null) => v != null).pop();
         if (price == null) continue;
 
-        const tradeSymbol = Object.entries(YAHOO_SYMBOL_MAP).find(
-          ([, v]) => v === yahooSym
-        )?.[0];
+        const tradeSymbol = symbolMap[yahooSym];
         if (tradeSymbol) out[tradeSymbol] = price;
       }
     }
@@ -108,7 +131,7 @@ export async function fetchYahooCandles(
   interval: string = '1h',
   outputsize: number = 50
 ): Promise<{ time: string; open: number; high: number; low: number; close: number }[]> {
-  const yahooSym = YAHOO_SYMBOL_MAP[symbol] || YAHOO_SYMBOL_MAP[symbol.toLowerCase()];
+  const yahooSym = YAHOO_SYMBOL_MAP[symbol] || YAHOO_SYMBOL_MAP[symbol.toLowerCase()] || getYahooSymbol(symbol);
   if (!yahooSym) return [];
 
   let yfInterval = '1h';
@@ -198,7 +221,7 @@ export async function fetchYahooCandles(
  * Uses the /v8/finance/chart endpoint for a single ticker.
  */
 export async function fetchYahooPrice(symbol: string): Promise<number | null> {
-  const yahooSym = YAHOO_SYMBOL_MAP[symbol];
+  const yahooSym = YAHOO_SYMBOL_MAP[symbol] || YAHOO_SYMBOL_MAP[symbol.toLowerCase()] || getYahooSymbol(symbol);
   if (!yahooSym) return null;
 
   const t0 = Date.now();

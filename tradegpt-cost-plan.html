@@ -10,19 +10,19 @@
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --bg:        #0a0f1e;
-    --surface:   #111827;
-    --surface2:  #1a2235;
-    --border:    rgba(255,255,255,0.07);
-    --text:      #f1f5f9;
-    --subtext:   #94a3b8;
-    --accent:    #6366f1;
-    --green:     #10b981;
-    --amber:     #f59e0b;
-    --red:       #ef4444;
-    --blue:      #3b82f6;
-    --purple:    #8b5cf6;
-    --cyan:      #06b6d4;
+    --bg:        #f8fafc;
+    --surface:   #ffffff;
+    --surface2:  #f1f5f9;
+    --border:    #e2e8f0;
+    --text:      #0f172a;
+    --subtext:   #475569;
+    --accent:    #4f46e5;
+    --green:     #059669;
+    --amber:     #d97706;
+    --red:       #dc2626;
+    --blue:      #2563eb;
+    --purple:    #7c3aed;
+    --cyan:      #0891b2;
   }
 
   body {
@@ -43,19 +43,19 @@
   }
   .header .badge {
     display: inline-flex; align-items: center; gap: 8px;
-    background: rgba(99,102,241,0.12);
-    border: 1px solid rgba(99,102,241,0.3);
+    background: rgba(79,70,229,0.08);
+    border: 1px solid rgba(79,70,229,0.2);
     border-radius: 100px;
     padding: 6px 16px;
     font-size: 12px; font-weight: 600; letter-spacing: 0.08em;
-    color: #a5b4fc; text-transform: uppercase;
+    color: var(--accent); text-transform: uppercase;
     margin-bottom: 20px;
   }
   .header h1 {
     font-size: clamp(2rem, 5vw, 3.2rem);
     font-weight: 800;
     letter-spacing: -0.03em;
-    background: linear-gradient(135deg, #f1f5f9 0%, #a5b4fc 100%);
+    background: linear-gradient(135deg, #0f172a 0%, #4f46e5 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -65,7 +65,7 @@
   .header p {
     color: var(--subtext);
     font-size: 1rem;
-    max-width: 560px;
+    max-width: 650px;
     margin: 0 auto;
     line-height: 1.6;
   }
@@ -77,6 +77,7 @@
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--subtext);
+    margin-top: 48px;
     margin-bottom: 16px;
     display: flex; align-items: center; gap: 10px;
   }
@@ -89,56 +90,111 @@
 
   /* ── Tier Banner ── */
   .tier-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-    margin-bottom: 48px;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 24px;
   }
   .tier-card {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 16px;
-    padding: 24px;
+    padding: 32px;
     position: relative;
     overflow: hidden;
+    width: 100%;
+    box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.03), 0 2px 4px -2px rgba(15, 23, 42, 0.03);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+  .tier-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 20px -8px rgba(15, 23, 42, 0.08), 0 4px 6px -2px rgba(15, 23, 42, 0.04);
+    border-color: rgba(79, 70, 229, 0.2);
   }
   .tier-card::before {
     content: '';
     position: absolute;
     top: 0; left: 0; right: 0;
-    height: 3px;
+    height: 4px;
   }
-  .tier-card.starter::before { background: linear-gradient(90deg, var(--green), #34d399); }
-  .tier-card.growth::before  { background: linear-gradient(90deg, var(--blue), var(--cyan)); }
   .tier-card.scale::before   { background: linear-gradient(90deg, var(--purple), var(--accent)); }
 
+  .tier-card.scale {
+    display: flex;
+    gap: 48px;
+    align-items: stretch;
+  }
+  .tier-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
   .tier-label {
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 700;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
     margin-bottom: 4px;
   }
-  .starter .tier-label { color: var(--green); }
-  .growth  .tier-label { color: var(--blue); }
   .scale   .tier-label { color: var(--purple); }
 
-  .tier-name { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
-  .tier-users { font-size: 12px; color: var(--subtext); margin-bottom: 20px; }
+  .tier-name { font-size: 20px; font-weight: 800; margin-bottom: 6px; }
+  .tier-users { font-size: 13px; color: var(--subtext); margin-bottom: 20px; }
   .tier-price {
     font-size: 36px;
     font-weight: 800;
     letter-spacing: -0.04em;
     margin-bottom: 4px;
   }
-  .starter .tier-price { color: var(--green); }
-  .growth  .tier-price { color: var(--blue); }
   .scale   .tier-price { color: var(--purple); }
 
   .tier-period { font-size: 12px; color: var(--subtext); margin-bottom: 20px; }
 
-  .tier-breakdown { font-size: 12px; color: var(--subtext); line-height: 1.9; }
+  .tier-breakdown {
+    flex: 1.2;
+    background: var(--surface2);
+    border-radius: 12px;
+    padding: 24px;
+    border: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--subtext);
+    line-height: 2;
+  }
   .tier-breakdown span { color: var(--text); font-weight: 500; }
+
+  /* ── Compare Block ── */
+  .compare-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 48px;
+  }
+  .compare-header {
+    margin-bottom: 20px;
+  }
+  .compare-header h3 {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .compare-header p {
+    font-size: 13px;
+    color: var(--subtext);
+    line-height: 1.5;
+  }
+  .compare-badge {
+    background: rgba(5,150,105,0.08);
+    color: var(--green);
+    border: 1px solid rgba(5,150,105,0.25);
+    padding: 3px 10px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 600;
+    display: inline-block;
+    margin-bottom: 12px;
+  }
 
   /* ── Service Grid ── */
   .services-grid {
@@ -157,7 +213,7 @@
     gap: 16px;
     transition: border-color 0.2s;
   }
-  .service-card:hover { border-color: rgba(255,255,255,0.15); }
+  .service-card:hover { border-color: rgba(0,0,0,0.15); }
 
   .service-icon {
     width: 44px; height: 44px;
@@ -169,7 +225,7 @@
   .service-body { flex: 1; min-width: 0; }
   .service-name { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
   .service-desc { font-size: 12px; color: var(--subtext); margin-bottom: 10px; line-height: 1.5; }
-  .service-tiers {
+  .services-grid .service-tiers {
     display: flex; gap: 6px; flex-wrap: wrap;
   }
   .tier-pill {
@@ -177,10 +233,10 @@
     padding: 3px 10px; border-radius: 100px;
     border: 1px solid transparent;
   }
-  .pill-free    { background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.3); color: #34d399; }
-  .pill-paid    { background: rgba(59,130,246,0.1); border-color: rgba(59,130,246,0.3); color: #93c5fd; }
-  .pill-pro     { background: rgba(139,92,246,0.1); border-color: rgba(139,92,246,0.3); color: #c4b5fd; }
-  .pill-free-tier { background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.3); color: #fcd34d; }
+  .pill-free    { background: rgba(5,150,105,0.08); border-color: rgba(5,150,105,0.25); color: #047857; }
+  .pill-paid    { background: rgba(37,99,235,0.08); border-color: rgba(37,99,235,0.25); color: #1d4ed8; }
+  .pill-pro     { background: rgba(124,58,237,0.08); border-color: rgba(124,58,237,0.25); color: #6d28d9; }
+  .pill-free-tier { background: rgba(217,119,6,0.08); border-color: rgba(217,119,6,0.25); color: #b45309; }
 
   .service-cost {
     margin-top: 10px;
@@ -231,6 +287,8 @@
   .td-free { color: var(--green); font-weight: 600; }
   .td-num  { color: var(--text); font-weight: 500; }
   .td-bold { color: var(--text); font-weight: 700; }
+  .td-saving { color: var(--green); font-weight: 700; }
+  .td-high { color: var(--red); font-weight: 600; }
   tr.total-row td {
     background: var(--surface2);
     font-weight: 700;
@@ -238,7 +296,6 @@
     border-top: 2px solid var(--border);
   }
   tr.total-row td.green  { color: var(--green); }
-  tr.total-row td.blue   { color: var(--blue); }
   tr.total-row td.purple { color: var(--purple); }
 
   /* ── Cost Bar ── */
@@ -253,7 +310,7 @@
   .bar-track {
     flex: 1;
     height: 10px;
-    background: var(--surface);
+    background: var(--surface2);
     border-radius: 100px;
     overflow: hidden;
     border: 1px solid var(--border);
@@ -282,8 +339,8 @@
 
   /* ── Free tier callouts ── */
   .callout {
-    background: rgba(245,158,11,0.06);
-    border: 1px solid rgba(245,158,11,0.2);
+    background: rgba(217,119,6,0.05);
+    border: 1px solid rgba(217,119,6,0.18);
     border-radius: 12px;
     padding: 16px 20px;
     display: flex;
@@ -312,7 +369,7 @@
   .footer { text-align: center; font-size: 12px; color: var(--subtext); margin-top: 60px; }
 
   @media (max-width: 768px) {
-    .tier-grid     { grid-template-columns: 1fr; }
+    .tier-card.scale { flex-direction: column; gap: 24px; }
     .services-grid { grid-template-columns: 1fr; }
     .roi-grid      { grid-template-columns: repeat(2,1fr); }
     th:nth-child(n+3), td:nth-child(n+3) { display: none; }
@@ -328,235 +385,272 @@
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
       Infrastructure Cost Plan · June 2026
     </div>
-    <h1>TradeGPT Cost Architecture</h1>
-    <p>Complete breakdown of running costs across all service tiers — from zero-cost MVP to production scale.</p>
+    <h1>TradeGPT Budget Architecture</h1>
+    <p>Complete budget breakdown utilizing Utho VPS hosting and a Custom MT5 Farm setup to run the application at maximum profitability.</p>
   </header>
 
-  <!-- ── Tier Cards ── -->
-  <div class="section-title">Deployment Tiers</div>
+  <!-- ── Tier Card ── -->
+  <div class="section-title">Scale Deployment Plan (Utho VPS + Custom MT5 Farm)</div>
   <div class="tier-grid">
-    <div class="tier-card starter">
-      <div class="tier-label">Tier 1 — Starter</div>
-      <div class="tier-name">MVP / Early Access</div>
-      <div class="tier-users">0 – 50 active users</div>
-      <div class="tier-price">~$0</div>
-      <div class="tier-period">per month (free tiers only)</div>
-      <div class="tier-breakdown">
-        LLM: <span>Groq free (7k req/day)</span><br>
-        DB: <span>Supabase free (500 MB)</span><br>
-        Hosting: <span>Vercel free (100 GB BW)</span><br>
-        Market data: <span>Twelve Data free (800/day)</span><br>
-        Payments: <span>NOWPayments free</span><br>
-        Broker API: <span>MetaAPI free tier</span>
-      </div>
-    </div>
-    <div class="tier-card growth">
-      <div class="tier-label">Tier 2 — Growth</div>
-      <div class="tier-name">Paid Production</div>
-      <div class="tier-users">50 – 500 active users</div>
-      <div class="tier-price">~$85</div>
-      <div class="tier-period">per month</div>
-      <div class="tier-breakdown">
-        LLM: <span>Groq + NVIDIA $10–20</span><br>
-        DB: <span>Supabase Pro $25</span><br>
-        Hosting: <span>Vercel Pro $20</span><br>
-        Market data: <span>Twelve Data $8</span><br>
-        MetaAPI: <span>$10 (extra accounts)</span><br>
-        Email: <span>Resend / Nodemailer ~$0–5</span>
-      </div>
-    </div>
     <div class="tier-card scale">
-      <div class="tier-label">Tier 3 — Scale</div>
-      <div class="tier-name">Enterprise</div>
-      <div class="tier-users">500 – 5,000+ active users</div>
-      <div class="tier-price">~$350</div>
-      <div class="tier-period">per month</div>
+      <div class="tier-info">
+        <div class="tier-label">Scale Plan</div>
+        <div class="tier-name">Production Scale Target</div>
+        <div class="tier-users">100 – 1,000 active users</div>
+        <div class="tier-price">~$855–930</div>
+        <div class="tier-period">per month</div>
+      </div>
       <div class="tier-breakdown">
-        LLM: <span>NVIDIA NIM $80–120</span><br>
-        DB: <span>Supabase Team $599 or self-host</span><br>
-        Hosting: <span>Vercel Pro/Enterprise $20+</span><br>
-        Market data: <span>Twelve Data $59+</span><br>
-        MetaAPI: <span>$50+ (many accounts)</span><br>
-        Monitoring: <span>Sentry / analytics $30+</span>
+        App Server: <span>Utho Basic 2 VPS (8GB) $33.04</span><br>
+        MT5 Farm: <span>4x Utho 32GB Memory VPS $248</span><br>
+        Primary LLM: <span>DeepSeek-R1 (70B Distill) ~$265</span><br>
+        Chart Library: <span>TradingView Advanced License $200</span><br>
+        SMS Auth: <span>Twilio/Firebase ~$20–60</span><br>
+        DB: <span>Supabase Pro $25</span><br>
+        Market data: <span>Twelve Data $49 (Grow)</span><br>
+        Email: <span>Resend Paid $20</span>
       </div>
     </div>
   </div>
 
+  <!-- ── Custom Farm Comparison Block ── -->
+  <div class="compare-container">
+    <div class="compare-header">
+      <div class="compare-badge">💡 Strategic Architecture Optimization</div>
+      <h3>MetaAPI ($5/acct) vs. Custom MT5 Farm (VPS)</h3>
+      <p>MetaAPI charges a flat $5.00/month fee per connected MT5 broker account. By building a custom MT5 connection farm using Wine/Docker containers on memory-optimized VPS instances, we run 1,000 linked accounts for a fraction of the cost.</p>
+    </div>
+    <div class="cost-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Cost Category</th>
+            <th>Option A: MetaAPI ($5/acct)</th>
+            <th>Option B: Custom MT5 Farm (Utho VPS)</th>
+            <th>Monthly Savings / Payback</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="td-service">One-Time Setup & Dev Cost</td>
+            <td class="td-free">$0</td>
+            <td class="td-bold">$3,500.00 <br><span class="td-cat">Custom farm setup fee</span></td>
+            <td class="td-saving">Payback in 22 days</td>
+          </tr>
+          <tr>
+            <td class="td-service">MT5 Connection Fee (1,000 Accounts)</td>
+            <td class="td-high">$5,000.00 / mo</td>
+            <td class="td-bold">$248.00 / mo <br><span class="td-cat">4x 32GB RAM Utho VPS</span></td>
+            <td class="td-saving">Save $4,752.00 / mo</td>
+          </tr>
+          <tr>
+            <td class="td-service">Web Application Hosting</td>
+            <td class="td-num">$20.00 / mo <br><span class="td-cat">Vercel Pro</span></td>
+            <td class="td-bold">$33.04 / mo <br><span class="td-cat">Utho Basic 2 VPS</span></td>
+            <td class="td-num">-$13.04 / mo</td>
+          </tr>
+          <tr>
+            <td class="td-service">Other Infrastructure (AI, Data, DB, SMS, Email)</td>
+            <td class="td-num">$508.00 / mo</td>
+            <td class="td-bold">$518.00 / mo</td>
+            <td class="td-num">-$10.00 / mo</td>
+          </tr>
+          <tr>
+            <td class="td-service">TradingView Chart Library</td>
+            <td class="td-num">$200.00 / mo <br><span class="td-cat">Advanced Chart License</span></td>
+            <td class="td-bold">$200.00 / mo <br><span class="td-cat">Advanced Chart License</span></td>
+            <td class="td-num">$0.00 / mo</td>
+          </tr>
+          <tr>
+            <td class="td-service">NOWPayments Gateway (0.5%)</td>
+            <td class="td-num">$145.00 / mo <br><span class="td-cat">On $29k volume</span></td>
+            <td class="td-bold">$145.00 / mo <br><span class="td-cat">On $29k volume</span></td>
+            <td class="td-num">$0.00 / mo</td>
+          </tr>
+          <tr class="total-row">
+            <td class="td-bold">💵 Total Operating Cost</td>
+            <td class="td-high">$5,873.00 / mo</td>
+            <td class="green">$1,144.04 / mo</td>
+            <td class="td-saving">Save $4,728.96 / mo <br><span style="font-size:11px; font-weight:500;">Payback: ~22 days</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── SMS Auth Compare Container ── -->
+  <div class="compare-container">
+    <div class="compare-header">
+      <div class="compare-badge" style="background:rgba(79,70,229,0.08); color:var(--accent); border-color:rgba(79,70,229,0.2)">💬 SMS Gateway Cost Comparison</div>
+      <h3>Firebase vs. Twilio vs. MSG91 (Local India)</h3>
+      <p>Using SMS OTP for authentication can be a major cost driver depending on where your users are located. Firebase offers 10,000 free monthly SMS for global regions, whereas local gateways are significantly cheaper for Indian traffic.</p>
+    </div>
+    <div class="cost-table">
+      <table>
+        <thead>
+          <tr>
+            <th>SMS Provider</th>
+            <th>US / Canada / EU Rates</th>
+            <th>India / ROW Rates</th>
+            <th>Monthly Cost (3k SMS)</th>
+            <th>Key Advantage</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="td-service">Firebase Auth (Blaze)</td>
+            <td class="green">Free <br><span class="td-cat">Up to 10k/mo (then $0.01)</span></td>
+            <td class="td-high">$0.030 / verification <br><span class="td-cat">No free tier</span></td>
+            <td class="td-bold">$0.00 <span class="td-cat">(Global)</span><br><span class="td-high">$90.00 (India)</span></td>
+            <td>10k free verifications/mo (US/Canada/EU)</td>
+          </tr>
+          <tr>
+            <td class="td-service">Twilio Gateway</td>
+            <td class="td-num">$0.0079 / SMS</td>
+            <td class="td-num">$0.0150 / SMS</td>
+            <td class="td-bold">$23.70 <span class="td-cat">(Global)</span><br><span class="td-num">$45.00 (India)</span></td>
+            <td>Premium delivery rates & global coverage</td>
+          </tr>
+          <tr>
+            <td class="td-service">Local India Gateway (MSG91)</td>
+            <td class="td-num">N/A</td>
+            <td class="green">~$0.0020 / SMS <br><span class="td-cat">(15 - 30 paise)</span></td>
+            <td class="green">$6.00 <br><span class="td-cat">(India only)</span></td>
+            <td>Extremely cheap for Indian phone numbers</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
   <!-- ── Service Cards ── -->
-  <div class="section-title">Service Breakdown</div>
+  <div class="section-title">Service Details & VPS Hosting Specs</div>
   <div class="services-grid">
+
+    <!-- Utho App Host -->
+    <div class="service-card">
+      <div class="service-icon" style="background:rgba(99,102,241,0.08);">🖥️</div>
+      <div class="service-body">
+        <div class="service-name">Utho App Server — VPS Hosting</div>
+        <div class="service-desc">Replaces Vercel. Next.js production web server. Running 4 vCPU, 8 GB RAM instance.</div>
+        <div class="service-tiers">
+          <span class="tier-pill pill-paid">Scale Spec: 4 vCPU, 8 GB RAM, 1000 GB Transfer</span>
+        </div>
+        <div class="service-cost">
+          <div class="cost-row"><span>Utho Shared Basic 2 plan</span><span>$33.04/mo</span></div>
+          <div class="cost-row"><span>Bandwidth limit</span><span>1000 GB Transfer</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Custom MT5 Farm -->
+    <div class="service-card">
+      <div class="service-icon" style="background:rgba(139,92,246,0.08);">⚙️</div>
+      <div class="service-body">
+        <div class="service-name">Custom MT5 Connection Farm</div>
+        <div class="service-desc">Replaces MetaAPI. Custom Wine/Docker terminals deployed to memory-optimized VPS nodes. Footprint is ~120MB per account.</div>
+        <div class="service-tiers">
+          <span class="tier-pill pill-pro">Scale Spec: 4x Utho 32GB RAM Memory VPS</span>
+        </div>
+        <div class="service-cost">
+          <div class="cost-row"><span>One-Time Setup & Development</span><span>$3,500.00 (CapEx)</span></div>
+          <div class="cost-row"><span>4x 32GB RAM VPS Nodes (Scale)</span><span>$248.00/mo total</span></div>
+        </div>
+      </div>
+    </div>
 
     <!-- Groq -->
     <div class="service-card">
-      <div class="service-icon" style="background:rgba(245,158,11,0.12);">⚡</div>
+      <div class="service-icon" style="background:rgba(245,158,11,0.08);">⚡</div>
       <div class="service-body">
-        <div class="service-name">Groq LPU — Primary LLM</div>
-        <div class="service-desc">Llama 3.3 70B at sub-500ms. Powers all AI chat, signal generation, market analysis, and astro reports.</div>
+        <div class="service-name">Groq LPU — DeepSeek-R1 (Distill)</div>
+        <div class="service-desc">Primary reasoning model for TradeGPT. Uses thinking chain to resolve trading mathematics, technical indicator logic, and astro-gating.</div>
         <div class="service-tiers">
-          <span class="tier-pill pill-free">Free: 7,000 req/day</span>
-          <span class="tier-pill pill-paid">Paid: ~$0.59/M tokens</span>
+          <span class="tier-pill pill-paid">DeepSeek-R1 (Distill Llama 70B) via Groq</span>
         </div>
         <div class="service-cost">
-          <div class="cost-row"><span>50 users × 10 msgs/day</span><span>Free tier sufficient</span></div>
-          <div class="cost-row"><span>500 users × 10 msgs/day</span><span>~$8–15/mo</span></div>
-          <div class="cost-row"><span>5,000 users × 10 msgs/day</span><span>~$80–120/mo</span></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- NVIDIA NIM -->
-    <div class="service-card">
-      <div class="service-icon" style="background:rgba(16,185,129,0.12);">🔄</div>
-      <div class="service-body">
-        <div class="service-name">NVIDIA NIM — Failover LLM</div>
-        <div class="service-desc">Circuit-breaker fallback to NVIDIA NIM (meta/llama-3.3-70b-instruct). Only invoked when Groq fails.</div>
-        <div class="service-tiers">
-          <span class="tier-pill pill-free">Free: 40 req/day (trial)</span>
-          <span class="tier-pill pill-paid">Paid: ~$0.59/M tokens</span>
-        </div>
-        <div class="service-cost">
-          <div class="cost-row"><span>Fallback only (&lt;5% traffic)</span><span>~$0–5/mo</span></div>
-          <div class="cost-row"><span>Can add multiple API keys</span><span>Round-robin rotation</span></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Supabase -->
-    <div class="service-card">
-      <div class="service-icon" style="background:rgba(59,130,246,0.12);">🗄️</div>
-      <div class="service-body">
-        <div class="service-name">Supabase — Database & Auth</div>
-        <div class="service-desc">PostgreSQL DB, Row-Level Security auth, real-time subscriptions. Stores users, signals, trades, subscriptions, referrals, courses, wallet, and broker configs.</div>
-        <div class="service-tiers">
-          <span class="tier-pill pill-free">Free: 500 MB, 2 projects</span>
-          <span class="tier-pill pill-paid">Pro: $25/mo (8 GB DB)</span>
-          <span class="tier-pill pill-pro">Team: $599/mo</span>
-        </div>
-        <div class="service-cost">
-          <div class="cost-row"><span>Up to ~50k rows / 500MB</span><span>Free</span></div>
-          <div class="cost-row"><span>Production — up to 8 GB</span><span>$25/mo</span></div>
-          <div class="cost-row"><span>Extra storage (per GB)</span><span>$0.125/GB</span></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Vercel -->
-    <div class="service-card">
-      <div class="service-icon" style="background:rgba(99,102,241,0.12);">▲</div>
-      <div class="service-body">
-        <div class="service-name">Vercel — Next.js Hosting</div>
-        <div class="service-desc">Serverless edge hosting for all Next.js API routes, SSR, and static assets. Handles cron jobs, price streaming SSE, and webhook endpoints.</div>
-        <div class="service-tiers">
-          <span class="tier-pill pill-free">Free: 100 GB BW, 6000 min build</span>
-          <span class="tier-pill pill-paid">Pro: $20/mo (1 TB BW)</span>
-        </div>
-        <div class="service-cost">
-          <div class="cost-row"><span>MVP / dev</span><span>Free (Hobby plan)</span></div>
-          <div class="cost-row"><span>Custom domain + team</span><span>$20/mo</span></div>
-          <div class="cost-row"><span>Function invocation (>1M)</span><span>$0.60/M req</span></div>
+          <div class="cost-row"><span>Monthly Token Consumption</span><span>450M tokens/mo</span></div>
+          <div class="cost-row"><span>Operating Cost</span><span>~$265.00/mo (at $0.59/M tokens)</span></div>
         </div>
       </div>
     </div>
 
     <!-- Twelve Data -->
     <div class="service-card">
-      <div class="service-icon" style="background:rgba(6,182,212,0.12);">📈</div>
+      <div class="service-icon" style="background:rgba(6,182,212,0.08);">📈</div>
       <div class="service-body">
         <div class="service-name">Twelve Data — Market Feed</div>
-        <div class="service-desc">Live OHLCV candles, RSI, MACD, ATR for XAUUSD, BTCUSD, EURUSD, NAS100. ETF symbol mapping: NAS100→QQQ, US30→DIA.</div>
+        <div class="service-desc">Live OHLCV candles, RSI, MACD, ATR. Twelve Data Grow plan provides no daily limits for scale.</div>
         <div class="service-tiers">
-          <span class="tier-pill pill-free-tier">Free: 800 API calls/day</span>
-          <span class="tier-pill pill-paid">Starter: $8/mo (5k/day)</span>
-          <span class="tier-pill pill-pro">Pro: $59/mo (unlimited)</span>
+          <span class="tier-pill pill-pro">Twelve Data Grow Plan</span>
         </div>
         <div class="service-cost">
-          <div class="cost-row"><span>Current usage (free-tier optimized)</span><span>Free</span></div>
-          <div class="cost-row"><span>With caching: 5 real calls per signal</span><span>~$8/mo at 500 users</span></div>
+          <div class="cost-row"><span>API Query Limit</span><span>No Daily Limits</span></div>
+          <div class="cost-row"><span>Plan Cost</span><span>$49.00/mo</span></div>
         </div>
       </div>
     </div>
 
-    <!-- MetaAPI -->
+    <!-- TradingView Chart Library -->
     <div class="service-card">
-      <div class="service-icon" style="background:rgba(139,92,246,0.12);">🏦</div>
+      <div class="service-icon" style="background:rgba(37,99,235,0.08);">📊</div>
       <div class="service-body">
-        <div class="service-name">MetaAPI — MT5 Broker Bridge</div>
-        <div class="service-desc">Connects user MT5 broker accounts, streams live positions, executes trades, syncs closed deals. v29 SDK via REST (not streaming, optimized for serverless).</div>
+        <div class="service-name">TradingView Advanced Chart Library</div>
+        <div class="service-desc">Advanced interactive charts, indicator tools, and drawings. Self-hosted behind our paid subscription paywall.</div>
         <div class="service-tiers">
-          <span class="tier-pill pill-free">Free: 1 account</span>
-          <span class="tier-pill pill-paid">Starter: $10/mo (10 accounts)</span>
-          <span class="tier-pill pill-pro">Pro: $50/mo (100 accounts)</span>
+          <span class="tier-pill pill-pro">Commercial License: ~$200.00/mo</span>
         </div>
         <div class="service-cost">
-          <div class="cost-row"><span>Demo / single broker account</span><span>Free</span></div>
-          <div class="cost-row"><span>Up to 10 connected users</span><span>$10/mo</span></div>
-          <div class="cost-row"><span>100+ broker connections</span><span>$50+/mo</span></div>
+          <div class="cost-row"><span>Licensing Model</span><span>Enterprise Quote (Paywalled SaaS)</span></div>
+          <div class="cost-row"><span>Estimated Cost</span><span>$200.00/mo (based on volume)</span></div>
         </div>
       </div>
     </div>
 
-    <!-- NOWPayments -->
+    <!-- Supabase -->
     <div class="service-card">
-      <div class="service-icon" style="background:rgba(245,158,11,0.12);">💰</div>
+      <div class="service-icon" style="background:rgba(59,130,246,0.08);">🗄️</div>
       <div class="service-body">
-        <div class="service-name">NOWPayments — Crypto Billing</div>
-        <div class="service-desc">Handles subscription checkout, crypto invoice generation, IPN webhook verification, and withdrawal requests. Sandbox available for testing.</div>
+        <div class="service-name">Supabase — Database & Auth</div>
+        <div class="service-desc">PostgreSQL DB, Row-Level Security auth. Stores users, signals, trades, subscriptions, and platform config.</div>
         <div class="service-tiers">
-          <span class="tier-pill pill-free">Free signup</span>
-          <span class="tier-pill pill-paid">0.5% per transaction fee</span>
+          <span class="tier-pill pill-paid">Supabase Pro Plan</span>
         </div>
         <div class="service-cost">
-          <div class="cost-row"><span>Monthly fee</span><span>$0 (% of volume only)</span></div>
-          <div class="cost-row"><span>$10,000 GMV</span><span>~$50 in fees</span></div>
-          <div class="cost-row"><span>$100,000 GMV</span><span>~$500 in fees</span></div>
+          <div class="cost-row"><span>Database Storage Limit</span><span>8 GB DB Storage</span></div>
+          <div class="cost-row"><span>Plan Cost</span><span>$25.00/mo</span></div>
         </div>
       </div>
     </div>
 
-    <!-- Email / Nodemailer -->
+    <!-- SMS OTP Gateway -->
     <div class="service-card">
-      <div class="service-icon" style="background:rgba(16,185,129,0.12);">✉️</div>
+      <div class="service-icon" style="background:rgba(16,185,129,0.08);">💬</div>
       <div class="service-body">
-        <div class="service-name">Email — OTP & Notifications</div>
-        <div class="service-desc">OTP signup verification and user notifications via Nodemailer. Can route through Gmail SMTP (free), Resend, or SendGrid depending on volume.</div>
+        <div class="service-name">SMS OTP — Phone Authentication</div>
+        <div class="service-desc">SMS verifications and account gating. Uses Twilio for global numbers and MSG91 / Firebase for local India traffic.</div>
         <div class="service-tiers">
-          <span class="tier-pill pill-free">Gmail SMTP: Free (500/day)</span>
-          <span class="tier-pill pill-paid">Resend: $0 (3k/mo free)</span>
-          <span class="tier-pill pill-pro">SendGrid: $19.95/mo (50k)</span>
+          <span class="tier-pill pill-paid">Firebase SMS / Twilio / MSG91</span>
         </div>
         <div class="service-cost">
-          <div class="cost-row"><span>Up to 3,000 emails/month</span><span>Free (Resend)</span></div>
-          <div class="cost-row"><span>Up to 50,000 emails/month</span><span>~$20/mo</span></div>
+          <div class="cost-row"><span>SMS Volume at Scale</span><span>~3,000 verifications/mo</span></div>
+          <div class="cost-row"><span>Estimated Gateway Cost</span><span>~$0–60.00/mo (depends on region)</span></div>
         </div>
       </div>
     </div>
 
-    <!-- Yahoo Finance / News -->
+    <!-- Resend Transactional Email -->
     <div class="service-card">
-      <div class="service-icon" style="background:rgba(239,68,68,0.12);">📰</div>
+      <div class="service-icon" style="background:rgba(124,58,237,0.08);">✉️</div>
       <div class="service-body">
-        <div class="service-name">Yahoo Finance RSS — News Feed</div>
-        <div class="service-desc">Market news headlines fetched from Yahoo Finance RSS with 60-second server cache. Completely free, no API key required.</div>
+        <div class="service-name">Resend — Transactional Email</div>
+        <div class="service-desc">Send onboarding emails, signal notifications, custom subscription confirmations, and system alerts.</div>
         <div class="service-tiers">
-          <span class="tier-pill pill-free">Free — no limits</span>
+          <span class="tier-pill pill-paid">Resend paid plan ($20)</span>
         </div>
         <div class="service-cost">
-          <div class="cost-row"><span>All tiers</span><span>$0/mo</span></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Astronomy Engine -->
-    <div class="service-card">
-      <div class="service-icon" style="background:rgba(99,102,241,0.12);">🔭</div>
-      <div class="service-body">
-        <div class="service-name">Astronomy Engine — Astro Mode</div>
-        <div class="service-desc">Pure-JS celestial computation (lunar phases, Mercury retrograde, eclipse detection). Runs entirely server-side, zero external calls.</div>
-        <div class="service-tiers">
-          <span class="tier-pill pill-free">Open source — Free forever</span>
-        </div>
-        <div class="service-cost">
-          <div class="cost-row"><span>All tiers (npm package)</span><span>$0/mo</span></div>
+          <div class="cost-row"><span>Monthly Email Quota</span><span>Up to 50,000 emails/mo</span></div>
+          <div class="cost-row"><span>Plan Cost</span><span>$20.00/mo</span></div>
         </div>
       </div>
     </div>
@@ -564,136 +658,127 @@
   </div>
 
   <!-- ── Cost Table ── -->
-  <div class="section-title">Monthly Cost Matrix</div>
+  <div class="section-title">Monthly Cost Matrix (VPS Option)</div>
   <div class="cost-table">
     <table>
       <thead>
         <tr>
           <th>Service</th>
           <th>Category</th>
-          <th>Starter (0–50 users)</th>
-          <th>Growth (50–500 users)</th>
-          <th>Scale (500–5k users)</th>
+          <th>Scale (100–1,000 users)</th>
         </tr>
       </thead>
       <tbody>
         <tr>
-          <td class="td-service">Groq LPU</td>
+          <td class="td-service">App Server Hosting</td>
+          <td class="td-cat">Utho VPS</td>
+          <td class="td-num">$33.04 (8GB)</td>
+        </tr>
+        <tr>
+          <td class="td-service">Custom MT5 Farm</td>
+          <td class="td-cat">Utho Memory VPS</td>
+          <td class="td-num">$248.00 (128GB)</td>
+        </tr>
+        <tr>
+          <td class="td-service">Groq LPU (DeepSeek-R1)</td>
           <td class="td-cat">AI / LLM</td>
-          <td class="td-free">$0 (free tier)</td>
-          <td class="td-num">$8–15</td>
-          <td class="td-num">$80–120</td>
-        </tr>
-        <tr>
-          <td class="td-service">NVIDIA NIM</td>
-          <td class="td-cat">AI / LLM fallback</td>
-          <td class="td-free">$0 (free trial)</td>
-          <td class="td-num">$0–5</td>
-          <td class="td-num">$10–20</td>
-        </tr>
-        <tr>
-          <td class="td-service">Supabase</td>
-          <td class="td-cat">Database / Auth</td>
-          <td class="td-free">$0 (free tier)</td>
-          <td class="td-num">$25</td>
-          <td class="td-num">$25–599</td>
-        </tr>
-        <tr>
-          <td class="td-service">Vercel</td>
-          <td class="td-cat">Hosting / Edge</td>
-          <td class="td-free">$0 (Hobby)</td>
-          <td class="td-num">$20</td>
-          <td class="td-num">$20+</td>
+          <td class="td-num">$265.00</td>
         </tr>
         <tr>
           <td class="td-service">Twelve Data</td>
           <td class="td-cat">Market Data</td>
-          <td class="td-free">$0 (800 calls/day)</td>
-          <td class="td-num">$8</td>
-          <td class="td-num">$59</td>
+          <td class="td-num">$49 (Grow)</td>
         </tr>
         <tr>
-          <td class="td-service">MetaAPI</td>
-          <td class="td-cat">Broker Bridge</td>
-          <td class="td-free">$0 (1 account)</td>
-          <td class="td-num">$10</td>
-          <td class="td-num">$50+</td>
+          <td class="td-service">TradingView Chart Library</td>
+          <td class="td-cat">Commercial Chart License</td>
+          <td class="td-num">$200.00</td>
         </tr>
         <tr>
-          <td class="td-service">NOWPayments</td>
-          <td class="td-cat">Crypto Payments</td>
-          <td class="td-free">$0 (0.5% fee)</td>
-          <td class="td-num">% of GMV</td>
-          <td class="td-num">% of GMV</td>
+          <td class="td-service">Supabase</td>
+          <td class="td-cat">Database / Auth</td>
+          <td class="td-num">$25</td>
         </tr>
         <tr>
-          <td class="td-service">Email (Nodemailer)</td>
+          <td class="td-service">SMS OTP Auth</td>
+          <td class="td-cat">Twilio / Firebase / Msg91</td>
+          <td class="td-num">$0–60</td>
+        </tr>
+        <tr>
+          <td class="td-service">Email (Resend)</td>
           <td class="td-cat">Notifications</td>
-          <td class="td-free">$0 (Gmail SMTP)</td>
-          <td class="td-num">$0–5</td>
           <td class="td-num">$20</td>
+        </tr>
+        <tr>
+          <td class="td-service">NVIDIA NIM</td>
+          <td class="td-cat">AI / LLM fallback</td>
+          <td class="td-num">$15–30</td>
         </tr>
         <tr>
           <td class="td-service">Astronomy Engine</td>
           <td class="td-cat">Celestial Calc</td>
-          <td class="td-free">$0 (open source)</td>
-          <td class="td-free">$0</td>
           <td class="td-free">$0</td>
         </tr>
         <tr>
           <td class="td-service">Yahoo Finance RSS</td>
           <td class="td-cat">News Feed</td>
           <td class="td-free">$0</td>
-          <td class="td-free">$0</td>
-          <td class="td-free">$0</td>
         </tr>
         <tr class="total-row">
           <td colspan="2" class="td-bold">💵 Total Monthly Estimate</td>
-          <td class="green">~$0 / mo</td>
-          <td class="blue">~$70–85 / mo</td>
-          <td class="purple">~$270–870 / mo</td>
+          <td class="purple">~$855 – $930 / mo</td>
         </tr>
       </tbody>
     </table>
   </div>
 
   <!-- ── Cost Bar Chart ── -->
-  <div class="section-title">Growth Tier Cost Split ($85/mo)</div>
+  <div class="section-title">Scale Tier Cost Split ($893/mo average)</div>
   <div class="bar-section">
     <div class="bar-row">
-      <div class="bar-label">Supabase (DB)</div>
-      <div class="bar-track"><div class="bar-fill" style="width:30%; background:linear-gradient(90deg,#3b82f6,#60a5fa);"></div></div>
-      <div class="bar-value" style="color:#60a5fa;">$25</div>
+      <div class="bar-label">Primary LLM (R1)</div>
+      <div class="bar-track"><div class="bar-fill" style="width:29.7%; background:linear-gradient(90deg,#f59e0b,#fcd34d);"></div></div>
+      <div class="bar-value" style="color:#b45309;">$265.00</div>
     </div>
     <div class="bar-row">
-      <div class="bar-label">Vercel (Hosting)</div>
-      <div class="bar-track"><div class="bar-fill" style="width:24%; background:linear-gradient(90deg,#8b5cf6,#a78bfa);"></div></div>
-      <div class="bar-value" style="color:#a78bfa;">$20</div>
+      <div class="bar-label">Custom MT5 VPS Farm</div>
+      <div class="bar-track"><div class="bar-fill" style="width:27.8%; background:linear-gradient(90deg,#8b5cf6,#a78bfa);"></div></div>
+      <div class="bar-value" style="color:#7c3aed;">$248.00</div>
     </div>
     <div class="bar-row">
-      <div class="bar-label">Groq / NVIDIA (LLM)</div>
-      <div class="bar-track"><div class="bar-fill" style="width:18%; background:linear-gradient(90deg,#f59e0b,#fcd34d);"></div></div>
-      <div class="bar-value" style="color:#fcd34d;">$15</div>
+      <div class="bar-label">TradingView Chart Library</div>
+      <div class="bar-track"><div class="bar-fill" style="width:22.4%; background:linear-gradient(90deg,#2563eb,#60a5fa);"></div></div>
+      <div class="bar-value" style="color:#1d4ed8;">$200.00</div>
     </div>
     <div class="bar-row">
-      <div class="bar-label">MetaAPI (Broker)</div>
-      <div class="bar-track"><div class="bar-fill" style="width:12%; background:linear-gradient(90deg,#10b981,#34d399);"></div></div>
-      <div class="bar-value" style="color:#34d399;">$10</div>
+      <div class="bar-label">Twelve Data (Market)</div>
+      <div class="bar-track"><div class="bar-fill" style="width:5.5%; background:linear-gradient(90deg,#06b6d4,#67e8f9);"></div></div>
+      <div class="bar-value" style="color:#0891b2;">$49.00</div>
     </div>
     <div class="bar-row">
-      <div class="bar-label">Twelve Data (Mkt)</div>
-      <div class="bar-track"><div class="bar-fill" style="width:10%; background:linear-gradient(90deg,#06b6d4,#67e8f9);"></div></div>
-      <div class="bar-value" style="color:#67e8f9;">$8</div>
+      <div class="bar-label">Utho App VPS</div>
+      <div class="bar-track"><div class="bar-fill" style="width:3.7%; background:linear-gradient(90deg,#3b82f6,#60a5fa);"></div></div>
+      <div class="bar-value" style="color:#2563eb;">$33.04</div>
     </div>
     <div class="bar-row">
-      <div class="bar-label">Email / Other</div>
-      <div class="bar-track"><div class="bar-fill" style="width:6%; background:linear-gradient(90deg,#ef4444,#f87171);"></div></div>
-      <div class="bar-value" style="color:#f87171;">$5</div>
+      <div class="bar-label">SMS Auth (Average)</div>
+      <div class="bar-track"><div class="bar-fill" style="width:3.4%; background:linear-gradient(90deg,#ef4444,#f87171);"></div></div>
+      <div class="bar-value" style="color:#dc2626;">$30.00</div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">Supabase DB Pro</div>
+      <div class="bar-track"><div class="bar-fill" style="width:2.8%; background:linear-gradient(90deg,#10b981,#34d399);"></div></div>
+      <div class="bar-value" style="color:#059669;">$25.00</div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">Email & Fallback NIM</div>
+      <div class="bar-track"><div class="bar-fill" style="width:4.8%; background:linear-gradient(90deg,#8b5cf6,#c4b5fd);"></div></div>
+      <div class="bar-value" style="color:#7c3aed;">$42.50</div>
     </div>
   </div>
 
   <!-- ── Revenue vs Cost ── -->
-  <div class="section-title">Revenue Potential vs. Cost</div>
+  <div class="section-title">Revenue Potential vs. Operating Expense</div>
   <div class="roi-grid">
     <div class="roi-card">
       <div class="roi-icon">👤</div>
@@ -703,54 +788,106 @@
     </div>
     <div class="roi-card">
       <div class="roi-icon">🎯</div>
-      <div class="roi-label">Break-even Point</div>
-      <div class="roi-value" style="color:var(--blue);">3</div>
-      <div class="roi-sub">paid subscribers @ $85 cost</div>
+      <div class="roi-label">Scale Break-even</div>
+      <div class="roi-value" style="color:var(--blue);">31</div>
+      <div class="roi-sub">paid subscribers @ $893 average</div>
     </div>
     <div class="roi-card">
       <div class="roi-icon">📊</div>
-      <div class="roi-label">50 Subscribers</div>
-      <div class="roi-value" style="color:var(--amber);">$1,365</div>
+      <div class="roi-label">100 Subscribers</div>
+      <div class="roi-value" style="color:var(--amber);">$2,007</div>
       <div class="roi-sub">net margin / month</div>
     </div>
     <div class="roi-card">
       <div class="roi-icon">🚀</div>
-      <div class="roi-label">500 Subscribers</div>
-      <div class="roi-value" style="color:var(--purple);">$14,415</div>
+      <div class="roi-label">1,000 Subscribers</div>
+      <div class="roi-value" style="color:var(--purple);">$27,856</div>
       <div class="roi-sub">net margin / month</div>
     </div>
   </div>
 
-  <!-- ── Free Tier Callouts ── -->
-  <div class="section-title">Free Tier Strategy</div>
+  <!-- ── Optimization & Caching Strategy ── -->
+  <div class="section-title">Cost Optimization & Caching Strategy</div>
   <div class="callout">
     <div class="callout-icon">💡</div>
-    <div class="callout-text"><strong>LLM cost is nearly zero at MVP scale.</strong> Groq's free tier allows 7,000 requests/day — enough for 700 users sending 10 messages each. The circuit-breaker failover to NVIDIA NIM adds a second free pool. LLM costs only become meaningful above 500 daily active users.</div>
+    <div class="callout-text"><strong>LLM token management is critical.</strong> DeepSeek-R1 is highly cost-efficient on Groq/NIM at $0.59/M tokens. By enforcing system prompt caching and limiting active chat context depth, we ensure token consumption stays strictly within the projected $265/mo budget.</div>
   </div>
   <div class="callout">
     <div class="callout-icon">📡</div>
-    <div class="callout-text"><strong>Market data is aggressively cached.</strong> Twelve Data free plan provides 800 API calls/day. With 60-second server-side caching and parallel batch fetching, each signal generation uses ~5 real calls. 800 calls = ~160 signal analyses per day — sufficient for early users at zero cost.</div>
+    <div class="callout-text"><strong>Market data is heavily cached.</strong> Twelve Data Grow plan ($49/mo) has no daily limit but has rate limits. Enforcing 60-second server-side caching of OHLCV candles prevents redundant API requests and ensures we scale smoothly without needing expensive custom plans.</div>
   </div>
-  <div class="callout">
-    <div class="callout-icon">🌙</div>
-    <div class="callout-text"><strong>Astro mode costs $0 at any scale.</strong> The <strong>astronomy-engine</strong> npm package runs all celestial calculations (lunar phases, Mercury retrograde, eclipse detection) as pure JavaScript — no external API, no per-call cost, no rate limits.</div>
+  <div class="callout" style="background:rgba(79,70,229,0.05); border-color:rgba(79,70,229,0.18);">
+    <div class="callout-icon">🖥️</div>
+    <div class="callout-text"><strong>VPS resource utilization is maximized.</strong> Unlike serverless architectures which have execution limits and cold starts, Utho VPS instances run persistent Node servers, scheduled cron syncs, and our custom MT5 Wine/Docker bridge with zero overhead.</div>
   </div>
-  <div class="callout" style="background:rgba(99,102,241,0.06); border-color:rgba(99,102,241,0.2);">
-    <div class="callout-icon">⚡</div>
-    <div class="callout-text"><strong>Vercel free tier can handle MVP traffic.</strong> The Hobby plan supports 100 GB/month bandwidth, unlimited deployments, and 6,000 build minutes. Only upgrade to Pro ($20/mo) when you need custom domains on multiple projects or commercial usage rights.</div>
+
+  <!-- ── Optional Operational Add-ons ── -->
+  <div class="section-title">Optional Operational Add-ons (Highly Recommended at Scale)</div>
+  <div class="compare-container" style="margin-bottom: 48px;">
+    <div class="compare-header">
+      <div class="compare-badge" style="background:rgba(217,119,6,0.08); color:var(--amber); border-color:rgba(217,119,6,0.25)">🛡️ Security & Reliability Buffers</div>
+      <h3>Operational Resilience & Security</h3>
+      <p>These optional services and buffers ensure high availability, compliance, logging transparency, and security protection for the MT5 connection farm and the main web platform.</p>
+    </div>
+    <div class="cost-table" style="margin-bottom: 0;">
+      <table>
+        <thead>
+          <tr>
+            <th>Service</th>
+            <th>Purpose</th>
+            <th>Estimated Cost</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="td-service">MT5 Connection Proxies</td>
+            <td class="td-cat">Prevents broker rate-limits/geoblocks by assigning distinct IPs to Docker containers</td>
+            <td class="td-num">$50.00 – $150.00 / mo</td>
+          </tr>
+          <tr>
+            <td class="td-service">Sentry & Logflare</td>
+            <td class="td-cat">Production error tracking, live tracing, and centralized log aggregation</td>
+            <td class="td-num">$30.00 – $55.00 / mo</td>
+          </tr>
+          <tr>
+            <td class="td-service">Cloudflare Pro</td>
+            <td class="td-cat">WAF firewall rules, DDoS protection, and scraper blocking to secure signal endpoints</td>
+            <td class="td-num">$20.00 – $25.00 / mo</td>
+          </tr>
+          <tr>
+            <td class="td-service">Utho Automated Backups</td>
+            <td class="td-cat">Daily snapshots and automated backup storage for the App server and MT5 VPS nodes</td>
+            <td class="td-num">$10.00 – $20.00 / mo</td>
+          </tr>
+          <tr>
+            <td class="td-service">Legal & Compliance Docs</td>
+            <td class="td-cat">Privacy Policy, Terms of Service, and GDPR/CCPA cookie compliance (Termly/Iubenda)</td>
+            <td class="td-num">$10.00 – $25.00 / mo</td>
+          </tr>
+          <tr>
+            <td class="td-service">Annual Domain & Developer Accounts</td>
+            <td class="td-cat">Amortized cost of .ai domain registration ($70/yr) and Apple/Google Dev portals ($124/yr)</td>
+            <td class="td-num">~$16.00 / mo</td>
+          </tr>
+          <tr class="total-row">
+            <td colspan="2" class="td-bold">🛡️ Total Optional Buffer Estimate</td>
+            <td class="purple">~$136.00 – $291.00 / mo</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 
   <!-- ── Scaling Notes ── -->
-  <div class="section-title">Cost Optimization Roadmap</div>
+  <div class="section-title">Custom MT5 Farm & LLM Architecture Notes</div>
   <div class="scale-note">
-    <h3>📌 As You Scale — Key Cost Decisions</h3>
+    <h3>📌 Building the Custom MT5 Farm & LLM Choice</h3>
     <ul>
-      <li><strong>LLM:</strong> Add 3–5 NVIDIA NIM API keys (they each get 40 free req/day on trial) and configure round-robin rotation in llmRouter.ts to extend the free window.</li>
-      <li><strong>Database:</strong> Supabase free plan hits 500 MB at ~100k signal rows. Migrate to Pro ($25/mo) early — Supabase Pro is much cheaper than alternatives like PlanetScale or Neon.</li>
-      <li><strong>Market Data:</strong> At 500+ users, switch Twelve Data to the Basic plan ($8/mo = 5k calls/day). Above 5k active users, consider Polygon.io or self-hosting a free data provider like yfinance with a scheduled job.</li>
-      <li><strong>MetaAPI:</strong> Each user who connects a live broker account costs roughly $0.10/mo on the per-account billing model. Pre-charge users via the subscription or absorb as COGS.</li>
-      <li><strong>Self-host option:</strong> At scale (1000+ users), moving the database to a $12/mo DigitalOcean PostgreSQL droplet and using Railway for hosting can cut costs by 60% vs. managed Vercel + Supabase Pro.</li>
-      <li><strong>CDN:</strong> All chart assets, SVG icons, and static JS are already cached by Vercel's CDN edge. No additional CDN cost unless you add user-uploaded media (e.g., course videos).</li>
+      <li><strong>Why not MetaAPI?</strong> MetaAPI's $5.00/month per active broker account scales poorly. At 1,000 users, Option A (MetaAPI) costs **$5,000 / month** in connection fees, whereas Option B (our own VPS MT5 farm) costs just **$248 / month** (savings of over **$4,700 every single month**).</li>
+      <li><strong>Development Cost & Payback:</strong> Building the custom farm has a one-time development and setup fee of **$3,500 USD**. Since we save $4,728.96 every single month on MetaAPI fees, the development cost is fully recovered in the first **22 days** of hitting 1,000 users.</li>
+      <li><strong>Reasoning LLM (DeepSeek-R1):</strong> To ensure highly accurate trading logic and indicator math, we use **DeepSeek-R1 (Distill Llama 70B)** on Groq. The cost is **$265/mo** at 1,000 users due to the higher token output (~1,500 tokens/req including reasoning steps). If upgrading to the full **DeepSeek-R1 671B** model, the cost increases to **$540/mo**.</li>
+      <li><strong>Hardware Layout:</strong> We deploy Wine (Windows emulator for Linux) + MetaTrader 5 inside lightweight Docker containers. Each account takes ~120 MB RAM. We run up to 250 accounts per Utho Memory Optimized 3 VPS instance (32 GB RAM). Four servers cover 1,000 accounts.</li>
+      <li><strong>Database Scaling:</strong> Supabase Pro ($25/mo) handles up to 8 GB of data, which easily stores active broker keys, trades, signals, and course progression tables for 1,000 users.</li>
     </ul>
   </div>
 

@@ -1,0 +1,1760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MT5 Scalping via MetaAPI — Integration Engine Specification</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --bg2: #f1f5f9;
+      --bg3: #e2e8f0;
+      --card: #ffffff;
+      --border: #e2e8f0;
+      --purple: #7c3aed;
+      --purple-light: #6d28d9;
+      --blue: #0284c7;
+      --blue-light: #0369a1;
+      --gold: #d97706;
+      --gold-light: #b45309;
+      --green: #059669;
+      --green-light: #047857;
+      --text: #0f172a;
+      --text-muted: #475569;
+      --text-dim: #64748b;
+      
+      --section-odd: #ffffff;
+      --section-even: linear-gradient(180deg, #fafbff 0%, #f8fafc 100%);
+      --cta-bg: rgba(255, 255, 255, 0.7);
+      --cta-wrapper-bg: linear-gradient(160deg, #f0ebff, #eef6ff);
+      --hero-bg: linear-gradient(160deg, #f0ebff 0%, #f8fafc 40%, #eef6ff 100%);
+    }
+
+    html.dark {
+      --bg: #090d16;
+      --bg2: #111827;
+      --bg3: #1f2937;
+      --card: #111827;
+      --border: #1f2937;
+      --purple: #a78bfa;
+      --purple-light: #c084fc;
+      --blue: #38bdf8;
+      --blue-light: #7dd3fc;
+      --gold: #fbbf24;
+      --gold-light: #fcd34d;
+      --green: #34d399;
+      --green-light: #6ee7b7;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+      --text-dim: #9ca3af;
+      
+      --section-odd: #111827;
+      --section-even: linear-gradient(180deg, #0f172a 0%, #090d16 100%);
+      --cta-bg: rgba(31, 41, 55, 0.7);
+      --cta-wrapper-bg: linear-gradient(160deg, #1e1548, #0a1128);
+      --hero-bg: linear-gradient(160deg, #181335 0%, #090d16 40%, #050b1a 100%);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      width: 1200px;
+      margin: 0 auto;
+      padding: 0;
+      transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+    }
+
+    .section, .shortcut-cell, .info-card, .pillar-card, .wp-toc-item, .tech-card, .market-card, .session-card, .pay-step, .pay-feature, .db-card {
+      transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    /* ── UI CONTROLS ── */
+    .ui-controls {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+      display: flex;
+      gap: 10px;
+    }
+    .control-btn {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      transition: all 0.2s ease;
+      color: var(--text);
+    }
+    .control-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+      border-color: var(--purple-light);
+    }
+    .control-btn svg {
+      fill: none;
+      stroke: currentColor;
+    }
+
+    /* ── PRINT ── */
+    @media print {
+      body { width: 100%; background: #fff !important; color: #000 !important; }
+      .page-break { page-break-before: always; }
+      .no-break { page-break-inside: avoid; }
+      .ui-controls { display: none !important; }
+    }
+
+    /* ── UTILITIES ── */
+    .gradient-text {
+      background: linear-gradient(135deg, #7c3aed, #0ea5e9);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .gradient-text-gold {
+      background: linear-gradient(135deg, #d97706, #f59e0b);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* Alternating section backgrounds */
+    .section:nth-child(odd) { background: var(--section-odd); }
+    .section:nth-child(even) { background: var(--section-even); }
+
+    /* Section label pill */
+    .section-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      padding: 4px 12px;
+      border-radius: 100px;
+      background: rgba(109,40,217,0.07);
+      border: 1px solid rgba(109,40,217,0.15);
+      margin-bottom: 14px;
+      color: var(--purple-light);
+    }
+    .section-label::before {
+      content: '';
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: currentColor;
+      display: inline-block;
+    }
+
+    /* Section title upgrade */
+    .section-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 34px;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      line-height: 1.1;
+      margin-bottom: 14px;
+    }
+    .section-subtitle {
+      font-size: 14.5px;
+      color: var(--text-muted);
+      line-height: 1.75;
+      max-width: 780px;
+      margin-bottom: 36px;
+    }
+
+    /* Card universal hover effects */
+    .pillar-card, .gate-card, .flow-step, .shortcut-cell, .risk-card, .cost-card {
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
+    }
+    .pillar-card:hover, .gate-card:hover, .risk-card:hover, .cost-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 28px rgba(0,0,0,0.09), 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    /* Code tag styling */
+    code {
+      font-family: 'Space Mono', 'Courier New', monospace;
+      font-size: 0.88em;
+      background: rgba(109,40,217,0.07);
+      color: var(--purple-light);
+      padding: 2px 6px;
+      border-radius: 5px;
+      border: 1px solid rgba(109,40,217,0.12);
+    }
+
+    /* Divider with label */
+    .section-divider {
+      display: flex; align-items: center; gap: 12px;
+      margin: 32px 0 24px;
+      color: var(--text-muted);
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.12em;
+    }
+    .section-divider::before, .section-divider::after {
+      content: ''; flex: 1; height: 1px; background: var(--border);
+    }
+
+    /* Section top accent line */
+    .section { position: relative; }
+    .section::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 80px; right: 80px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border) 20%, var(--border) 80%, transparent);
+    }
+
+    /* ── HERO ── */
+    .hero {
+      background: var(--hero-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 80px 80px 72px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -120px; left: -80px;
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(124,58,237,0.1) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero::after {
+      content: '';
+      position: absolute;
+      bottom: -100px; right: -60px;
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, rgba(14,165,233,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero::before {
+      background:
+        radial-gradient(circle at 15% 50%, rgba(124,58,237,0.12) 0%, transparent 50%),
+        radial-gradient(circle at 85% 20%, rgba(14,165,233,0.1) 0%, transparent 50%),
+        linear-gradient(rgba(109,40,217,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(109,40,217,0.03) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 32px 32px, 32px 32px;
+      top: 0; left: 0; right: 0; bottom: 0;
+      width: 100%; height: 100%;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(124,58,237,0.1);
+      border: 1px solid rgba(124,58,237,0.25);
+      border-radius: 100px;
+      padding: 6px 16px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--purple-light);
+      margin-bottom: 28px;
+    }
+    .hero h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 64px;
+      font-weight: 800;
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+      margin-bottom: 20px;
+    }
+    .hero-sub {
+      font-size: 18px;
+      color: var(--text-muted);
+      line-height: 1.7;
+      max-width: 720px;
+      margin-bottom: 48px;
+    }
+    .hero-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    .hero-stat {
+      position: relative;
+      overflow: hidden;
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.9);
+    }
+    html.dark .hero-stat {
+      background: rgba(17, 24, 39, 0.85);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+    }
+    .hero-stat::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, var(--purple), #0ea5e9);
+    }
+    .hero-stat-num {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 36px;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 6px;
+      letter-spacing: -0.03em;
+    }
+    .hero-stat-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Floating UI Controls -->
+<div class="ui-controls">
+  <button id="theme-toggle" class="control-btn" onclick="toggleTheme()" title="Switch Theme">
+    <svg id="theme-icon" class="icon icon-sm"><use href="#i-moon"/></svg>
+  </button>
+  <button class="control-btn" onclick="window.print()" title="Print / PDF Export">
+    <svg class="icon icon-sm"><use href="#i-printer"/></svg>
+  </button>
+</div>
+
+<!-- ═══════════ SVG ICON SPRITE ═══════════ -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path fill="currentColor" d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></symbol>
+  <symbol id="i-brain" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a5 5 0 0 0-4.9 4.1A4 4 0 0 0 4 10a4 4 0 0 0 1.2 2.9A4.5 4.5 0 0 0 4 15.5 4.5 4.5 0 0 0 7.3 20 3 3 0 0 0 12 22a3 3 0 0 0 4.7-2 4.5 4.5 0 0 0 3.3-4.3c0-1-.3-1.9-.9-2.6A4 4 0 0 0 20 10a4 4 0 0 0-3.1-3.9A5 5 0 0 0 12 2zm0 2v16M8 8h1m6 0h1M8 12h8M9 16h1m4 0h1"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></symbol>
+  <symbol id="i-coins" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" d="M12 2a8 3 0 1 0 0 6 8 3 0 0 0 0-6zM4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path fill="none" stroke="currentColor" stroke-width="2" d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.26.46.4 1 .42 1.51V11h.09a2 2 0 0 1 0 4h-.09c-.52.02-1.05.16-1.51.42z"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.35-4.35"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2L3 7v5c0 5.5 3.8 10.7 9 12 5.2-1.3 9-6.5 9-12V7l-9-5z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-1.7 14.3L6 12l1.4-1.4 2.9 2.9 6.3-6.3L18 8.6l-7.7 7.7z"/></symbol>
+  <symbol id="i-cross" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm3.5 12.1l-1.4 1.4-2.1-2.1-2.1 2.1-1.4-1.4 2.1-2.1-2.1-2.1 1.4-1.4 2.1 2.1 2.1-2.1 1.4 1.4-2.1 2.1 2.1 2.1z"/></symbol>
+  <symbol id="i-briefcase" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2zM16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2v11z"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M23 4v6h-6M1 20v-6h6"/><path fill="none" stroke="currentColor" stroke-width="2" d="M3.5 9a9 9 0 0 1 14.9-3.4L23 10M1 14l4.6 4.4A9 9 0 0 0 20.5 15"/></symbol>
+  <symbol id="i-trophy" viewBox="0 0 24 24"><path fill="currentColor" d="M6 2h12v6a6 6 0 0 1-12 0V2zM17 8h2a3 3 0 0 0 0-6h-2M7 8H5a3 3 0 0 1 0-6h2M9 16h6v6H9zM5 22h14"/></symbol>
+  <symbol id="i-wallet" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2zM2 9V6a2 2 0 0 1 2-2h14l2 3"/><circle cx="18" cy="14" r="1.5" fill="currentColor"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path fill="none" stroke="currentColor" stroke-width="2" d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+  <symbol id="i-key" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M21 2l-2 2-3 0-4 4a5.5 5.5 0 1 0 2.9 2.9L19 7V4l2-2zM7.5 15a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/></symbol>
+  <symbol id="i-ruler" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M3 21l18-18M9 3H3v6M21 15v6h-6"/></symbol>
+  <symbol id="i-database" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3" fill="none" stroke="currentColor" stroke-width="2"/><path fill="none" stroke="currentColor" stroke-width="2" d="M21 12c0 1.7-4 3-9 3s-9-1.3-9-3M3 5v14c0 1.7 4 3 9 3s9-1.3 9-3V5"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><path fill="none" stroke="currentColor" stroke-width="2" d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10A15.3 15.3 0 0 1 12 2z"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18M7 16l4-4 4 4 6-6"/></symbol>
+  <symbol id="i-crown" viewBox="0 0 24 24"><path fill="currentColor" d="M2 8l5 5 5-7 5 7 5-5-2 12H4L2 8z"/></symbol>
+  <symbol id="i-medal" viewBox="0 0 24 24"><circle cx="12" cy="14" r="6" fill="none" stroke="currentColor" stroke-width="2"/><path fill="none" stroke="currentColor" stroke-width="2" d="M8.2 9.6L6 2h3l3 3.5L15 2h3l-2.2 7.6"/></symbol>
+  <symbol id="i-diamond" viewBox="0 0 24 24"><path fill="currentColor" d="M6 3h12l5 7-11 12L1 10l5-7z"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2z"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+  <symbol id="i-server" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><rect x="2" y="14" width="20" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="6" cy="6" r="1" fill="currentColor"/><circle cx="6" cy="18" r="1" fill="currentColor"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 6v6l4 2"/></symbol>
+  <symbol id="i-newspaper" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zM7 7h4v4H7zM7 15h10M7 11h4M13 7h4M13 11h4"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="6" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2" fill="currentColor"/></symbol>
+  <symbol id="i-candle" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" d="M9 4v4M9 14v6M6 8h6v6H6zM17 2v6M17 14v8M14 8h6v6h-6z"/></symbol>
+  <symbol id="i-wave" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M2 12c1.3-3 3-5 4.5-5S9.5 12 12 12s4.2-5 5.5-5 3.2 2 4.5 5"/></symbol>
+  <symbol id="i-arrow-right" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M5 12h14M13 5l7 7-7 7"/></symbol>
+  <symbol id="i-circle-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor" opacity=".15"/><path fill="currentColor" d="M10.3 16.3L6 12l1.4-1.4 2.9 2.9 6.3-6.3L18 8.6l-7.7 7.7z"/></symbol>
+  <symbol id="i-circle-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor" opacity=".15"/><path fill="currentColor" d="M12 8v4m0 4h.01"/></symbol>
+  <symbol id="i-circle-x" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor" opacity=".15"/><path fill="currentColor" d="M15 9l-6 6m0-6l6 6"/></symbol>
+  <symbol id="i-cpu" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><rect x="9" y="9" width="6" height="6" fill="none" stroke="currentColor" stroke-width="2"/><path fill="none" stroke="currentColor" stroke-width="2" d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3"/></symbol>
+  <symbol id="i-terminal" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 17l6-6-6-6M12 19h8"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2"/><path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42m12.72-12.72l1.42-1.42"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></symbol>
+  <symbol id="i-printer" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" fill="none" stroke="currentColor" stroke-width="2"/><path fill="none" stroke="currentColor" stroke-width="2" d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+</svg>
+
+<style>
+  .icon { display: inline-block; vertical-align: middle; flex-shrink: 0; }
+  .icon-xs { width: 14px; height: 14px; }
+  .icon-sm { width: 18px; height: 18px; }
+  .icon-md { width: 24px; height: 24px; }
+  .icon-lg { width: 32px; height: 32px; }
+</style>
+
+<!-- ═══════════ HERO ═══════════ -->
+<div class="hero">
+  <div class="hero-badge"><svg class="icon icon-xs" style="color:var(--purple-light)"><use href="#i-bolt"/></svg> Upgrade Protocol — MT5 Scalping Addendum</div>
+  <h1>
+    <span class="gradient-text">MT5 Scalping</span><br />
+    Engine Specification
+  </h1>
+  <p class="hero-sub">
+    Technical specifications and structural blueprints for expanding TradeGPT's MetaAPI integration from swing-trading mode to active sub-second scalping on Forex, Gold, and Indices.
+  </p>
+  <div class="hero-stats">
+    <div class="hero-stat">
+      <div class="hero-stat-num gradient-text">&lt; 1ms</div>
+      <div class="hero-stat-label">WebSocket Ticks Relay Latency</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-num gradient-text-gold">600+</div>
+      <div class="hero-stat-label">Supported MT4/MT5 Brokers</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-num" style="color:#059669">$0</div>
+      <div class="hero-stat-label">Execution Fees (Per Trade Flat Rate)</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ SECTION 1 — CAPABILITIES & SCOPE ═══════════ -->
+<div class="section">
+  <div class="section-label">Capabilities &amp; Scope</div>
+  <h2 class="section-title">What MT5 via MetaAPI Gives Us</h2>
+  <p class="section-subtitle">MetaAPI acts as a secure cloud bridge, connecting TradeGPT directly to retail MetaTrader accounts to execute tight stop-loss scalping signals.</p>
+
+  <style>
+    .pillars { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px; }
+    .pillar-card { border-radius: 16px; padding: 28px 24px; border: 1px solid; position: relative; overflow: hidden; background: var(--card); }
+    .pillar-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 16px 16px 0 0; }
+    
+    .pillar-card.purple { border-color: rgba(124,58,237,0.2); }
+    .pillar-card.purple::before { background: linear-gradient(90deg, #7c3aed, #a78bfa); }
+    .pillar-card.blue { border-color: rgba(14,165,233,0.2); }
+    .pillar-card.blue::before { background: linear-gradient(90deg, #0ea5e9, #7dd3fc); }
+    .pillar-card.gold { border-color: rgba(217,119,6,0.2); }
+    .pillar-card.gold::before { background: linear-gradient(90deg, #d97706, #fbbf24); }
+
+    .pillar-icon { font-size: 28px; margin-bottom: 14px; display: block; }
+    .pillar-title { font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 700; margin-bottom: 10px; }
+    .pillar-items { font-size: 12.5px; color: var(--text-muted); line-height: 1.85; }
+    .pillar-items strong { color: var(--text); }
+  </style>
+
+  <div class="pillars">
+    <div class="pillar-card purple">
+      <span class="pillar-icon"><svg class="icon icon-lg" style="color:var(--purple)"><use href="#i-globe"/></svg></span>
+      <div class="pillar-title" style="color:var(--purple-light)">Supported Assets</div>
+      <div class="pillar-items">
+        <strong>Forex Pairs:</strong> Major liquid pairs (EURUSD, GBPUSD, USDJPY) providing stable scalping venues.<br/>
+        <strong>Gold (XAUUSD):</strong> TradeGPT's primary volume driver. Moves $5+ in seconds during NY/London overlaps.<br/>
+        <strong>Indices &amp; Crypto CFDs:</strong> Volatile indices (NAS100, US30, SPX500) and 24/7 leveraged Crypto CFDs.
+      </div>
+    </div>
+    
+    <div class="pillar-card blue">
+      <span class="pillar-icon"><svg class="icon icon-lg" style="color:var(--blue)"><use href="#i-bolt"/></svg></span>
+      <div class="pillar-title" style="color:var(--blue-light)">Risk Control &amp; Execution</div>
+      <div class="pillar-items">
+        <strong>Native SL/TP:</strong> Orders submitted with broker-side hard stops. Prevents exposure in network cuts.<br/>
+        <strong>Server-Side Trailing Stops:</strong> MetaAPI manages stops on its London cloud cluster without client polling.<br/>
+        <strong>High Leverage:</strong> Up to 1:500 depending on broker. Permits small capital accounts to capture tight point moves.
+      </div>
+    </div>
+    
+    <div class="pillar-card gold">
+      <span class="pillar-icon"><svg class="icon icon-lg" style="color:var(--gold)"><use href="#i-circle-alert"/></svg></span>
+      <div class="pillar-title" style="color:var(--gold-light)">Constraints vs. Binance</div>
+      <div class="pillar-items">
+        <strong>No 24/7 FX/Gold:</strong> OTC brokers close on weekends (Saturday &amp; Sunday UTC).<br/>
+        <strong>Spread/Commission Overhead:</strong> No zero-fee trading. Broker spreads and commission apply.<br/>
+        <strong>Broker Counterparty Risk:</strong> OTC market execution depends on broker liquidity and routing book.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ SECTION 2 — ARCHITECTURE COMPARISON ═══════════ -->
+<div class="section">
+  <style>
+    .compare-container { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+    .compare-side { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; position: relative; }
+    .compare-side-title { font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .compare-list { display: flex; flex-direction: column; gap: 14px; }
+    .compare-item { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; line-height: 1.6; }
+    .compare-bullet { width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
+    .compare-bullet.red { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+    .compare-bullet.green { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+    .compare-text strong { color: var(--text); }
+    .compare-text span { display: block; font-size: 11.5px; color: var(--text-dim); margin-top: 2px; }
+  </style>
+
+  <div class="section-label">Architecture</div>
+  <h2 class="section-title">Current Swing Architecture vs. Scalping Needs</h2>
+  <p class="section-subtitle">Upgrading from swing-trading mode requires substituting high-latency REST polling with persistent sub-millisecond WebSocket ticks.</p>
+
+  <div class="compare-container">
+    <!-- Swing -->
+    <div class="compare-side" style="border-top: 3px solid #6b7280;">
+      <div class="compare-side-title" style="color: var(--text-muted);">
+        <svg class="icon icon-md"><use href="#i-clock"/></svg> Current Swing Trading Mode
+      </div>
+      <div class="compare-list">
+        <div class="compare-item">
+          <div class="compare-bullet red"><svg class="icon icon-xs"><use href="#i-cross"/></svg></div>
+          <div class="compare-text">
+            <strong>Twelve Data API Polling (8s updates)</strong>
+            <span>Gold and Forex pricing updates every 8 seconds. Too slow for scalping.</span>
+          </div>
+        </div>
+        <div class="compare-item">
+          <div class="compare-bullet red"><svg class="icon icon-xs"><use href="#i-cross"/></svg></div>
+          <div class="compare-text">
+            <strong>1H Candle Timeframes</strong>
+            <span>Indicators scan long-term trends. Entry triggers require hours to form.</span>
+          </div>
+        </div>
+        <div class="compare-item">
+          <div class="compare-bullet red"><svg class="icon icon-xs"><use href="#i-cross"/></svg></div>
+          <div class="compare-text">
+            <strong>4-Hour Cooldown Timer</strong>
+            <span>Safety timer blocks account from placing new trades for 4 hours.</span>
+          </div>
+        </div>
+        <div class="compare-item">
+          <div class="compare-bullet red"><svg class="icon icon-xs"><use href="#i-cross"/></svg></div>
+          <div class="compare-text">
+            <strong>REST API Only</strong>
+            <span>No open connection listeners. State is checked by hitting HTTP endpoints.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scalping -->
+    <div class="compare-side" style="border-top: 3px solid var(--purple);">
+      <div class="compare-side-title" style="color: var(--purple-light);">
+        <svg class="icon icon-md" style="color: var(--purple);"><use href="#i-bolt"/></svg> New Scalping Integration Mode
+      </div>
+      <div class="compare-list">
+        <div class="compare-item">
+          <div class="compare-bullet green"><svg class="icon icon-xs"><use href="#i-check"/></svg></div>
+          <div class="compare-text">
+            <strong>MetaAPI WebSocket Streaming (&lt;1ms latency)</strong>
+            <span>Live raw bids and asks pushed on every price tick for immediate entry.</span>
+          </div>
+        </div>
+        <div class="compare-item">
+          <div class="compare-bullet green"><svg class="icon icon-xs"><use href="#i-check"/></svg></div>
+          <div class="compare-text">
+            <strong>1M/5M Candle Data</strong>
+            <span>Gathers real-time candles from MetaTrader feed for short-term VWAP/EMA signals.</span>
+          </div>
+        </div>
+        <div class="compare-item">
+          <div class="compare-bullet green"><svg class="icon icon-xs"><use href="#i-check"/></svg></div>
+          <div class="compare-text">
+            <strong>90-Second Cooldown Timer</strong>
+            <span>Enables rapid compounding of sequential scalps.</span>
+          </div>
+        </div>
+        <div class="compare-item">
+          <div class="compare-bullet green"><svg class="icon icon-xs"><use href="#i-check"/></svg></div>
+          <div class="compare-text">
+            <strong>Hybrid Connection (Option D)</strong>
+            <span>REST for placing orders (secure and simple) + WebSocket on VPS for raw quote stream.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    .comp-table { width: 100%; border-collapse: collapse; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); background: var(--card); font-size: 12.5px; }
+    .comp-table th { background: var(--bg2); color: var(--text-dim); text-transform: uppercase; font-size: 10px; font-weight: 800; letter-spacing: 0.1em; padding: 12px 16px; text-align: left; }
+    .comp-table td { padding: 12px 16px; border-bottom: 1px solid var(--border); color: var(--text-muted); }
+    .comp-table tr:hover { background: rgba(124,58,237,0.01); }
+    .comp-table tr:last-child td { border-bottom: none; }
+    .comp-table td strong { color: var(--text); }
+  </style>
+
+  <table class="comp-table">
+    <thead>
+      <tr>
+        <th>Component</th>
+        <th>Swing Implementation</th>
+        <th>Scalping Implementation</th>
+        <th>Why Change is Required</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Price Data</strong></td>
+        <td>Twelve Data API (Polling)</td>
+        <td>MetaAPI WebSocket ticks</td>
+        <td>Twelve Data 8-second polling cannot capture intra-second breakouts.</td>
+      </tr>
+      <tr>
+        <td><strong>Candle Data</strong></td>
+        <td>Twelve Data 1H candles</td>
+        <td>MetaAPI REST 1M/5M candles</td>
+        <td>Micro-trend indicator calculations require short-term candles.</td>
+      </tr>
+      <tr>
+        <td><strong>Position Close</strong></td>
+        <td>Manual close on MT5 Terminal</td>
+        <td>API Quick-Close &amp; Partial Close</td>
+        <td>Fast targets require automated micro-profit taking and partial exits.</td>
+      </tr>
+      <tr>
+        <td><strong>SL/TP Adjust</strong></td>
+        <td>Not implemented</td>
+        <td>POSITION_MODIFY REST endpoints</td>
+        <td>Locking in scalping profits requires sliding stop-loss to breakeven quickly.</td>
+      </tr>
+      <tr>
+        <td><strong>Trailing Stop</strong></td>
+        <td>None</td>
+        <td>Server-side MetaAPI trailing</td>
+        <td>Automated point trailing locks in gains during fast market spikes.</td>
+      </tr>
+      <tr>
+        <td><strong>Spread Check</strong></td>
+        <td>None</td>
+        <td>Pre-trade symbol spec query</td>
+        <td>Avoids opening scalp trades during high-spread periods (news / rollovers).</td>
+      </tr>
+      <tr>
+        <td><strong>Cooldown</strong></td>
+        <td>4 Hours</td>
+        <td>90 Seconds</td>
+        <td>Allows system to re-enter during hot momentum bursts.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ═══════════ SECTION 3 — TRAILING STOPS & AUTO CLOSE ═══════════ -->
+<div class="section">
+  <style>
+    .ts-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .ts-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; position: relative; display: flex; flex-direction: column; }
+    .ts-card-badge { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; margin-bottom: 16px; background: rgba(14, 165, 233, 0.1); color: var(--blue); }
+    .ts-card-title { font-family: 'Space Grotesk', sans-serif; font-size: 15px; font-weight: 700; margin-bottom: 10px; color: var(--text); }
+    .ts-card-desc { font-size: 12px; color: var(--text-muted); line-height: 1.75; flex-grow: 1; }
+    .ts-visual { background: var(--bg2); border-radius: 10px; padding: 12px; margin-top: 16px; border: 1px solid var(--border); }
+  </style>
+
+  <div class="section-label">Stops &amp; Auto-Close</div>
+  <h2 class="section-title">Trailing Stop &amp; Auto-Close Mechanics</h2>
+  <p class="section-subtitle">Scalping targets are narrow. We rely on three distinct automated stop management mechanics to lock in profits and protect accounts.</p>
+
+  <div class="ts-grid">
+    <!-- Distance-Based Trailing -->
+    <div class="ts-card" style="border-top: 3px solid var(--purple);">
+      <div class="ts-card-badge" style="background: rgba(124, 58, 237, 0.1); color: var(--purple);"><svg class="icon icon-md"><use href="#i-ruler"/></svg></div>
+      <div class="ts-card-title">Distance-Based Trailing</div>
+      <div class="ts-card-desc">
+        Stop Loss stays a fixed distance behind the highest bid/ask price achieved during the trade. As price trends upward, SL follows.
+      </div>
+      <div class="ts-visual">
+        <svg viewBox="0 0 200 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M10 50 L80 30 L130 15 L190 5" stroke="#94a3b8" stroke-width="2" stroke-dasharray="2,2"/>
+          <path d="M10 50 L80 30 L130 15 L190 5" stroke="var(--purple)" stroke-width="2" stroke-linecap="round"/>
+          <path d="M10 58 L80 38 L130 23 L190 13" stroke="var(--blue)" stroke-dasharray="3,3" stroke-width="1.5"/>
+          <circle cx="190" cy="5" r="4" fill="var(--purple)"/>
+          <circle cx="190" cy="13" r="3" fill="var(--blue)"/>
+          <text x="12" y="15" fill="var(--text-dim)" font-size="7" font-family="Space Mono">Distance: 30 Points</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Threshold-Based Trailing -->
+    <div class="ts-card" style="border-top: 3px solid var(--blue);">
+      <div class="ts-card-badge" style="background: rgba(14, 165, 233, 0.1); color: var(--blue);"><svg class="icon icon-md"><use href="#i-target"/></svg></div>
+      <div class="ts-card-title">Threshold-Based Step Stops</div>
+      <div class="ts-card-desc">
+        SL shifts to pre-configured points only when designated profit milestones are breached. Standard configurations move to tight lock-in states.
+      </div>
+      <div class="ts-visual">
+        <div style="font-size:10.5px; line-height: 1.5; color: var(--text-dim); font-family: 'Space Mono', monospace;">
+          • Profit 50 pts &rarr; SL Entry + 20 pts<br/>
+          • Profit 100 pts &rarr; SL Entry + 60 pts<br/>
+          • Dynamic locking server-side
+        </div>
+      </div>
+    </div>
+
+    <!-- Breakeven Auto-Move -->
+    <div class="ts-card" style="border-top: 3px solid var(--gold);">
+      <div class="ts-card-badge" style="background: rgba(217, 119, 6, 0.1); color: var(--gold);"><svg class="icon icon-md"><use href="#i-shield"/></svg></div>
+      <div class="ts-card-title">Breakeven Auto-Shift</div>
+      <div class="ts-card-desc">
+        When the trade reaches 50% of the target Take Profit value, the Stop Loss is immediately adjusted to the exact Entry Price (0 loss).
+      </div>
+      <div class="ts-visual">
+        <div style="font-size:10.5px; line-height: 1.5; color: var(--text-dim); font-family: 'Space Mono', monospace;">
+          • Entry Price: 2340.00<br/>
+          • Target Profit: 2346.00 (60 pts)<br/>
+          • At 2343.00 &rarr; SL shifts to 2340.00<br/>
+          • Risk reduced to exactly 0.00
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ SECTION 4 — PERFORMANCE & RATE LIMITS ═══════════ -->
+<div class="section">
+  <style>
+    .perf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+    .perf-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; }
+    .perf-title { font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  </style>
+
+  <div class="section-label">Performance</div>
+  <h2 class="section-title">Rate Limits &amp; Execution Latency</h2>
+  <p class="section-subtitle">Evaluating REST vs WebSocket capacities under MetaAPI limits to verify high-volume trading capacity.</p>
+
+  <div class="perf-grid">
+    <div class="perf-card">
+      <div class="perf-title" style="color: var(--blue-light);"><svg class="icon icon-md"><use href="#i-server"/></svg> MetaAPI Performance Metrics</div>
+      <table class="comp-table">
+        <thead>
+          <tr>
+            <th>Metric</th>
+            <th>Value</th>
+            <th>Source</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Trade Execution Latency</strong></td>
+            <td>~6ms median</td>
+            <td>MetaAPI Cloud Gateway</td>
+          </tr>
+          <tr>
+            <td><strong>WebSocket Quote Uptime</strong></td>
+            <td>&lt;1ms relay latency</td>
+            <td>MetaAPI WS Server</td>
+          </tr>
+          <tr>
+            <td><strong>Total REST round-trip</strong></td>
+            <td>1 - 2 seconds</td>
+            <td>Measured from London Utho VPS</td>
+          </tr>
+          <tr>
+            <td><strong>Account Connection Uptime</strong></td>
+            <td>99.96%</td>
+            <td>MetaAPI SLA Agreement</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="perf-card">
+      <div class="perf-title" style="color: var(--purple-light);"><svg class="icon icon-md"><use href="#i-database"/></svg> Daily Limit Fit (50 Trades / Account / Day)</div>
+      <table class="comp-table">
+        <thead>
+          <tr>
+            <th>Operation</th>
+            <th>Daily Freq</th>
+            <th>REST Requests</th>
+            <th>Fit (60 req/min limit)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Place Market Orders</strong></td>
+            <td>50 / day</td>
+            <td>50</td>
+            <td>✅ Fully Fits</td>
+          </tr>
+          <tr>
+            <td><strong>Quick-Close Commands</strong></td>
+            <td>50 / day</td>
+            <td>50</td>
+            <td>✅ Fully Fits</td>
+          </tr>
+          <tr>
+            <td><strong>Breakeven SL Shifts</strong></td>
+            <td>25 / day</td>
+            <td>25</td>
+            <td>✅ Fully Fits</td>
+          </tr>
+          <tr>
+            <td><strong>Symbol Spread Checks</strong></td>
+            <td>50 / day</td>
+            <td>50</td>
+            <td>✅ Fully Fits</td>
+          </tr>
+          <tr>
+            <td><strong>Account Sync Checks</strong></td>
+            <td>100 / day</td>
+            <td>100</td>
+            <td>✅ Fully Fits</td>
+          </tr>
+          <tr style="font-weight: 700; background: rgba(124,58,237,0.05); color: var(--purple);">
+            <td>Total Account Calls</td>
+            <td>275 / day</td>
+            <td>275 / day</td>
+            <td>✅ Under 0.5% limit capacity</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ SECTION 5 — BROKER COMPATIBILITY ═══════════ -->
+<div class="section">
+  <style>
+    .broker-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .stars { color: var(--gold); letter-spacing: 2px; }
+  </style>
+
+  <div class="section-label">Brokers</div>
+  <h2 class="section-title">Broker Compatibility For Scalping</h2>
+  <p class="section-subtitle">Scalping requires low spreads, zero-distance stops limits, and immediate market execution. Many OTC brokers enforce hold-time restrictions.</p>
+
+  <div class="broker-grid">
+    <div>
+      <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: 16px; margin-bottom: 12px;">Ranked Broker Compatibility Matrix</h3>
+      <table class="comp-table">
+        <thead>
+          <tr>
+            <th>Broker Name</th>
+            <th>Gold Spread</th>
+            <th>Stops Level</th>
+            <th>Scalp Allowed</th>
+            <th>Rating</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="background: rgba(16, 185, 129, 0.04);">
+            <td><strong>IC Markets (ECN)</strong></td>
+            <td>5 - 15 points</td>
+            <td>0</td>
+            <td>✅ Yes</td>
+            <td class="stars">★★★★★</td>
+          </tr>
+          <tr style="background: rgba(16, 185, 129, 0.04);">
+            <td><strong>Pepperstone (ECN)</strong></td>
+            <td>5 - 12 points</td>
+            <td>0</td>
+            <td>✅ Yes</td>
+            <td class="stars">★★★★★</td>
+          </tr>
+          <tr>
+            <td><strong>Exness (Raw Spread)</strong></td>
+            <td>10 - 20 points</td>
+            <td>0</td>
+            <td>✅ Yes</td>
+            <td class="stars">★★★★☆</td>
+          </tr>
+          <tr>
+            <td><strong>OctaFX</strong></td>
+            <td>15 - 30 points</td>
+            <td>0</td>
+            <td>✅ Yes</td>
+            <td class="stars">★★★★☆</td>
+          </tr>
+          <tr>
+            <td><strong>Vantage FX</strong></td>
+            <td>10 - 25 points</td>
+            <td>0 - 10</td>
+            <td>✅ Yes</td>
+            <td class="stars">★★★★☆</td>
+          </tr>
+          <tr style="background: rgba(239, 68, 68, 0.04);">
+            <td><strong>FBS (Standard)</strong></td>
+            <td>20 - 50 points</td>
+            <td>10 - 30</td>
+            <td>⚠️ Hold rules</td>
+            <td class="stars">★★★☆☆</td>
+          </tr>
+          <tr style="background: rgba(239, 68, 68, 0.04);">
+            <td><strong>XM Group</strong></td>
+            <td>25 - 40 points</td>
+            <td>30 - 50</td>
+            <td>❌ No (Requotes)</td>
+            <td class="stars">★★☆☆☆</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:16px;">
+      <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: 16px;">Minimum Verification Requirements</h3>
+      
+      <div class="pillar-card blue" style="padding: 16px 20px;">
+        <div class="pillar-title" style="font-size:14px; margin-bottom:4px;">Stops Level = 0</div>
+        <p style="font-size:12px; color:var(--text-muted); line-height:1.5;">Ensure StopsLevel in Symbol Specification is exactly 0. Any value above 0 restricts putting Stop Loss and Take Profit levels close to the entry price.</p>
+      </div>
+
+      <div class="pillar-card purple" style="padding: 16px 20px;">
+        <div class="pillar-title" style="font-size:14px; margin-bottom:4px;">Market Execution (FOK/IOC Filling Modes)</div>
+        <p style="font-size:12px; color:var(--text-muted); line-height:1.5;">Requires immediate Fill-or-Kill or Immediate-or-Cancel filling to bypass dealer requotes when volatility spikes during NYC trading sessions.</p>
+      </div>
+
+      <div class="pillar-card gold" style="padding: 16px 20px;">
+        <div class="pillar-title" style="font-size:14px; margin-bottom:4px;">Rebate Hold Time Thresholds</div>
+        <p style="font-size:12px; color:var(--text-muted); line-height:1.5;">Verify the broker's minimum hold time policy for affiliate lot rebate calculations (typically 30 seconds to prevent wash trading flags).</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ SECTION 6 — COSTS & REBATES ═══════════ -->
+<div class="section">
+  <style>
+    .cost-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .cost-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 24px; text-align: center; }
+    .cost-val { font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 700; margin-bottom: 8px; }
+  </style>
+
+  <div class="section-label">Costs &amp; Revenues</div>
+  <h2 class="section-title">Cost Analysis &amp; Affiliate Rebates</h2>
+  <p class="section-subtitle">Flat rate cloud execution makes scalping extremely cost-efficient for the platform, while generating 5x-10x higher lot rebate volume.</p>
+
+  <div class="cost-grid">
+    <div class="cost-card" style="border-top:3px solid var(--green);">
+      <div class="cost-val" style="color: var(--green);">$5.00</div>
+      <h4 style="font-family:'Space Grotesk',sans-serif; font-size:14px; margin-bottom:6px;">MetaAPI Flat License</h4>
+      <p style="font-size:12px; color:var(--text-muted); line-height:1.6;">Fixed per-month fee per MT5 account. 100% flat execution. Trading 50 times/day incurs $0 extra MetaAPI license costs.</p>
+    </div>
+
+    <div class="cost-card" style="border-top:3px solid var(--blue);">
+      <div class="cost-val" style="color: var(--blue);">$0.10 - $0.30</div>
+      <h4 style="font-family:'Space Grotesk',sans-serif; font-size:14px; margin-bottom:6px;">ECN Broker Spread (Gold)</h4>
+      <p style="font-size:12px; color:var(--text-muted); line-height:1.6;">Average commission/spread paid by the user to their ECN broker. Kept low via selecting verified low-spread brokers.</p>
+    </div>
+
+    <div class="cost-card" style="border-top:3px solid var(--purple);">
+      <div class="cost-val" style="color: var(--purple);">5x - 10x</div>
+      <h4 style="font-family:'Space Grotesk',sans-serif; font-size:14px; margin-bottom:6px;">Affiliate Volume Multiplier</h4>
+      <p style="font-size:12px; color:var(--text-muted); line-height:1.6;">Scalping generates high aggregate lot volume (30-150 lots/month), maximizing affiliate lot rebate commission recursively.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ SECTION 7 — RISKS & LIMITATIONS ═══════════ -->
+<div class="section">
+  <style>
+    .risk-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .risk-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; border-left: 4px solid; }
+    .risk-card.red { border-left-color: #ef4444; }
+    .risk-card.amber { border-left-color: #f59e0b; }
+    .risk-card.green { border-left-color: #10b981; }
+    .risk-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .risk-title { font-family: 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 700; }
+    .risk-level { font-family: 'Space Mono', monospace; font-size: 9px; font-weight: 700; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; }
+    .risk-level.red { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+    .risk-level.amber { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+    .risk-level.green { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+    .risk-desc { font-size: 12px; color: var(--text-muted); line-height: 1.6; }
+    .risk-desc strong { color: var(--text); }
+  </style>
+
+  <div class="section-label">Limitations &amp; Risks</div>
+  <h2 class="section-title">Execution Limitations &amp; Risk Gaps</h2>
+  <p class="section-subtitle">Addressing technical limits and broker constraints with automated defensive risk controls.</p>
+
+  <div class="risk-grid">
+    <div class="risk-card red">
+      <div class="risk-header">
+        <div class="risk-title">Broker Scalp Bans</div>
+        <div class="risk-level red">High Risk</div>
+      </div>
+      <div class="risk-desc">
+        Some brokers ban trades held &lt;60s. <br/><strong>Mitigation:</strong> Pre-verify broker specification settings. Restrict execution if stopsLevel &gt; 20.
+      </div>
+    </div>
+
+    <div class="risk-card red">
+      <div class="risk-header">
+        <div class="risk-title">Serverless WS Timeout</div>
+        <div class="risk-level red">Technical</div>
+      </div>
+      <div class="risk-desc">
+        Vercel Serverless functions timeout at 60s, breaking sockets. <br/><strong>Mitigation:</strong> Run the WebSocket listener on a dedicated Utho VPS. Relay ticks via SSE.
+      </div>
+    </div>
+
+    <div class="risk-card amber">
+      <div class="risk-header">
+        <div class="risk-title">Spread Widening</div>
+        <div class="risk-level amber">Medium</div>
+      </div>
+      <div class="risk-desc">
+        Spreads balloon during NY market news releases or overnight rollovers.<br/><strong>Mitigation:</strong> Query `/symbols/specification` before trade. Block orders if spread &gt; 2x normal.
+      </div>
+    </div>
+
+    <div class="risk-card amber">
+      <div class="risk-header">
+        <div class="risk-title">Slippage &amp; Latency</div>
+        <div class="risk-level amber">Medium</div>
+      </div>
+      <div class="risk-desc">
+        REST order placement takes 1-2s. Slippage fills orders at worse prices.<br/><strong>Mitigation:</strong> Use `ORDER_FILLING_IOC` mode. Reject execution when slippage threshold is breached.
+      </div>
+    </div>
+
+    <div class="risk-card green">
+      <div class="risk-header">
+        <div class="risk-title">Daily Drawdown Guard</div>
+        <div class="risk-level green">New Feature</div>
+      </div>
+      <div class="risk-desc">
+        Scalpers can hit losing streaks rapidly. <br/><strong>Mitigation:</strong> Build a 3% daily loss circuit breaker. Auto-close all open trades on trigger.
+      </div>
+    </div>
+
+    <div class="risk-card green">
+      <div class="risk-header">
+        <div class="risk-title">Position Count Limit</div>
+        <div class="risk-level green">New Feature</div>
+      </div>
+      <div class="risk-desc">
+        Grid scalping can over-leverage accounts.<br/><strong>Mitigation:</strong> Enforce strict limit checks in `scalpingRisk.ts` allowing maximum 2 open positions.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ WHITEPAPER SECTION ═══════════ -->
+<div style="background:var(--card);border-top:3px solid var(--purple-light);padding:80px 80px;position:relative;">
+  <style>
+    .wp-watermark { position:absolute; top:30px; right:80px; font-family:'Space Mono',monospace; font-size:9.5px; font-weight:800; color:#dc2626; border:1.5px solid #fca5a5; padding:4px 10px; border-radius:6px; background:#fff5f5; letter-spacing:0.12em; text-transform:uppercase; box-shadow:0 2px 4px rgba(220,38,38,0.04); }
+    html.dark .wp-watermark { background: #3f1e1e; border-color: #ef4444; color: #fca5a5; }
+    .wp-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:48px; padding-bottom:32px; border-bottom:2px solid var(--border); }
+    .wp-doc-id { font-family:'Space Mono',monospace; font-size:10.5px; color:var(--text-muted); line-height:1.8; text-align:right; }
+    .wp-toc { display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin-bottom:48px; }
+    .wp-toc-item { background:var(--bg2); border:1px solid var(--border); border-radius:10px; padding:12px 14px; border-left:4px solid var(--purple); transition:all 0.18s ease; text-decoration: none; display: block; }
+    .wp-toc-item:hover { background:var(--card); transform:translateY(-2px); box-shadow:0 6px 16px rgba(124,58,237,0.08); border-color:#ddd6fe; }
+    .wp-toc-num { font-family:'Space Grotesk',sans-serif; font-size:18px; font-weight:800; color:var(--purple-light); }
+    .wp-toc-label { font-size:11px; font-weight:700; color:var(--text-dim); margin-top:2px; line-height:1.3; }
+    .wp-body { display:grid; grid-template-columns:1fr 1fr; gap:48px; }
+    .wp-section-title { font-family:'Space Grotesk',sans-serif; font-size:14px; font-weight:800; text-transform:uppercase; letter-spacing:0.12em; color:var(--purple-light); border-bottom:2px solid var(--border); padding-bottom:8px; margin-bottom:18px; display:flex; align-items:center; gap:8px; }
+    .wp-section-title span { font-family:'Space Mono',monospace; font-size:12px; color:var(--text-dim); }
+    .wp-para { font-size:12px; color:var(--text-muted); line-height:1.95; margin-bottom:16px; text-align:justify; }
+    .wp-para strong { color:var(--text); font-weight:700; }
+    .wp-formula { background:var(--bg); border:1px solid var(--border); border-left:4px solid var(--blue); border-radius:8px; padding:16px; font-family:'Space Mono',monospace; font-size:11px; color:var(--blue-light); margin:16px 0; line-height:1.7; position:relative; overflow-x:auto; }
+    .wp-formula-label { position:absolute; top:4px; right:8px; font-size:8px; font-weight:700; color:#94a3b8; text-transform:uppercase; }
+    .wp-code-block { background:#0f172a; color:#f8fafc; border-radius:8px; padding:14px; font-family:'Space Mono',monospace; font-size:10.5px; line-height:1.6; margin:16px 0; border-left:4px solid #10b981; overflow-x:auto; text-align: left; }
+    .wp-full { grid-column:1/-1; }
+    
+    .wp-page-divider { grid-column:1/-1; display:flex; align-items:center; justify-content:center; margin:32px 0; position:relative; }
+    .wp-page-line { height:1px; width:100%; background:repeating-linear-gradient(90deg,var(--border),var(--border) 8px,transparent 8px,transparent 16px); }
+    .wp-page-badge { position:absolute; background:var(--card); padding:4px 12px; border:1px solid var(--border); border-radius:20px; font-family:'Space Mono',monospace; font-size:9px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.1em; display:flex; align-items:center; gap:6px; }
+
+    /* ── CODE TABS ── */
+    .wp-code-container {
+      margin: 16px 0;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid #334155;
+      background: #0f172a;
+    }
+    .wp-code-header {
+      background: #1e293b;
+      border-bottom: 1px solid #334155;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 12px;
+    }
+    .wp-code-tabs {
+      display: flex;
+      gap: 4px;
+    }
+    .wp-code-tab {
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: #94a3b8;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 12px 14px;
+      cursor: pointer;
+      font-family: 'Space Grotesk', sans-serif;
+      transition: all 0.15s ease;
+    }
+    .wp-code-tab:hover {
+      color: #cbd5e1;
+    }
+    .wp-code-tab.active {
+      color: #38bdf8;
+      border-bottom-color: #38bdf8;
+    }
+    .wp-code-copy {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 10px;
+      border-radius: 4px;
+    }
+    .wp-code-copy:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: #f8fafc;
+    }
+    .wp-code-pane {
+      display: none;
+    }
+    .wp-code-pane.active {
+      display: block;
+    }
+  </style>
+
+  <!-- Confidential Stamp -->
+  <div class="wp-watermark">Engine Upgrade · Internal Specs</div>
+
+  <!-- Header -->
+  <div class="wp-header">
+    <div>
+      <div style="font-size:10.5px;font-weight:900;text-transform:uppercase;letter-spacing:0.2em;color:var(--purple-light);margin-bottom:12px;display:flex;align-items:center;gap:6px;">
+        <svg class="icon icon-sm" style="color:var(--purple-light)"><use href="#i-cpu"/></svg> Technical Specification &amp; Schema Engine
+      </div>
+      <h2 style="font-family:'Space Grotesk',sans-serif;font-size:42px;font-weight:900;letter-spacing:-0.035em;margin-bottom:8px;color:var(--text);">MT5 MetaAPI Integration Specification</h2>
+      <p style="font-size:14px;color:var(--text-muted);font-weight:400;max-width:850px;">A detailed developer reference for executing REST orders, listening to socket.io events, running daily risk check scripts, and modifying database tables.</p>
+    </div>
+    <div class="wp-doc-id">
+      Document ID: <strong>TGP-MT5-SCALPING-2026-V1.0</strong><br/>
+      Revision Code: <strong>0x3A8F2_E7</strong><br/>
+      Standards Compliance: <strong>MetaAPI SDK v29.3.3 · RFC-6455</strong><br/>
+      Execution DC: <strong>LD4 (Equinix London)</strong><br/>
+      Platform: <strong>Utho VPS / Supabase PG</strong>
+    </div>
+  </div>
+
+  <!-- Table of Contents -->
+  <div class="wp-toc">
+    <a href="#sec-rest" class="wp-toc-item">
+      <div class="wp-toc-num">01</div>
+      <div class="wp-toc-label">REST API &amp; Endpoints</div>
+    </a>
+    <a href="#sec-ws" class="wp-toc-item">
+      <div class="wp-toc-num">02</div>
+      <div class="wp-toc-label">WebSocket Connection</div>
+    </a>
+    <a href="#sec-execution" class="wp-toc-item">
+      <div class="wp-toc-num">03</div>
+      <div class="wp-toc-label">Execution Scripts</div>
+    </a>
+    <a href="#sec-database" class="wp-toc-item">
+      <div class="wp-toc-num">04</div>
+      <div class="wp-toc-label">DB Schema Changes</div>
+    </a>
+    <a href="#sec-checklist" class="wp-toc-item">
+      <div class="wp-toc-num">05</div>
+      <div class="wp-toc-label">Developer Roadmap</div>
+    </a>
+  </div>
+
+  <!-- Academic Body -->
+  <div class="wp-body">
+    
+    <!-- SECTION A: REST API -->
+    <div class="wp-full" id="sec-rest" style="scroll-margin-top: 100px;">
+      <div class="wp-section-title"><span>01</span> REST API Envelopes &amp; Payloads</div>
+      <p class="wp-para">
+        TradeGPT connects to MetaAPI's regional MT client API servers via London-edge routing nodes. The primary REST base URL handles stateless order execution, position queries, and account specifications. All calls require the header token: <code>auth-token: &lt;META_API_TOKEN&gt;</code>.
+      </p>
+
+      <div class="wp-formula">
+        <div class="wp-formula-label">Base URL</div>
+        https://mt-client-api-v1.london.agiliumtrade.ai
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+        <div>
+          <h4 style="font-size:12px; font-weight:700; margin-bottom:8px; font-family:'Space Grotesk';">Account Information Endpoint</h4>
+          <code style="display:block; margin-bottom:8px; font-size:11px;">GET /users/current/accounts/{accountId}/account-information</code>
+          <p class="wp-para">Returns balance, equity, and margin levels to trace account state before execution checks.</p>
+          <pre class="wp-code-block" style="border-left-color: var(--blue);">{
+  "balance": 10000.00,
+  "equity": 10250.50,
+  "margin": 500.00,
+  "freeMargin": 9750.50,
+  "marginLevel": 2050.10,
+  "leverage": 500,
+  "broker": "ICMarketsSC",
+  "currency": "USD"
+}</pre>
+        </div>
+        <div>
+          <h4 style="font-size:12px; font-weight:700; margin-bottom:8px; font-family:'Space Grotesk';">Open Positions Endpoint</h4>
+          <code style="display:block; margin-bottom:8px; font-size:11px;">GET /users/current/accounts/{accountId}/positions</code>
+          <p class="wp-para">Queries active positions to retrieve current P&amp;L, stops configurations, and volume allocations.</p>
+          <pre class="wp-code-block" style="border-left-color: var(--blue);">[
+  {
+    "id": "12345678",
+    "symbol": "XAUUSD",
+    "type": "POSITION_TYPE_BUY",
+    "volume": 0.10,
+    "openPrice": 2340.50,
+    "currentPrice": 2345.20,
+    "profit": 47.00,
+    "stopLoss": 2335.00,
+    "takeProfit": 2360.00
+  }
+]</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="wp-page-divider"><div class="wp-page-line"></div><div class="wp-page-badge">Page Break</div></div>
+
+    <!-- SECTION B: WEBSOCKET STREAMING -->
+    <div class="wp-full" id="sec-ws" style="scroll-margin-top: 100px;">
+      <div class="wp-section-title"><span>02</span> WebSocket Connection &amp; Relay Event Handlers</div>
+      <p class="wp-para">
+        MetaAPI's raw quote streaming relies on socket.io. Since Vercel serverless functions restrict open WebSocket loops, we decouple streaming by running a dedicated Node process on our **Utho VPS** in London. This process listens to ticks and relays events to the frontend UI via Server-Sent Events (SSE).
+      </p>
+
+      <div class="wp-code-container">
+        <div class="wp-code-header">
+          <div class="wp-code-tabs">
+            <button class="wp-code-tab active" onclick="switchCodeTab(this, 'ws-init')">WebSocket Connection Init</button>
+            <button class="wp-code-tab" onclick="switchCodeTab(this, 'ws-events')">Listener Event Map</button>
+          </div>
+          <button class="wp-code-copy" onclick="copyCode(this)">
+            <svg class="icon icon-xs"><use href="#i-copy"/></svg>
+            <span class="copy-label">Copy Code</span>
+          </button>
+        </div>
+        <div class="wp-code-pane active" data-tab="ws-init">
+          <pre class="wp-code-block" style="margin:0; border-left:none; border-radius:0;">import MetaApi from 'metaapi.cloud-sdk/node';
+
+const api = new MetaApi(process.env.META_API_TOKEN);
+
+async function connectStreaming(accountId: string) {
+  const account = await api.metatraderAccountApi.getAccount(accountId);
+  const connection = account.getStreamingConnection();
+  
+  connection.addSynchronizationListener({
+    onSymbolPriceUpdated(instanceIndex, price) {
+      // Streamed on every tick change. ~1ms latency
+      console.log(`[TICK] ${price.symbol}: Bid ${price.bid} / Ask ${price.ask}`);
+      // Send message to local SSE relay queue
+    },
+    onPositionUpdated(instanceIndex, position) {
+      console.log(`[P&L UPDATE] Position ${position.id}: P&L ${position.profit}`);
+    },
+    onPositionRemoved(instanceIndex, positionId) {
+      console.log(`[CLOSED] Position ${positionId} terminated`);
+    }
+  });
+
+  await connection.connect();
+  await connection.waitSynchronized();
+  
+  // Subscribe to raw streaming ticks and minute candles
+  await connection.subscribeToMarketData('XAUUSD', [
+    { type: 'quotes' },
+    { type: 'candles', timeframe: '1m' },
+    { type: 'ticks' }
+  ]);
+  
+  return connection;
+}</pre>
+        </div>
+        <div class="wp-code-pane" data-tab="ws-events">
+          <table class="wp-table" style="margin:0;">
+            <thead>
+              <tr>
+                <th>Event Name</th>
+                <th>Trigger Boundary</th>
+                <th>Scalping Logic Application</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>onSymbolPriceUpdated</code></td>
+                <td>Every raw tick bid/ask change</td>
+                <td>Refreshes spread values and paints local chart ticks.</td>
+              </tr>
+              <tr>
+                <td><code>onCandlesUpdated</code></td>
+                <td>Every candle close/high/low shift</td>
+                <td>Recomputes indicators (VWAP, EMA) on 1-minute chart.</td>
+              </tr>
+              <tr>
+                <td><code>onPositionUpdated</code></td>
+                <td>Any P&amp;L change on broker side</td>
+                <td>Fires Breakeven gate if profit reaches 50% target threshold.</td>
+              </tr>
+              <tr>
+                <td><code>onPositionRemoved</code></td>
+                <td>Position is deleted on server</td>
+                <td>Cleans terminal UI slots and triggers the 90s safety cooldown timer.</td>
+              </tr>
+              <tr>
+                <td><code>onBrokerConnectionStatusChanged</code></td>
+                <td>Node loses connection to broker</td>
+                <td>Fires warning alerts to Terminal UI and pauses active trade generation.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION C: CODE SCRIPTS -->
+    <div class="wp-full" id="sec-execution" style="scroll-margin-top: 100px;">
+      <div class="wp-section-title"><span>03</span> Execution Logic &amp; Helper Functions</div>
+      <p class="wp-para">
+        These helper functions handle pre-execution gates, order execution settings (including server-side trailing stop objects), and position modification.
+      </p>
+
+      <div class="wp-code-container">
+        <div class="wp-code-header">
+          <div class="wp-code-tabs">
+            <button class="wp-code-tab active" onclick="switchCodeTab(this, 'ex-order')">Market Order + Trail Payload</button>
+            <button class="wp-code-tab" onclick="switchCodeTab(this, 'ex-spread')">checkSpreadOk()</button>
+            <button class="wp-code-tab" onclick="switchCodeTab(this, 'ex-be')">moveToBreakeven()</button>
+            <button class="wp-code-tab" onclick="switchCodeTab(this, 'ex-broker')">isBrokerScalpFriendly()</button>
+          </div>
+          <button class="wp-code-copy" onclick="copyCode(this)">
+            <svg class="icon icon-xs"><use href="#i-copy"/></svg>
+            <span class="copy-label">Copy Code</span>
+          </button>
+        </div>
+        
+        <!-- Tab: Market Order -->
+        <div class="wp-code-pane active" data-tab="ex-order">
+          <pre class="wp-code-block" style="margin:0; border-left:none; border-radius:0;">// POST /trade request payload
+{
+  "actionType": "ORDER_TYPE_BUY",
+  "symbol": "XAUUSD",
+  "volume": 0.05,
+  "stopLoss": 2338.00,
+  "takeProfit": 2345.00,
+  "trailingStopLoss": {
+    "distance": {
+      "distance": 30, // 30 points (3 pips) distance
+      "units": "RELATIVE_POINTS"
+    },
+    "threshold": {
+      "thresholds": [
+        {
+          "threshold": 50, // When profit reaches 50 points (5 pips)...
+          "stopLoss": 20   // Move SL to Entry + 20 points
+        }
+      ],
+      "units": "RELATIVE_POINTS",
+      "stopPriceBase": "OPEN_PRICE"
+    }
+  },
+  "comment": "TradeGPT Scalp + Trail"
+}</pre>
+        </div>
+
+        <!-- Tab: Check Spread -->
+        <div class="wp-code-pane" data-tab="ex-spread">
+          <pre class="wp-code-block" style="margin:0; border-left:none; border-radius:0;">async function checkSpreadOk(
+  accountId: string, 
+  symbol: string, 
+  maxSpreadPoints: number
+): Promise<{ ok: boolean; spread: number; detail: string }> {
+  // Fetch bid/ask quotes
+  const tick = await fetchCurrentTick(accountId, symbol);
+  // Fetch symbol specifications (digits, tick size)
+  const spec = await fetchSymbolSpec(accountId, symbol);
+  
+  // Calculate spread in points
+  const spread = (tick.ask - tick.bid) / spec.tickSize;
+  
+  if (spread > maxSpreadPoints) {
+    return {
+      ok: false,
+      spread,
+      detail: `Spread ${spread} pts exceeds threshold (${maxSpreadPoints} pts). Entry blocked.`
+    };
+  }
+  return {
+    ok: true,
+    spread,
+    detail: `Spread ${spread} pts is acceptable for scalping.`
+  };
+}</pre>
+        </div>
+
+        <!-- Tab: Move to Breakeven -->
+        <div class="wp-code-pane" data-tab="ex-be">
+          <pre class="wp-code-block" style="margin:0; border-left:none; border-radius:0;">async function moveToBreakeven(
+  accountId: string, 
+  positionId: string, 
+  entryPrice: number
+) {
+  // Send modification payload to broker
+  return await restTrade(accountId, {
+    actionType: 'POSITION_MODIFY',
+    positionId: positionId,
+    stopLoss: entryPrice, // SL set exactly to open entry price
+    stopLossUnits: 'ABSOLUTE_PRICE'
+  });
+}</pre>
+        </div>
+
+        <!-- Tab: Broker Check -->
+        <div class="wp-code-pane" data-tab="ex-broker">
+          <pre class="wp-code-block" style="margin:0; border-left:none; border-radius:0;">async function isBrokerScalpFriendly(
+  accountId: string, 
+  symbol: string
+): Promise<{ compatible: boolean; issues: string[] }> {
+  const issues: string[] = [];
+  const spec = await fetchSymbolSpec(accountId, symbol);
+  
+  // 1. Verify stops level
+  if (spec.stopsLevel > 20) {
+    issues.push(`High stops level (${spec.stopsLevel} points). tight stops restricted.`);
+  }
+  
+  // 2. Verify trade execution capabilities
+  if (spec.tradeMode !== 'SYMBOL_TRADE_MODE_FULL') {
+    issues.push(`Trade mode is ${spec.tradeMode}. Instant market orders may fail.`);
+  }
+  
+  // 3. Verify current spread levels
+  const tick = await fetchCurrentTick(accountId, symbol);
+  const spread = (tick.ask - tick.bid) / spec.tickSize;
+  if (spread > 30) {
+    issues.push(`Spread too wide (${spread} points) for scalping targets.`);
+  }
+  
+  return {
+    compatible: issues.length === 0,
+    issues
+  };
+}</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="wp-page-divider"><div class="wp-page-line"></div><div class="wp-page-badge">Page Break</div></div>
+
+    <!-- SECTION D: DATABASE SCHEMAS & CONFIG -->
+    <div class="wp-full" id="sec-database" style="scroll-margin-top: 100px;">
+      <div class="wp-section-title"><span>04</span> Database Schema Extensions &amp; Configurations</div>
+      <p class="wp-para">
+        Executing high-frequency scalping strategies requires expanding existing database tables. We need to track the trade type (swing vs. scalp), track daily realized P&amp;L to feed the circuit breaker, and audit lot sizes to confirm rebate eligibility.
+      </p>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+        <div>
+          <h4 style="font-size:12px; font-weight:700; margin-bottom:8px; font-family:'Space Grotesk';">Supabase PostgreSQL Schema Upgrade</h4>
+          <pre class="wp-code-block" style="border-left-color: var(--purple); font-size: 10px;">-- 1. Track trade mode tag
+ALTER TABLE public.trades 
+ADD COLUMN IF NOT EXISTS trade_type varchar DEFAULT 'swing';
+
+-- 2. Daily tracking table for circuit breaker
+CREATE TABLE IF NOT EXISTS public.daily_pnl (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES profiles(id),
+  trade_date date NOT NULL,
+  realized_pnl numeric(15,2) DEFAULT 0,
+  trade_count integer DEFAULT 0,
+  max_drawdown numeric(15,2) DEFAULT 0,
+  circuit_breaker_hit boolean DEFAULT false,
+  created_at timestamptz DEFAULT now(),
+  UNIQUE(user_id, trade_date)
+);
+
+-- 3. Affiliate audit tag
+ALTER TABLE public.trade_log 
+ADD COLUMN IF NOT EXISTS eligible_for_rebate boolean DEFAULT true;</pre>
+        </div>
+        <div>
+          <h4 style="font-size:12px; font-weight:700; margin-bottom:8px; font-family:'Space Grotesk';">Default User Preferences JSON config</h4>
+          <p class="wp-para">Store this default object in user profiles or the application preferences table to configure limits dynamically.</p>
+          <pre class="wp-code-block" style="border-left-color: var(--purple); font-size: 10.5px;">{
+  "scalping_enabled": true,
+  "max_daily_loss_pct": 3.0,
+  "max_trades_per_day": 50,
+  "max_open_positions": 2,
+  "min_spread_threshold_gold": 20,
+  "min_spread_threshold_forex": 15,
+  "cooldown_seconds": 90,
+  "scalp_risk_per_trade_pct": 0.5,
+  "scalp_rr_ratio": 1.5,
+  "trailing_stop_enabled": true,
+  "trailing_stop_distance_points": 30,
+  "breakeven_trigger_pct": 50,
+  "min_hold_time_for_rebate": 30
+}</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION E: IMPLEMENTATION ROADMAP -->
+    <div class="wp-full" id="sec-checklist" style="scroll-margin-top: 100px;">
+      <div class="wp-section-title"><span>05</span> Developer Implementation Roadmap (Interactive)</div>
+      <p class="wp-para">
+        Track your MT5 scalping engine integration progress using this checklist. Check items off as they are developed. Your checklist state is saved locally.
+      </p>
+
+      <style>
+        .road-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        .road-phase { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px; border-top: 3px solid var(--purple-light); }
+        .road-phase-title { font-family: 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 800; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+        .road-phase-badge { font-size: 8.5px; font-family: 'Space Mono', monospace; font-weight: 700; padding: 2px 8px; border-radius: 4px; background: rgba(124, 58, 237, 0.1); color: var(--purple-light); text-transform: uppercase; }
+        .road-list { display: flex; flex-direction: column; gap: 8px; }
+        .road-item { display: flex; align-items: flex-start; gap: 8px; font-size: 12px; cursor: pointer; }
+        .road-item input[type="checkbox"] { margin-top: 3px; cursor: pointer; }
+        .road-item span { color: var(--text-muted); line-height: 1.5; }
+        .road-item input[type="checkbox"]:checked + span { text-decoration: line-through; color: var(--text-dim); }
+      </style>
+
+      <div class="road-grid">
+        <!-- Phase 1 -->
+        <div class="road-phase">
+          <div class="road-phase-title">
+            Phase 1: Execution Upgrades
+            <span class="road-phase-badge">Phase 1</span>
+          </div>
+          <div class="road-list">
+            <label class="road-item">
+              <input type="checkbox" id="chk-p1-1" onchange="saveChecklist()" />
+              <span>Add <code>closePosition(accountId, positionId)</code> to <code>broker.ts</code></span>
+            </label>
+            <label class="road-item">
+              <input type="checkbox" id="chk-p1-2" onchange="saveChecklist()" />
+              <span>Add <code>modifyPosition(accountId, positionId, sl, tp)</code> to <code>broker.ts</code></span>
+            </label>
+            <label class="road-item">
+              <input type="checkbox" id="chk-p1-3" onchange="saveChecklist()" />
+              <span>Add <code>partialClose(accountId, positionId, volume)</code> to <code>broker.ts</code></span>
+            </label>
+            <label class="road-item">
+              <input type="checkbox" id="chk-p1-4" onchange="saveChecklist()" />
+              <span>Add <code>checkSpreadOk(accountId, symbol, maxSpread)</code> to <code>broker.ts</code></span>
+            </label>
+            <label class="road-item">
+              <input type="checkbox" id="chk-p1-5" onchange="saveChecklist()" />
+              <span>Create <code>/api/scalp/close</code> and <code>/api/scalp/modify</code> endpoints</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Phase 2 -->
+        <div class="road-phase">
+          <div class="road-phase-title">
+            Phase 2: Data &amp; Signal Indicators
+            <span class="road-phase-badge">Phase 2</span>
+          </div>
+          <div class="road-list">
+            <label class="road-item">
+              <input type="checkbox" id="chk-p2-1" onchange="saveChecklist()" />
+              <span>Implement REST candle fetcher for 1-minute frames in <code>market.ts</code></span>
+            </label>
+            <label class="road-item">
+              <input type="checkbox" id="chk-p2-2" onchange="saveChecklist()" />
+              <span>Create scalping-specific VWAP/EMA signals engine inside <code>scalpingEngine.ts</code></span>
+            </label>
+            <label class="road-item">
+              <input type="checkbox" id="chk-p2-3" onchange="saveChecklist()" />
+              <span>Integrate dynamic safety cooldowns (90s for scalp mode, 4h swing)</span>
+            </label>
+            <label class="road-item">
+              <input type="checkbox" id="chk-p2-4" onchange="saveChecklist()" />
+              <span>Add pre-trade spread check gates inside the ordering pipeline</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Phase 3 -->
+        <div class="road-phase">
+          <div class="road-phase-title">
+            Phase 3: WebSocket streaming
+            <span class="road-phase-badge">Phase 3</span>
+          </div>
+          <div class="road-list">
+            <label class="road-item">
+              <input type="checkbox" id="chk-p3-1" onchange="saveChecklist()" />
+              <span>Deploy raw Node streaming listener process on London Utho VPS</span>
+            </label>
+            <label class="road-item">
+              <input type="checkbox" id="chk-p3-2" onchange="saveChecklist()" />
+              <span>Wire connection synchronization listener callbacks for quotes &amp; candles</span>
+            </label>
+            <label class="road-item">
+              <input type="checkbox" id="chk-p3-3" onchange="saveChecklist()" />
+              <span>Establish local SSE route (<code>/api/scalp/ticks</code>) to stream ticks to client</span>
+            </label>
+            <label class="road-item">
+              <input type="checkbox" id="chk-p3-4" onchange="saveChecklist()" />
+              <span>Display raw, dynamic spreads on the Terminal UI screen</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Phase 4 -->
+        <div class="road-phase">
+          <div class="road-phase-title">
+            Phase 4: Risk containment guards
+            <span class="road-phase-badge">Phase 4</span>
+          </div>
+          <div class="road-list">
+            <label class="road-item">
+              <input type="checkbox" id="chk-p4-1" onchange="saveChecklist()" />
+              <span>Create <code>scalpingRisk.ts</code> with a daily P&amp;L drawdown tracking loop</span>
+            </label>
+            <label class="road-item">
+              <input type="checkbox" id="chk-p4-2" onchange="saveChecklist()" />
+              <span>Build daily loss circuit breaker with automated close-all function</span>
+            </label>
+            <label class="road-item">
+              <input type="checkbox" id="chk-p4-3" onchange="saveChecklist()" />
+              <span>Enforce max open positions limit checks before submitting orders</span>
+            </label>
+            <label class="road-item">
+              <input type="checkbox" id="chk-p4-4" onchange="saveChecklist()" />
+              <span>Hook hold-time rebate eligibility gates in <code>rebateEngine.ts</code> (&gt;30s check)</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Phase 5 -->
+        <div class="road-phase" style="grid-column: 1/-1;">
+          <div class="road-phase-title">
+            Phase 5: UI &amp; Terminal Screens
+            <span class="road-phase-badge">Phase 5</span>
+          </div>
+          <div class="road-list" style="display:grid; grid-template-columns:1fr 1fr; gap:8px 20px;">
+            <label class="road-item">
+              <input type="checkbox" id="chk-p5-1" onchange="saveChecklist()" />
+              <span>Add Scalp Mode toggle switch to Terminal UI layout</span>
+            </label>
+            <label class="road-item">
+              <input type="checkbox" id="chk-p5-2" onchange="saveChecklist()" />
+              <span>Enable 1M/5M chart interval selectors on MiniChart tab</span>
+            </label>
+            <label class="road-item">
+              <input type="checkbox" id="chk-p5-3" onchange="saveChecklist()" />
+              <span>Implement quick BUY/SELL buttons for instant 1-click execution</span>
+            </label>
+            <label class="road-item">
+              <input type="checkbox" id="chk-p5-4" onchange="saveChecklist()" />
+              <span>Insert live spread values next to price metrics</span>
+            </label>
+            <label class="road-item">
+              <input type="checkbox" id="chk-p5-5" onchange="saveChecklist()" />
+              <span>Create Daily P&amp;L widget with dynamic circuit breaker bar</span>
+            </label>
+            <label class="road-item">
+              <input type="checkbox" id="chk-p5-6" onchange="saveChecklist()" />
+              <span>Wire warning flags when broker stopsLevel limits are too high</span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <p style="margin-top:48px;font-size:12px;color:var(--text-dim); text-align: center;">
+    <em>TradeGPT Engine Upgrades — MT5 Scalping via MetaAPI Specification Addendum</em>
+  </p>
+</div>
+
+<script>
+  // ── THEME SWITCHER ENGINE ──
+  function toggleTheme() {
+    const html = document.documentElement;
+    const themeIconUse = document.querySelector('#theme-icon use');
+    if (html.classList.contains('dark')) {
+      html.classList.remove('dark');
+      themeIconUse.setAttribute('href', '#i-moon');
+      localStorage.setItem('trade-gpt-theme', 'light');
+    } else {
+      html.classList.add('dark');
+      themeIconUse.setAttribute('href', '#i-sun');
+      localStorage.setItem('trade-gpt-theme', 'dark');
+    }
+  }
+
+  // Apply saved theme preference on page load
+  (function() {
+    const savedTheme = localStorage.getItem('trade-gpt-theme');
+    const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (savedTheme === 'dark' || (!savedTheme && systemDark)) {
+      document.documentElement.classList.add('dark');
+      document.addEventListener('DOMContentLoaded', () => {
+        const themeIconUse = document.querySelector('#theme-icon use');
+        if (themeIconUse) themeIconUse.setAttribute('href', '#i-sun');
+      });
+    } else {
+      document.documentElement.classList.remove('dark');
+      document.addEventListener('DOMContentLoaded', () => {
+        const themeIconUse = document.querySelector('#theme-icon use');
+        if (themeIconUse) themeIconUse.setAttribute('href', '#i-moon');
+      });
+    }
+  })();
+
+  // ── DYNAMIC CODE TAB SWITCHER ──
+  function switchCodeTab(btn, tabId) {
+    const container = btn.closest('.wp-code-container');
+    container.querySelectorAll('.wp-code-tab').forEach(t => t.classList.remove('active'));
+    container.querySelectorAll('.wp-code-pane').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    container.querySelector(`.wp-code-pane[data-tab="${tabId}"]`).classList.add('active');
+  }
+
+  function copyCode(btn) {
+    const container = btn.closest('.wp-code-container');
+    const activePane = container.querySelector('.wp-code-pane.active');
+    const code = activePane.querySelector('.wp-code-block').innerText;
+    navigator.clipboard.writeText(code).then(() => {
+      const label = btn.querySelector('.copy-label') || btn;
+      const origText = label.innerText;
+      label.innerText = 'Copied!';
+      btn.style.color = '#38bdf8';
+      setTimeout(() => {
+        label.innerText = origText;
+        btn.style.color = '';
+      }, 1500);
+    });
+  }
+
+  // ── INTERACTIVE CHECKLIST ENGINE ──
+  const chkIds = [
+    'chk-p1-1', 'chk-p1-2', 'chk-p1-3', 'chk-p1-4', 'chk-p1-5',
+    'chk-p2-1', 'chk-p2-2', 'chk-p2-3', 'chk-p2-4',
+    'chk-p3-1', 'chk-p3-2', 'chk-p3-3', 'chk-p3-4',
+    'chk-p4-1', 'chk-p4-2', 'chk-p4-3', 'chk-p4-4',
+    'chk-p5-1', 'chk-p5-2', 'chk-p5-3', 'chk-p5-4', 'chk-p5-5', 'chk-p5-6'
+  ];
+
+  function saveChecklist() {
+    const states = {};
+    chkIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) states[id] = el.checked;
+    });
+    localStorage.setItem('mt5-scalping-checklist', JSON.stringify(states));
+  }
+
+  function loadChecklist() {
+    const data = localStorage.getItem('mt5-scalping-checklist');
+    if (!data) return;
+    try {
+      const states = JSON.parse(data);
+      chkIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el && states[id] !== undefined) {
+          el.checked = states[id];
+        }
+      });
+    } catch(e) {
+      console.error('Checklist reload error:', e);
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', loadChecklist);
+</script>
+
+</body>
+</html>

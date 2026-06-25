@@ -4,9 +4,9 @@ import { createClient as createAdminClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
 
-const MT_CLIENT_BASE = 'https://mt-client-api-v1.london.agiliumtrade.ai';
-const token = process.env.META_API_TOKEN || '';
-const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes — saves MetaAPI credits
+import { FARM_HEADERS, sidecarUrl, resolveAccountId as resolveFarmAccountId } from '@/lib/mt5farm';
+
+const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
 
 let _admin: any = null;
 function getAdmin() {
@@ -19,20 +19,23 @@ function getAdmin() {
   return _admin;
 }
 
-async function resolveMetaApiId(brokerId: string): Promise<string> {
+async function resolveAccountId(brokerId: string, userId: string): Promise<string> {
+  // Use Supabase to look up the MT5 login (mt5_login) — never rely on the ephemeral /tmp file
+  // which is wiped on every Vercel cold start.
   try {
-    const fs = await import('fs');
-    const path = await import('path');
-    const os = await import('os');
-    const DB_FILE = process.env.VERCEL || process.env.NODE_ENV === 'production'
-      ? path.join(os.tmpdir(), 'brokers_db.json')
-      : path.join(process.cwd(), 'src/lib/brokers_db.json');
-    if (fs.existsSync(DB_FILE)) {
-      const data = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
-      const match = data.find((b: any) => b.id === brokerId || b.login === brokerId);
-      if (match) return match.id;
-    }
-  } catch {}
+    const admin = getAdmin();
+    const { data } = await admin
+      .from('broker_accounts')
+      .select('mt5_login, metaapi_id')
+      .eq('user_id', userId)
+      .or(`id.eq.${brokerId},mt5_login.eq.${brokerId},metaapi_id.eq.${brokerId}`)
+      .maybeSingle();
+    if (data?.mt5_login) return String(data.mt5_login);
+    if (data?.metaapi_id) return String(data.metaapi_id);
+  } catch (err: any) {
+    console.warn('[Deals] resolveAccountId fallback:', err.message);
+  }
+  // Last resort — brokerId itself might already be the login
   return brokerId;
 }
 
@@ -273,11 +276,13 @@ export async function GET(request: Request) {
     const brokerId = searchParams.get('brokerId');
     const period = searchParams.get('period') || '7d';
 
-    if (!brokerId || !token) {
+    if (!brokerId) {
       return NextResponse.json({ deals: [], equityCurve: [], stats: computeStats([]), liveRisk: null });
     }
 
-    const metaApiId = await resolveMetaApiId(brokerId);
+    const userId = user.id;
+    const rawAccountId = await resolveAccountId(brokerId, userId);
+    const accountId = await resolveFarmAccountId(rawAccountId);
 
     // ── Time range ──
     const now = new Date();
@@ -292,7 +297,7 @@ export async function GET(request: Request) {
     const startTime = new Date(now.getTime() - periodMs).toISOString();
     const endTime = now.toISOString();
 
-    // ── 1. Check cache first — ZERO MetaAPI calls ──
+    // ── 1. Check cache first ──
     const cached = await getCachedStats(user.id, brokerId, period);
     if (cached) {
       const dbDeals = await getDealsFromDb(user.id, brokerId, startTime);
@@ -308,15 +313,16 @@ export async function GET(request: Request) {
       });
     }
 
-    // ── 2. Full MetaAPI sync ──
-    const headers = { 'auth-token': token };
-    const base = `${MT_CLIENT_BASE}/users/current/accounts/${metaApiId}`;
-    const dealsUrl = `${base}/history-deals/time/${startTime}/${endTime}`;
+    // ── 2. Full MT5 Farm sync ──
+    // Convert ISO dates to Unix timestamps for the farm API
+    const fromTs = Math.floor(new Date(startTime).getTime() / 1000);
+    const toTs   = Math.floor(new Date(endTime).getTime()   / 1000);
+    const dealsUrl = sidecarUrl(accountId, `history/deals?from_ts=${fromTs}&to_ts=${toTs}`);
 
     const [dealsRes, infoRes, posRes] = await Promise.all([
-      fetch(dealsUrl, { headers, signal: AbortSignal.timeout(12000) }),
-      fetch(`${base}/account-information`, { headers, signal: AbortSignal.timeout(8000) }),
-      fetch(`${base}/positions`, { headers, signal: AbortSignal.timeout(8000) }),
+      fetch(dealsUrl,                                  { headers: FARM_HEADERS, signal: AbortSignal.timeout(15000) }),
+      fetch(sidecarUrl(accountId, 'account-information'), { headers: FARM_HEADERS, signal: AbortSignal.timeout(8000) }),
+      fetch(sidecarUrl(accountId, 'positions'),           { headers: FARM_HEADERS, signal: AbortSignal.timeout(8000) }),
     ]);
 
     const rawDeals = dealsRes.ok ? await dealsRes.json() : [];
@@ -324,11 +330,13 @@ export async function GET(request: Request) {
     const rawPositions = posRes.ok ? await posRes.json() : [];
 
     const allDeals = Array.isArray(rawDeals) ? rawDeals : [];
+    // Farm API returns deals with 'entry' field ('DEAL_ENTRY_IN' | 'DEAL_ENTRY_OUT')
+    // and 'type' field ('ORDER_TYPE_BUY' | 'ORDER_TYPE_SELL')
     const tradingDeals = allDeals.filter((d: any) =>
-      d.type === 'DEAL_TYPE_BUY' || d.type === 'DEAL_TYPE_SELL'
+      d.type === 'ORDER_TYPE_BUY' || d.type === 'ORDER_TYPE_SELL'
     );
 
-    // Group deals into closed trades
+    // Group deals into closed trades by positionId
     const positionDeals: Record<string, any[]> = {};
     for (const d of tradingDeals) {
       const posId = d.positionId || d.id;
@@ -338,22 +346,26 @@ export async function GET(request: Request) {
 
     const closedTrades: any[] = [];
     for (const [, deals] of Object.entries(positionDeals)) {
-      const entryDeal = deals.find((d: any) => d.entryType === 'DEAL_ENTRY_IN') || deals[0];
-      const exitDeal = deals.find((d: any) => d.entryType === 'DEAL_ENTRY_OUT') || deals[deals.length - 1];
+      // Farm Fix 5: positionId is now directly on each deal; use openTime alias for cleaner code
+      const entryDeal = deals.find((d: any) => d.entry === 'DEAL_ENTRY_IN')  || deals[0];
+      const exitDeal  = deals.find((d: any) => d.entry === 'DEAL_ENTRY_OUT') || deals[deals.length - 1];
 
       if (exitDeal && exitDeal.profit !== undefined) {
         closedTrades.push({
-          id: exitDeal.id || entryDeal.id,
-          symbol: exitDeal.symbol || entryDeal.symbol,
-          type: entryDeal.type || 'DEAL_TYPE_BUY',
-          volume: entryDeal.volume || exitDeal.volume || 0,
-          profit: exitDeal.profit || 0,
+          id:         exitDeal.id    || exitDeal.ticket || entryDeal.id,
+          symbol:     exitDeal.symbol || entryDeal.symbol,
+          // Farm Fix 5: direction is now a clean 'BUY'/'SELL' string
+          type:       entryDeal.type || 'ORDER_TYPE_BUY',
+          direction:  entryDeal.direction || (entryDeal.type?.includes('BUY') ? 'BUY' : 'SELL'),
+          volume:     entryDeal.volume  || exitDeal.volume  || 0,
+          profit:     exitDeal.profit   || 0,
           commission: (entryDeal.commission || 0) + (exitDeal.commission || 0),
-          swap: exitDeal.swap || 0,
-          entryPrice: entryDeal.price || 0,
-          exitPrice: exitDeal.price || 0,
-          openTime: entryDeal.time || '',
-          closeTime: exitDeal.time || '',
+          swap:       exitDeal.swap || 0,
+          entryPrice: entryDeal.price || entryDeal.openPrice || 0,
+          exitPrice:  exitDeal.price  || exitDeal.openPrice  || 0,
+          // Farm Fix 5: openTime is now an alias that is always present and ISO 8601
+          openTime:   entryDeal.openTime || entryDeal.time || '',
+          closeTime:  exitDeal.openTime  || exitDeal.time  || '',
           positionId: exitDeal.positionId || entryDeal.positionId || '',
         });
       }

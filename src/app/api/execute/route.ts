@@ -45,12 +45,14 @@ export async function POST(request: Request) {
     );
 
     // Resolve database broker_accounts UUID if possible
-    const { data: brokerAccount } = await supabase
-      .from('broker_accounts')
-      .select('id')
-      .or(`id.eq."${brokerId}",metaapi_id.eq."${brokerId}"`)
-      .eq('user_id', user.id)
-      .maybeSingle();
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(brokerId);
+    let query = supabase.from('broker_accounts').select('id').eq('user_id', user.id);
+    if (isUuid) {
+      query = query.eq('id', brokerId);
+    } else {
+      query = query.or(`metaapi_id.eq.${brokerId},mt5_login.eq.${brokerId}`);
+    }
+    const { data: brokerAccount } = await query.maybeSingle();
 
     // Log the trade in Supabase database
     const { error: insertError } = await supabase

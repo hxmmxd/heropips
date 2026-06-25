@@ -67,8 +67,8 @@
   <p>Institutional AI Signal Engine — Development Log</p>
   <div style="margin-top:16px">
     <span class="badge">📌 Branch: main</span>
-    <span class="badge">🔖 Latest: 75361d6</span>
-    <span class="badge">📅 June 10, 2026</span>
+    <span class="badge">🔖 Latest: a9c5174</span>
+    <span class="badge">📅 June 25, 2026</span>
     <span class="badge">✅ Build: Passing</span>
   </div>
 </header>
@@ -79,8 +79,8 @@
   <div class="stat-row" style="margin-top:40px">
     <div class="stat"><div class="num">9</div><div class="label">Signal Gates</div></div>
     <div class="stat"><div class="num">6</div><div class="label">Extended Phases</div></div>
-    <div class="stat"><div class="num">42</div><div class="label">Files Changed</div></div>
-    <div class="stat"><div class="num">3,642</div><div class="label">Lines Added</div></div>
+    <div class="stat"><div class="num">43</div><div class="label">Files Changed</div></div>
+    <div class="stat"><div class="num">4,550</div><div class="label">Lines Added</div></div>
     <div class="stat"><div class="num">&lt;5s</div><div class="label">Analysis Latency</div></div>
     <div class="stat"><div class="num">8</div><div class="label">API Services</div></div>
   </div>
@@ -273,22 +273,64 @@
         <div class="tl-body">B1 Finnhub sentiment, B2 Economic calendar gate, B3 RSI/MACD divergence, B4 Correlated assets. 9-gate system fully live.</div>
       </div>
       <div class="tl-item">
+        <div class="tl-dot" style="background:#10b981"></div>
+        <div class="tl-date">June 7, 2026</div>
+        <div class="tl-title">🟢 Phase C — 12-Gate Validation &amp; Kelly Sizing</div>
+        <div class="tl-body">Expanded signal engine to 12 gates (VWAP calculation, MTF bias stack, 10-pattern candlestick scanner) and integrated dynamic Kelly Criterion account risk lot sizing.</div>
+      </div>
+      <div class="tl-item">
         <div class="tl-dot"></div>
         <div class="tl-date">June 8, 2026</div>
-        <div class="tl-title">🎨 Light-Theme & Presentation Redesign</div>
+        <div class="tl-title">🎨 Light-Theme &amp; Presentation Redesign</div>
         <div class="tl-body">Optimized infographic diagrams and presentation layouts, converting technical specs to an elegant light theme.</div>
       </div>
       <div class="tl-item">
         <div class="tl-dot"></div>
         <div class="tl-date">June 9, 2026</div>
-        <div class="tl-title">💳 Paid Courses & Crypto Gateway</div>
+        <div class="tl-title">💳 Paid Courses &amp; Crypto Gateway</div>
         <div class="tl-body">Integrated NOWPayments invoice API for checkout using 200+ cryptocurrencies. Protected balance updates with atomic gte() query constraints.</div>
       </div>
       <div class="tl-item">
         <div class="tl-dot" style="background:#4ade80"></div>
         <div class="tl-date">June 10, 2026</div>
-        <div class="tl-title">⏰ MetaAPI Timezones, Symbols & Ledger</div>
+        <div class="tl-title">⏰ MetaAPI Timezones, Symbols &amp; Ledger</div>
         <div class="tl-body">Resolved course ledger transaction check constraint issues. Synced MT5 broker timezone offsets, allowed symbol configurations and built a live ticking clock inside dashboard. Added search filtering to manager symbol inputs.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot"></div>
+        <div class="tl-date">June 11, 2026</div>
+        <div class="tl-title">🌗 UI &amp; Theme Engine Refinement</div>
+        <div class="tl-body">Upgraded theme variables to warm dark mode palette, replaced theme switch icon with custom morphing Sun/Moon SVG, and normalized broker display names.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot" style="background:#3b82f6"></div>
+        <div class="tl-date">June 13, 2026</div>
+        <div class="tl-title">🔒 Security PIN, Features Explorer &amp; SVG Diagrams</div>
+        <div class="tl-body">Implemented tactile secure developer PIN lock gate. Added tab-switching architecture explorer with dynamic interactive SVG flowcharts and animated neon data pulses.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot" style="background:#a78bfa"></div>
+        <div class="tl-date">June 14, 2026</div>
+        <div class="tl-title">🧹 Orrery Background Clean &amp; Cleanups</div>
+        <div class="tl-body">Removed floating background planet elements and background SVG SolarSystemOrrery to ensure a clean, collision-free background. Resolved orphaned duplicate JSX blocks that caused admin portal errors.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot" style="background:#7c3aed"></div>
+        <div class="tl-date">June 15, 2026</div>
+        <div class="tl-title">⚡ MT5 Scalping Blueprint &amp; API Observability</div>
+        <div class="tl-body">Generated the interactive, dual-mode MT5 scalping blueprint page featuring dynamic indicators, visual stop-loss flows, and a localStorage-persisted progress checklist. Updated the System API reference within the admin dashboard to list Astro Mode and user preference endpoints. Verified clean compilation with no TypeScript errors.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot" style="background:#f59e0b"></div>
+        <div class="tl-date">June 21, 2026</div>
+        <div class="tl-title">🔌 Custom MT5 Connection Farm Integration</div>
+        <div class="tl-body">Migrated connection layer from MetaAPI to custom VPS-hosted MT5 connection farm. Resolved orchestrator-vs-sidecar status inconsistency, wake transition delays, credentials failures, and allowed symbol sync. Added admin management panels.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot" style="background:#60a5fa"></div>
+        <div class="tl-date">June 25, 2026</div>
+        <div class="tl-title">⚙️ MT5 Farm Admin Layout &amp; Rate Limit Upgrades</div>
+        <div class="tl-body">Resolved horizontal visual layout clipping and overflow on MT5 Farm dashboard card modules and listings. Upgraded Default Key rate limit configuration to 200 requests/minute and restarted orchestrator systemd service.</div>
       </div>
     </div>
   </section>
@@ -339,13 +381,14 @@
       <div class="card"><div class="card-icon">📚</div><h3>CoursesTab.tsx</h3><p>Course directory rendering with dynamic progress state</p><span class="tag tag-green">Course UI</span></div>
       <div class="card"><div class="card-icon">⚙️</div><h3>AdminCoursesTab.tsx</h3><p>Admin courses portal enabling editing, creating and publishing courses</p><span class="tag tag-green">Course Admin</span></div>
       <div class="card"><div class="card-icon">🔌</div><h3>SystemApisTab.tsx</h3><p>Live endpoint statistics, request telemetry log viewer</p><span class="tag tag-green">Observability</span></div>
+      <div class="card"><div class="card-icon">📊</div><h3>mt5_scalping_infographic.html</h3><p>84.8 KB — Interactive MT5 MetaAPI scalping reference blueprint dashboard and technical engine specifications</p><span class="tag tag-purple">MT5 Scalp</span></div>
     </div>
   </section>
 
 </div>
 
 <footer>
-  TradeGPT — Institutional AI Signal Engine &nbsp;·&nbsp; Commits: <code>75361d6</code> · <code>7deba70</code> &nbsp;·&nbsp; June 10, 2026
+  TradeGPT — Institutional AI Signal Engine &nbsp;·&nbsp; Commits: <code>a9c5174</code> · <code>ea5d177</code> &nbsp;·&nbsp; June 25, 2026
 </footer>
 </body>
 </html>

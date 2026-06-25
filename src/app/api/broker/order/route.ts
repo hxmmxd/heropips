@@ -1,39 +1,44 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { getNormalizedSymbolForBroker } from '@/lib/broker';
+import {
+  FARM_HEADERS,
+  FARM_BASE,
+  sidecarUrl,
+  farmExecuteTrade,
+  farmClosePosition,
+  farmCloseAllPositions,
+  farmCancelOrder,
+  farmModifyPosition,
+} from '@/lib/mt5farm';
 
 export const dynamic = 'force-dynamic';
 
-const MT_CLIENT_BASE = 'https://mt-client-api-v1.london.agiliumtrade.ai';
-const token = process.env.META_API_TOKEN || '';
-
-async function resolveMetaApiId(brokerId: string): Promise<string> {
+async function resolveAccountId(brokerId: string, userId: string): Promise<string> {
+  // Never rely on /tmp/brokers_db.json — it is wiped on every Vercel cold start.
+  // Use Supabase admin client for a reliable lookup by mt5_login.
   try {
-    const fs = await import('fs');
-    const path = await import('path');
-    const os = await import('os');
-    const DB_FILE = process.env.VERCEL || process.env.NODE_ENV === 'production'
-      ? path.join(os.tmpdir(), 'brokers_db.json')
-      : path.join(process.cwd(), 'src/lib/brokers_db.json');
-
-    if (fs.existsSync(DB_FILE)) {
-      const data = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
-      const match = data.find((b: any) => b.id === brokerId || b.login === brokerId);
-      if (match) return match.id;
-    }
-  } catch {}
+    const { createClient: createAdminClient } = await import('@supabase/supabase-js');
+    const admin = createAdminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    );
+    const { data } = await admin
+      .from('broker_accounts')
+      .select('mt5_login, metaapi_id')
+      .eq('user_id', userId)
+      .or(`id.eq.${brokerId},mt5_login.eq.${brokerId},metaapi_id.eq.${brokerId}`)
+      .maybeSingle();
+    if (data?.mt5_login) return String(data.mt5_login);
+    if (data?.metaapi_id) return String(data.metaapi_id);
+  } catch (err: any) {
+    console.warn('[Order] resolveAccountId fallback:', err.message);
+  }
+  // brokerId itself might already be the MT5 login number
   return brokerId;
 }
 
-async function restTrade(metaApiId: string, payload: object): Promise<any> {
-  const res = await fetch(`${MT_CLIENT_BASE}/users/current/accounts/${metaApiId}/trade`, {
-    method: 'POST',
-    headers: { 'auth-token': token, 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-  return { status: res.status, data: await res.json() };
-}
-
-// Rate limiting — max 10 orders per 15 seconds per user (S3)
+// Rate limiting — max 10 orders per 15 seconds per user
 const rateLimitMap = new Map<string, number[]>();
 const RATE_LIMIT_MAX = 10;
 const RATE_LIMIT_WINDOW_MS = 15_000;
@@ -59,111 +64,85 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Too many requests. Max 10 orders per 15 seconds.' }, { status: 429 });
     }
 
-    if (!token) {
-      return NextResponse.json({ error: 'MetaAPI not configured' }, { status: 500 });
-    }
-
     const body = await request.json();
     const { action, brokerId } = body;
 
     // Verify broker belongs to this user
-    const { data: brokerMatch } = await supabase
-      .from('broker_accounts')
-      .select('id')
-      .eq('user_id', user.id)
-      .or(`metaapi_id.eq.${brokerId},mt5_login.eq.${brokerId}`)
-      .maybeSingle();
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(brokerId);
+    let query = supabase.from('broker_accounts').select('id').eq('user_id', user.id);
+    if (isUuid) {
+      query = query.eq('id', brokerId);
+    } else {
+      query = query.or(`metaapi_id.eq.${brokerId},mt5_login.eq.${brokerId}`);
+    }
+    const { data: brokerMatch } = await query.maybeSingle();
 
     if (!brokerMatch) {
       return NextResponse.json({ error: 'Broker not found or access denied' }, { status: 403 });
     }
 
-    const metaApiId = await resolveMetaApiId(brokerId);
+    const accountId = await resolveAccountId(brokerId, user.id);
 
     switch (action) {
       case 'place': {
         const { symbol, direction, volume, price, stopLoss, takeProfit } = body;
+        const normalizedSymbol = getNormalizedSymbolForBroker(symbol, accountId);
+        let actionType = direction === 'BUY' ? 'ORDER_TYPE_BUY' : 'ORDER_TYPE_SELL';
         const payload: Record<string, any> = {
-          actionType: direction === 'BUY' ? 'ORDER_TYPE_BUY' : 'ORDER_TYPE_SELL',
-          symbol,
+          actionType,
+          symbol: normalizedSymbol,
           volume: Math.max(Number(volume) || 0.01, 0.01),
           comment: 'TradeGPT Manager',
         };
         if (price) {
           payload.actionType = direction === 'BUY' ? 'ORDER_TYPE_BUY_LIMIT' : 'ORDER_TYPE_SELL_LIMIT';
-          payload.openPrice = Number(price);
+          payload.openPrice  = Number(price);
         }
-        if (stopLoss) payload.stopLoss = Number(stopLoss);
+        if (stopLoss)   payload.stopLoss   = Number(stopLoss);
         if (takeProfit) payload.takeProfit = Number(takeProfit);
 
-        const { status, data } = await restTrade(metaApiId, payload);
-        if (data?.stringCode === 'TRADE_RETCODE_DONE') {
-          return NextResponse.json({ success: true, orderId: data.orderId || data.positionId, fillPrice: data.openPrice });
+        const result = await farmExecuteTrade(accountId, payload as any);
+        if (result.success) {
+          return NextResponse.json({
+            success:   true,
+            orderId:   result.result.orderId || result.result.positionId,
+            fillPrice: result.result.openPrice,
+          });
         }
-        return NextResponse.json({ error: data?.message || 'Order rejected', code: data?.stringCode }, { status: 400 });
+        return NextResponse.json({
+          error: result.error.message || 'Order rejected',
+          code:  result.error.stringCode,
+        }, { status: 400 });
       }
 
       case 'modify': {
         const { positionId, stopLoss, takeProfit } = body;
-        const payload: Record<string, any> = {
-          actionType: 'POSITION_MODIFY',
-          positionId,
-        };
-        if (stopLoss !== undefined) payload.stopLoss = Number(stopLoss);
-        if (takeProfit !== undefined) payload.takeProfit = Number(takeProfit);
-
-        const { data } = await restTrade(metaApiId, payload);
-        if (data?.stringCode === 'TRADE_RETCODE_DONE') {
-          return NextResponse.json({ success: true });
-        }
-        return NextResponse.json({ error: data?.message || 'Modify failed', code: data?.stringCode }, { status: 400 });
+        const result = await farmModifyPosition(accountId, positionId, {
+          stopLoss:   stopLoss   !== undefined ? Number(stopLoss)   : undefined,
+          takeProfit: takeProfit !== undefined ? Number(takeProfit) : undefined,
+        });
+        if (result.success) return NextResponse.json({ success: true });
+        return NextResponse.json({ error: 'Modify failed', code: result.retcode }, { status: 400 });
       }
 
       case 'close': {
         const { positionId } = body;
-        const payload = {
-          actionType: 'POSITION_CLOSE_ID',
-          positionId,
-        };
-
-        const { data } = await restTrade(metaApiId, payload);
-        if (data?.stringCode === 'TRADE_RETCODE_DONE') {
-          return NextResponse.json({ success: true });
-        }
-        return NextResponse.json({ error: data?.message || 'Close failed', code: data?.stringCode }, { status: 400 });
+        const result = await farmClosePosition(accountId, positionId);
+        if (result.success) return NextResponse.json({ success: true });
+        return NextResponse.json({ error: 'Close failed', code: result.retcode }, { status: 400 });
       }
 
       case 'closeAll': {
-        // Fetch all positions and close them
-        const headers = { 'auth-token': token };
-        const posRes = await fetch(`${MT_CLIENT_BASE}/users/current/accounts/${metaApiId}/positions`, { headers });
-        const positions = posRes.ok ? await posRes.json() : [];
-
-        if (!Array.isArray(positions) || positions.length === 0) {
-          return NextResponse.json({ success: true, closed: 0 });
-        }
-
-        const results = await Promise.allSettled(
-          positions.map((p: any) =>
-            restTrade(metaApiId, { actionType: 'POSITION_CLOSE_ID', positionId: p.id })
-          )
-        );
-
-        const closed = results.filter(r => r.status === 'fulfilled' && (r as any).value?.data?.stringCode === 'TRADE_RETCODE_DONE').length;
-        return NextResponse.json({ success: true, closed, total: positions.length });
+        const { symbol } = body;
+        const result = await farmCloseAllPositions(accountId, symbol);
+        return NextResponse.json({ success: true, closed: result.closed, total: result.results.length });
       }
 
       case 'cancelOrder': {
         const { orderId } = body;
-        const payload = {
-          actionType: 'ORDER_CANCEL',
-          orderId,
-        };
-        const { data } = await restTrade(metaApiId, payload);
-        if (data?.stringCode === 'TRADE_RETCODE_DONE') {
-          return NextResponse.json({ success: true });
-        }
-        return NextResponse.json({ error: data?.message || 'Cancel failed', code: data?.stringCode }, { status: 400 });
+        const result = await farmCancelOrder(accountId, orderId);
+        if (result.success) return NextResponse.json({ success: true });
+        return NextResponse.json({ error: 'Cancel failed' }, { status: 400 });
       }
 
       default:

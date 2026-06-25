@@ -35,6 +35,169 @@ const tagStyles: Record<string, { bg: string; color: string; label: string }> = 
 
 const worklog: WorkDay[] = [
   {
+    date: 'June 25, 2026',
+    dayLabel: 'Thursday',
+    commitCount: 2,
+    blocks: [
+      {
+        tag: 'major',
+        time: '03:45 PM',
+        title: 'MT5 Farm Admin Layout Overflow & Visual Clipping Fixes',
+        summary: 'Resolved visual layout clipping and overflow issues in the admin panel MT5 Farm sub-dashboard. Specifically, cards, input fields, key lists, and the "Revoke" button were being clipped on the right of the viewport in smaller dimensions.',
+        items: [
+          { icon: '📏', title: 'Main Container Responsiveness', description: 'Added min-width: 0 and overflow-x: hidden to .adm-main in globals.css to prevent the flex container from expanding past the viewport boundary.', files: ['src/app/globals.css'] },
+          { icon: '⚙️', title: 'Responsive Form Inputs', description: 'Replaced rigid flex behaviors on Label and Rate Limit inputs with a responsive flex-wrap: wrap row layout to prevent card width pushing.', files: ['src/app/admin/page.tsx'] },
+          { icon: '🔑', title: 'Ellipsis & Truncation Handling', description: 'Added word-break: break-all for monospace API key previews and text-overflow: ellipsis for long labels to preserve horizontal space.', files: ['src/app/admin/page.tsx'] },
+          { icon: '🛠️', title: 'Accounts Layout Updates', description: 'Upgraded accounts lists rows to wrap and flex responsively across all screens.', files: ['src/app/admin/page.tsx'] }
+        ]
+      },
+      {
+        tag: 'major',
+        time: '03:30 PM',
+        title: 'Orchestrator Rate Limit Configuration Tuning',
+        summary: 'Tuned the API Gateway rate limit configuration for the MT5 Farm Default Key to allow 200 requests/minute.',
+        items: [
+          { icon: '⚙️', title: 'Default Key Rate Limit Upgrade', description: 'Altered the rate limit from 100/min to 200/min inside api_keys.json on the remote orchestrator VM.', files: ['/home/azureuser/orchestrator/api_keys.json'] },
+          { icon: '🔄', title: 'Orchestrator Service Reload', description: 'Executed systemd restart for tradegpt-orchestrator.service to apply the updated rate limit parameters instantly.', files: ['/etc/systemd/system/tradegpt-orchestrator.service'] }
+        ]
+      }
+    ]
+  },
+  {
+    date: 'June 21, 2026',
+    dayLabel: 'Sunday',
+    commitCount: 12,
+    blocks: [
+      {
+        tag: 'major',
+        time: '06:00 PM',
+        title: 'Custom MT5 Connection Farm Migration & Sidecar Integration',
+        summary: 'Fully migrated the broker connection layer from MetaAPI to our proprietary MT5 Connection Farm, removing the third-party client SDK dependency and deploying a highly cost-effective, memory-optimized VPS node infrastructure.',
+        items: [
+          { icon: '🔌', title: 'MetaAPI Deprecation & Adapter Migration', description: 'Rewrote broker adapter and core libraries to query orchestrator and sidecar proxy APIs instead of MetaAPI REST and RPC SDK endpoints.', files: ['src/lib/broker.ts', 'src/lib/adapters/metatrader.ts', 'src/lib/mt5farm.ts'] },
+          { icon: '🐛', title: 'Orchestrator Status Inconsistency Resolving', description: 'Programmed client-side validation routing to check both orchestrator state and sidecar connection responses in parallel, trusting sidecar status for actual connection status.', files: ['src/app/api/broker/route.ts', 'src/app/page.tsx'] },
+          { icon: '🟠', title: 'Wake & Sleep Transitions Handling', description: 'Configured polling handlers to support waking state HTTP 202 during sleep/wake transition cycles, extending connection timeouts to 120 seconds.', files: ['src/app/api/broker/route.ts', 'src/app/page.tsx'] },
+          { icon: '🛡️', title: 'Verification & Credentials Fallbacks', description: 'Added credentials error validation that catches failed orchestrator status and returns a raw database authentication fail warning to the client interface.', files: ['src/app/api/broker/route.ts', 'src/components/ModalNode.tsx'] },
+          { icon: '📊', title: 'Allowed Instruments Syncing', description: 'Enabled live broker specification querying to write allowed symbol names and timezone offsets to user rows on Supabase.', files: ['src/lib/broker.ts', 'src/app/api/broker/route.ts'] },
+          { icon: '💼', title: 'Accounts Admin Panel Control', description: 'Integrated keys list, database requests statistics, sidecar state overrides, and key generation features within the main admin panel dashboard.', files: ['src/app/admin/page.tsx', 'src/app/admin/mt5-farm/page.tsx'] }
+        ]
+      }
+    ]
+  },
+  {
+    date: 'June 15, 2026',
+    dayLabel: 'Monday',
+    commitCount: 4,
+    blocks: [
+      {
+        tag: 'major',
+        time: '04:00 PM',
+        title: 'Interactive MT5 Scalping Blueprint & API Observability',
+        summary: 'Designed and deployed the MT5 MetaAPI scalping reference dashboard and expanded admin telemetry.',
+        items: [
+          { icon: '📊', title: 'MT5 Scalping Blueprint Infographic', description: 'Created mt5_scalping_infographic.html rendering connection topologies, risk metrics, and order routing systems with localStorage-persisted progress checklists.', files: ['mt5_scalping_infographic.html'] },
+          { icon: '🔌', title: 'Observability Endpoints Mapping', description: 'Registered Astro Mode analytics and user settings endpoints inside the system panel registry for real-time traffic inspections.', files: ['src/components/SystemApisTab.tsx', 'src/app/admin/page.tsx'] },
+          { icon: '🛡️', title: 'TypeScript compilation', description: 'Ensured zero TypeScript compilation errors across all modules.', files: ['src/app/admin/page.tsx'] }
+        ]
+      }
+    ]
+  },
+  {
+    date: 'June 14, 2026',
+    dayLabel: 'Sunday',
+    commitCount: 2,
+    blocks: [
+      {
+        tag: 'major',
+        time: '05:00 PM',
+        title: 'Orrery Clean Background Migration',
+        summary: 'Cleaned up the application background layer to resolve layout collisions and CPU rendering overhead caused by dynamic DOM orbits.',
+        items: [
+          { icon: '🧹', title: 'Orrery Background Clean', description: 'Removed all floating planet DOM elements and the SolarSystemOrrery component from the welcome page backdrop to deliver a fast, clutter-free, and professional interface.', files: ['src/components/TerminalTab.tsx', 'src/app/globals.css'] },
+          { icon: '🐛', title: 'Orphaned Chip Syntax Fix', description: 'Removed an orphaned duplicate JSX block that was causing React compile errors in /admin/page.tsx.', files: ['src/app/admin/page.tsx'] }
+        ]
+      }
+    ]
+  },
+  {
+    date: 'June 13, 2026',
+    dayLabel: 'Saturday',
+    commitCount: 14,
+    blocks: [
+      {
+        tag: 'major',
+        time: '11:59 PM',
+        title: 'Security PIN Lock Gateway',
+        summary: 'Implemented a secure developer gateway overlay on the worklog dashboard. Accessing the workspace requires entering the authorization PIN code \'0034\' via a custom tactile numpad or keyboard listener.',
+        items: [
+          { icon: '🔑', title: 'Tactile Glass Numpad UI', description: 'Built a glassmorphic 3x4 grid interface with digit key scaling, backspace, and clear parameters.', files: ['src/app/worklog/page.tsx'] },
+          { icon: '⌨️', title: 'Keyboard Entry Integration', description: 'Configured global event listeners binding numerical keys, Backspace, and Escape actions directly to state changes.', files: ['src/app/worklog/page.tsx'] },
+          { icon: '📳', title: 'Tactile Shake Alert', description: 'Designed CSS shake transforms and glowing red dot indicators on incorrect entry to replicate native app error feedback.', files: ['src/app/worklog/page.tsx'] }
+        ]
+      },
+      {
+        tag: 'major',
+        time: '11:30 PM',
+        title: 'Advanced Subsystem Implementation Details',
+        summary: 'Upscaled the implementation details for all 6 subsystems from basic high-level notes to granular, code-level technical specifications containing mathematical models, concrete table mappings, and API endpoints.',
+        items: [
+          { icon: '⚙️', title: 'Detailed Implementation Logs', description: 'Expanded all details arrays with exhaustive, production-grade technical descriptors detailing indicator algorithms, CTE walks, NOWPayments webhook verification, and broker integrations.', files: ['src/app/worklog/page.tsx'] },
+          { icon: '🛠️', title: 'Type Safety Restoration', description: 'Guaranteed strict TypeScript compilation with npx tsc by restoring the techStack typing attributes.', files: ['src/app/worklog/page.tsx'] }
+        ]
+      },
+      {
+        tag: 'major',
+        time: '04:30 PM',
+        title: 'Interactive SVG & Grid Flowchart Diagrams',
+        summary: 'Upscaled the Subsystems & Architecture tab to render high-fidelity, interactive SVG and Grid flowcharts instead of static text ASCII diagrams. Includes orthogonal path routing, neon data pulse animations, and relative node highlighting.',
+        items: [
+          { icon: '📐', title: 'Interactive SVG Connectors', description: 'Designed orthogonal elbow connectors routing paths dynamically between column and row coordinates.', files: ['src/app/worklog/page.tsx'] },
+          { icon: '⚡', title: 'Neon Pulse Animation', description: 'Configured SVG <animateMotion> circles traversing the path of hovered confluences in real time.', files: ['src/app/worklog/page.tsx'] },
+          { icon: '🎨', title: 'Status-Coded Node Badges', description: 'Color coded node types (start, process, decision, success, fail, warning) with glassmorphism and matching shadows.', files: ['src/app/worklog/page.tsx'] },
+          { icon: '🔍', title: 'Relative Node Highlighting', description: 'Hovering over any node dynamically highlights connected paths and fades out unrelated nodes.', files: ['src/app/worklog/page.tsx'] },
+          { icon: '📋', title: 'Collapsible ASCII Fallback', description: 'Enclosed the raw ASCII flowchart diagram inside a native <details> toggle to preserve compatibility.', files: ['src/app/worklog/page.tsx'] }
+        ]
+      },
+      {
+        tag: 'major',
+        time: '03:20 AM',
+        title: 'Upscaled Features Page & Interactive Subsystem Explorer',
+        summary: 'Upscaled the Subsystems & Architecture explorer page with a premium interactive sub-tab bar inside each card, real-time simulated sandbox dashboards, and diagnostic terminals for the core systems.',
+        items: [
+          { icon: '🏗️', title: 'Interactive Sub-Tabs Navigation', description: 'Added tabs for Overview, Flowchart, DB Schema, and Source Files within each subsystem card.', files: ['src/app/worklog/page.tsx'] },
+          { icon: '🪐', title: 'Interactive Astro Orrery Simulator', description: 'Configured preset selectors for Moon Phase (Waxing, Waning, Full, Eclipse), Mercury Orbit State (Direct vs Retrograde), and Aspect Alignments to dynamically alter SVG orbit speed, colors, risk recommendations, and lot multipliers in real time.', files: ['src/app/worklog/page.tsx'] },
+          { icon: '⚡', title: 'Interactive 9-Gate Confluence Evaluator', description: 'Built an override checkbox board allowing testers to toggle pass/fail status on individual confluences (Session, ATR Volatility, SMC Confirmation, Drawdown, etc.) and run sequential gate evaluation trials.', files: ['src/app/worklog/page.tsx'] },
+          { icon: '🌳', title: 'Referral Capping Calculator', description: 'Implemented an interactive input calculator for Alice, Bob, and Charlie\'s raw lots that instantly applies the 40% leg cap rule and computes total milestone progress.', files: ['src/app/worklog/page.tsx'] },
+          { icon: '💳', title: 'Active Diagnostic Console', description: 'Created clickable triggers simulating wallet checkout outcomes (Successful purchase log stream, Database lockout recovery self-healing, and Insufficient balance exceptions).', files: ['src/app/worklog/page.tsx'] },
+          { icon: '📋', title: 'Flowchart Copy-to-Clipboard', description: 'Implemented a copy-to-clipboard button on the monospace ASCII flowcharts with UI success state.', files: ['src/app/worklog/page.tsx'] },
+          { icon: '💾', title: 'PostgreSQL Database Schema Tables', description: 'Mapped table fields, type constraints, and description keys dynamically inside cards.', files: ['src/app/worklog/page.tsx'] }
+        ]
+      },
+      {
+        tag: 'major',
+        time: '02:45 AM',
+        title: 'Dynamic Architecture Documentation & App Features Explorer',
+        summary: 'Integrated an interactive "Features & Architecture" explorer tab directly into the internal developer Work Log. This tab compiles visual ASCII system flows, architectural diagrams, component paths, and specific details for the six core platform subsystems.',
+        items: [
+          { icon: '📊', title: 'Dynamic Tab Architecture Layout', description: 'Added a tab-switcher (Timeline vs Features & Architecture) in the Work Log layout, supporting search and filter parameters across both modes.', files: ['src/app/worklog/page.tsx'] },
+          { icon: '🏗️', title: 'Feature Architecture Visualizations', description: 'Wrote full detailed specs for the 9-Gate Signal Engine, Astro Mode Celestial Filter, SMC Pattern Scanner, Universal Trading Adapter, Multi-Level Referral Hub, and NOWPayments Ledger billing, rendering ASCII flow diagrams for each.', files: ['src/app/worklog/page.tsx'] },
+          { icon: '📝', title: 'Self-Referential Worklog Update', description: 'Documented the engineering logs pipeline updates in both the root WORKLOG.md and the dynamic public/worklog.md file.', files: ['public/worklog.md', 'WORKLOG.md'] }
+        ]
+      },
+      {
+        tag: 'feature',
+        time: '01:15 AM',
+        title: 'Welcome Screen Redesign & SVG Background Orrery',
+        summary: 'Redesigned the welcome page into a world-class portal with ambient glow, staggered entrance transitions, and custom SVG animations.',
+        items: [
+          { icon: '🎨', title: 'World-Class Welcome UI', description: 'Implemented an ambient background glow, structured 3-column feature grid, live system status strip, and staggered fade-in animations for all entrance components.', files: ['src/app/page.tsx'] },
+          { icon: '🪐', title: 'Pure SVG Solar System Orrery', description: 'Rebuilt the background celestial orrery as a lightweight pure SVG layout, allowing planets (Moon, Jupiter, Saturn, Mercury) to orbit in their respective background slots without overlapping or colliding with foreground interactive elements.', files: ['src/components/TerminalTab.tsx'] },
+          { icon: '🎨', title: 'Photorealistic Planet Gradients', description: 'Added CSS-radial gradient photorealistic SVG illustrations representing planets, complete with craters on the Moon/Mercury, horizontal wind bands and the Great Red Spot on Jupiter, and double-sided rings on Saturn.', files: ['src/components/TerminalTab.tsx', 'src/app/globals.css'] }
+        ]
+      }
+    ]
+  },
+  {
     date: 'June 12, 2026',
     dayLabel: 'Friday',
     commitCount: 22,

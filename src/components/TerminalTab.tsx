@@ -17,6 +17,7 @@ interface TerminalTabProps {
   onSendMessage: (text: string) => void;
   onGenerateSignal?: (symbol: string) => void;
   activeBrokerId: string;
+  allowedSymbols?: string[];
   onTradeExecuted?: (result: { orderId: string; fillPrice?: number; ticket: any }) => void;
   onOpenManager?: () => void;
   astroMode?: boolean;
@@ -203,14 +204,50 @@ function AstroWelcomeStatus() {
   );
 }
 
-export default function TerminalTab({ messages, onSendMessage, onGenerateSignal, activeBrokerId, onTradeExecuted, onOpenManager, astroMode: astroModeProp }: TerminalTabProps) {
+const COMMANDS = [
+  { name: '/analyze', desc: 'Perform multi-agent technical analysis', usage: '/analyze [symbol]', example: '/analyze EURUSD' },
+  { name: '/signal', desc: 'Generate trade signal and ticket', usage: '/signal [symbol]', example: '/signal Gold' },
+  { name: '/astro', desc: 'Check celestial parameters and LOT multiplier', usage: '/astro [symbol]', example: '/astro BTCUSD' },
+  { name: '/watchlist', desc: 'List active permitted instruments', usage: '/watchlist' },
+  { name: '/clear', desc: 'Clear conversation history', usage: '/clear' },
+];
+
+const QUICK_ACTIONS = [
+  { label: 'Analyze Gold', prompt: '/analyze Gold', icon: '📈' },
+  { label: 'Signal EURUSD', prompt: '/signal EURUSD', icon: '⚡' },
+  { label: 'Astro BTCUSD', prompt: '/astro BTCUSD', icon: '🔮' },
+  { label: 'SMC QQQ', prompt: '/analyze QQQ', icon: '🔍' },
+  { label: 'Watchlist', prompt: '/watchlist', icon: '📋' },
+];
+
+export default function TerminalTab({ messages, onSendMessage, onGenerateSignal, activeBrokerId, allowedSymbols, onTradeExecuted, onOpenManager, astroMode: astroModeProp }: TerminalTabProps) {
   // Allow ?astro=1 URL param to test animation without wiring the header toggle
   const searchParams = useSearchParams();
   const astroMode = astroModeProp ?? searchParams.get('astro') === '1';
   const [inputValue, setInputValue] = useState('');
+  const [activeCommandIndex, setActiveCommandIndex] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { setPendingSignal } = useSignal();
+
+  // Permitted instruments browser modal
+  const [showAssetsModal, setShowAssetsModal] = useState(false);
+  const [browseSearch, setBrowseSearch] = useState('');
+
+  // Reset search when modal closes
+  useEffect(() => {
+    if (!showAssetsModal) {
+      setBrowseSearch('');
+    }
+  }, [showAssetsModal]);
+
+  const symbolsToBrowse = allowedSymbols && allowedSymbols.length > 0
+    ? allowedSymbols
+    : WATCHLIST_ASSETS.map(a => a.symbol);
+
+  const filteredBrowseSymbols = symbolsToBrowse
+    .filter(sym => sym.toLowerCase().includes(browseSearch.toLowerCase()))
+    .slice(0, 100);
 
   // Live prices via SSE
   const { getPrice, connected } = useLivePrices();
@@ -329,7 +366,42 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
     setInputValue('');
   };
 
+  const filteredCommands = COMMANDS.filter(cmd =>
+    cmd.name.toLowerCase().startsWith(inputValue.toLowerCase())
+  );
+
+  const showCommandMenu = inputValue.startsWith('/') && filteredCommands.length > 0;
+
+  // Reset selected index when filtered list changes
+  useEffect(() => {
+    setActiveCommandIndex(0);
+  }, [inputValue]);
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (showCommandMenu) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setActiveCommandIndex((prev) => (prev + 1) % filteredCommands.length);
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setActiveCommandIndex((prev) => (prev - 1 + filteredCommands.length) % filteredCommands.length);
+        return;
+      }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const cmd = filteredCommands[activeCommandIndex];
+        setInputValue(cmd.name + ' ');
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setInputValue('');
+        return;
+      }
+    }
+
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend(e);
@@ -361,6 +433,15 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
             <span className={`live-dot ${connected ? 'live-dot-pulse' : ''}`} style={{ background: connected ? '#10b981' : '#ef4444' }} />
             <span className="text-[9px] font-bold text-[var(--subtext)] uppercase tracking-widest">{connected ? 'Live' : 'Off'}</span>
           </div>
+
+          {/* Allowed Instruments Modal Trigger */}
+          <button
+            onClick={() => setShowAssetsModal(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[var(--border)] bg-[var(--sidebar-bg)] hover:border-[var(--accent)]/40 hover:bg-[var(--accent)]/5 active:scale-95 transition-all text-[11px] font-bold text-[var(--subtext)] hover:text-[var(--text)] cursor-pointer shrink-0"
+          >
+            <span>🌐 {allowedSymbols && allowedSymbols.length > 0 ? `${allowedSymbols.length} Assets` : 'Default Assets'}</span>
+          </button>
+
           {WATCHLIST_ASSETS.map((asset) => {
             const livePrice = getPrice(asset.symbol);
             checkFlash(asset.symbol, livePrice);
@@ -810,8 +891,8 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
               // ── User message ──
               if (msg.sender === 'user') {
                 return (
-                  <div key={msg.id} className="flex flex-col items-end px-4 mb-6">
-                    <div className="bg-[var(--input-bg)] px-5 py-3 rounded-[20px] max-w-[90%] text-[15px] border border-[var(--border)] shadow-sm text-[var(--text)]">
+                  <div key={msg.id} className="flex flex-col items-end px-4 mb-6 animate-in fade-in duration-300 slide-in-from-right-2">
+                    <div className="bg-gradient-to-br from-[var(--accent)]/10 via-[var(--input-bg)] to-[var(--input-bg)] px-5.5 py-3.5 rounded-[22px] max-w-[85%] text-[14px] border border-[var(--border)] hover:border-[var(--accent)]/25 transition-all duration-300 shadow-[0_2px_8px_rgba(0,0,0,0.08)] text-[var(--text)] font-semibold">
                       {msg.text}
                     </div>
                   </div>
@@ -1258,7 +1339,7 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
 
                       {/* Plain text response (for general chat without market data) */}
                       {msg.text && msg.text !== '__TYPING__' && !msg.marketData && (
-                        <div className="bg-[var(--sidebar-bg)] border border-[var(--border)] px-5 py-3 rounded-[20px] max-w-full shadow-sm text-[var(--text)]">
+                        <div className="bg-gradient-to-br from-[var(--sidebar-bg)] to-[var(--input-bg)]/80 backdrop-blur-md border border-[var(--border)] hover:border-[var(--accent)]/20 transition-all duration-300 px-5.5 py-4 rounded-[22px] max-w-full shadow-[0_4px_22px_rgba(0,0,0,0.14)] text-[14px] leading-relaxed text-[var(--text)]">
                           {parseMarkdown(msg.text)}
                         </div>
                       )}
@@ -1334,8 +1415,60 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
 
       {/* Chat Input Footer */}
       <footer className="chat-input-wrapper shrink-0">
-        <div className="max-w-4xl mx-auto px-4 py-3">
-          <form onSubmit={handleSend} className="chat-input-container shadow-sm">
+        <div className="max-w-4xl mx-auto px-4 py-3 relative">
+
+          {/* Floating Command Autocomplete Menu */}
+          {showCommandMenu && (
+            <div className="absolute bottom-full left-4 right-4 mb-3 max-w-lg bg-[var(--sidebar-bg)]/92 backdrop-blur-xl border border-[var(--border)] rounded-2xl shadow-[0_16px_40px_rgba(0,0,0,0.45)] overflow-hidden z-50 animate-in slide-in-from-bottom-3 duration-250">
+              <div className="px-4 py-2.5 border-b border-[var(--border)]/50 bg-[var(--input-bg)]/60 flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-widest text-[var(--subtext)]">Terminal Commands</span>
+                <span className="text-[9px] text-[var(--subtext)]/70 font-mono">Use ↑ ↓ and Enter to select</span>
+              </div>
+              <div className="max-h-60 overflow-y-auto p-1.5 space-y-0.5 no-scrollbar">
+                {filteredCommands.map((cmd, idx) => (
+                  <div
+                    key={cmd.name}
+                    onClick={() => {
+                      setInputValue(cmd.name + ' ');
+                      textareaRef.current?.focus();
+                    }}
+                    className={`flex flex-col px-3 py-2 rounded-xl cursor-pointer transition-all duration-200 border ${
+                      idx === activeCommandIndex
+                        ? 'bg-[var(--accent)]/15 border-[var(--accent)]/30 shadow-[0_2px_8px_rgba(180,145,108,0.1)]'
+                        : 'hover:bg-[var(--input-bg)]/60 border-transparent'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-mono font-black text-[var(--accent)]">{cmd.name}</span>
+                      <span className="text-[9px] font-mono text-[var(--subtext)] opacity-70">{cmd.usage}</span>
+                    </div>
+                    <span className="text-[10px] text-[var(--subtext)] mt-0.5 leading-normal">{cmd.desc}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Quick Action Suggestion Pills */}
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-3 pt-1">
+            {QUICK_ACTIONS.map((action, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => {
+                  onSendMessage(action.prompt);
+                }}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[11px] font-bold bg-[var(--sidebar-bg)] border border-[var(--border)] hover:border-[var(--accent)]/40 hover:bg-[var(--accent)]/8 text-[var(--text)] transition-all duration-200 active:scale-95 shrink-0 shadow-sm cursor-pointer select-none"
+              >
+                <span>{action.icon}</span>
+                <span>{action.label}</span>
+              </button>
+            ))}
+          </div>
+
+          <form onSubmit={handleSend} className={`chat-input-container shadow-sm transition-all duration-300 ${
+            astroMode ? 'border-amber-500/40 shadow-[0_0_20px_rgba(245,158,11,0.18)] bg-gradient-to-r from-slate-950 via-indigo-950/40 to-slate-950' : ''
+          }`}>
             <button
               type="button"
               onClick={onOpenManager}
@@ -1383,6 +1516,61 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
           </form>
         </div>
       </footer>
+
+      {/* Premium Glassmorphic Assets Modal */}
+      {showAssetsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md px-4" onClick={() => setShowAssetsModal(false)}>
+          <div className="max-w-md w-full bg-[var(--sidebar-bg)] border border-[var(--border)] rounded-3xl p-6 text-[var(--text)] shadow-2xl relative overflow-hidden animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xs font-black uppercase tracking-wider text-[var(--accent)] flex items-center gap-1.5">
+                🌐 Allowed Instruments
+              </h3>
+              <button
+                onClick={() => setShowAssetsModal(false)}
+                className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[var(--input-bg)] text-[var(--subtext)] hover:text-[var(--text)] transition cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <p className="text-[11px] text-[var(--subtext)] mb-4">
+              These are the permitted instruments allowed to trade on your active account. Click any instrument to analyze it.
+            </p>
+
+            {/* Search Input */}
+            <div className="mb-4">
+              <input
+                type="text"
+                value={browseSearch}
+                onChange={(e) => setBrowseSearch(e.target.value)}
+                placeholder="Search stocks, forex, metals..."
+                className="w-full px-4 py-2.5 text-xs rounded-xl border border-[var(--border)] bg-[var(--input-bg)] text-[var(--text)] outline-none focus:border-[var(--accent)]/50"
+                autoFocus
+              />
+            </div>
+
+            {/* List */}
+            <div className="max-h-80 overflow-y-auto pr-1 space-y-1 no-scrollbar">
+              {filteredBrowseSymbols.length > 0 ? (
+                filteredBrowseSymbols.map((sym) => (
+                  <button
+                    key={sym}
+                    onClick={() => {
+                      onSendMessage(sym);
+                      setShowAssetsModal(false);
+                    }}
+                    className="w-full text-left px-4 py-2.5 rounded-xl hover:bg-[var(--accent)]/10 text-xs font-semibold text-[var(--text)] hover:text-[var(--accent)] transition-colors border border-[var(--border)] hover:border-[var(--accent)]/30 cursor-pointer"
+                  >
+                    {sym}
+                  </button>
+                ))
+              ) : (
+                <div className="p-4 text-xs text-[var(--subtext)] text-center">No matching assets found</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

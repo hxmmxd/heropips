@@ -1,4 +1,49 @@
-# June 13, 2026 | Saturday | Commits: 7
+# June 25, 2026 | Thursday | Commits: 2
+
+## [major] 03:45 PM - MT5 Farm Admin Layout Overflow & Visual Clipping Fixes
+Resolved visual layout clipping and overflow issues in the admin panel MT5 Farm sub-dashboard. Specifically, cards, input fields, key lists, and the "Revoke" button were being clipped on the right of the viewport in smaller dimensions.
+
+- 📏 **Main Container Responsiveness**: Added `min-width: 0` and `overflow-x: hidden` to `.adm-main` in `globals.css` to prevent the flex container from expanding past the viewport boundary.
+- ⚙️ **Responsive Form Inputs**: Replaced rigid flex behaviors on Label and Rate Limit inputs with a responsive `flex-wrap: wrap` row layout to prevent card width pushing.
+- 🔑 **Ellipsis & Truncation Handling**: Added `word-break: break-all` for monospace API key previews and `text-overflow: ellipsis` for long labels to preserve horizontal space.
+- 🛠️ **Accounts Layout Updates**: Upgraded accounts lists rows to wrap and flex responsively across all screens.
+
+## [major] 03:30 PM - Orchestrator Rate Limit Configuration Tuning
+Tuned the API Gateway rate limit configuration for the MT5 Farm Default Key to allow 200 requests/minute.
+
+- ⚙️ **Default Key Rate Limit Upgrade**: Altered the rate limit from 100/min to 200/min inside `/home/azureuser/orchestrator/api_keys.json` on the remote orchestrator VM.
+- 🔄 **Orchestrator Service Reload**: Executed systemd restart for `tradegpt-orchestrator.service` to apply the updated rate limit parameters instantly.
+
+# June 21, 2026 | Sunday | Commits: 12
+
+## [major] 06:00 PM - Custom MT5 Connection Farm Migration & Sidecar Integration
+Fully migrated the broker connection layer from MetaAPI to our proprietary MT5 Connection Farm, removing the third-party client SDK dependency and deploying a highly cost-effective, memory-optimized VPS node infrastructure.
+
+- 🔌 **MetaAPI Deprecation & Adapter Migration**: Rewrote `src/lib/broker.ts` and `src/lib/adapters/metatrader.ts` to query orchestrator and sidecar proxy APIs (`http://4.224.249.231:8080`) instead of MetaAPI REST and RPC SDK endpoints.
+- 🐛 **Orchestrator Status Inconsistency Resolving**: Programmed client-side validation routing to check both orchestrator state and sidecar connection responses in parallel. Displays `connected` status only if the sidecar proxy is awake and returns live account details.
+- 🟠 **Wake & Sleep Transitions Handling**: Configured polling handlers to support waking state `HTTP 202` during sleep/wake transition cycles, extending connection timeouts to 120 seconds.
+- 🛡️ **Verification & Credentials Fallbacks**: Added credentials error validation that catches `failed` orchestrator status and returns a raw database authentication fail warning to the client interface.
+- 📊 **Allowed Instruments Syncing**: Enabled live broker specification querying to write allowed symbol names and timezone offsets to user rows on Supabase.
+- 💼 **Accounts Admin Panel Control**: Integrated keys list, database requests statistics, sidecar state overrides, and key generation features within the main admin panel dashboard.
+
+# June 15, 2026 | Monday | Commits: 4
+
+## [major] 04:00 PM - Interactive MT5 Scalping Blueprint & API Observability
+Designed and deployed the MT5 MetaAPI scalping reference dashboard and expanded admin telemetry.
+
+- 📊 **MT5 Scalping Blueprint Infographic**: Created `mt5_scalping_infographic.html` rendering connection topologies, risk metrics, and order routing systems with localStorage-persisted progress checklists.
+- 🔌 **Observability Endpoints Mapping**: Registered Astro Mode analytics and user settings endpoints inside the system panel registry for real-time traffic inspections.
+- 🛡️ **TypeScript compilation**: Ensured zero TypeScript compilation errors across all modules.
+
+# June 14, 2026 | Sunday | Commits: 2
+
+## [major] 05:00 PM - Orrery Clean Background Migration
+Cleaned up the application background layer to resolve layout collisions and CPU rendering overhead caused by dynamic DOM orbits.
+
+- 🧹 **Orrery Background Clean**: Removed all floating planet DOM elements and the `SolarSystemOrrery` component from the welcome page backdrop to deliver a fast, clutter-free, and professional interface.
+- 🐛 **Orphaned Chip Syntax Fix**: Removed an orphaned duplicate JSX block that was causing React compile errors in `/admin/page.tsx`.
+
+# June 13, 2026 | Saturday | Commits: 14
 
 ## [major] 11:59 PM - Security PIN Lock Gateway
 Implemented a secure developer gateway overlay on the worklog dashboard. Accessing the workspace requires entering the authorization PIN code '0034' via a custom tactile numpad or keyboard listener.
@@ -40,6 +85,13 @@ Integrated an interactive "Features & Architecture" explorer tab directly into t
 - 🏗️ **Feature Architecture Visualizations**: Wrote full detailed specs for the 9-Gate Signal Engine, Astro Mode Celestial Filter, SMC Pattern Scanner, Universal Trading Adapter, Multi-Level Referral Hub, and NOWPayments Ledger billing, rendering ASCII flow diagrams for each. [`src/app/worklog/page.tsx`]
 - 📝 **Self-Referential Worklog Update**: Documented the engineering logs pipeline updates in both the root `WORKLOG.md` and the dynamic `public/worklog.md` file. [`public/worklog.md`, `WORKLOG.md`]
 
+## [feature] 01:15 AM - Welcome Screen Redesign & SVG Background Orrery
+Redesigned the welcome page into a world-class portal with ambient glow, staggered entrance transitions, and custom SVG animations.
+
+- 🎨 **World-Class Welcome UI**: Implemented an ambient background glow, structured 3-column feature grid, live system status strip, and staggered fade-in animations for all entrance components.
+- 🪐 **Pure SVG Solar System Orrery**: Rebuilt the background celestial orrery as a lightweight pure SVG layout, allowing planets (Moon, Jupiter, Saturn, Mercury) to orbit in their respective background slots without overlapping or colliding with foreground interactive elements.
+- 🎨 **Photorealistic Planet Gradients**: Added CSS-radial gradient photorealistic SVG illustrations representing planets, complete with craters on the Moon/Mercury, horizontal wind bands and the Great Red Spot on Jupiter, and double-sided rings on Saturn.
+
 # June 12, 2026 | Friday | Commits: 22
 
 ## [major] 08:30 PM - Astro Mode Complete Release — Gates, Orrery & Analytics
@@ -52,6 +104,15 @@ Completed the remaining specifications for Astro Mode: automated activation card
 - 🐛 **Fix: Gating Parameter Passthrough**: Resolved critical bug where `getMarketSnapshot` was called without `astroMode`, preventing Gates 13-17 from running during chat query signal checks. [`src/app/api/chat/route.ts`]
 - 🛸 **Astro Typing Loader**: Rebuilt bot typing state under astro mode to show a rotating planet-and-moon orbit SVG alongside scrolling zodiac symbols (`♈♉♊♋♌♍♎♏`) instead of standard loading text. [`src/components/TerminalTab.tsx`, `src/app/globals.css`]
 - ✨ **Amber Gate Styling & Icons**: Replaced generic check/cross icons for Gates 13-17 with custom planet symbols (`☽♃☿◑✦`), amber accent stripes, and custom `ASTRO` badges. [`src/components/TerminalTab.tsx`]
+
+# June 11, 2026 | Thursday | Commits: 4
+
+## [major] 06:00 PM - UI & Theme Engine Refinement
+Upgraded dark mode color schemes, animated Sun/Moon SVGs, and sidebar navigation structures.
+
+- 🌗 **Animated Sun/Moon SVG Toggle**: Replaced the basic emoji icons in the dark mode switch with a custom-engineered, animated Sun/Moon morphing SVG. [`src/components/TerminalTab.tsx`, `src/app/page.tsx`]
+- 🎨 **Warm Dark Palette Refinement**: Upgraded theme variables in [globals.css](file:///Users/lavish/Sites/Tradegpt/src/app/globals.css) to apply warm dark grays, slate borders, and custom golden-bronze active highlights.
+- ⚙️ **Broker Display Normalization**: Replaced hardcoded broker servers with cleaned and normalized server strings across Header, BrokersTab, and Manager reports.
 
 # June 10, 2026 | Wednesday | Commits: 5
 
@@ -109,6 +170,15 @@ Extended the 7-gate engine to 9 gates by integrating four real-world data module
 - 📐 **B3: RSI/MACD Divergence Detection**: Computes full RSI-14 and MACD histogram series from raw candles using EMA smoothing. Detects swing pivots (3-bar lookback), compares last two swing lows/highs between price and indicator. Outputs bullish/bearish/none with strength score 0–100. Auto-tags SMC patterns when found. [`src/lib/divergence.ts`, `src/lib/market.ts`]
 - 🔗 **B4: Correlated Asset Checker — Gate 9**: Maps symbols to their correlated pairs: Gold↔DXY (inverse), BTC↔ETH (positive), EUR/USD↔GBP/USD (positive USD cluster), QQQ↔SPY (index cluster). Fetches 1H candles for each pair, computes 5-bar SMA momentum, checks if direction agrees. 5-min cache. Wired as Gate 9. [`src/lib/correlation.ts`, `src/lib/market.ts`]
 - ✅ **TypeScript Build — Zero Errors**: All 4 Phase B modules + 9-gate engine pass npx tsc --noEmit cleanly. Verified with live browser test showing 8/9 and 9/9 gates passing on XAUUSD and BTCUSD queries. [`src/lib/market.ts`]
+
+## [major] 03:00 AM - Phase C: 12-Gate Signal Validation & Kelly Lot Sizing
+Expanded the signal validation pipeline from 9 gates to 12 gates by adding three new indicators and critical verification nodes.
+
+- 📈 **C1: Session VWAP Calculation**: Session-based VWAP ±1σ and ±2σ band calculations resolved locally in `vwap.ts` from raw 1H candle data to eliminate additional API cost. [`src/lib/vwap.ts`, `src/lib/market.ts`]
+- 📡 **C2: Multi-Timeframe (MTF) Bias Stack**: High-timeframe alignment checking Daily, Weekly, and 4H bias in `mtfBias.ts`. Restricts execution unless at least 2/3 agree. Configured as a critical gate. [`src/lib/mtfBias.ts`, `src/lib/market.ts`]
+- 🕯️ **C3: Candlestick Patterns Scanner**: Local script `candlePatterns.ts` scanning candles for Bullish/Bearish Engulfing, Pin Bars, Dojis, Morning/Evening Stars, Inside Bars, 3 White Soldiers, and 3 Black Crows. [`src/lib/candlePatterns.ts`, `src/lib/market.ts`]
+- 📐 **C4: Kelly Criterion Position Sizing**: Computes optimal f* risk percentage dynamically in `kellyCriterion.ts` using historical win/loss ratios fetched from Supabase `trade_log`, capped at 2% total account risk. [`src/lib/kellyCriterion.ts`, `src/lib/market.ts`]
+- ⚙️ **12-Gate Integration**: Wired VWAP, MTF, and Candlestick scans into the signal confluence score calculation. Re-defined SIGNAL thresholds to require 8/12 gates passed, and WATCH to require 5/12. [`src/lib/market.ts`]
 
 # June 6, 2026 | Saturday | Commits: 5
 

@@ -1,19 +1,33 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
 import ModalNode from '@/components/ModalNode';
 import TerminalTab from '@/components/TerminalTab';
-import ManagerTab from '@/components/ManagerTab';
-import BrokersTab from '@/components/BrokersTab';
-import HistoryTab from '@/components/HistoryTab';
-import ReferralTab from '@/components/ReferralTab';
-import ProfileTab from '@/components/ProfileTab';
-import SubscriptionTab from '@/components/SubscriptionTab';
-import CoursesTab from '@/components/CoursesTab';
-import AstroPerformanceTab from '@/components/AstroPerformanceTab';
 import { Broker, ChatMessage, Partner, TradeLog } from '@/types';
+
+// Lazy-loaded tabs — only fetched when the user navigates to them
+const ManagerTab         = lazy(() => import('@/components/ManagerTab'));
+const BrokersTab         = lazy(() => import('@/components/BrokersTab'));
+const HistoryTab         = lazy(() => import('@/components/HistoryTab'));
+const ReferralTab        = lazy(() => import('@/components/ReferralTab'));
+const ProfileTab         = lazy(() => import('@/components/ProfileTab'));
+const SubscriptionTab    = lazy(() => import('@/components/SubscriptionTab'));
+const CoursesTab         = lazy(() => import('@/components/CoursesTab'));
+const AstroPerformanceTab = lazy(() => import('@/components/AstroPerformanceTab'));
+
+// Minimal tab skeleton to show while a lazy tab loads
+function TabSkeleton() {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', opacity: 0.4 }}>
+      <svg className="animate-spin w-6 h-6 text-[var(--accent)]" fill="none" viewBox="0 0 24 24">
+        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3"/>
+        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+      </svg>
+    </div>
+  );
+}
 
 function HomeContent() {
   const [currentTab, setCurrentTab] = useState('terminal');
@@ -24,13 +38,25 @@ function HomeContent() {
   const [showAstroDisclaimer, setShowAstroDisclaimer] = useState(false);
   const [disclaimerChecked, setDisclaimerChecked] = useState(false);
 
-  // Initial Brokers Data
-  const [brokers, setBrokers] = useState<Broker[]>([]);
-  const [activeBrokerName, setActiveBrokerName] = useState('');
+  // Initial Brokers Data — starts empty (SSR safe), cache loaded in useEffect
+  const [brokers, setBrokersRaw] = useState<Broker[]>([]);
+  const [activeBrokerId, setActiveBrokerId] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const pollTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pollAttemptsRef = React.useRef(0);
+
+  // Wrapper that keeps localStorage in sync
+  const setBrokers = React.useCallback((updater: Broker[] | ((prev: Broker[]) => Broker[])) => {
+    setBrokersRaw(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      try { localStorage.setItem('tgpt_brokers', JSON.stringify(next)); } catch {}
+      return next;
+    });
+  }, []);
 
   // Find currently active broker data
   const defaultBroker: Broker = { name: 'No Broker', balance: '0.00', pnl: '0.00', equity: '0.00', acc: 'none' };
-  const activeBroker = brokers.find((b) => b.name === activeBrokerName) || brokers[0] || defaultBroker;
+  const activeBroker = brokers.find((b) => b.acc === activeBrokerId) || brokers[0] || defaultBroker;
 
   // Chat Messages state
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -65,6 +91,17 @@ function HomeContent() {
     if (saved) {
       setTheme('dark');
     }
+  }, []);
+
+  // Hydrate broker list from localStorage (runs before API fetch, no hydration mismatch)
+  useEffect(() => {
+    try {
+      const cached = localStorage.getItem('tgpt_brokers');
+      if (cached) {
+        const parsed: Broker[] = JSON.parse(cached);
+        if (parsed.length > 0) setBrokersRaw(parsed);
+      }
+    } catch {}
   }, []);
 
   const handleToggleAstroMode = () => {
@@ -155,6 +192,60 @@ function HomeContent() {
     setSidebarOpen(false);
   };
 
+  // Shared broker data mapper — handles both number and string values from different sources
+  const mapBroker = React.useCallback((b: any): Broker => {
+    const toNum = (v: any) => typeof v === 'number' ? v : parseFloat(String(v).replace(/,/g, '')) || 0;
+    const balance = toNum(b.balance);
+    const equity  = toNum(b.equity);
+    const pnl     = toNum(b.pnl);
+    const fmt     = (n: number) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return {
+      name:                b.name,
+      balance:             fmt(balance),
+      pnl:                 (pnl >= 0 ? '+' : '') + fmt(pnl),
+      equity:              fmt(equity),
+      acc:                 b.id || b.login,
+      status:              b.status,
+      timezone_offset:     b.timezone_offset,
+      broker_timezone_name: b.broker_timezone_name,
+      allowed_symbols:     b.allowed_symbols,
+    };
+  }, []);
+
+  // Auto-poll: refetch balances every 5s while any broker is still connecting or has $0 balance.
+  // Polls for up to 120 seconds (24 attempts) before giving up.
+  const startBalancePoll = React.useCallback(() => {
+    if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
+    pollAttemptsRef.current = 0;
+
+    const poll = async () => {
+      if (pollAttemptsRef.current >= 24) return; // give up after ~120s
+      pollAttemptsRef.current += 1;
+      try {
+        const res = await fetch('/api/broker');
+        const data = await res.json();
+        if (data.brokers?.length > 0) {
+          const mapped = data.brokers.map(mapBroker);
+          setBrokers(mapped);
+          // Keep polling if any broker is still 'connecting' or has $0 balance.
+          // 'connecting' covers: starting, waking, or orchestrator status mismatch.
+          const stillWaiting = mapped.some(
+            (b: Broker) => b.status === 'connecting' || b.balance === '0.00'
+          );
+          if (stillWaiting && pollAttemptsRef.current < 24) {
+            pollTimerRef.current = setTimeout(poll, 5000);
+          }
+        }
+      } catch {
+        // silently retry
+        pollTimerRef.current = setTimeout(poll, 5000);
+      }
+    };
+
+    // First poll after 4 seconds
+    pollTimerRef.current = setTimeout(poll, 4000);
+  }, []);
+
   // Load connected brokers and trade logs from server on mount
   useEffect(() => {
     const fetchBrokers = async () => {
@@ -162,16 +253,12 @@ function HomeContent() {
         const res = await fetch('/api/broker');
         const data = await res.json();
         if (data.brokers?.length > 0) {
-          setBrokers(data.brokers.map((b: any) => ({
-            name: b.name,
-            balance: b.balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-            pnl: (b.pnl >= 0 ? '+' : '') + b.pnl.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-            equity: b.equity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-            acc: b.id || b.login,  // prefer MetaAPI UUID for trade execution
-            timezone_offset: b.timezone_offset,
-            broker_timezone_name: b.broker_timezone_name,
-            allowed_symbols: b.allowed_symbols,
-          })));
+          const mapped = data.brokers.map(mapBroker);
+          setBrokers(mapped);
+          // Auto-poll if any broker is still connecting or has $0 (sidecar warming up)
+          if (mapped.some((b: Broker) => b.status === 'connecting' || b.balance === '0.00')) {
+            startBalancePoll();
+          }
         }
       } catch (err) {
         console.error('Failed to load brokers:', err);
@@ -195,7 +282,29 @@ function HomeContent() {
 
     // Track session info (IP, geo, device) — fire-and-forget
     fetch('/api/session-track', { method: 'POST' }).catch(() => {});
+
+    return () => {
+      if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
+    };
   }, []);
+
+  // Real-time balance polling: fetch broker status & balance every 3 seconds
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch('/api/broker');
+        const data = await res.json();
+        if (data.brokers?.length > 0) {
+          const mapped = data.brokers.map(mapBroker);
+          setBrokers(mapped);
+        }
+      } catch (err) {
+        console.error('[Balance Polling] Error fetching brokers:', err);
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [mapBroker, setBrokers]);
 
   // Add new broker node from pairing modal
   const handleAddBrokerNode = async (server: string, loginId: string, password: string) => {
@@ -209,9 +318,10 @@ function HomeContent() {
       pnl: '0.00',
       equity: 'Connecting...',
       acc: loginId,
+      status: 'connecting',
     };
     setBrokers((prev) => [...prev, connectingBroker]);
-    setActiveBrokerName(displayName);
+    setActiveBrokerId(loginId);
 
     try {
       const res = await fetch('/api/broker', {
@@ -222,29 +332,30 @@ function HomeContent() {
       const data = await res.json();
       if (data.success && data.broker) {
         const b = data.broker;
-        setBrokers((prev) =>
-          prev.map((item) =>
-            item.acc === loginId
-              ? {
-                  name: b.name,
-                  balance: b.balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-                  pnl: (b.pnl >= 0 ? '+' : '') + b.pnl.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-                  equity: b.equity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-                  acc: b.login,
-                  timezone_offset: b.timezone_offset,
-                  broker_timezone_name: b.broker_timezone_name,
-                  allowed_symbols: b.allowed_symbols,
-                }
-              : item
-          )
-        );
+        const mapped: Broker = {
+          name: b.name,
+          balance: b.balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+          pnl: (b.pnl >= 0 ? '+' : '') + b.pnl.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+          equity: b.equity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+          acc: b.login,
+          status: b.status,
+          timezone_offset: b.timezone_offset,
+          broker_timezone_name: b.broker_timezone_name,
+          allowed_symbols: b.allowed_symbols,
+        };
+        setBrokers((prev) => prev.map((item) => item.acc === loginId ? mapped : item));
+        // Always start polling after connect — sidecar may need time to start up
+        // (poll stops automatically once status reaches 'connected' or after 120s)
+        startBalancePoll();
       } else {
         throw new Error(data.error || 'Failed to connect broker');
       }
     } catch (err: any) {
       console.error(err);
-      alert(`Connection failed: ${err.message}`);
+      // Remove the placeholder and let the error surface in the UI
       setBrokers((prev) => prev.filter((item) => item.acc !== loginId));
+      // Re-throw so ModalNode can display the error message in its own UI
+      throw err;
     }
   };
 
@@ -260,9 +371,9 @@ function HomeContent() {
       if (data.success) {
         setBrokers((prev) => prev.filter((b) => b.acc !== acc));
         // If disconnected broker was active, switch to first remaining
-        if (activeBrokerName?.includes(acc)) {
+        if (activeBrokerId === acc) {
           const remaining = brokers.filter((b) => b.acc !== acc);
-          setActiveBrokerName(remaining[0]?.name || '');
+          setActiveBrokerId(remaining[0]?.acc || '');
         }
       } else {
         alert('Disconnect failed: ' + (data.error || 'Unknown error'));
@@ -274,28 +385,64 @@ function HomeContent() {
 
   // Refresh live balances
   const handleRefreshBalances = async () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
     try {
       const res = await fetch('/api/broker');
       const data = await res.json();
       if (data.brokers?.length > 0) {
-        setBrokers(data.brokers.map((b: any) => ({
-          name: b.name,
-          balance: b.balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-          pnl: (b.pnl >= 0 ? '+' : '') + b.pnl.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-          equity: b.equity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-          acc: b.id || b.login,
-          timezone_offset: b.timezone_offset,
-          broker_timezone_name: b.broker_timezone_name,
-          allowed_symbols: b.allowed_symbols,
-        })));
+        const mapped = data.brokers.map(mapBroker);
+        setBrokers(mapped);
+        if (mapped.some((b: Broker) => b.balance === '0.00')) {
+          startBalancePoll();
+        }
       }
     } catch (err) {
       console.error('Failed to refresh balances:', err);
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
   // Handle sending messages via live API
   const handleSendMessage = async (text: string, forceSignal?: boolean) => {
+    const trimmed = text.trim();
+
+    // ── Command Interceptors (Client-Side) ───────────────────
+    if (trimmed.startsWith('/')) {
+      const parts = trimmed.split(/\s+/);
+      const cmd = parts[0].toLowerCase();
+
+      if (cmd === '/clear') {
+        setMessages([]);
+        return;
+      }
+
+      if (cmd === '/watchlist') {
+        const list = activeBroker.allowed_symbols && activeBroker.allowed_symbols.length > 0
+          ? activeBroker.allowed_symbols
+          : ['XAUUSD', 'BTCUSD', 'ETHUSD', 'EURUSD', 'GBPUSD', 'NAS100', 'US30', 'OIL', 'SP500'];
+
+        const userMsg: ChatMessage = {
+          id: `msg-${Date.now()}-user`,
+          sender: 'user',
+          text,
+        };
+        const botReply: ChatMessage = {
+          id: `msg-${Date.now()}-bot`,
+          sender: 'bot',
+          text: `### 📋 Active Watchlist\nHere are the permitted instruments for your connected account **${activeBroker.name}**:\n\n` +
+            list.map(s => `* **${s}**`).join('\n') +
+            `\n\nClick any of these assets or type their name to analyze them.`,
+        };
+        setMessages(prev => [...prev, userMsg, botReply]);
+        return;
+      }
+    }
+
+    const isAstroCommand = trimmed.toLowerCase().startsWith('/astro');
+    const isSignalCommand = trimmed.toLowerCase().startsWith('/signal');
+
     const newUserMessage: ChatMessage = {
       id: `msg-${Date.now()}-user`,
       sender: 'user',
@@ -329,9 +476,9 @@ function HomeContent() {
         body: JSON.stringify({
           messages: conversationHistory,
           accountBalance: activeBroker.balance,
-          forceSignal: forceSignal || false,
+          forceSignal: forceSignal || isSignalCommand,
           activeBrokerId: activeBroker.acc,
-          astroMode: astroMode,
+          astroMode: astroMode || isAstroCommand,
         }),
       });
 
@@ -392,9 +539,10 @@ function HomeContent() {
         <Header
           brokers={brokers}
           activeBroker={activeBroker}
-          onSelectBroker={setActiveBrokerName}
+          onSelectBroker={setActiveBrokerId}
           onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
           onRefresh={handleRefreshBalances}
+          isRefreshing={isRefreshing}
           astroMode={astroMode}
           onToggleAstroMode={handleToggleAstroMode}
         />
@@ -407,6 +555,7 @@ function HomeContent() {
               onSendMessage={handleSendMessage}
               onGenerateSignal={handleGenerateSignal}
               activeBrokerId={activeBroker.acc}
+              allowedSymbols={activeBroker.allowed_symbols}
               onOpenManager={() => setCurrentTab('manager')}
               astroMode={astroMode}
               onTradeExecuted={(result) => {
@@ -457,52 +606,74 @@ function HomeContent() {
           )}
 
           {currentTab === 'manager' && (
-            <ManagerTab
-              activeBrokerId={activeBroker.acc}
-              allowedSymbols={activeBroker.allowed_symbols}
-              onNavigateToTerminal={() => setCurrentTab('terminal')}
-              onAccountUpdate={(info) => {
-                setBrokers(prev => prev.map(b => {
-                  if (b.acc === activeBroker.acc) {
-                    return {
-                      ...b,
-                      balance: info.balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-                      equity: info.equity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-                      pnl: (info.pnl >= 0 ? '+' : '') + info.pnl.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-                    };
-                  }
-                  return b;
-                }));
-              }}
-            />
+            <Suspense fallback={<TabSkeleton />}>
+              <ManagerTab
+                activeBrokerId={activeBroker.acc}
+                allowedSymbols={activeBroker.allowed_symbols}
+                onNavigateToTerminal={() => setCurrentTab('terminal')}
+                onAccountUpdate={(info) => {
+                  setBrokers(prev => prev.map(b => {
+                    if (b.acc === activeBroker.acc) {
+                      return {
+                        ...b,
+                        balance: info.balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                        equity: info.equity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                        pnl: (info.pnl >= 0 ? '+' : '') + info.pnl.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                      };
+                    }
+                    return b;
+                  }));
+                }}
+              />
+            </Suspense>
           )}
 
           {currentTab === 'brokers' && (
-            <BrokersTab brokers={brokers} onOpenModal={() => setModalOpen(true)} onDisconnect={handleDisconnectBroker} />
+            <Suspense fallback={<TabSkeleton />}>
+              <BrokersTab
+                brokers={brokers}
+                onOpenModal={() => setModalOpen(true)}
+                onDisconnect={handleDisconnectBroker}
+                onRefresh={handleRefreshBalances}
+                isRefreshing={isRefreshing}
+              />
+            </Suspense>
           )}
 
           {currentTab === 'history' && (
-            <HistoryTab logs={logs} />
+            <Suspense fallback={<TabSkeleton />}>
+              <HistoryTab logs={logs} />
+            </Suspense>
           )}
 
           {currentTab === 'referral' && (
-            <ReferralTab partners={partners} switchTab={setCurrentTab} />
+            <Suspense fallback={<TabSkeleton />}>
+              <ReferralTab partners={partners} switchTab={setCurrentTab} />
+            </Suspense>
           )}
 
           {currentTab === 'courses' && (
-            <CoursesTab />
+            <Suspense fallback={<TabSkeleton />}>
+              <CoursesTab />
+            </Suspense>
           )}
 
           {currentTab === 'profile' && (
-            <ProfileTab theme={theme} switchTab={setCurrentTab} />
+            <Suspense fallback={<TabSkeleton />}>
+              <ProfileTab theme={theme} switchTab={setCurrentTab} />
+            </Suspense>
           )}
 
           {currentTab === 'subscription' && (
-            <SubscriptionTab onBack={() => setCurrentTab('profile')} />
+            <Suspense fallback={<TabSkeleton />}>
+              <SubscriptionTab onBack={() => setCurrentTab('profile')} />
+            </Suspense>
           )}
 
           {currentTab === 'astro-performance' && (
-            <AstroPerformanceTab />
+            <Suspense fallback={<TabSkeleton />}>
+              <AstroPerformanceTab />
+            </Suspense>
           )}
         </div>
       </main>

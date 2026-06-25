@@ -34,8 +34,54 @@ export async function POST(request: Request) {
     const forceSignal = body.forceSignal === true;
     const astroMode = body.astroMode === true;
 
+    const activeBrokerId = body.activeBrokerId;
+
+    // Load allowed symbols of active broker from cache / DB
+    let allowedSymbols: string[] = [];
+    if (activeBrokerId && activeBrokerId !== 'none') {
+      try {
+        const { getAllBrokers, getAllSimulatedBrokers, syncBrokerToSupabase } = await import('@/lib/broker');
+        const { farmGetSymbols, resolveAccountId } = await import('@/lib/mt5farm');
+
+        const supabase = createServerClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        let brokers = await getAllBrokers(user?.id);
+        let activeBroker = brokers.find(b => b.id === activeBrokerId || b.login === activeBrokerId);
+
+        if (!activeBroker || !activeBroker.allowed_symbols || activeBroker.allowed_symbols.length === 0) {
+          const localBrokers = getAllSimulatedBrokers();
+          const localActive = localBrokers.find(b => b.id === activeBrokerId || b.login === activeBrokerId);
+          if (localActive) {
+            activeBroker = localActive;
+          }
+        }
+
+        if (activeBroker) {
+          allowedSymbols = activeBroker.allowed_symbols || [];
+
+          // Self-healing: if cache is empty, fetch live from MT5 Farm sidecar
+          if (allowedSymbols.length === 0) {
+            const loginOrId = activeBroker.login || activeBroker.id;
+            const accountId = await resolveAccountId(loginOrId);
+            const symbols = await farmGetSymbols(accountId);
+            if (symbols && symbols.length > 0) {
+              allowedSymbols = symbols;
+              activeBroker.allowed_symbols = symbols;
+              
+              if (user?.id) {
+                // Sync updated symbols array back to Supabase & local DB cache
+                syncBrokerToSupabase(activeBroker, user.id).catch(() => {});
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.error('[Chat API] Failed to fetch allowed symbols:', err);
+      }
+    }
+
     // 1. Detect asset from user message
-    const symbol = detectSymbol(lastUserMessage);
+    const symbol = detectSymbol(lastUserMessage, allowedSymbols);
     const explicitSignal = forceSignal || wantsSignal(lastUserMessage);
 
     // ── Astro Gate (Phase 5) ─────────────────────────────────────

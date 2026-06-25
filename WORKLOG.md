@@ -1,6 +1,6 @@
 # TradeGPT — Development Worklog
 
-> **Last Updated:** June 10, 2026 | **Commit:** `7deba70` | **Branch:** `main`
+> **Last Updated:** June 25, 2026 | **Commit:** `a9c5174` | **Branch:** `main`
 
 ---
 
@@ -366,10 +366,41 @@ Validates signals against correlated/inverse markets:
 | `supabase/migrations/20250609_courses.sql` | — | Schema migration adding course modules and levels |
 | `supabase/migrations/20250610_paid_courses.sql` | — | Ledger support modifications allowing course payments |
 | `supabase/migrations/20260610_metaapi_extended_fields.sql` | — | Timezone offset, name, and allowed symbols migration |
+| `mt5_scalping_infographic.html` | 84.8 KB | Interactive MT5 MetaAPI scalping reference blueprint dashboard |
 
 ---
 
 ## 📝 Changelog
+
+### v2.8.0 — MT5 Farm Admin Layout & Orchestrator Rate Limit Upgrades (June 25, 2026)
+
+**Added:**
+- Admin Panel Responsiveness: Added flex-wrapping, ellipsis/truncation rules, and horizontal scroll configurations to the MT5 Farm cards, inputs, and listings. Added `min-width: 0` to the main `.adm-main` flex layout in [globals.css](file:///Users/lavish/Sites/Tradegpt/src/app/globals.css) to prevent layout clipping.
+- Default Key Rate Limit Upgrade: Upgraded the default API key's rate limit to 200 requests/minute inside `api_keys.json` on the remote orchestrator host, reloading the systemd service.
+
+### v2.7.5 — Custom MT5 Connection Farm Integration (June 21, 2026)
+
+**Added:**
+- MetaAPI Deprecation & Adapter Migration: Replaced the external MetaAPI client SDK with our proprietary MT5 Connection Farm REST proxies. Rewrote `broker.ts` and `metatrader.ts` adapter libraries to query the local orchestrator node (`http://4.224.249.231:8080`) directly.
+- Status Inconsistency Bug Fix: Checked orchestrator and sidecar API statuses in parallel. Resolved issues where active brokers showed connected in UI when sidecar servers were still booting up.
+- Waking Transition Support: Handled waking status (HTTP 202) correctly and extended client balance-polling thresholds to 120 seconds to allow cold containers to boot.
+- Sidecar Credentials Fail Alerting: Captured `failed` orchestrator status (due to bad broker credentials or invalid server strings) and routed detailed errors to the connection UI form.
+- Allowed Instruments DB Syncing: Queries allowed symbols and timezone offsets dynamically on connection and registers them to user profile metadata in Supabase.
+- Farm Admin Management View: Integrated sidecar container listings, health telemetry (RAM percent, Sandboxie state), request graphs, and programmatic API key generation/revocation inside the administrative section.
+
+### v2.7.0 — Orrery Background Clean & Astro Adjustments (June 14, 2026)
+
+**Removed:**
+- background planet particles: Deleted floating planet components and the background SVG SolarSystemOrrery from the welcome layout to save GPU rendering cycles and avoid DOM layout overlap.
+- Re-aligned JSX markup on the admin overview interface to eliminate syntax crashes.
+
+### v2.6.0 — MT5 Scalping Infographic & Observability Updates (June 15, 2026)
+
+**Added:**
+- Interactive MT5 Scalping Infographic: Added [mt5_scalping_infographic.html](file:///Users/lavish/Sites/Tradegpt/mt5_scalping_infographic.html) in the root directory. Renders a visually rich dashboard and spec reference presenting MT5 MetaAPI scalping connections, stop management, and risk mitigation details. Includes an interactive checklist with `localStorage` persistence and TypeScript code block tabs.
+- Astro Mode Observability Endpoints: Embedded `/api/astro` and `/api/astro/analytics` endpoints in the System API reference panel.
+- User Preference Telemetry: Integrated `/api/user/settings` endpoints (GET & PATCH) inside the admin System APIs tab for full observability.
+- Type Safety Validation: Confirmed project compiles cleanly using `npx tsc --noEmit` after all integrations.
 
 ### v2.5.0 — Dynamic Architecture & Features Explorer (June 13, 2026)
 

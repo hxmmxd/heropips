@@ -81,14 +81,80 @@ export function displaySymbol(apiSymbol: string): string {
   return DISPLAY_MAP[apiSymbol] || apiSymbol.replace('/', '');
 }
 
+export function cleanBrokerSymbolToStandard(symbol: string): string {
+  const s = symbol.toUpperCase().split('.')[0].replace(/[^A-Z0-9]/g, '');
+  if (s.startsWith('EURUSD')) return 'EUR/USD';
+  if (s.startsWith('GBPUSD')) return 'GBP/USD';
+  if (s.startsWith('USDJPY')) return 'USD/JPY';
+  if (s.startsWith('XAUUSD') || s.startsWith('GOLD')) return 'XAU/USD';
+  if (s.startsWith('BTCUSD') || s.startsWith('BTC')) return 'BTC/USD';
+  if (s.startsWith('ETHUSD') || s.startsWith('ETH')) return 'ETH/USD';
+  
+  // Generic 6-letter forex pair formatter (e.g. AUDPLN -> AUD/PLN)
+  if (s.length === 6 && /^[A-Z]{6}$/.test(s)) {
+    const nonForex6 = ['NAS100', 'US30', 'SP500', 'USOIL', 'XAUUSD', 'BTCUSD', 'ETHUSD', 'XAGUSD'];
+    if (!nonForex6.includes(s)) {
+      return `${s.slice(0, 3)}/${s.slice(3)}`;
+    }
+  }
+  
+  return symbol.split('.')[0];
+}
+
+export function isStockSymbol(symbol: string): boolean {
+  const s = symbol.toUpperCase();
+  if (s.includes('/') || s.includes('USD') || s.includes('EUR') || s.includes('GBP') || s.includes('JPY')) {
+    const nonStocks = ['GOLD', 'XAU', 'XTI', 'XAG', 'USO', 'OIL', 'QQQ', 'DIA', 'SPY', 'NAS100', 'US30', 'SP500', 'USOIL'];
+    if (nonStocks.some(ns => s.includes(ns))) return false;
+    return false;
+  }
+  return true;
+}
+
+export function isForexSymbol(symbol: string): boolean {
+  const s = symbol.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (s.length === 6 && /^[A-Z]{6}$/.test(s)) {
+    const nonForex6 = ['NAS100', 'US30', 'SP500', 'USOIL', 'XAUUSD', 'BTCUSD', 'ETHUSD', 'XAGUSD'];
+    return !nonForex6.includes(s);
+  }
+  if (symbol.includes('/')) {
+    const parts = symbol.toUpperCase().split('/');
+    if (parts.length === 2 && parts[0].length === 3 && parts[1].length === 3) {
+      return true;
+    }
+  }
+  return false;
+}
+
+
 // Detect which asset the user is asking about (returns null if none detected)
-export function detectSymbol(userMessage: string): string | null {
+export function detectSymbol(userMessage: string, allowedSymbols?: string[]): string | null {
   const lower = userMessage.toLowerCase();
+  
+  // 1. Try hardcoded mappings first
   for (const [keyword, symbol] of Object.entries(SYMBOL_MAP)) {
     if (lower.includes(keyword)) {
       return symbol;
     }
   }
+  
+  // 2. Try allowed symbols from the active broker if available
+  if (allowedSymbols && allowedSymbols.length > 0) {
+    // Sort symbols by length descending to match longer symbols first
+    const sortedAllowed = [...allowedSymbols].sort((a, b) => b.length - a.length);
+    for (const sym of sortedAllowed) {
+      const standardSym = cleanBrokerSymbolToStandard(sym);
+      const cleanSym = sym.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      const cleanStandard = standardSym.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      const cleanMsg = userMessage.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      
+      const words = userMessage.toUpperCase().split(/[^A-Z0-9]/);
+      if (words.includes(cleanStandard) || words.includes(cleanSym) || cleanMsg === cleanStandard || cleanMsg === cleanSym) {
+        return standardSym;
+      }
+    }
+  }
+  
   return null; // No specific asset mentioned
 }
 
@@ -118,7 +184,18 @@ export function calculateRiskParams(
   riskPercent: number = 1.5,
   symbol: string = 'XAU/USD'
 ) {
-  const spec = CONTRACT_SPECS[symbol] || CONTRACT_SPECS['XAU/USD'];
+  let spec = CONTRACT_SPECS[symbol];
+  if (!spec) {
+    if (isStockSymbol(symbol)) {
+      spec = { dollarPerPoint: 100, minSL: 1.0 };
+    } else if (isForexSymbol(symbol)) {
+      spec = symbol.toUpperCase().includes('JPY')
+        ? { dollarPerPoint: 1000, minSL: 0.30 }
+        : { dollarPerPoint: 100000, minSL: 0.0020 };
+    } else {
+      spec = CONTRACT_SPECS['XAU/USD'];
+    }
+  }
 
   // Use ATR for SL distance, but enforce a minimum realistic distance
   const atrBasedSL = (atr || price * 0.005) * 1.5;
@@ -141,9 +218,12 @@ export function calculateRiskParams(
   const projectedProfit = lotSize * tpDistance * spec.dollarPerPoint;
   const rrRatio = `1 : ${(tpDistance / slDistance).toFixed(1)}`;
 
+  // Dynamic precision for formatting SL / TP
+  const precision = price < 10 ? 5 : (symbol.toUpperCase().includes('JPY') ? 3 : 2);
+
   return {
-    stopLoss: sl.toFixed(2),
-    takeProfit: tp.toFixed(2),
+    stopLoss: sl.toFixed(precision),
+    takeProfit: tp.toFixed(precision),
     lotVolume: `${lotSize.toFixed(2)} Lots`,
     margin: margin.toFixed(2),
     risk: projectedRisk.toFixed(2),
@@ -479,7 +559,7 @@ function getCurrentSession(): string {
 
 function isOptimalSession(symbol: string): { ok: boolean; session: string; detail: string } {
   const session = getCurrentSession();
-  const allowed = SESSION_MAP[symbol] || ['any'];
+  const allowed = SESSION_MAP[symbol] || (isStockSymbol(symbol) ? ['newyork'] : ['any']);
   if (allowed.includes('any')) return { ok: true, session, detail: `${session} session (24h asset)` };
   const ok = allowed.includes(session);
   return { ok, session, detail: ok ? `${session} — optimal trading window` : `${session} — low liquidity for this pair` };

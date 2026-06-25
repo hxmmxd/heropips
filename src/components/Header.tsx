@@ -9,9 +9,10 @@ import CelestialMonitor from './CelestialMonitor';
 interface HeaderProps {
   brokers: Broker[];
   activeBroker: Broker;
-  onSelectBroker: (name: string) => void;
+  onSelectBroker: (acc: string) => void;
   onToggleSidebar: () => void;
   onRefresh?: () => Promise<void>;
+  isRefreshing?: boolean;
   astroMode?: boolean;
   onToggleAstroMode?: () => void;
 }
@@ -47,12 +48,20 @@ export default function Header({
   onSelectBroker,
   onToggleSidebar,
   onRefresh,
+  isRefreshing = false,
   astroMode = false,
   onToggleAstroMode,
 }: HeaderProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
   const [monitorOpen, setMonitorOpen] = useState(false);
+
+  const getDotColor = () => {
+    if (!activeBroker || activeBroker.acc === 'none') return '#ef4444'; // red when not connected
+    const s = (activeBroker.status || '').toLowerCase();
+    if (s === 'connected') return '#22c55e'; // green
+    if (s === 'connecting' || s === 'starting' || s === 'waking') return '#f59e0b'; // amber
+    return '#ef4444'; // red (timeout, error, disconnected)
+  };
 
   const handleToggleAstro = () => {
     playAstroSound(!astroMode);
@@ -60,19 +69,16 @@ export default function Header({
   };
 
   const handleRefresh = async () => {
-    if (!onRefresh || refreshing) return;
-    setRefreshing(true);
+    if (!onRefresh || isRefreshing) return;
     try {
       await onRefresh();
     } catch (e) {
       console.error(e);
-    } finally {
-      setRefreshing(false);
     }
   };
 
-  const handleBrokerClick = (name: string) => {
-    onSelectBroker(name);
+  const handleBrokerClick = (acc: string) => {
+    onSelectBroker(acc);
     setDropdownOpen(false);
   };
 
@@ -110,8 +116,8 @@ export default function Header({
                 <div className="space-y-1">
                   {brokers.map((b) => (
                     <button
-                      key={b.name}
-                      onClick={() => handleBrokerClick(b.name)}
+                      key={b.acc}
+                      onClick={() => handleBrokerClick(b.acc)}
                       className="w-full text-left px-4 py-2 rounded-lg hover:bg-[var(--accent)] hover:text-white transition flex flex-col items-start gap-0.5"
                     >
                       <span className="text-xs font-bold">{cleanBrokerName(b.name)}</span>
@@ -281,14 +287,18 @@ export default function Header({
             {onRefresh && activeBroker.acc !== 'none' && (
               <button
                 onClick={handleRefresh}
-                disabled={refreshing}
+                disabled={isRefreshing}
                 className="p-1 rounded-md hover:bg-[var(--input-bg)] text-[var(--subtext)] hover:text-[var(--text)] transition disabled:opacity-50 flex items-center justify-center mr-1"
                 title="Refresh Live Balance"
               >
-                <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
               </button>
             )}
-            <span className="status-dot"></span>
+            <span
+              className="status-dot"
+              style={{ '--dot-color': getDotColor() } as React.CSSProperties}
+              title={activeBroker.status ? `Status: ${activeBroker.status.toUpperCase()}` : undefined}
+            />
           </div>
         </div>
       </div>

@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TradeGPT — Operations & Marketing Budget</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #f8fafc;
+    --surface:   #ffffff;
+    --surface2:  #f1f5f9;
+    --border:    #e2e8f0;
+    --text:      #0f172a;
+    --subtext:   #475569;
+    --accent:    #0ea5e9; /* Cyan/Blue accent for Marketing & Ops */
+    --accent-dark: #0284c7;
+    --green:     #059669;
+    --amber:     #d97706;
+    --red:       #dc2626;
+    --purple:    #7c3aed;
+    --indigo:    #4f46e5;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 48px 24px 80px;
+  }
+
+  /* ── Layout ── */
+  .page { max-width: 1100px; margin: 0 auto; }
+
+  /* ── Header ── */
+  .header {
+    text-align: center;
+    margin-bottom: 56px;
+  }
+  .header .badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(14, 165, 233, 0.08);
+    border: 1px solid rgba(14, 165, 233, 0.2);
+    border-radius: 100px;
+    padding: 6px 16px;
+    font-size: 12px; font-weight: 600; letter-spacing: 0.08em;
+    color: var(--accent-dark); text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  .header h1 {
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, #0f172a 0%, #0ea5e9 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.15;
+    margin-bottom: 12px;
+  }
+  .header p {
+    color: var(--subtext);
+    font-size: 1rem;
+    max-width: 750px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  /* ── Section title ── */
+  .section-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--subtext);
+    margin-top: 48px;
+    margin-bottom: 16px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── CapEx Grid ── */
+  .capex-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+    margin-bottom: 24px;
+  }
+  .capex-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.03), 0 2px 4px -2px rgba(15, 23, 42, 0.03);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+  .capex-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 20px -8px rgba(15, 23, 42, 0.08), 0 4px 6px -2px rgba(15, 23, 42, 0.04);
+    border-color: rgba(14, 165, 233, 0.2);
+  }
+  .capex-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+  }
+  .capex-card.office::before { background: linear-gradient(90deg, var(--accent), var(--indigo)); }
+  .capex-card.legal::before  { background: linear-gradient(90deg, var(--indigo), var(--purple)); }
+
+  .capex-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .office .capex-label { color: var(--accent-dark); }
+  .legal .capex-label  { color: var(--indigo); }
+
+  .capex-name { font-size: 20px; font-weight: 800; margin-bottom: 6px; }
+  .capex-desc { font-size: 13px; color: var(--subtext); margin-bottom: 20px; }
+  
+  .capex-price-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .capex-price-inr { font-size: 32px; font-weight: 800; color: var(--text); letter-spacing: -0.03em; }
+  .capex-price-usd { font-size: 18px; color: var(--subtext); font-weight: 500; }
+
+  .capex-breakdown {
+    background: var(--surface2);
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--subtext);
+    line-height: 1.8;
+  }
+  .capex-breakdown span { color: var(--text); font-weight: 500; }
+
+  /* ── OpEx Service Grid ── */
+  .services-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 48px;
+  }
+  .service-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .service-card:hover { 
+    border-color: rgba(14, 165, 233, 0.2); 
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.02);
+  }
+
+  .service-icon {
+    width: 48px; height: 48px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    font-size: 22px;
+  }
+  .service-body { flex: 1; min-width: 0; }
+  .service-name { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .service-desc { font-size: 12px; color: var(--subtext); margin-bottom: 12px; line-height: 1.5; }
+  .service-tiers {
+    display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px;
+  }
+  .tier-pill {
+    font-size: 11px; font-weight: 500;
+    padding: 3px 10px; border-radius: 100px;
+    border: 1px solid transparent;
+  }
+  .pill-sky     { background: rgba(14,165,233,0.08); border-color: rgba(14,165,233,0.25); color: #0369a1; }
+  .pill-indigo  { background: rgba(79,70,229,0.08); border-color: rgba(79,70,229,0.25); color: #4338ca; }
+  .pill-purple  { background: rgba(124,58,237,0.08); border-color: rgba(124,58,237,0.25); color: #6d28d9; }
+  .pill-green   { background: rgba(5,150,105,0.08); border-color: rgba(5,150,105,0.25); color: #047857; }
+
+  .service-cost {
+    border-top: 1px solid var(--border);
+    padding-top: 10px;
+    font-size: 12px;
+  }
+  .cost-row {
+    display: flex; justify-content: space-between;
+    padding: 3px 0;
+    color: var(--subtext);
+  }
+  .cost-row span:last-child { color: var(--text); font-weight: 600; }
+
+  /* ── Cost Table ── */
+  .cost-table {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 48px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  thead tr {
+    background: var(--surface2);
+  }
+  th {
+    padding: 14px 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--subtext);
+    text-align: left;
+  }
+  th:not(:first-child) { text-align: center; }
+  td {
+    padding: 13px 20px;
+    font-size: 13px;
+    border-top: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  td:not(:first-child) { text-align: center; }
+  tr:last-child td { border-bottom: none; }
+  .td-service { font-weight: 600; }
+  .td-cat { font-size: 11px; color: var(--subtext); }
+  .td-num  { color: var(--text); font-weight: 500; }
+  .td-bold { color: var(--text); font-weight: 700; }
+  .td-sky  { color: var(--accent-dark); font-weight: 700; }
+  .td-green { color: var(--green); font-weight: 700; }
+  tr.total-row td {
+    background: var(--surface2);
+    font-weight: 700;
+    font-size: 14px;
+    border-top: 2px solid var(--border);
+  }
+  tr.total-row td.green  { color: var(--green); }
+  tr.total-row td.sky    { color: var(--accent-dark); }
+  tr.total-row td.indigo { color: var(--indigo); }
+
+  /* ── Cost Bar ── */
+  .bar-section { margin-bottom: 48px; }
+  .bar-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .bar-label { font-size: 13px; font-weight: 500; width: 200px; flex-shrink: 0; }
+  .bar-track {
+    flex: 1;
+    height: 10px;
+    background: var(--surface2);
+    border-radius: 100px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .bar-fill { height: 100%; border-radius: 100px; }
+  .bar-value { font-size: 13px; font-weight: 600; width: 150px; text-align: right; }
+
+  /* ── ROI / Revenue section ── */
+  .roi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 48px;
+  }
+  .roi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    text-align: center;
+  }
+  .roi-icon { font-size: 28px; margin-bottom: 8px; }
+  .roi-label { font-size: 11px; color: var(--subtext); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+  .roi-value { font-size: 24px; font-weight: 800; letter-spacing: -0.04em; }
+  .roi-sub   { font-size: 11px; color: var(--subtext); margin-top: 4px; }
+
+  /* ── Callouts ── */
+  .callout {
+    background: rgba(14, 165, 233, 0.04);
+    border: 1px solid rgba(14, 165, 233, 0.15);
+    border-radius: 12px;
+    padding: 16px 20px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    margin-bottom: 12px;
+  }
+  .callout-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .callout-text { font-size: 13px; line-height: 1.6; color: var(--subtext); }
+  .callout-text strong { color: var(--accent-dark); }
+
+  /* ── Scaling note ── */
+  .scale-note {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    margin-bottom: 48px;
+  }
+  .scale-note h3 { font-size: 15px; font-weight: 700; margin-bottom: 12px; }
+  .scale-note ul { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .scale-note li { font-size: 13px; color: var(--subtext); display: flex; gap: 10px; line-height: 1.5; }
+  .scale-note li::before { content: '→'; color: var(--accent); flex-shrink: 0; font-weight: 700; }
+
+  /* ── Footer ── */
+  .footer { text-align: center; font-size: 12px; color: var(--subtext); margin-top: 60px; }
+
+  @media (max-width: 768px) {
+    .capex-grid    { grid-template-columns: 1fr; }
+    .services-grid { grid-template-columns: 1fr; }
+    .roi-grid      { grid-template-columns: repeat(2,1fr); }
+    th:nth-child(n+3), td:nth-child(n+3) { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ── Header ── -->
+  <header class="header">
+    <div class="badge">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm14 10v-2a4 4 0 0 0-3-3.87m-4-12a4 4 0 0 1 0 7.75"/></svg>
+      Operations & Marketing Plan · Lean Startup
+    </div>
+    <h1>TradeGPT Operations & Marketing</h1>
+    <p>Lean startup budget blueprint establishing a legal Private Limited foundation, a functional office hub in Lucknow, a 13-member hybrid customer acquisition team, and local Meta Ads marketing budgets.</p>
+  </header>
+
+  <!-- ── CapEx Grid ── -->
+  <div class="section-title">One-Time Startup Capital (CapEx)</div>
+  <div class="capex-grid">
+    
+    <!-- Office Setup & Deposit Card -->
+    <div class="capex-card office">
+      <div class="capex-label">Office & Facility Setup</div>
+      <div class="capex-name"> Lucknow Office Hub Setup</div>
+      <div class="capex-desc">Acquiring workstations, chairs, tables, lighting, and securing the physical space deposit.</div>
+      <div class="capex-price-row">
+        <span class="capex-price-inr">₹1,23,500</span>
+        <span class="capex-price-usd">/ ~$1,479 USD</span>
+      </div>
+      <div class="capex-breakdown">
+        Lean Setup (Tables, chairs, lights, PCs): <span>$1,000.00 / ₹83,500</span><br>
+        Landlord AC Provision: <span>Free (Included in Rent)</span><br>
+        Security Deposit: <span>2 Months Rent (₹40,000 / $479)</span>
+      </div>
+    </div>
+
+    <!-- Legal & Corporate Registration Card -->
+    <div class="capex-card legal">
+      <div class="capex-label">Legal & Brand Protection</div>
+      <div class="capex-name">Company & Brand Registry</div>
+      <div class="capex-desc">Securing the legal corporate structure (Pvt Ltd) and protecting intellectual property (Trademark) in India.</div>
+      <div class="capex-price-row">
+        <span class="capex-price-inr">₹26,000 – ₹28,000</span>
+        <span class="capex-price-usd">/ ~$312 – $336 USD</span>
+      </div>
+      <div class="capex-breakdown">
+        Pvt Ltd Incorporation: <span>₹16,000 / ~$192</span><br>
+        Brand Trademark (Class 36/42): <span>₹6,000 – ₹8,000 / ~$72 – $96</span><br>
+        IEC Code Registration: <span>₹2,500 / ~$30</span><br>
+        Additional Director Addition: <span>₹1,500 / ~$18</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── OpEx Services Grid ── -->
+  <div class="section-title">Monthly Operating Subsystems (OpEx)</div>
+  <div class="services-grid">
+
+    <!-- Lucknow Office Space -->
+    <div class="service-card">
+      <div class="service-icon" style="background:rgba(14,165,233,0.08);">🏢</div>
+      <div class="service-body">
+        <div class="service-name">Lucknow Office Rent & Utilities</div>
+        <div class="service-desc">Rent for a lean startup space (approx 600-800 sq ft) in Lucknow with power utilities and miscellaneous maintenance.</div>
+        <div class="service-tiers">
+          <span class="tier-pill pill-sky">Rent: ₹20k/mo</span>
+          <span class="tier-pill pill-sky">Power: ₹8k/mo</span>
+        </div>
+        <div class="service-cost">
+          <div class="cost-row"><span>Rent</span><span>₹20,000 / $239.52</span></div>
+          <div class="cost-row"><span>Electricity & Cooling</span><span>₹8,000 / $95.81</span></div>
+          <div class="cost-row"><span>Miscellaneous Maintenance</span><span>₹2,000 / $23.95</span></div>
+          <div class="cost-row"><span>Office Subtotal</span><span>₹30,000 / $359.28</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Core Design & Digital Team -->
+    <div class="service-card">
+      <div class="service-icon" style="background:rgba(79,70,229,0.08);">🎨</div>
+      <div class="service-body">
+        <div class="service-name">Core Creative & Marketing Team</div>
+        <div class="service-desc">Hiring full-time, local specialized talent for branding assets, web platforms, and managing digital campaigns.</div>
+        <div class="service-tiers">
+          <span class="tier-pill pill-indigo">Graphic Designer</span>
+          <span class="tier-pill pill-indigo">Web Designer</span>
+          <span class="tier-pill pill-indigo">Digital Marketer</span>
+        </div>
+        <div class="service-cost">
+          <div class="cost-row"><span>Graphic Designer (Intermediate)</span><span>₹20,000</span></div>
+          <div class="cost-row"><span>Web Designer (Frontend/Figma)</span><span>₹20,000</span></div>
+          <div class="cost-row"><span>Digital Marketer (SEO/SMM)</span><span>₹20,000</span></div>
+          <div class="cost-row"><span>Core Team Subtotal</span><span>₹60,000</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Telecalling Team -->
+    <div class="service-card">
+      <div class="service-icon" style="background:rgba(124,58,237,0.08);">📞</div>
+      <div class="service-body">
+        <div class="service-name">Telecalling Team (10 Callers)</div>
+        <div class="service-desc">A team of 10 telecallers located in Lucknow targeting outbound broker lists to secure active beta app installations.</div>
+        <div class="service-tiers">
+          <span class="tier-pill pill-purple">10 Workstations</span>
+          <span class="tier-pill pill-purple">65,000 Dials/mo (6 days/wk)</span>
+          <span class="tier-pill pill-purple">App Installs KPI</span>
+        </div>
+        <div class="service-cost">
+          <div class="cost-row"><span>Telecaller Salary (Average)</span><span>₹15,000 / caller</span></div>
+          <div class="cost-row"><span>Team Total (10 Callers)</span><span>₹1,50,000</span></div>
+          <div class="cost-row"><span>USD Equivalent</span><span>~$1,796.41</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ad Spends & Creative Tools -->
+    <div class="service-card">
+      <div class="service-icon" style="background:rgba(5,150,105,0.08);">🎯</div>
+      <div class="service-body">
+        <div class="service-name">Marketing Budgets & SaaS Tools</div>
+        <div class="service-desc">Meta ads campaigns, outbound lead databases, and designer software (Adobe CC, Figma, CRM Dialer, Semrush).</div>
+        <div class="service-tiers">
+          <span class="tier-pill pill-green">Meta Ads</span>
+          <span class="tier-pill pill-green">Lead Lists</span>
+          <span class="tier-pill pill-green">SaaS tools</span>
+        </div>
+        <div class="service-cost">
+          <div class="cost-row"><span>Meta (Facebook/IG) Ads Spend</span><span>₹20,000 – ₹40,000</span></div>
+          <div class="cost-row"><span>Broker Lead Databases</span><span>₹5,000 – ₹10,000</span></div>
+          <div class="cost-row"><span>SaaS Tools (Adobe/Semrush/Dialer)</span><span>₹10,000 – ₹15,000</span></div>
+          <div class="cost-row"><span>Marketing Subtotal</span><span>₹35,000 – ₹65,000</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Cost Table ── -->
+  <div class="section-title">Monthly Operating Expense (OpEx) Table</div>
+  <div class="cost-table">
+    <table>
+      <thead>
+        <tr>
+          <th>Department / Resource</th>
+          <th>Budget Category</th>
+          <th>Monthly Cost (INR / ₹)</th>
+          <th>Monthly Cost (USD / $)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="td-service">Office Rent</td>
+          <td class="td-cat">Facilities</td>
+          <td class="td-num">₹20,000</td>
+          <td class="td-num">$239.52</td>
+        </tr>
+        <tr>
+          <td class="td-service">Electricity & Utilities</td>
+          <td class="td-cat">Facilities</td>
+          <td class="td-num">₹8,000</td>
+          <td class="td-num">$95.81</td>
+        </tr>
+        <tr>
+          <td class="td-service">Miscellaneous Office Expenses</td>
+          <td class="td-cat">Facilities</td>
+          <td class="td-num">₹2,000</td>
+          <td class="td-num">$23.95</td>
+        </tr>
+        <tr>
+          <td class="td-service">Graphic Designer (Core Staff)</td>
+          <td class="td-cat">Design / Salaries</td>
+          <td class="td-num">₹20,000</td>
+          <td class="td-num">$239.52</td>
+        </tr>
+        <tr>
+          <td class="td-service">Web Designer (Core Staff)</td>
+          <td class="td-cat">Development / Salaries</td>
+          <td class="td-num">₹20,000</td>
+          <td class="td-num">$239.52</td>
+        </tr>
+        <tr>
+          <td class="td-service">Digital Marketer (Core Staff)</td>
+          <td class="td-cat">Marketing / Salaries</td>
+          <td class="td-num">₹20,000</td>
+          <td class="td-num">$239.52</td>
+        </tr>
+        <tr>
+          <td class="td-service">Telecalling Team (10 Outbound Agents)</td>
+          <td class="td-cat">Sales / Salaries</td>
+          <td class="td-num">₹1,50,000</td>
+          <td class="td-num">$1,796.41</td>
+        </tr>
+        <tr>
+          <td class="td-service">Meta (FB/IG) Paid Advertising</td>
+          <td class="td-cat">Ad Spend</td>
+          <td class="td-num">₹20,000 – ₹40,000</td>
+          <td class="td-num">$239.52 – $479.04</td>
+        </tr>
+        <tr>
+          <td class="td-service">Targeted Outbound Lead Data</td>
+          <td class="td-cat">Lead Generation</td>
+          <td class="td-num">₹5,000 – ₹10,000</td>
+          <td class="td-num">$59.88 – $119.76</td>
+        </tr>
+        <tr>
+          <td class="td-service">SaaS & Design Tools (Figma/CRM/Creative Cloud)</td>
+          <td class="td-cat">Software Retainers</td>
+          <td class="td-num">₹10,000 – ₹15,000</td>
+          <td class="td-num">$119.76 – $179.64</td>
+        </tr>
+        <tr class="total-row">
+          <td colspan="2" class="td-bold">💼 Total Monthly Operations Budget</td>
+          <td class="sky">₹2,75,000 – ₹3,05,000 / mo</td>
+          <td class="sky">~$3,293.41 – $3,652.69 / mo</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── Cost Bar Chart ── -->
+  <div class="section-title">Operations OpEx Cost Split (Average: ₹2,90,000 / $3,473.05 / mo)</div>
+  <div class="bar-section">
+    <div class="bar-row">
+      <div class="bar-label">10 Telecallers Team</div>
+      <div class="bar-track"><div class="bar-fill" style="width:51.7%; background:linear-gradient(90deg,#7c3aed,#c4b5fd);"></div></div>
+      <div class="bar-value" style="color:var(--purple);">₹1,50,000 (51.7%)</div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">Core Creative Team (3 Staff)</div>
+      <div class="bar-track"><div class="bar-fill" style="width:20.7%; background:linear-gradient(90deg,#4f46e5,#818cf8);"></div></div>
+      <div class="bar-value" style="color:var(--indigo);">₹60,000 (20.7%)</div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">Meta Ads Budgets</div>
+      <div class="bar-track"><div class="bar-fill" style="width:10.3%; background:linear-gradient(90deg,#0ea5e9,#38bdf8);"></div></div>
+      <div class="bar-value" style="color:var(--accent-dark);">₹30,000 (10.3%)</div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">Office Space Rent</div>
+      <div class="bar-track"><div class="bar-fill" style="width:6.9%; background:linear-gradient(90deg,#d97706,#fbbf24);"></div></div>
+      <div class="bar-value" style="color:var(--amber);">₹20,000 (6.9%)</div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">Marketing Tools & Leads</div>
+      <div class="bar-track"><div class="bar-fill" style="width:6.9%; background:linear-gradient(90deg,#059669,#34d399);"></div></div>
+      <div class="bar-value" style="color:var(--green);">₹20,000 (6.9%)</div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">Utilities & Electricity</div>
+      <div class="bar-track"><div class="bar-fill" style="width:2.8%; background:linear-gradient(90deg,#0ea5e9,#67e8f9);"></div></div>
+      <div class="bar-value" style="color:var(--accent-dark);">₹8,000 (2.8%)</div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">Office Miscellaneous</div>
+      <div class="bar-track"><div class="bar-fill" style="width:0.7%; background:linear-gradient(90deg,#ef4444,#f87171);"></div></div>
+      <div class="bar-value" style="color:var(--red);">₹2,000 (0.7%)</div>
+    </div>
+  </div>
+
+  <!-- ── Consolidated ROI ── -->
+  <div class="section-title">Consolidated Business Financials & ROI</div>
+  <div class="roi-grid">
+    <div class="roi-card">
+      <div class="roi-icon">💵</div>
+      <div class="roi-label">Combined OpEx</div>
+      <div class="roi-value" style="color:var(--text);">~$4,366</div>
+      <div class="roi-sub">Infra ($893) + Ops ($3,473)</div>
+    </div>
+    <div class="roi-card">
+      <div class="roi-icon">🎯</div>
+      <div class="roi-label">Total Break-Even</div>
+      <div class="roi-value" style="color:var(--indigo);">151</div>
+      <div class="roi-sub">subscribers covers entire company</div>
+    </div>
+    <div class="roi-card">
+      <div class="roi-icon">📊</div>
+      <div class="roi-label">500 Subscribers</div>
+      <div class="roi-value" style="color:var(--amber);">$10,134</div>
+      <div class="roi-sub">monthly net profit margin</div>
+    </div>
+    <div class="roi-card">
+      <div class="roi-icon">🚀</div>
+      <div class="roi-label">1,000 Subscribers</div>
+      <div class="roi-value" style="color:var(--green);">$24,417</div>
+      <div class="roi-sub">net profit margin / month</div>
+    </div>
+  </div>
+
+  <!-- ── Strategy Callouts ── -->
+  <div class="section-title">Outbound Telecalling & Ad Optimization Strategy</div>
+  <div class="callout">
+    <div class="callout-icon">📞</div>
+    <div class="callout-text"><strong>High efficiency telecalling.</strong> By building our 10-person telecalling desk locally in Lucknow, staff salaries are kept at competitive Tier-2 market rates (averaging ₹15,000/mo). Telecallers target outbound lists from active trading channels, delivering a high volume of direct beta app downloads at low customer acquisition costs (CAC).</div>
+  </div>
+  <div class="callout">
+    <div class="callout-icon">📈</div>
+    <div class="callout-text"><strong>Meta Lead & App Install Campaigns.</strong> Meta Ads (₹20,000 – ₹40,000/mo) are optimized strictly for custom app-install tracking, targeting retail forex and equity traders. Leads generated flow directly into a custom CRM dialer software, allowing telecallers to follow up in real-time, driving active users straight into subscription pipelines.</div>
+  </div>
+  <div class="callout" style="background:rgba(79,70,229,0.04); border-color:rgba(79,70,229,0.15);">
+    <div class="callout-icon">🏢</div>
+    <div class="callout-text"><strong>Lean Office Infrastructure.</strong> By choosing a rental space providing standard utilities where the landlord covers structural expenses (such as the AC system), we minimize our initial CapEx setup to just $1,000. This protects our runway, enabling us to easily test our beta model before upgrading to premium facilities.</div>
+  </div>
+
+  <!-- ── Strategic Notes ── -->
+  <div class="section-title">Operations & Team Scaling Notes</div>
+  <div class="scale-note">
+    <h3>📌 Establishing the Operational Engine</h3>
+    <ul>
+      <li><strong>Why Lucknow?</strong> Setting up the operations hub in Lucknow provides a massive cost advantage. Renting a 600-800 sq ft office in Gomti Nagar or Hazratganj costs just ₹20,000/mo (~$240), and hiring a team of 10 outbound call representatives (₹1,50,000/mo total) and 3 core team members (₹60,000/mo) costs only ~$2,515/mo combined in salaries, reducing our monthly runway risk by 60% compared to Tier-1 hubs.</li>
+      <li><strong>Entity Structure & Legal:</strong> The Private Limited registration (₹16,000) provides legal compliance, limited liability protection, and structured equity allocations. The Import Export Code (IEC - ₹2,500) ensures we can smoothly process payments and international subscription flows.</li>
+      <li><strong>Beta Conversion Funnel:</strong> The 10 telecallers are tasked with contacting forex/crypto traders to sign up for the TradeGPT beta app. The KPI target is 20 new beta registrations per caller per day, creating a steady stream of prospective active users who convert into paid subscribers at launch.</li>
+      <li><strong>Consolidated Break-Even:</strong> Because the office, team, utilities, marketing spends, and scalable server infrastructure total only ~$4,366/mo, TradeGPT reaches absolute corporate break-even with just **151 paid monthly subscribers** at $29/mo, demonstrating the model's exceptional financial leverage.</li>
+    </ul>
+  </div>
+
+  <!-- ── Footer ── -->
+  <div class="footer">
+    Generated · June 2026 · TradeGPT Operations & Marketing Plan · All prices in INR & USD · 1 USD = 83.50 INR
+  </div>
+
+</div>
+</body>
+</html>

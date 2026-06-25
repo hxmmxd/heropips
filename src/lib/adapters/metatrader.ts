@@ -1,6 +1,6 @@
 /**
- * MetaTrader Adapter
- * Wraps MetaAPI SDK for MT4/MT5 broker connectivity.
+ * MetaTrader Adapter — MT5 Farm Edition
+ * Replaces MetaAPI SDK with direct MT5 Farm HTTP calls.
  */
 
 import type {
@@ -8,132 +8,111 @@ import type {
   BalanceInfo, Position, OrderRequest, OrderResult,
 } from './types';
 
+import {
+  farmHealth,
+  farmConnectAccount,
+  farmGetAccountInfo,
+  farmGetPositions,
+  farmExecuteTrade,
+  farmClosePosition,
+} from '../mt5farm';
+
+import { getNormalizedSymbolForBroker } from '../broker';
+
 export class MetaTraderAdapter implements TradingAdapter {
-  name = 'MetaTrader (MetaAPI)';
+  name = 'MetaTrader (MT5 Farm)';
   type = 'metatrader';
 
-  private async getApi(apiKey: string) {
-    const MetaApi = (await import('metaapi.cloud-sdk/node')).default;
-    return new MetaApi(apiKey);
-  }
-
-  async testConnection(apiKey: string): Promise<{ success: boolean; error?: string }> {
+  /** Test connection by hitting the orchestrator health endpoint */
+  async testConnection(_apiKey: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const api = await this.getApi(apiKey);
-      await api.metatraderAccountApi.getAccountsWithInfiniteScrollPagination();
-      return { success: true };
+      const health = await farmHealth();
+      if (health && typeof health.total_accounts === 'number') {
+        return { success: true };
+      }
+      return { success: false, error: 'Farm health check returned unexpected response' };
     } catch (err: any) {
-      return { success: false, error: err?.message || 'Invalid MetaAPI token' };
+      return { success: false, error: err?.message || 'MT5 Farm unreachable' };
     }
   }
 
   async connect(credentials: ConnectionCredentials): Promise<AccountInfo> {
-    const api = await this.getApi(credentials.api_key);
+    const farmAccount = await farmConnectAccount(
+      credentials.login || '',
+      credentials.password || '',
+      credentials.server || '',
+      credentials.login || 'MT5 Account',
+    );
 
-    const account = await api.metatraderAccountApi.createAccount({
-      name: credentials.login || 'MT5 Account',
-      type: 'cloud-g1',
-      platform: 'mt5',
-      login: credentials.login || '',
-      password: credentials.password || '',
-      server: credentials.server || 'DemoServer',
-      magic: 0,
-      reliability: 'regular',
-    });
-
-    await account.deploy();
-    await account.waitConnected();
-
-    const connection = account.getRPCConnection();
-    await connection.connect();
-    await connection.waitSynchronized();
-
-    const details = await connection.getAccountInformation();
+    const accountId = farmAccount.accountId;
+    const info      = await farmGetAccountInfo(accountId);
 
     return {
-      id: account.id,
-      name: credentials.login || 'MT5',
-      type: 'metatrader',
-      balance: details.balance || 0,
-      equity: details.equity || 0,
-      currency: details.currency || 'USD',
-      status: 'connected',
+      id:       accountId,
+      name:     credentials.login || 'MT5',
+      type:     'metatrader',
+      balance:  info?.balance  ?? 0,
+      equity:   info?.equity   ?? 0,
+      currency: info?.currency ?? 'USD',
+      status:   farmAccount.status === 'connected' ? 'connected' : 'disconnected',
     };
   }
 
-  async getBalance(accountId: string, credentials: ConnectionCredentials): Promise<BalanceInfo> {
-    const api = await this.getApi(credentials.api_key);
-    const account = await api.metatraderAccountApi.getAccount(accountId);
-    const connection = account.getRPCConnection();
-    await connection.connect();
-    await connection.waitSynchronized();
-    const details = await connection.getAccountInformation();
-
+  async getBalance(accountId: string, _credentials: ConnectionCredentials): Promise<BalanceInfo> {
+    const info = await farmGetAccountInfo(accountId);
     return {
-      balance: details.balance || 0,
-      equity: details.equity || 0,
-      unrealizedPnl: (details.equity || 0) - (details.balance || 0),
-      currency: details.currency || 'USD',
+      balance:        info?.balance  ?? 0,
+      equity:         info?.equity   ?? 0,
+      unrealizedPnl:  (info?.equity ?? 0) - (info?.balance ?? 0),
+      currency:       info?.currency ?? 'USD',
     };
   }
 
-  async getPositions(accountId: string, credentials: ConnectionCredentials): Promise<Position[]> {
-    const api = await this.getApi(credentials.api_key);
-    const account = await api.metatraderAccountApi.getAccount(accountId);
-    const connection = account.getRPCConnection();
-    await connection.connect();
-    await connection.waitSynchronized();
-    const positions = await connection.getPositions();
-
-    return positions.map((p: any) => ({
-      id: p.id,
-      symbol: p.symbol,
-      side: p.type === 'POSITION_TYPE_BUY' ? 'BUY' as const : 'SELL' as const,
-      volume: p.volume,
-      entryPrice: p.openPrice,
+  async getPositions(accountId: string, _credentials: ConnectionCredentials): Promise<Position[]> {
+    const positions = await farmGetPositions(accountId);
+    return positions.map(p => ({
+      id:           p.id,
+      symbol:       p.symbol,
+      side:         p.type === 'POSITION_TYPE_BUY' ? 'BUY' as const : 'SELL' as const,
+      volume:       p.volume,
+      entryPrice:   p.openPrice,
       currentPrice: p.currentPrice,
-      pnl: p.profit,
-      timestamp: p.time || new Date().toISOString(),
+      pnl:          p.profit,
+      timestamp:    p.openTime || new Date().toISOString(),
     }));
   }
 
-  async executeOrder(accountId: string, order: OrderRequest, credentials: ConnectionCredentials): Promise<OrderResult> {
-    try {
-      const api = await this.getApi(credentials.api_key);
-      const account = await api.metatraderAccountApi.getAccount(accountId);
-      const connection = account.getRPCConnection();
-      await connection.connect();
-      await connection.waitSynchronized();
+  async executeOrder(accountId: string, order: OrderRequest, _credentials: ConnectionCredentials): Promise<OrderResult> {
+    const cleanSymbol = order.symbol.replace('/', '');
+    const normalizedSymbol = getNormalizedSymbolForBroker(cleanSymbol, accountId);
+    const result = await farmExecuteTrade(accountId, {
+      actionType: order.side === 'BUY' ? 'ORDER_TYPE_BUY' : 'ORDER_TYPE_SELL',
+      symbol:     normalizedSymbol,
+      volume:     order.volume,
+      stopLoss:   order.stopLoss,
+      takeProfit: order.takeProfit,
+      comment:    'TradeGPT',
+    });
 
-      const symbol = order.symbol.replace('/', '');
-      let result;
-
-      if (order.side === 'BUY') {
-        result = await connection.createMarketBuyOrder(symbol, order.volume, order.stopLoss, order.takeProfit);
-      } else {
-        result = await connection.createMarketSellOrder(symbol, order.volume, order.stopLoss, order.takeProfit);
-      }
-
-      return {
-        orderId: (result as any).orderId || (result as any).positionId || '',
-        status: 'filled',
-        fillPrice: (result as any).openPrice || order.price || 0,
-        filledVolume: order.volume,
-      };
-    } catch (err: any) {
-      return { orderId: '', status: 'error', message: err?.message || 'Execution failed' };
+    if (!result.success) {
+      return { orderId: '', status: 'error', message: result.error.message };
     }
+    return {
+      orderId:      result.result.orderId || result.result.positionId || '',
+      status:       'filled',
+      fillPrice:    result.result.openPrice || order.price || 0,
+      filledVolume: order.volume,
+    };
   }
 
-  async closePosition(accountId: string, positionId: string, credentials: ConnectionCredentials): Promise<OrderResult> {
+  async closePosition(accountId: string, positionId: string, _credentials: ConnectionCredentials): Promise<OrderResult> {
     try {
-      const api = await this.getApi(credentials.api_key);
-      const account = await api.metatraderAccountApi.getAccount(accountId);
-      const connection = account.getRPCConnection();
-      await connection.connect();
-      await connection.waitSynchronized();
-      await (connection as any).closePosition(positionId, undefined);
-      return { orderId: positionId, status: 'filled' };
+      const result = await farmClosePosition(accountId, positionId);
+      return {
+        orderId: positionId,
+        status:  result.success ? 'filled' : 'error',
+        message: result.success ? undefined : `Close failed (retcode: ${result.retcode})`,
+      };
     } catch (err: any) {
       return { orderId: '', status: 'error', message: err?.message || 'Close failed' };
     }

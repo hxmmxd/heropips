@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   Users, Server, TrendingUp, DollarSign, Shield, ShieldOff, ArrowLeft,
   Search, Crown, Zap, Rocket, ChevronDown, ChevronUp, Activity,
@@ -9,7 +9,7 @@ import {
   Heart, Cpu, Database, Pencil, Check, X, Mail, User, Settings, Megaphone,
   FileText, Power, ToggleLeft, ToggleRight, AlertTriangle, Plus, Trash2,
   Target, BarChart2, ShieldAlert, Plug, TestTube, Loader2, Key, Link2, Handshake,
-  Menu, Calendar, Filter, MapPin, Smartphone, Monitor
+  Menu, Calendar, Filter, MapPin, Smartphone, Monitor, Moon, Sun, Copy, MemoryStick
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { getUserAvatar } from '@/lib/avatar';
@@ -45,7 +45,7 @@ interface TradeRow { id: string; user_id: string; broker_id?: string; symbol: st
 
 type SortKey = 'full_name' | 'email' | 'plan' | 'created_at';
 type SortDir = 'asc' | 'desc';
-type Section = 'overview' | 'users' | 'brokers' | 'accounts' | 'trades' | 'analytics' | 'settings' | 'audit';
+type Section = 'overview' | 'users' | 'brokers' | 'accounts' | 'trades' | 'analytics' | 'settings' | 'audit' | 'mt5farm';
 
 const generateUUID = () => {
   if (typeof window !== 'undefined' && window.crypto?.randomUUID) {
@@ -100,6 +100,98 @@ export default function AdminPage() {
   const [testingProvider, setTestingProvider] = useState<string | null>(null);
   const [apiStats, setApiStats] = useState<any[]>([]);
 
+  // ── MT5 Farm State ──
+  const [farmHealth, setFarmHealth]   = useState<any>(null);
+  const [farmAccounts, setFarmAccounts] = useState<any[]>([]);
+  const [farmKeys, setFarmKeys]       = useState<any[]>([]);
+  const [farmStats, setFarmStats]     = useState<any>(null);
+  const [farmLoading, setFarmLoading] = useState(false);
+  const [farmError, setFarmError]     = useState('');
+  const [farmRefreshing, setFarmRefreshing] = useState(false);
+  const [farmAutoRefresh, setFarmAutoRefresh] = useState(false);
+  const [farmLastRefresh, setFarmLastRefresh] = useState<Date | null>(null);
+  const [farmTab, setFarmTab]         = useState<'overview' | 'accounts' | 'keys' | 'stats'>('overview');
+  const [farmNewKeyLabel, setFarmNewKeyLabel] = useState('');
+  const [farmNewKeyLimit, setFarmNewKeyLimit] = useState(100);
+  const [farmCreatingKey, setFarmCreatingKey] = useState(false);
+  const [farmRevealedKey, setFarmRevealedKey] = useState<string | null>(null);
+  const [farmActionLoading, setFarmActionLoading] = useState<string | null>(null);
+  const farmIntervalRef = useRef<any>(null);
+  const [farmTesting, setFarmTesting]           = useState(false);
+  const [farmTestResult, setFarmTestResult]     = useState<any>(null);
+
+  const runFarmConnectionTest = async () => {
+    setFarmTesting(true);
+    setFarmTestResult(null);
+    try {
+      const res = await fetch('/api/admin/mt5-farm?action=test-connection');
+      const data = await res.json();
+      setFarmTestResult(data);
+    } catch (e: any) {
+      setFarmTestResult({ overall: false, error: e.message });
+    } finally {
+      setFarmTesting(false);
+    }
+  };
+
+  const fetchFarmData = useCallback(async (silent = false) => {
+    if (!silent) setFarmLoading(true);
+    setFarmRefreshing(true);
+    setFarmError('');
+    try {
+      const [ovRes, keysRes, statsRes] = await Promise.all([
+        fetch('/api/admin/mt5-farm?action=overview'),
+        fetch('/api/admin/mt5-farm?action=keys'),
+        fetch('/api/admin/mt5-farm?action=stats'),
+      ]);
+      if (ovRes.ok)    { const d = await ovRes.json();    setFarmHealth(d.health);    setFarmAccounts(d.accounts || []); }
+      if (keysRes.ok)  { const d = await keysRes.json();  setFarmKeys(d.keys || []); }
+      if (statsRes.ok) { const d = await statsRes.json(); setFarmStats(d); }
+      setFarmLastRefresh(new Date());
+    } catch (e: any) { setFarmError(e.message || 'Failed to fetch farm data'); }
+    finally { setFarmLoading(false); setFarmRefreshing(false); }
+  }, []);
+
+  useEffect(() => {
+    if (activeSection === 'mt5farm' && !farmLastRefresh) fetchFarmData();
+  }, [activeSection, farmLastRefresh, fetchFarmData]);
+
+  useEffect(() => {
+    if (farmAutoRefresh && activeSection === 'mt5farm') {
+      farmIntervalRef.current = setInterval(() => fetchFarmData(true), 5000);
+    } else {
+      clearInterval(farmIntervalRef.current);
+    }
+    return () => clearInterval(farmIntervalRef.current);
+  }, [farmAutoRefresh, activeSection, fetchFarmData]);
+
+  const farmAccountAction = async (id: string, action: string) => {
+    setFarmActionLoading(`${action}-${id}`);
+    try {
+      await fetch('/api/admin/mt5-farm', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, accountId: id }) });
+      await fetchFarmData(true);
+    } finally { setFarmActionLoading(null); }
+  };
+
+  const farmCreateKey = async () => {
+    if (!farmNewKeyLabel.trim()) return;
+    setFarmCreatingKey(true);
+    try {
+      const res = await fetch('/api/admin/mt5-farm', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'createKey', label: farmNewKeyLabel, rateLimit: farmNewKeyLimit }) });
+      const data = await res.json();
+      if (data.key) { setFarmRevealedKey(data.key); setFarmNewKeyLabel(''); await fetchFarmData(true); }
+    } finally { setFarmCreatingKey(false); }
+  };
+
+  const farmRevokeKey = async (keyId: string) => {
+    if (!confirm('Revoke this key? Cannot be undone.')) return;
+    setFarmActionLoading(`revoke-${keyId}`);
+    try {
+      await fetch('/api/admin/mt5-farm', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'revokeKey', keyId }) });
+      await fetchFarmData(true);
+    } finally { setFarmActionLoading(null); }
+  };
+
   // ── Partner Brokers State ──
   const EMPTY_PARTNER = { id: '', name: '', logo: '🏦', platform: 'mt5' as const, servers: [] as string[], rebate_per_lot: 5, rebate_currency: 'USD', website: '', notes: '', is_active: true, created_at: '' };
   const [partnerBrokers, setPartnerBrokers] = useState<any[]>([]);
@@ -112,7 +204,25 @@ export default function AdminPage() {
   const [brokerSearchQuery, setBrokerSearchQuery] = useState('');
   const [brokerSearchResults, setBrokerSearchResults] = useState<string[]>([]);
   const [searchingServers, setSearchingServers] = useState(false);
+  const [showAdminServerDropdown, setShowAdminServerDropdown] = useState(false);
+  const adminSearchRef = useRef<HTMLDivElement>(null);
   const [customServerInput, setCustomServerInput] = useState('');
+  // verify-server state: null = idle, 'checking' = in progress, true/false = result
+  const [verifyStatus, setVerifyStatus] = useState<null | 'checking' | 'ok' | 'fail'>(null);
+  const [verifyError, setVerifyError]   = useState('');
+  const [verifyNote, setVerifyNote]     = useState(''); // farm's note for unverified servers
+
+  // Close admin server search dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (adminSearchRef.current && !adminSearchRef.current.contains(e.target as Node)) {
+        setShowAdminServerDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
 
   // ── Trade Filter State ──
   const [tradeSearch, setTradeSearch] = useState('');
@@ -438,6 +548,10 @@ export default function AdminPage() {
               <button className={`adm-nav-item ${activeSection === 'audit' ? 'active' : ''}`} onClick={() => { setActiveSection('audit'); setShowMobileNav(false); }}>
                 <FileText /><span>Audit Log</span>
               </button>
+              <div className="adm-nav-divider" />
+              <button className={`adm-nav-item ${activeSection === 'mt5farm' ? 'active' : ''}`} onClick={() => { setActiveSection('mt5farm'); setShowMobileNav(false); }}>
+                <Server /><span>MT5 Farm</span>
+              </button>
             </nav>
           </>
         )}
@@ -468,6 +582,10 @@ export default function AdminPage() {
           </button>
           <button className={`adm-nav-item ${activeSection === 'audit' ? 'active' : ''}`} onClick={() => setActiveSection('audit')}>
             <FileText /><span>Audit Log</span>
+          </button>
+          <div className="adm-nav-divider" />
+          <button className={`adm-nav-item ${activeSection === 'mt5farm' ? 'active' : ''}`} onClick={() => setActiveSection('mt5farm')}>
+            <Server style={{ color: activeSection === 'mt5farm' ? '#818cf8' : undefined }} /><span>MT5 Farm</span>
           </button>
         </nav>
 
@@ -1161,7 +1279,7 @@ export default function AdminPage() {
 
               {/* Add/Edit Partner Broker Modal */}
               {showAddPartner && (
-                <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:20}} onClick={() => { setShowAddPartner(false); setBrokerSearchQuery(''); setBrokerSearchResults([]); setCustomServerInput(''); }}>
+                <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:20}} onClick={() => { setShowAddPartner(false); setBrokerSearchQuery(''); setBrokerSearchResults([]); setCustomServerInput(''); setVerifyStatus(null); setVerifyError(''); }}>
                   <div style={{background:'var(--sidebar-bg)',border:'1px solid var(--border)',borderRadius:18,padding:28,width:'100%',maxWidth:540,maxHeight:'90vh',overflowY:'auto'}} onClick={e=>e.stopPropagation()}>
                     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
                       <h3 style={{margin:0,fontSize:16,fontWeight:700}}>{editingPartner ? 'Edit Partner Broker' : 'Add Partner Broker'}</h3>
@@ -1184,50 +1302,62 @@ export default function AdminPage() {
 
                       {/* Servers Search & Selector */}
                       <div style={{border:'1px solid var(--border)',borderRadius:12,padding:14,background:'rgba(0,0,0,0.1)'}}>
-                        <label style={{fontSize:11,fontWeight:600,color:'var(--subtext)',display:'block',marginBottom:6}}>Search MetaAPI Broker Servers</label>
-                        <div style={{display:'flex',gap:8,marginBottom:8}}>
-                          <input
-                            type="text"
-                            placeholder="Type to search (e.g. ICMarkets, Pepperstone)"
-                            value={brokerSearchQuery}
-                            onChange={e => setBrokerSearchQuery(e.target.value)}
-                            style={{flex:1,background:'var(--input-bg)',border:'1px solid var(--border)',borderRadius:9,padding:'8px 12px',fontSize:13,color:'var(--text)'}}
-                          />
-                          {searchingServers && <Loader2 style={{width:16,height:16,alignSelf:'center'}} className="adm-spin"/>}
-                        </div>
-
-                        {/* Search Results list */}
-                        {brokerSearchResults.length > 0 && (
-                          <div style={{maxHeight:120,overflowY:'auto',border:'1px solid var(--border)',borderRadius:9,background:'var(--sidebar-bg)',padding:8,display:'flex',flexWrap:'wrap',gap:6,marginBottom:10}}>
-                            {brokerSearchResults.map(srv => {
-                              const isSelected = partnerForm.servers?.includes(srv);
-                              return (
-                                <button
-                                  key={srv}
-                                  type="button"
-                                  onClick={() => {
-                                    const current = partnerForm.servers || [];
-                                    const next = isSelected ? current.filter((x: string) => x !== srv) : [...current, srv];
-                                    setPartnerForm((f: any) => ({ ...f, servers: next }));
-                                  }}
-                                  style={{
-                                    padding: '4px 8px',
-                                    borderRadius: 6,
-                                    border: `1px solid ${isSelected ? '#10b981' : 'var(--border)'}`,
-                                    background: isSelected ? 'rgba(16,185,129,0.1)' : 'var(--input-bg)',
-                                    color: isSelected ? '#10b981' : 'var(--text)',
-                                    fontSize: 11,
-                                    fontFamily: 'monospace',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.15s'
-                                  }}
-                                >
-                                  {srv} {isSelected ? '✓' : '+'}
-                                </button>
-                              );
-                            })}
+                        <label style={{fontSize:11,fontWeight:600,color:'var(--subtext)',display:'block',marginBottom:6}}>Search MT5 Farm Broker Servers</label>
+                        <div ref={adminSearchRef} style={{position:'relative', marginBottom:8}}>
+                          <div style={{display:'flex',gap:8}}>
+                            <input
+                              type="text"
+                              placeholder="Type to search (e.g. ICMarkets, Pepperstone)"
+                              value={brokerSearchQuery}
+                              onChange={e => {
+                                setBrokerSearchQuery(e.target.value);
+                                setShowAdminServerDropdown(true);
+                              }}
+                              onFocus={() => setShowAdminServerDropdown(true)}
+                              style={{flex:1,background:'var(--input-bg)',border:'1px solid var(--border)',borderRadius:9,padding:'8px 12px',fontSize:13,color:'var(--text)',outline:'none'}}
+                            />
+                            {searchingServers && <Loader2 style={{width:16,height:16,alignSelf:'center'}} className="adm-spin"/>}
                           </div>
-                        )}
+
+                          {/* Search Results Dropdown */}
+                          {showAdminServerDropdown && brokerSearchResults.length > 0 && (
+                            <div style={{
+                              position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
+                              background: 'var(--sidebar-bg)', border: '1px solid var(--border)',
+                              borderRadius: 9, marginTop: 4, maxHeight: 180, overflowY: 'auto',
+                              boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+                            }}>
+                              {brokerSearchResults.map(srv => {
+                                const isSelected = partnerForm.servers?.includes(srv);
+                                return (
+                                  <div
+                                    key={srv}
+                                    onClick={() => {
+                                      const current = partnerForm.servers || [];
+                                      const next = isSelected ? current.filter((x: string) => x !== srv) : [...current, srv];
+                                      setPartnerForm((f: any) => ({ ...f, servers: next }));
+                                    }}
+                                    style={{
+                                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                      padding: '8px 12px', cursor: 'pointer',
+                                      borderBottom: '1px solid var(--border)',
+                                      background: isSelected ? 'rgba(16,185,129,0.06)' : 'transparent',
+                                      transition: 'background 0.12s',
+                                    }}
+                                    onMouseEnter={e => (e.currentTarget.style.background = isSelected ? 'rgba(16,185,129,0.1)' : 'var(--input-bg)')}
+                                    onMouseLeave={e => (e.currentTarget.style.background = isSelected ? 'rgba(16,185,129,0.06)' : 'transparent')}
+                                  >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                      <Server style={{ width: 12, height: 12, color: isSelected ? '#10b981' : 'var(--subtext)', flexShrink: 0 }} />
+                                      <span style={{ fontSize: 12, fontFamily: 'monospace', color: isSelected ? '#10b981' : 'var(--text)' }}>{srv}</span>
+                                    </div>
+                                    {isSelected && <span style={{ color: '#10b981', fontSize: 12, fontWeight: 'bold' }}>✓</span>}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
 
                         {/* Selected Servers list */}
                         <label style={{fontSize:11,fontWeight:600,color:'var(--subtext)',display:'block',marginBottom:6}}>Selected Servers (shown to users)</label>
@@ -1264,31 +1394,115 @@ export default function AdminPage() {
                           )}
                         </div>
 
-                        {/* Add custom manually */}
-                        <div style={{display:'flex',gap:8}}>
-                          <input
-                            type="text"
-                            placeholder="Add server manually (e.g. ICMarketsSC-Live9)"
-                            value={customServerInput}
-                            onChange={e => setCustomServerInput(e.target.value)}
-                            style={{flex:1,background:'var(--input-bg)',border:'1px solid var(--border)',borderRadius:9,padding:'6px 10px',fontSize:12,color:'var(--text)',fontFamily:'monospace'}}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const val = customServerInput.trim();
-                              if (!val) return;
-                              if (partnerForm.servers?.includes(val)) {
-                                alert('Server already added.');
-                                return;
-                              }
-                              setPartnerForm((f: any) => ({ ...f, servers: [...(f.servers || []), val] }));
-                              setCustomServerInput('');
-                            }}
-                            style={{padding:'6px 12px',background:'var(--border)',border:'none',borderRadius:9,color:'var(--text)',fontSize:12,fontWeight:600,cursor:'pointer'}}
-                          >
-                            + Add
-                          </button>
+                        {/* Add custom manually — with server verification */}
+                        <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                          <div style={{display:'flex',gap:8}}>
+                            <input
+                              type="text"
+                              placeholder="Add server manually (e.g. ICMarketsSC-Live9)"
+                              value={customServerInput}
+                              onChange={e => {
+                                setCustomServerInput(e.target.value);
+                                setVerifyStatus(null);
+                                setVerifyError('');
+                              }}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter') e.preventDefault();
+                              }}
+                              style={{flex:1,background:'var(--input-bg)',border:`1px solid ${verifyStatus === 'ok' ? '#10b981' : verifyStatus === 'fail' ? '#f59e0b' : 'var(--border)'}`,borderRadius:9,padding:'6px 10px',fontSize:12,color:'var(--text)',fontFamily:'monospace',transition:'border-color 0.2s'}}
+                            />
+                            {/* Verify button — becomes Add once verified */}
+                            {verifyStatus !== 'ok' ? (
+                              <button
+                                type="button"
+                                disabled={!customServerInput.trim() || verifyStatus === 'checking'}
+                                onClick={async () => {
+                                  const val = customServerInput.trim();
+                                  if (!val) return;
+                                  setVerifyStatus('checking');
+                                  setVerifyError('');
+                                  try {
+                                    const r = await fetch('/api/broker/verify-server', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ server: val }),
+                                    });
+                                    const d = await r.json();
+                                    if (d.reachable) {
+                                      setVerifyStatus('ok');
+                                      setVerifyError('');
+                                      setVerifyNote('');
+                                    } else {
+                                      setVerifyStatus('fail');
+                                      setVerifyError(d.error || 'Not found in MT5 registry');
+                                      setVerifyNote(d.note || 'MT5 may still accept this server name — try adding it anyway.');
+                                    }
+                                  } catch {
+                                    setVerifyStatus('fail');
+                                    setVerifyError('Verification request failed');
+                                  }
+                                }}
+                                style={{padding:'6px 14px',background: verifyStatus === 'checking' ? 'var(--border)' : '#3b82f6',border:'none',borderRadius:9,color:'#fff',fontSize:12,fontWeight:600,cursor: verifyStatus === 'checking' ? 'not-allowed' : 'pointer',whiteSpace:'nowrap',minWidth:80,display:'flex',alignItems:'center',gap:5,transition:'background 0.2s'}}
+                              >
+                                {verifyStatus === 'checking' ? (
+                                  <><svg style={{width:12,height:12,animation:'spin 1s linear infinite'}} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" strokeOpacity="0.3"/><path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round"/></svg> Checking...</>
+                                ) : 'Verify'}
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const val = customServerInput.trim();
+                                  if (!val) return;
+                                  if (partnerForm.servers?.includes(val)) {
+                                    alert('Server already added.');
+                                    return;
+                                  }
+                                  setPartnerForm((f: any) => ({ ...f, servers: [...(f.servers || []), val] }));
+                                  setCustomServerInput('');
+                                  setVerifyStatus(null);
+                                  setVerifyError('');
+                                }}
+                                style={{padding:'6px 14px',background:'#10b981',border:'none',borderRadius:9,color:'#fff',fontSize:12,fontWeight:600,cursor:'pointer',whiteSpace:'nowrap',minWidth:80,display:'flex',alignItems:'center',gap:5}}
+                              >
+                                ✓ Add
+                              </button>
+                            )}
+                          </div>
+                          {/* Status feedback */}
+                          {verifyStatus === 'ok' && (
+                            <div style={{display:'flex',alignItems:'center',gap:5,fontSize:11,color:'#10b981',fontWeight:600}}>
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{width:12,height:12}}><polyline points="20 6 9 17 4 12"/></svg>
+                              Server verified — click ✓ Add to confirm
+                            </div>
+                          )}
+                          {verifyStatus === 'fail' && (
+                            <div style={{background:'rgba(245,158,11,0.06)',border:'1px solid rgba(245,158,11,0.25)',borderRadius:9,padding:'10px 12px',display:'flex',flexDirection:'column',gap:6}}>
+                              <div style={{display:'flex',alignItems:'center',gap:5}}>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" style={{width:13,height:13,flexShrink:0}}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                <span style={{fontSize:12,fontWeight:700,color:'#f59e0b'}}>Not found in MT5 registry</span>
+                              </div>
+                              <p style={{margin:0,fontSize:11,color:'var(--subtext)',lineHeight:1.45,paddingLeft:18}}>{verifyNote}</p>
+                              <div style={{paddingLeft:18}}>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const val = customServerInput.trim();
+                                    if (!val) return;
+                                    if (partnerForm.servers?.includes(val)) { alert('Server already added.'); return; }
+                                    setPartnerForm((f: any) => ({ ...f, servers: [...(f.servers || []), val] }));
+                                    setCustomServerInput('');
+                                    setVerifyStatus(null);
+                                    setVerifyError('');
+                                    setVerifyNote('');
+                                  }}
+                                  style={{padding:'5px 14px',background:'rgba(245,158,11,0.15)',border:'1px solid rgba(245,158,11,0.4)',borderRadius:7,color:'#f59e0b',fontSize:12,fontWeight:700,cursor:'pointer'}}
+                                >
+                                  + Add anyway
+                                </button>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -1769,7 +1983,7 @@ export default function AdminPage() {
                 setNewProvider({ ...newProvider, type: t, base_url: urls[t] || '' });
               }}>
                 <optgroup label="Forex / Metals / Indices">
-                  <option value="metatrader">MetaTrader (MetaAPI)</option>
+                  <option value="metatrader">MetaTrader (MT5 Farm)</option>
                   <option value="ctrader">cTrader (Open API)</option>
                 </optgroup>
                 <optgroup label="Crypto Exchanges">
@@ -1781,7 +1995,7 @@ export default function AdminPage() {
                   <option value="custom">Custom REST API</option>
                 </optgroup>
               </select>
-              <input className="adm-edit-input" type="password" placeholder={newProvider.type === 'metatrader' ? 'MetaAPI Token' : 'API Key'} value={newProvider.api_key} onChange={e => setNewProvider({ ...newProvider, api_key: e.target.value })} />
+              <input className="adm-edit-input" type="password" placeholder={newProvider.type === 'metatrader' ? 'MT5 Farm API Key' : 'API Key'} value={newProvider.api_key} onChange={e => setNewProvider({ ...newProvider, api_key: e.target.value })} />
               {newProvider.type !== 'metatrader' && (
                 <input className="adm-edit-input" type="password" placeholder="API Secret" value={newProvider.api_secret} onChange={e => setNewProvider({ ...newProvider, api_secret: e.target.value })} />
               )}
@@ -1803,6 +2017,343 @@ export default function AdminPage() {
               </div>
             </div>
           </>)}
+
+          {/* ─── MT5 FARM SECTION ─────────────────────────────────────────── */}
+          {activeSection === 'mt5farm' && (
+            <>
+              {/* Header */}
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:24 }}>
+                <div style={{ display:'flex', alignItems:'center', gap:14 }}>
+                  <div style={{ width:42, height:42, borderRadius:12, background:'linear-gradient(135deg,#6366f1,#8b5cf6)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 18px rgba(99,102,241,.35)' }}>
+                    <Server size={20} color="white" />
+                  </div>
+                  <div>
+                    <h2 style={{ fontSize:20, fontWeight:800, letterSpacing:-0.5, margin:0 }}>MT5 Farm Monitor</h2>
+                    <p style={{ fontSize:12, color:'var(--subtext)', margin:0 }}>
+                      4.224.249.231:8080 · {farmLastRefresh ? `Updated ${farmLastRefresh.toLocaleTimeString()}` : 'Not loaded'}
+                    </p>
+                  </div>
+                </div>
+                <div style={{ display:'flex', gap:10 }}>
+                  <button
+                    onClick={() => setFarmAutoRefresh(v => !v)}
+                    style={{ display:'flex', alignItems:'center', gap:6, padding:'7px 14px', borderRadius:8, border:`1px solid ${farmAutoRefresh?'rgba(99,102,241,.4)':'rgba(255,255,255,.1)'}`, background:farmAutoRefresh?'rgba(99,102,241,.12)':'transparent', color:farmAutoRefresh?'#818cf8':'var(--subtext)', fontSize:12, fontWeight:600, cursor:'pointer' }}
+                  >
+                    <Wifi size={13} />{farmAutoRefresh ? 'Live On' : 'Live Off'}
+                  </button>
+                  <button
+                    onClick={() => fetchFarmData(true)}
+                    disabled={farmRefreshing}
+                    style={{ display:'flex', alignItems:'center', gap:6, padding:'7px 14px', borderRadius:8, border:'1px solid rgba(255,255,255,.1)', background:'rgba(255,255,255,.05)', color:'var(--subtext)', fontSize:12, fontWeight:600, cursor:'pointer' }}
+                  >
+                    <RefreshCw size={13} style={{ animation: farmRefreshing ? 'adm-spin 0.7s linear infinite' : 'none' }} />Refresh
+                  </button>
+                  <button
+                    onClick={runFarmConnectionTest}
+                    disabled={farmTesting}
+                    style={{ display:'flex', alignItems:'center', gap:6, padding:'7px 14px', borderRadius:8, border:'1px solid rgba(34,197,94,.3)', background:'rgba(34,197,94,.08)', color:'#4ade80', fontSize:12, fontWeight:700, cursor:'pointer', opacity: farmTesting ? 0.7 : 1 }}
+                  >
+                    <Zap size={13} style={{ animation: farmTesting ? 'pulse 1s infinite' : 'none' }} />{farmTesting ? 'Testing…' : 'Test Connection'}
+                  </button>
+                </div>
+              </div>
+
+              {farmError && (
+                <div style={{ padding:'10px 16px', borderRadius:10, marginBottom:16, background:'rgba(239,68,68,.1)', border:'1px solid rgba(239,68,68,.3)', color:'#fca5a5', fontSize:13, display:'flex', alignItems:'center', gap:8 }}>
+                  <AlertTriangle size={15} />{farmError}
+                </div>
+              )}
+
+              {/* Connection Test Results */}
+              {farmTestResult && (
+                <div style={{ marginBottom:20, padding:'16px 20px', borderRadius:12, border:`1px solid ${farmTestResult.overall?'rgba(34,197,94,.3)':'rgba(239,68,68,.3)'}`, background:farmTestResult.overall?'rgba(34,197,94,.06)':'rgba(239,68,68,.06)' }}>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                      {farmTestResult.overall
+                        ? <CheckCircle size={18} color="#22c55e" />
+                        : <XCircle size={18} color="#ef4444" />
+                      }
+                      <span style={{ fontWeight:700, fontSize:14, color: farmTestResult.overall?'#4ade80':'#f87171' }}>
+                        {farmTestResult.overall ? 'Connection Healthy ✓' : 'Connection Issues Detected'}
+                      </span>
+                    </div>
+                    <span style={{ fontSize:11, color:'var(--subtext)' }}>{farmTestResult.testedAt ? new Date(farmTestResult.testedAt).toLocaleTimeString() : ''}</span>
+                  </div>
+                  <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12 }}>
+                    {[{key:'orchestrator',label:'Orchestrator Health'},{key:'accounts',label:'Accounts API'},{key:'sidecar',label:'Sidecar Ping'}].map(({key,label}) => {
+                      const r = farmTestResult.results?.[key];
+                      if (!r) return null;
+                      const isOk = r.ok === true;
+                      const isNull = r.ok === null;
+                      return (
+                        <div key={key} style={{ padding:'12px 14px', borderRadius:8, background:'rgba(255,255,255,.04)', border:`1px solid ${isOk?'rgba(34,197,94,.2)':isNull?'rgba(245,158,11,.2)':'rgba(239,68,68,.2)'}` }}>
+                          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
+                            <span style={{ fontSize:11, fontWeight:600, color:'var(--subtext)', textTransform:'uppercase', letterSpacing:.5 }}>{label}</span>
+                            <span style={{ fontSize:10, fontWeight:700, padding:'2px 7px', borderRadius:5, background:isOk?'rgba(34,197,94,.15)':isNull?'rgba(245,158,11,.15)':'rgba(239,68,68,.15)', color:isOk?'#4ade80':isNull?'#fbbf24':'#f87171' }}>{isOk?'OK':isNull?'SKIP':'FAIL'}</span>
+                          </div>
+                          {r.latencyMs !== undefined && <div style={{ fontSize:20, fontWeight:800, color:'var(--text)', marginBottom:2 }}>{r.latencyMs}<span style={{ fontSize:11, color:'var(--subtext)', fontWeight:400 }}>ms</span></div>}
+                          <div style={{ fontSize:11, color:'var(--subtext)', marginTop:4 }}>
+                            {key==='orchestrator' && r.ok && r.detail ? `${r.detail.active} active · ${r.detail.hibernated} hibernated · RAM ${r.detail.ram_pct}%` : ''}
+                            {key==='accounts' && r.ok ? `${r.total} total · ${r.connected} connected` : ''}
+                            {key==='sidecar' && r.ok ? `Login ${r.account} · ${r.currency} ${Number(r.balance||0).toLocaleString('en-US',{minimumFractionDigits:2})}` : ''}
+                            {!r.ok && r.detail && typeof r.detail === 'string' ? r.detail : ''}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {farmTestResult.error && <div style={{ marginTop:10, fontSize:12, color:'#f87171' }}>{farmTestResult.error}</div>}
+                </div>
+              )}
+
+              {/* Farm Sub-tabs */}
+              <div style={{ display:'flex', gap:4, marginBottom:20, borderBottom:'1px solid rgba(255,255,255,.06)', paddingBottom:0, overflowX:'auto', WebkitOverflowScrolling:'touch' }}>
+                {(['overview','accounts','keys','stats'] as const).map(t => (
+                  <button key={t} onClick={() => setFarmTab(t)} style={{ padding:'8px 16px', borderRadius:'8px 8px 0 0', border:'none', background:farmTab===t?'rgba(99,102,241,.1)':'transparent', color:farmTab===t?'#818cf8':'var(--subtext)', fontSize:12, fontWeight:600, cursor:'pointer', borderBottom:farmTab===t?'2px solid #6366f1':'2px solid transparent', marginBottom:-1, textTransform:'capitalize', flexShrink:0 }}>
+                    {t === 'overview' ? '📊 Overview' : t === 'accounts' ? '🖥 Accounts' : t === 'keys' ? '🔑 API Keys' : '📈 Stats'}
+                  </button>
+                ))}
+              </div>
+
+              {/* OVERVIEW */}
+              {farmTab === 'overview' && (
+                <>
+                  {/* KPI row */}
+                  <div className="adm-kpi-row" style={{ marginBottom:20 }}>
+                    {[
+                      { label:'Total Accounts', val: farmHealth?.total_accounts ?? '—', icon:<Server size={18}/>, cls:'adm-kpi-purple' },
+                      { label:'Active',         val: farmHealth?.active         ?? '—', icon:<CheckCircle size={18}/>, cls:'adm-kpi-green' },
+                      { label:'Hibernated',     val: farmHealth?.hibernated     ?? '—', icon:<Moon size={18}/>, cls:'adm-kpi-blue' },
+                      { label:'RAM Used',       val: farmHealth ? `${farmHealth.ram_used_gb} GB` : '—', icon:<MemoryStick size={18}/>, cls:'adm-kpi-amber' },
+                    ].map(k => (
+                      <div className="adm-kpi" key={k.label}>
+                        <div className="adm-kpi-top"><div className={`adm-kpi-icon ${k.cls}`}>{k.icon}</div></div>
+                        <p className="adm-kpi-val">{k.val}</p>
+                        <p className="adm-kpi-label">{k.label}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* RAM bar */}
+                  {farmHealth && (
+                    <div className="adm-card" style={{ marginBottom:20 }}>
+                      <div className="adm-card-head" style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                        <h3 style={{ display:'flex', alignItems:'center', gap:8 }}><MemoryStick size={16}/>RAM Utilization</h3>
+                        <span style={{ fontSize:13, fontWeight:700, padding:'3px 10px', borderRadius:6, background:parseFloat(farmHealth.ram_pct)>85?'rgba(239,68,68,.15)':parseFloat(farmHealth.ram_pct)>65?'rgba(245,158,11,.15)':'rgba(34,197,94,.15)', color:parseFloat(farmHealth.ram_pct)>85?'#f87171':parseFloat(farmHealth.ram_pct)>65?'#fbbf24':'#4ade80' }}>
+                          {farmHealth.ram_pct}%
+                        </span>
+                      </div>
+                      <div className="adm-card-body">
+                        <div style={{ height:8, borderRadius:4, background:'rgba(255,255,255,.08)', overflow:'hidden', marginBottom:10 }}>
+                          <div style={{ height:'100%', width:`${parseFloat(farmHealth.ram_pct)}%`, borderRadius:4, background:parseFloat(farmHealth.ram_pct)>85?'linear-gradient(90deg,#ef444480,#ef4444)':parseFloat(farmHealth.ram_pct)>65?'linear-gradient(90deg,#f59e0b80,#f59e0b)':'linear-gradient(90deg,#22c55e80,#22c55e)', transition:'width .6s' }} />
+                        </div>
+                        <div style={{ display:'flex', justifyContent:'space-between', fontSize:12, color:'var(--subtext)' }}>
+                          <span>Used: {farmHealth.ram_used_gb} GB</span>
+                          <span>Free: {farmHealth.ram_free_gb} GB</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Stats grid */}
+                  <div className="adm-grid-2">
+                    <div className="adm-card">
+                      <div className="adm-card-head"><h3 style={{display:'flex',alignItems:'center',gap:8}}><Server size={15}/>Account Status</h3></div>
+                      <div className="adm-card-body">
+                        {[{l:'Connected',c:farmAccounts.filter(a=>a.status==='connected').length,col:'#22c55e'},{l:'Hibernated',c:farmAccounts.filter(a=>a.status==='hibernated').length,col:'#64748b'},{l:'Starting',c:farmAccounts.filter(a=>a.status==='starting').length,col:'#f59e0b'},{l:'Error',c:farmAccounts.filter(a=>a.status==='timeout').length,col:'#ef4444'}].map(({l,c,col})=>(
+                          <div key={l} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
+                            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                              <div style={{ width:8, height:8, borderRadius:'50%', background:col, boxShadow:`0 0 6px ${col}` }} />
+                              <span style={{ fontSize:13, color:'var(--subtext)' }}>{l}</span>
+                            </div>
+                            <span style={{ fontWeight:700, color:col }}>{c}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    {farmStats && (
+                      <div className="adm-card">
+                        <div className="adm-card-head"><h3 style={{display:'flex',alignItems:'center',gap:8}}><Activity size={15}/>Last 100 Requests</h3></div>
+                        <div className="adm-card-body">
+                          {[{l:'Success',v:farmStats.recent_100_requests.success,col:'#22c55e'},{l:'Auth Errors',v:farmStats.recent_100_requests.auth_errors,col:'#ef4444'},{l:'Rate Limited',v:farmStats.recent_100_requests.rate_limited,col:'#f59e0b'}].map(({l,v,col})=>(
+                            <div key={l} style={{ marginBottom:14 }}>
+                              <div style={{ display:'flex', justifyContent:'space-between', marginBottom:5 }}><span style={{ fontSize:13, color:'var(--subtext)' }}>{l}</span><span style={{ fontWeight:700, color:col, fontSize:13 }}>{v}</span></div>
+                              <div style={{ height:4, borderRadius:2, background:'rgba(255,255,255,.06)' }}><div style={{ height:'100%', borderRadius:2, background:col, width:`${v}%`, transition:'width .6s' }} /></div>
+                            </div>
+                          ))}
+                          <div style={{ marginTop:12, paddingTop:12, borderTop:'1px solid rgba(255,255,255,.06)', display:'flex', justifyContent:'space-between' }}>
+                            <span style={{ color:'var(--subtext)', fontSize:12 }}>All-time requests</span>
+                            <span style={{ fontWeight:700, color:'#818cf8' }}>{farmStats.requests.total_all_time.toLocaleString()}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {/* ACCOUNTS */}
+              {farmTab === 'accounts' && (
+                <div className="adm-card">
+                  <div className="adm-card-head" style={{ display:'flex', justifyContent:'space-between' }}>
+                    <h3>{farmAccounts.length} Registered Farm Accounts</h3>
+                    <span style={{ fontSize:12, color:'var(--subtext)' }}>{farmAccounts.filter(a=>a.status==='connected').length} active · {farmAccounts.filter(a=>a.status==='hibernated').length} hibernated</span>
+                  </div>
+                  <div style={{ maxHeight:520, overflowY:'auto', overflowX:'hidden' }}>
+                    {farmAccounts.length === 0 ? (
+                      <div style={{ padding:48, textAlign:'center', color:'var(--subtext)' }}><Server size={36} style={{ margin:'0 auto 12px', opacity:.3, display:'block' }} />No farm accounts registered yet</div>
+                    ) : farmAccounts.map((acc: any) => (
+                      <div key={acc.accountId} style={{ padding:'14px 20px', borderBottom:'1px solid rgba(255,255,255,.04)', display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>
+                        <div style={{ display:'flex', alignItems:'center', gap:14, minWidth:0, flex:1 }}>
+                          <div style={{ width:34, height:34, borderRadius:8, background:'rgba(99,102,241,.1)', border:'1px solid rgba(99,102,241,.2)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                            <Server size={15} color="#818cf8" />
+                          </div>
+                          <div style={{ minWidth:0 }}>
+                            <div style={{ fontWeight:600, fontSize:13, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{acc.name || acc.label || `Account ${acc.login}`}</div>
+                            <div style={{ fontSize:11, color:'var(--subtext)', fontFamily:'monospace', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>Login: {acc.login} · {acc.server}</div>
+                          </div>
+                        </div>
+                        <div style={{ display:'flex', alignItems:'center', gap:16, flexShrink:0 }}>
+                          {acc.balance !== null && <div style={{ textAlign:'right' }}><div style={{ fontWeight:700, fontSize:14 }}>{acc.currency} {Number(acc.balance||0).toLocaleString('en-US',{minimumFractionDigits:2})}</div><div style={{ fontSize:11, color:'var(--subtext)' }}>balance</div></div>}
+                          <span style={{ fontSize:11, fontWeight:600, padding:'3px 10px', borderRadius:20, background:acc.status==='connected'?'rgba(34,197,94,.12)':acc.status==='hibernated'?'rgba(100,116,139,.12)':acc.status==='starting'?'rgba(245,158,11,.12)':'rgba(239,68,68,.12)', color:acc.status==='connected'?'#22c55e':acc.status==='hibernated'?'#94a3b8':acc.status==='starting'?'#f59e0b':'#ef4444' }}>{acc.status}</span>
+                          <div style={{ display:'flex', gap:6 }}>
+                            {acc.status==='connected' && <button onClick={() => farmAccountAction(acc.accountId,'hibernate')} disabled={!!farmActionLoading} title="Hibernate" style={{ padding:'5px 8px', borderRadius:6, border:'1px solid rgba(255,255,255,.1)', background:'transparent', color:'var(--subtext)', cursor:'pointer' }}><Moon size={13}/></button>}
+                            {acc.status==='hibernated' && <button onClick={() => farmAccountAction(acc.accountId,'wake')} disabled={!!farmActionLoading} title="Wake" style={{ padding:'5px 8px', borderRadius:6, border:'1px solid rgba(34,197,94,.3)', background:'rgba(34,197,94,.1)', color:'#22c55e', cursor:'pointer' }}><Sun size={13}/></button>}
+                            <button onClick={() => farmAccountAction(acc.accountId,'disconnect')} disabled={!!farmActionLoading} title="Disconnect" style={{ padding:'5px 8px', borderRadius:6, border:'1px solid rgba(239,68,68,.25)', background:'transparent', color:'#ef4444', cursor:'pointer' }}><Power size={13}/></button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* API KEYS */}
+              {farmTab === 'keys' && (<>
+
+                  {/* Create New API Key */}
+                  <div className="adm-card" style={{ marginBottom:20 }}>
+                    <div className="adm-card-head">
+                      <h3 style={{ display:'flex', alignItems:'center', gap:8 }}>
+                        <Plus size={15} color="#818cf8"/>Create New API Key
+                      </h3>
+                    </div>
+                    <div className="adm-card-body">
+                      {/* Inputs row */}
+                      <div style={{ display:'flex', gap:12, marginBottom:14, flexWrap:'wrap' }}>
+                        <div style={{ flex:'1 1 200px', minWidth:0 }}>
+                          <label style={{ fontSize:11, color:'var(--subtext)', fontWeight:600, display:'block', marginBottom:6, textTransform:'uppercase', letterSpacing:.4 }}>Label</label>
+                          <input
+                            value={farmNewKeyLabel}
+                            onChange={e => setFarmNewKeyLabel(e.target.value)}
+                            placeholder="e.g. Mobile App, Web Dashboard"
+                            onKeyDown={e => e.key === 'Enter' && farmCreateKey()}
+                            style={{ display:'block', width:'100%', padding:'9px 12px', borderRadius:8, border:'1px solid var(--border)', background:'var(--input-bg)', color:'var(--text)', fontSize:13, outline:'none', boxSizing:'border-box' }}
+                          />
+                        </div>
+                        <div style={{ flex:'0 0 130px', minWidth:100 }}>
+                          <label style={{ fontSize:11, color:'var(--subtext)', fontWeight:600, display:'block', marginBottom:6, textTransform:'uppercase', letterSpacing:.4 }}>Rate Limit / min</label>
+                          <input
+                            type="number"
+                            value={farmNewKeyLimit}
+                            onChange={e => setFarmNewKeyLimit(Number(e.target.value))}
+                            style={{ display:'block', width:'100%', padding:'9px 12px', borderRadius:8, border:'1px solid var(--border)', background:'var(--input-bg)', color:'var(--text)', fontSize:13, outline:'none', boxSizing:'border-box' }}
+                          />
+                        </div>
+                      </div>
+                      {/* Button on own row — always visible */}
+                      <button
+                        onClick={farmCreateKey}
+                        disabled={farmCreatingKey || !farmNewKeyLabel.trim()}
+                        style={{ display:'inline-flex', alignItems:'center', gap:7, padding:'9px 20px', borderRadius:8, border:'none', background:'linear-gradient(135deg,#6366f1,#8b5cf6)', color:'white', fontWeight:700, fontSize:13, cursor:'pointer', opacity: farmCreatingKey || !farmNewKeyLabel.trim() ? 0.5 : 1 }}
+                      >
+                        <Plus size={14}/>{farmCreatingKey ? 'Creating…' : 'Create Key'}
+                      </button>
+                      {farmRevealedKey && (
+                        <div style={{ marginTop:14, padding:'12px 16px', borderRadius:10, background:'rgba(34,197,94,.08)', border:'1px solid rgba(34,197,94,.25)' }}>
+                          <div style={{ fontSize:12, color:'#4ade80', fontWeight:700, marginBottom:8, display:'flex', alignItems:'center', gap:6 }}>
+                            <CheckCircle size={13}/> Key created — save it now, won&apos;t be shown again!
+                          </div>
+                          <div style={{ display:'flex', alignItems:'center', gap:10, background:'rgba(0,0,0,.15)', borderRadius:7, padding:'8px 12px' }}>
+                            <code style={{ fontFamily:'monospace', fontSize:12, color:'#4ade80', flex:1, wordBreak:'break-all', letterSpacing:.5 }}>{farmRevealedKey}</code>
+                            <button onClick={() => { navigator.clipboard.writeText(farmRevealedKey); }} title="Copy" style={{ background:'transparent', border:'none', color:'#4ade80', cursor:'pointer', padding:4, borderRadius:5, display:'flex', flexShrink:0 }}><Copy size={15}/></button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* API Keys list — scrollable */}
+                  <div className="adm-card">
+                    <div className="adm-card-head"><h3>{farmKeys.length} API Keys</h3></div>
+                    <div style={{ maxHeight:340, overflowY:'auto', overflowX:'hidden' }}>
+                      {farmKeys.map((k:any) => (
+                        <div key={k.id} style={{ padding:'14px 20px', borderBottom:'1px solid rgba(255,255,255,.04)', display:'flex', alignItems:'center', justifyContent:'space-between', gap:16 }}>
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4, flexWrap:'wrap' }}>
+                              <Key size={13} color="#818cf8" style={{ flexShrink: 0 }} />
+                              <span style={{ fontWeight:600, fontSize:13, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{k.label}</span>
+                              <span style={{ fontSize:10, padding:'2px 7px', borderRadius:5, background:k.is_active?'rgba(34,197,94,.1)':'rgba(239,68,68,.1)', color:k.is_active?'#4ade80':'#f87171', fontWeight:600, flexShrink: 0 }}>{k.is_active?'Active':'Revoked'}</span>
+                            </div>
+                            <div style={{ fontFamily:'monospace', fontSize:11, color:'var(--subtext)', wordBreak:'break-all' }}>{k.key_preview}</div>
+                            <div style={{ fontSize:11, color:'var(--subtext)', marginTop:3 }}>{k.requests} reqs · {k.rate_limit}/min{k.last_used?` · last ${new Date(k.last_used).toLocaleString()}`:' · never used'}</div>
+                          </div>
+                          {k.is_active && (
+                            <button onClick={() => farmRevokeKey(k.id)} disabled={farmActionLoading===`revoke-${k.id}`} style={{ padding:'6px 12px', borderRadius:6, border:'1px solid rgba(239,68,68,.25)', background:'transparent', color:'#ef4444', fontSize:12, fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', gap:5, flexShrink:0 }}>
+                              <Trash2 size={12}/>Revoke
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+              </>)}
+
+
+              {farmTab === 'stats' && farmStats && (
+                <div className="adm-grid-2">
+                  <div className="adm-card">
+                    <div className="adm-card-head"><h3 style={{display:'flex',alignItems:'center',gap:8}}><TrendingUp size={15}/>Top Keys by Requests</h3></div>
+                    <div className="adm-card-body">
+                      {farmStats.requests.top_keys.map((k:any,i:number) => (
+                        <div key={k.label} style={{ marginBottom:16 }}>
+                          <div style={{ display:'flex', justifyContent:'space-between', marginBottom:5 }}>
+                            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                              <span style={{ width:18, height:18, borderRadius:4, background:'rgba(99,102,241,.2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:700, color:'#818cf8' }}>{i+1}</span>
+                              <span style={{ fontSize:13 }}>{k.label}</span>
+                            </div>
+                            <span style={{ fontSize:13, fontWeight:700, color:'#818cf8' }}>{k.requests.toLocaleString()}</span>
+                          </div>
+                          <div style={{ height:4, borderRadius:2, background:'rgba(255,255,255,.06)' }}><div style={{ height:'100%', borderRadius:2, background:'linear-gradient(90deg,#6366f180,#6366f1)', width:`${(k.requests/farmStats.requests.total_all_time)*100}%`, transition:'width .6s' }} /></div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="adm-card">
+                    <div className="adm-card-head"><h3 style={{display:'flex',alignItems:'center',gap:8}}><Shield size={15}/>Key Health</h3></div>
+                    <div className="adm-card-body">
+                      {[{l:'Total Keys',v:farmStats.keys.total,col:'#818cf8'},{l:'Active',v:farmStats.keys.active,col:'#22c55e'},{l:'Revoked',v:farmStats.keys.revoked,col:'#ef4444'},{l:'All-time Requests',v:farmStats.requests.total_all_time.toLocaleString(),col:'#f59e0b'}].map(({l,v,col})=>(
+                        <div key={l} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'12px 0', borderBottom:'1px solid rgba(255,255,255,.05)' }}>
+                          <span style={{ color:'var(--subtext)', fontSize:13 }}>{l}</span>
+                          <span style={{ fontWeight:700, fontSize:16, color:col }}>{v}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Footer */}
+              <div style={{ marginTop:32, paddingTop:16, borderTop:'1px solid rgba(255,255,255,.05)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                <span style={{ fontSize:11, color:'rgba(255,255,255,.2)' }}>MT5 Farm v4.0 · <a href="http://4.224.249.231:8080/docs" target="_blank" rel="noreferrer" style={{ color:'#6366f1', textDecoration:'none' }}>Swagger Docs ↗</a></span>
+                <div style={{ display:'flex', alignItems:'center', gap:6, fontSize:11 }}>
+                  <div style={{ width:6, height:6, borderRadius:'50%', background:'#22c55e' }} />
+                  <span style={{ color:'var(--subtext)' }}>Orchestrator 4.224.249.231:8080</span>
+                </div>
+              </div>
+            </>
+          )}
         </main>
       </div>
     </div>

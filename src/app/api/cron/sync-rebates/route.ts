@@ -4,8 +4,7 @@ import { distributeRebate } from '@/lib/rebateEngine';
 
 export const dynamic = 'force-dynamic';
 
-const token = process.env.META_API_TOKEN || '';
-const MT_CLIENT_BASE = 'https://mt-client-api-v1.london.agiliumtrade.ai';
+import { FARM_HEADERS, sidecarUrl, resolveAccountId } from '@/lib/mt5farm';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -61,20 +60,22 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: true, message: 'No connected accounts found.' });
     }
 
-    const headers = { 'auth-token': token, 'Accept': 'application/json' };
+    // MT5 Farm authentication is handled via FARM_HEADERS (X-API-Key)
     let processedDealsCount = 0;
     let totalRebatesCredited = 0;
 
     for (const account of accounts) {
+      const accountId = account.mt5_login || account.metaapi_id || account.id;
+      const resolvedId = await resolveAccountId(accountId);
+
       // 6. Drawdown safeguard limit check
       let inDrawdownLimit = true;
       try {
-        const infoRes = await fetch(`${MT_CLIENT_BASE}/users/current/accounts/${account.metaapi_id || account.id}`, { headers });
+        const infoRes = await fetch(sidecarUrl(resolvedId, 'account-information'), { headers: FARM_HEADERS });
         if (infoRes.ok) {
           const info = await infoRes.json();
-          const state = info.state || {};
-          const balance = state.balance || info.balance || 0;
-          const equity = state.equity || info.equity || 0;
+          const balance = info.balance || 0;
+          const equity  = info.equity  || 0;
           if (balance > 0) {
             const drawdownPercent = ((balance - equity) / balance) * 100;
             if (drawdownPercent > riskSettings.max_drawdown_limit) {
@@ -111,14 +112,16 @@ export async function GET(request: Request) {
       );
       const tierMultiplier = matchingTier ? Number(matchingTier.payout_multiplier) : 1.00;
 
-      // Sync deals timeframe
-      const startTime = account.last_rebate_sync_at 
-        ? new Date(account.last_rebate_sync_at).toISOString() 
-        : new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+      // Sync deals timeframe — use unix timestamps for MT5 Farm API
+      const syncFrom = account.last_rebate_sync_at
+        ? new Date(account.last_rebate_sync_at).getTime()
+        : Date.now() - 3 * 24 * 60 * 60 * 1000;
       const endTime = new Date().toISOString();
+      const fromTs  = Math.floor(syncFrom / 1000);
+      const toTs    = Math.floor(Date.now() / 1000);
 
-      const url = `${MT_CLIENT_BASE}/users/current/accounts/${account.metaapi_id || account.id}/history-deals/time/${startTime}/${endTime}`;
-      const res = await fetch(url, { headers });
+      const url = sidecarUrl(resolvedId, `history/deals?from_ts=${fromTs}&to_ts=${toTs}`);
+      const res = await fetch(url, { headers: FARM_HEADERS });
       if (!res.ok) {
         console.error(`[Rebate Sync] Failed to fetch deals for ${account.id}: ${res.statusText}`);
         continue;
@@ -144,8 +147,8 @@ export async function GET(request: Request) {
       const currentBalance = profile?.wallet_balance || 0;
 
       for (const deal of deals) {
-        // Only credit deals that close positions (DEAL_ENTRY_OUT / DEAL_ENTRY_INOUT)
-        if (deal.entryType !== 'DEAL_ENTRY_OUT' && deal.entryType !== 'DEAL_ENTRY_INOUT') continue;
+        // Only credit deals that close positions — farm uses 'entry' field
+        if (deal.entry !== 'DEAL_ENTRY_OUT' && deal.entry !== 'DEAL_ENTRY_INOUT') continue;
 
         // Double-spend check
         const { data: existingTx } = await supabaseAdmin
@@ -156,21 +159,19 @@ export async function GET(request: Request) {
 
         if (existingTx) continue;
 
-        // MTP check: Get opening deal to compute hold time
+        // MTP check: estimate hold time from deal timestamps
+        // Farm doesn't expose per-position deal history — use deal time directly
         let holdTimeSeconds = 99999;
         try {
-          const posDealsUrl = `${MT_CLIENT_BASE}/users/current/accounts/${account.metaapi_id || account.id}/history-deals/position/${deal.positionId}`;
-          const posDealsRes = await fetch(posDealsUrl, { headers });
-          if (posDealsRes.ok) {
-            const posDeals = await posDealsRes.json();
-            if (Array.isArray(posDeals)) {
-              const entryDeal = posDeals.find(d => d.entryType === 'DEAL_ENTRY_IN');
-              if (entryDeal) {
-                const entryTime = new Date(entryDeal.time).getTime();
-                const closeTime = new Date(deal.time).getTime();
-                holdTimeSeconds = (closeTime - entryTime) / 1000;
-              }
-            }
+          // Fetch same time window and find the matching entry deal
+          const entryDeals = deals.filter((d: any) =>
+            d.positionId === deal.positionId && d.entry === 'DEAL_ENTRY_IN'
+          );
+          if (entryDeals.length > 0) {
+            const entryDeal = entryDeals[0];
+            const entryTime = new Date(entryDeal.time).getTime();
+            const closeTime = new Date(deal.time).getTime();
+            holdTimeSeconds = (closeTime - entryTime) / 1000;
           }
         } catch (e) {
           console.error(`[Rebate Sync] Hold time fetch failed:`, e);
@@ -211,7 +212,8 @@ export async function GET(request: Request) {
           const timeBuffer = riskSettings.hedge_time_buffer_seconds * 1000;
           const minTime = new Date(dealTime.getTime() - timeBuffer).toISOString();
           const maxTime = new Date(dealTime.getTime() + timeBuffer).toISOString();
-          const opposingType = deal.type === 'DEAL_TYPE_BUY' ? 'DEAL_TYPE_SELL' : 'DEAL_TYPE_BUY';
+          // Farm API uses ORDER_TYPE_* for deal types
+          const opposingType = deal.type === 'ORDER_TYPE_BUY' ? 'ORDER_TYPE_SELL' : 'ORDER_TYPE_BUY';
 
           const { data: hedgeTx } = await supabaseAdmin
             .from('wallet_transactions')

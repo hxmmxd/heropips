@@ -26,12 +26,15 @@ const SYMBOL_TO_KEY: Record<string, string> = {
   'USD/JPY': 'USD/JPY',
   'NAS100': 'QQQ',
   'QQQ': 'QQQ',
+  'QQQM': 'QQQ',
   'US30': 'DIA',
   'DIA': 'DIA',
   'Oil': 'USO',
   'USO': 'USO',
+  'XTIUSD': 'USO',
   'SPY': 'SPY',
   'SP500': 'SPY',
+  'SPX500': 'SPY',
 };
 
 export type PriceMap = Record<string, number>; // key = Twelve Data symbol

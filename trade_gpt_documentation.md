@@ -15,7 +15,9 @@ The platform is designed to:
 
 ---
 
-## 2. Technology Stack & Integrations
+## 2. Technology Stack, Integrations & Dashboard Features
+
+### 2.1 Technology Stack & Integrations
 
 TradeGPT uses a modern, high-performance web development stack optimized for serverless deployment:
 
@@ -31,6 +33,39 @@ TradeGPT uses a modern, high-performance web development stack optimized for ser
 | **AI Processing** | NVIDIA NIM API | Chat interface model routing and signal analysis automation |
 | **Crypto Payments** | NOWPayments API | Plan subscription invoices, payout processing, IPN webhooks |
 | **PDF Generation** | jsPDF / html2pdf.js / Nodemailer | Client invoice processing, report distribution, automated emails |
+
+---
+
+### 2.2 User Dashboard & Terminal Features (Designer Reference Guide)
+
+The TradeGPT user interface is designed as a premium, institutional dark-mode suite. To assist landing page designers and frontend developers in understanding the components and layout requirements, the terminal features are mapped as follows:
+
+#### A. AI Trading Terminal Tab (`TerminalTab.tsx`)
+The primary interactive trading dashboard where users execute AI-generated strategies.
+- **Interactive Technical Charting (`MiniChart.tsx`):** Real-time price charts (Gold, Forex, Indices, and Crypto) rendered using the lightweight-charts library with custom color overlays.
+- **AI Signal Assistant Panel (`TradeTicket.tsx`):** A conversational command line where users ask TradeGPT to analyze charts. Upon confluence, it generates high-conviction trade ticket cards showing direction (BUY/SELL), entry price, lot volume, SL/TP, and margin calculations.
+- **12-Gate Confluence Checklist:** A visual sidebar component showing verification gates (RSI, SMC patterns, market volatility, session timing, economic calendar blocks) passing or failing in real-time.
+- **Astro Mode Panel (`AstroCard.tsx`):** A cosmic telemetry widget showing current lunar phase, zodiac aspects, Mercury retrograde alerts, and corresponding lot size multipliers/adjustments.
+
+#### B. Portfolio & Risk Manager Tab (`ManagerTab.tsx`)
+An advanced management panel for automated trade monitoring and risk configuration.
+- **Floating Positions Monitor (`ManagerPositions.tsx`):** Renders all active trades synced via MetaAPI nodes, featuring details on leverage, floating P&L, and an interactive **"Slide to Close"** slider for instant manual exits.
+- **Risk Configuration Desk (`ManagerRisk.tsx` / `ManagerConfig.tsx`):** UI inputs for Max Drawdown alerts, trailing stop loss settings, automatic hedging triggers, and Kelly Criterion sizing rules.
+- **Visual Analytics Widgets:**
+  - *Equity Curve Chart (`EquityCurve.tsx`):* Displays account capital growth vs drawdown metrics over time.
+  - *Asset Allocation Pie (`PositionChart.tsx`):* Visualizes active asset exposure (Commodities vs Forex vs Crypto).
+
+#### C. Referral Network & MLM Hub (`ReferralTab.tsx`)
+A dashboard focused on network growth, downline visualizers, and commission management.
+- **5-Tier Downline Interactive Tree:** A visual hierarchical map illustrating direct and indirect referrers across 5 depth levels.
+- **Referral Ledger Wallet:** Cards listing wallet balance, lifetime commission earned, and batch payouts.
+- **2FA Withdrawal Portal:** Form allowing payouts to USDT wallets, secured with Google Authenticator TOTP verification.
+- **Milestone Rewards Progress (`MilestoneProgress.tsx`):** Visual tracker for Bronze, Silver, Gold, Platinum, and Diamond ranks showing direct leg volume with a cap limit matching the 40/40/20 leg capping rule.
+
+#### D. Broker Connections Tab (`BrokersTab.tsx`)
+Paired brokerage accounts settings page.
+- **Pair Broker Modal (`ModalNode.tsx`):** A clean form for pairing MT4/MT5 logins, passwords, and broker servers.
+- **Connection Cards:** Status badges (`connected`, `disconnected`, `connecting`, `error`) showing real-time balance, equity, and margin levels for each deployed node.
 
 ---
 
@@ -262,6 +297,26 @@ Auditable ledger tracking balance adjustments.
 - `reference_id` (varchar, Unique): e.g., `ref_{deal_id}_L{level}` to prevent double payouts.
 - `metadata` (jsonb): Detailed execution snapshot.
 
+#### `public.astro_signal_log`
+Chronicles astrological parameters captured during signal generation events.
+- `id` (bigint, PK).
+- `user_id` (uuid, FK -> `profiles.id`).
+- `symbol` (text): Asset ticker.
+- `direction` (text): `'BUY'` or `'SELL'`.
+- `confluence_score` (numeric).
+- `gates_passed` (integer).
+- `outcome` (text).
+- `moon_phase` (numeric).
+- `moon_phase_name` (text).
+- `moon_sign` (text).
+- `mercury_state` (text).
+- `eclipse_active` (boolean).
+- `void_of_course` (boolean).
+- `aspects` (text[]): Active aspect list.
+- `seasonal_bias` (numeric).
+- `astro_mode_on` (boolean).
+- `created_at` (timestamptz).
+
 ---
 
 ### 4.2 Database Triggers & Network Helpers
@@ -366,6 +421,36 @@ Where:
 - $R$ = Average win amount divided by average loss amount.
 
 To ensure capital preservation, the resulting Kelly fraction is strictly capped at a maximum of **$2.0\%$ account risk** per trade.
+
+---
+
+### 5.4 Astro Mode & Celestial Confluence Engine
+
+TradeGPT integrates an advanced celestial indicator pipeline (`/src/lib/astro.ts`) driven by the high-precision `astronomy-engine` library (accurate to $<0.1^\circ$ geocentric ecliptic longitude). When **Astro Mode** is toggled, planetary and lunar metrics are computed in real time and injected directly into the confluence pipeline and LLM context.
+
+#### Key Celestial Metrics Evaluated:
+- **Lunar Cycles:** Computes real-time lunar elongation, synodic moon phase (0.0 to 1.0), age (0 to 29.53 days), zodiac sign, and element category (`fire`, `earth`, `air`, `water`).
+- **Mercury Stations:** Tracks Mercury's exact zodiac degree and direction state (`direct`, `pre-shadow`, `retrograde`, `post-shadow`).
+- **Planetary Aspects:** Checks for major aspects (Conjunctions, Sextiles, Squares, Trines, Oppositions) between the Sun, Moon, Mercury, Venus, Mars, Jupiter, and Saturn within a standard $6^\circ$ orb.
+- **Eclipse Blackout Periods:** Maps known solar and lunar eclipse windows.
+- **Seasonal Commodity/Index Cycles:** Analyzes historical seasonal biases (e.g., Gold strength in Jan/Feb/Aug/Sep, Tech Index weakness in Sep/Oct).
+
+#### Signal Gating & Position Sizing Rules:
+Astro Mode applies both hard limits (blocking executions) and soft modifications (adjusting lot sizing) based on planetary configurations:
+
+| Celestial Event | Gating Status | Lot Size Multiplier | Confidence Modifier | Platform Actions & Rationale |
+| :--- | :--- | :--- | :--- | :--- |
+| **Eclipse Blackout** | **BLOCKED** | `0.0` | `-40%` | Hard block on order execution. Suspends all trading activity due to high systemic volatility risks. |
+| **Void of Course Moon** | **BLOCKED** | `0.0` | `-25%` | Hard block. Prevents entry during period of stagnant momentum and high probability of false breakouts. |
+| **Mercury Retrograde (℞)** | **BLOCKED** | `0.0` | `-30%` | Hard block on new signal positions. Politely informs users of celestial restrictions to avoid retrograde market volatility. |
+| **Mercury Pre-Shadow** | Allowed | `0.75` | `-10%` | Soft warning. Sizing reduced by 25% due to Mercury deceleration. |
+| **Mercury Post-Shadow** | Allowed | `0.85` | `-5%` | Soft warning. Sizing reduced by 15% during stabilization. |
+| **Full Moon / High Risk** | Allowed | `0.50` | `-15%` | Soft sizing penalty. Sizing reduced by 50% due to historical correlation with peak emotional trading. |
+| **Waning Moon / Med Risk** | Allowed | `0.75` | `-5%` | Soft sizing penalty. Sizing reduced by 25% due to moderate risk conditions. |
+| **New Moon / Low Risk** | Allowed | `1.00` | `+5%` (if bullish bias) | Optimal condition. Full position sizing permitted; adds +5% boost if market and element biases align bullishly. |
+
+#### Database Telemetry & Logging:
+Every generated trade ticket with Astro Mode enabled is logged asynchronously into the database table `public.astro_signal_log` with details including direction, confluence, aspect aspects list, void-of-course flags, mercury state, seasonal bias, and moon details.
 
 ---
 

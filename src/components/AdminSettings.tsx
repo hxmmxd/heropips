@@ -1634,13 +1634,14 @@ function ApiIntegrationsTab({ initialConfig, apiStats = [] }: { initialConfig: R
       ],
     },
     {
-      id: 'metaapi',
-      label: 'MetaAPI (MT5 Broker)',
-      description: 'Connects MetaTrader 5 broker accounts for live trade execution',
-      planNote: 'Required for live broker connectivity and automated order execution',
-      docsUrl: 'https://metaapi.cloud/',
+      id: 'mt5farm',
+      label: 'MT5 Farm (Broker Infrastructure)',
+      description: 'Proprietary self-hosted MT5 sidecar farm — drop-in replacement for MetaAPI. Manages all MT5 account connections.',
+      planNote: 'Orchestrator: http://4.224.249.231:8080 · Sidecar: :9101 · All requests require X-API-Key header',
+      docsUrl: 'http://4.224.249.231:8080/docs',
       fields: [
-        { key: 'metaapi_token', label: 'API Token', placeholder: 'Enter MetaAPI token', isSecret: true },
+        { key: 'mt5_farm_url',     label: 'Orchestrator URL',  placeholder: 'http://4.224.249.231:8080',            isSecret: false },
+        { key: 'mt5_farm_api_key', label: 'API Key (X-API-Key)', placeholder: 'XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX', isSecret: true  },
       ],
     },
     {

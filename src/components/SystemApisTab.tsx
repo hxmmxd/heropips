@@ -16,13 +16,16 @@ const SYSTEM_APIS: SystemApi[] = [
   { method: 'POST', path: '/api/chat', description: 'AI chat + signal generation via LLM failover (Groq → NVIDIA → engine)', auth: 'none', category: 'AI & Trading' },
   { method: 'POST', path: '/api/execute', description: 'Execute broker order on connected MT5 account', auth: 'user', category: 'AI & Trading' },
   { method: 'POST', path: '/api/scan', description: 'Multi-asset market scanner with pattern detection', auth: 'none', category: 'AI & Trading' },
+  // Astro Mode
+  { method: 'GET', path: '/api/astro', description: 'Query live planetary coordinates and moon phases (accurate to <0.1° via astronomy-engine)', auth: 'none', category: 'Astro Mode' },
+  { method: 'GET', path: '/api/astro/analytics', description: 'Aggregated trade win rates and performance metrics categorized by celestial patterns', auth: 'user', category: 'Astro Mode' },
   // Market Data
   { method: 'GET', path: '/api/price-stream', description: 'SSE price stream (Twelve Data → Yahoo Finance fallback)', auth: 'none', category: 'Market Data' },
   { method: 'GET', path: '/api/candles', description: 'OHLCV candle history for charting (symbol, interval params)', auth: 'none', category: 'Market Data' },
   { method: 'GET', path: '/api/news', description: 'Financial news headlines aggregator', auth: 'none', category: 'Market Data' },
   // Broker
   { method: 'GET', path: '/api/broker', description: 'List connected broker accounts with live balances', auth: 'user', category: 'Broker' },
-  { method: 'POST', path: '/api/broker', description: 'Connect new MT5 broker account via MetaAPI', auth: 'user', category: 'Broker' },
+  { method: 'POST', path: '/api/broker', description: 'Connect new MT5 broker account via MT5 Farm', auth: 'user', category: 'Broker' },
   { method: 'DELETE', path: '/api/broker', description: 'Disconnect and remove a broker account', auth: 'user', category: 'Broker' },
   { method: 'GET', path: '/api/broker/deals', description: 'Fetch closed deal history from broker', auth: 'user', category: 'Broker' },
   { method: 'POST', path: '/api/broker/order', description: 'Place market/limit order on broker account', auth: 'user', category: 'Broker' },
@@ -32,6 +35,8 @@ const SYSTEM_APIS: SystemApi[] = [
   { method: 'POST', path: '/api/auth/signup', description: 'Register new user with email + referral code', auth: 'none', category: 'Auth' },
   { method: 'POST', path: '/api/auth/verify-otp', description: 'Verify OTP for email authentication', auth: 'none', category: 'Auth' },
   { method: 'POST', path: '/api/session-track', description: 'Track user session activity and last seen', auth: 'user', category: 'Auth' },
+  { method: 'GET', path: '/api/user/settings', description: 'Retrieve user preference settings (e.g. Astro Mode activation state)', auth: 'user', category: 'Auth' },
+  { method: 'PATCH', path: '/api/user/settings', description: 'Update user preference settings (e.g. Astro Mode activation state)', auth: 'user', category: 'Auth' },
   // Referral
   { method: 'GET', path: '/api/referral/profile', description: 'Get user referral profile and stats', auth: 'user', category: 'Referral' },
   { method: 'GET', path: '/api/referral/network', description: 'Fetch multi-level referral tree for user', auth: 'user', category: 'Referral' },
@@ -59,7 +64,7 @@ const SYSTEM_APIS: SystemApi[] = [
   { method: 'POST', path: '/api/milestones', description: 'Create or update milestone definitions', auth: 'admin', category: 'Admin' },
   { method: 'GET', path: '/api/partner-brokers', description: 'Get list of partner broker providers', auth: 'none', category: 'Admin' },
   // Cron
-  { method: 'GET', path: '/api/cron/sync-deals', description: 'Sync closed deals from MetaAPI to database', auth: 'cron', category: 'Cron' },
+  { method: 'GET', path: '/api/cron/sync-deals', description: 'Sync closed deals from MT5 Farm to database', auth: 'cron', category: 'Cron' },
   { method: 'GET', path: '/api/cron/sync-rebates', description: 'Process rebate payouts with multi-level distribution', auth: 'cron', category: 'Cron' },
   // Courses
   { method: 'GET', path: '/api/courses', description: 'Get published courses (public) or all courses (admin)', auth: 'none', category: 'Courses' },

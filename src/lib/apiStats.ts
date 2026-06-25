@@ -8,7 +8,7 @@
  * On persistent servers (local / Railway / Render), stats accumulate normally.
  */
 
-export type ApiName = 'twelve_data' | 'nvidia' | 'groq' | 'binance' | 'yahoo_finance' | 'metaapi';
+export type ApiName = 'twelve_data' | 'nvidia' | 'groq' | 'binance' | 'yahoo_finance' | 'mt5farm';
 
 export interface ApiStat {
   name: ApiName;
@@ -82,21 +82,21 @@ const STATS: Record<ApiName, ApiStat> = {
     quotaPerMin: null,   // Unofficial — soft rate limited
     quotaPerDay: null,
   },
-  metaapi: {
-    name: 'metaapi', label: 'MetaAPI (MT5)',
+  mt5farm: {
+    name: 'mt5farm', label: 'MT5 Farm',
     totalCalls: 0, successCalls: 0, errorCalls: 0,
     recentTimestamps: [], lastCallAt: null, lastSuccessAt: null,
     lastErrorAt: null, lastErrorMsg: null,
     avgLatencyMs: 0, lastLatencyMs: null,
     status: 'idle',
-    quotaPerMin: null,
+    quotaPerMin: null,   // Self-hosted — unlimited
     quotaPerDay: null,
   },
 };
 
 // Rolling latency samples (last 20 calls)
 const LATENCY_SAMPLES: Record<ApiName, number[]> = {
-  twelve_data: [], nvidia: [], groq: [], binance: [], yahoo_finance: [], metaapi: [],
+  twelve_data: [], nvidia: [], groq: [], binance: [], yahoo_finance: [], mt5farm: [],
 };
 
 /** Record a completed API call */

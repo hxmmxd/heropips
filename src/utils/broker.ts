@@ -28,6 +28,8 @@ export function cleanBrokerName(fullName: string): string {
     .replace(/\bLtd\b/gi, '')
     .replace(/\bLimited\b/gi, '')
     .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\s*\.$/, '') // Remove trailing dots left from "Corp."
     .trim();
     
   return cleaned || fullName;
