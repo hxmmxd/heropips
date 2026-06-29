@@ -22,21 +22,49 @@ function getAdmin() {
 async function resolveAccountId(brokerId: string, userId: string): Promise<string> {
   // Use Supabase to look up the MT5 login (mt5_login) — never rely on the ephemeral /tmp file
   // which is wiped on every Vercel cold start.
+  const cleanId = brokerId.replace(/^mt5_/, '');
   try {
     const admin = getAdmin();
-    const { data } = await admin
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanId);
+    let query = admin
       .from('broker_accounts')
       .select('mt5_login, metaapi_id')
-      .eq('user_id', userId)
-      .or(`id.eq.${brokerId},mt5_login.eq.${brokerId},metaapi_id.eq.${brokerId}`)
-      .maybeSingle();
+      .eq('user_id', userId);
+      
+    if (isUuid) {
+      query = query.eq('id', cleanId);
+    } else {
+      query = query.or(`mt5_login.eq.${cleanId},metaapi_id.eq.${cleanId},mt5_login.eq.${brokerId},metaapi_id.eq.${brokerId}`);
+    }
+    const { data } = await query.maybeSingle();
     if (data?.mt5_login) return String(data.mt5_login);
     if (data?.metaapi_id) return String(data.metaapi_id);
   } catch (err: any) {
     console.warn('[Deals] resolveAccountId fallback:', err.message);
   }
   // Last resort — brokerId itself might already be the login
-  return brokerId;
+  return cleanId;
+}
+
+async function resolveBrokerUuid(brokerId: string, userId: string): Promise<string | null> {
+  const cleanId = brokerId.replace(/^mt5_/, '');
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanId);
+  if (isUuid) return cleanId;
+
+  try {
+    const admin = getAdmin();
+    const { data } = await admin
+      .from('broker_accounts')
+      .select('id')
+      .eq('user_id', userId)
+      .or(`mt5_login.eq.${cleanId},metaapi_id.eq.${cleanId},mt5_login.eq.${brokerId},metaapi_id.eq.${brokerId}`)
+      .maybeSingle();
+
+    if (data?.id) return data.id;
+  } catch (err) {
+    console.error('[Deals] Failed to resolve broker UUID:', err);
+  }
+  return null;
 }
 
 function computeStats(deals: any[]) {
@@ -283,6 +311,7 @@ export async function GET(request: Request) {
     const userId = user.id;
     const rawAccountId = await resolveAccountId(brokerId, userId);
     const accountId = await resolveFarmAccountId(rawAccountId);
+    const brokerUuid = await resolveBrokerUuid(brokerId, userId);
 
     // ── Time range ──
     const now = new Date();
@@ -300,8 +329,9 @@ export async function GET(request: Request) {
     // ── 1. Check cache first ──
     const cached = await getCachedStats(user.id, brokerId, period);
     if (cached) {
-      const dbDeals = await getDealsFromDb(user.id, brokerId, startTime);
-      const dbEquity = await getEquityCurveFromDb(user.id, brokerId, startTime.split('T')[0]);
+      const targetBrokerDbId = brokerUuid || brokerId;
+      const dbDeals = await getDealsFromDb(user.id, targetBrokerDbId, startTime);
+      const dbEquity = await getEquityCurveFromDb(user.id, targetBrokerDbId, startTime.split('T')[0]);
 
       return NextResponse.json({
         deals: dbDeals,
@@ -377,10 +407,12 @@ export async function GET(request: Request) {
     const positions = Array.isArray(rawPositions) ? rawPositions : [];
 
     // Run DB operations in parallel (non-blocking)
-    Promise.all([
-      syncDealsToDb(user.id, brokerId, closedTrades),
-      saveDailySnapshot(user.id, brokerId, info, positions, closedTrades),
-    ]).catch(err => console.error('[Deals API] DB sync error:', err));
+    if (brokerUuid) {
+      Promise.all([
+        syncDealsToDb(user.id, brokerUuid, closedTrades),
+        saveDailySnapshot(user.id, brokerUuid, info, positions, closedTrades),
+      ]).catch(err => console.error('[Deals API] DB sync error:', err));
+    }
 
     // ── 4. Compute stats and cache ──
     const stats = computeStats(closedTrades);

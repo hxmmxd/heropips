@@ -18,13 +18,18 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { brokerId, symbol, action, volume, entryPrice, stopLoss, takeProfit } = body;
+    let { brokerId } = body;
+    const { symbol, action, volume, entryPrice, stopLoss, takeProfit } = body;
 
     if (!brokerId || !symbol || !action) {
       return NextResponse.json(
         { error: 'Missing required fields: brokerId, symbol, action' },
         { status: 400 }
       );
+    }
+
+    if (typeof brokerId === 'string') {
+      brokerId = brokerId.replace(/^mt5_/, '');
     }
 
     const lotSize = parseFloat(volume) || 0.1;
@@ -53,6 +58,7 @@ export async function POST(request: Request) {
       query = query.or(`metaapi_id.eq.${brokerId},mt5_login.eq.${brokerId}`);
     }
     const { data: brokerAccount } = await query.maybeSingle();
+
 
     // Log the trade in Supabase database
     const { error: insertError } = await supabase

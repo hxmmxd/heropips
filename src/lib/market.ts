@@ -126,6 +126,13 @@ export function isForexSymbol(symbol: string): boolean {
   return false;
 }
 
+const COMMON_WORDS_BLACKLIST = new Set([
+  'can', 'all', 'now', 'it', 'or', 'am', 'be', 'go', 'do', 'by', 'on', 'at', 'if', 'so',
+  'no', 'us', 'me', 'key', 'out', 'get', 'see', 'run', 'buy', 'sell', 'new', 'job', 'has',
+  'but', 'any', 'for', 'are', 'who', 'you', 'why', 'how', 'the', 'and', 'for', 'that',
+  'i', 'we', 'they', 'he', 'she', 'him', 'her', 'them', 'his', 'hers', 'their', 'our',
+  'us', 'to', 'in', 'of', 'with', 'about', 'from', 'into', 'over', 'after', 'before'
+]);
 
 // Detect which asset the user is asking about (returns null if none detected)
 export function detectSymbol(userMessage: string, allowedSymbols?: string[]): string | null {
@@ -134,6 +141,14 @@ export function detectSymbol(userMessage: string, allowedSymbols?: string[]): st
   // 1. Try hardcoded mappings first
   for (const [keyword, symbol] of Object.entries(SYMBOL_MAP)) {
     if (lower.includes(keyword)) {
+      // If the keyword is a blacklisted common word, check if it's explicitly prefixed with a dollar sign or quoted
+      if (COMMON_WORDS_BLACKLIST.has(keyword)) {
+        const hasDollarPrefix = new RegExp(`\\$${keyword}\\b`, 'i').test(userMessage);
+        const hasQuotes = new RegExp(`['"]${keyword}['"]`, 'i').test(userMessage);
+        if (!hasDollarPrefix && !hasQuotes) {
+          continue; // Skip false positive common word match
+        }
+      }
       return symbol;
     }
   }
@@ -150,6 +165,15 @@ export function detectSymbol(userMessage: string, allowedSymbols?: string[]): st
       
       const words = userMessage.toUpperCase().split(/[^A-Z0-9]/);
       if (words.includes(cleanStandard) || words.includes(cleanSym) || cleanMsg === cleanStandard || cleanMsg === cleanSym) {
+        // If the matched symbol is a blacklisted common word, require explicit ticker formatting ($SYMBOL or "SYMBOL")
+        const lowerSym = sym.toLowerCase();
+        if (COMMON_WORDS_BLACKLIST.has(lowerSym)) {
+          const hasDollarPrefix = new RegExp(`\\$${lowerSym}\\b`, 'i').test(userMessage);
+          const hasQuotes = new RegExp(`['"]${lowerSym}['"]`, 'i').test(userMessage);
+          if (!hasDollarPrefix && !hasQuotes) {
+            continue; // Skip false positive common word match
+          }
+        }
         return standardSym;
       }
     }

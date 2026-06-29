@@ -487,12 +487,13 @@ export async function disconnectBroker(brokerId: string, userId?: string): Promi
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.SUPABASE_SERVICE_ROLE_KEY!
       );
+      const cleanBrokerId = brokerId.replace(/^mt5_/, '');
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(brokerId);
       let query = sb.from('broker_accounts').delete().eq('user_id', userId);
       if (isUuid) {
         query = query.eq('id', brokerId);
       } else {
-        query = query.or(`metaapi_id.eq.${brokerId},mt5_login.eq.${brokerId}`);
+        query = query.or(`metaapi_id.eq.${brokerId},mt5_login.eq.${brokerId},metaapi_id.eq.${cleanBrokerId},mt5_login.eq.${cleanBrokerId}`);
       }
       const { error } = await query;
       if (error) console.error('[Broker Engine] Supabase delete error:', error.message);

@@ -70,6 +70,15 @@ export interface ChatMessage {
     statusLine: string;
     blockReason: string | null;
   };
+  screenerData?: {
+    symbol: string;
+    displaySymbol: string;
+    price: number;
+    confluenceScore: number;
+    confluenceDirection: string;
+    confidenceGrade: string;
+    signalOutcome: string;
+  }[];
 }
 
 export interface Partner {

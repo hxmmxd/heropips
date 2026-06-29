@@ -109,7 +109,57 @@ export async function POST(request: Request) {
     const wordCount = lastUserMessage.trim().split(/\s+/).length;
     const isDirectQuery = symbol && (wordCount <= 3 || explicitSignal || forceSignal || hasAnalysisIntent);
 
-    // 2. No asset detected OR conversational mention → general conversation
+    // 2. Check for market screener / scan intent (e.g. "suggest stocks", "top setups")
+    const SCAN_INTENT_KEYWORDS = ['suggest', 'recommend', 'scan', 'screener', 'what to trade', 'trade today', 'setups', 'find stocks', 'top stocks', 'what can i trade', 'any setups'];
+    const isScanRequest = !symbol && SCAN_INTENT_KEYWORDS.some(kw => lastUserMessage.toLowerCase().includes(kw));
+
+    if (isScanRequest) {
+      const scanSymbols = ['XAU/USD', 'EUR/USD', 'GBP/USD', 'BTC/USD', 'QQQ', 'SPY'];
+      const snapshotPromises = scanSymbols.map(s => getMarketSnapshot(s, astroMode));
+      const results = await Promise.allSettled(snapshotPromises);
+      
+      const snapshots: any[] = [];
+      for (let i = 0; i < results.length; i++) {
+        const res = results[i];
+        if (res.status === 'fulfilled' && res.value) {
+          snapshots.push(res.value);
+        } else {
+          const sym = scanSymbols[i];
+          snapshots.push({
+            symbol: sym,
+            displaySymbol: displaySymbol(sym),
+            price: 0,
+            confluenceScore: 50,
+            confluenceDirection: 'NEUTRAL',
+            confidenceGrade: 'BBB',
+            signalOutcome: 'NO_TRADE'
+          });
+        }
+      }
+
+      snapshots.sort((a, b) => b.confluenceScore - a.confluenceScore);
+      const top5 = snapshots.slice(0, 5);
+
+      const text = `### 🔍 Live Multi-Agent Market Scan\nHere are the top 5 setups across major markets. Tap on any card below to analyze:`;
+
+      const screenerData = top5.map(snap => ({
+        symbol: snap.symbol,
+        displaySymbol: snap.displaySymbol,
+        price: snap.price,
+        confluenceScore: snap.confluenceScore,
+        confluenceDirection: snap.confluenceDirection,
+        confidenceGrade: snap.confidenceGrade,
+        signalOutcome: snap.signalOutcome
+      }));
+
+      return NextResponse.json({
+        text,
+        ticket: null,
+        screenerData
+      });
+    }
+
+    // 3. No asset detected OR conversational mention → general conversation
     if (!symbol || !isDirectQuery) {
       const chatSystemPrompt = `You are TradeGPT, an institutional AI trading terminal. Be friendly, concise (2 sentences max). Suggest analyzing Gold, EURUSD, Bitcoin, or Nasdaq. Respond ONLY as JSON: {"text":"your response"}${astroContext}`;
 

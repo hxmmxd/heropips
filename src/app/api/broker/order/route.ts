@@ -17,25 +17,32 @@ export const dynamic = 'force-dynamic';
 async function resolveAccountId(brokerId: string, userId: string): Promise<string> {
   // Never rely on /tmp/brokers_db.json — it is wiped on every Vercel cold start.
   // Use Supabase admin client for a reliable lookup by mt5_login.
+  const cleanId = brokerId.replace(/^mt5_/, '');
   try {
     const { createClient: createAdminClient } = await import('@supabase/supabase-js');
     const admin = createAdminClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
     );
-    const { data } = await admin
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanId);
+    let query = admin
       .from('broker_accounts')
       .select('mt5_login, metaapi_id')
-      .eq('user_id', userId)
-      .or(`id.eq.${brokerId},mt5_login.eq.${brokerId},metaapi_id.eq.${brokerId}`)
-      .maybeSingle();
+      .eq('user_id', userId);
+      
+    if (isUuid) {
+      query = query.eq('id', cleanId);
+    } else {
+      query = query.or(`mt5_login.eq.${cleanId},metaapi_id.eq.${cleanId},mt5_login.eq.${brokerId},metaapi_id.eq.${brokerId}`);
+    }
+    const { data } = await query.maybeSingle();
     if (data?.mt5_login) return String(data.mt5_login);
     if (data?.metaapi_id) return String(data.metaapi_id);
   } catch (err: any) {
     console.warn('[Order] resolveAccountId fallback:', err.message);
   }
   // brokerId itself might already be the MT5 login number
-  return brokerId;
+  return cleanId;
 }
 
 // Rate limiting — max 10 orders per 15 seconds per user
@@ -65,7 +72,12 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { action, brokerId } = body;
+    const { action } = body;
+    let { brokerId } = body;
+
+    if (brokerId && typeof brokerId === 'string') {
+      brokerId = brokerId.replace(/^mt5_/, '');
+    }
 
     // Verify broker belongs to this user
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(brokerId);
@@ -80,6 +92,7 @@ export async function POST(request: Request) {
     if (!brokerMatch) {
       return NextResponse.json({ error: 'Broker not found or access denied' }, { status: 403 });
     }
+
 
     const accountId = await resolveAccountId(brokerId, user.id);
 

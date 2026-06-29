@@ -494,6 +494,7 @@ function HomeContent() {
         marketData: data.marketData || undefined,
         gating: data.gating || undefined,
         astroGate: data.astroGate || undefined,
+        screenerData: data.screenerData || undefined,
       };
 
       setMessages((prev) =>

@@ -1341,6 +1341,55 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
                       {msg.text && msg.text !== '__TYPING__' && !msg.marketData && (
                         <div className="bg-gradient-to-br from-[var(--sidebar-bg)] to-[var(--input-bg)]/80 backdrop-blur-md border border-[var(--border)] hover:border-[var(--accent)]/20 transition-all duration-300 px-5.5 py-4 rounded-[22px] max-w-full shadow-[0_4px_22px_rgba(0,0,0,0.14)] text-[14px] leading-relaxed text-[var(--text)]">
                           {parseMarkdown(msg.text)}
+
+                          {/* Screener Cards inside the message block */}
+                          {msg.screenerData && msg.screenerData.length > 0 && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4 w-full animate-in fade-in duration-300 slide-in-from-bottom-2">
+                              {msg.screenerData.map((item, idx) => {
+                                const isBuy = item.confluenceDirection === 'BUY';
+                                const isSell = item.confluenceDirection === 'SELL';
+                                const outcomeColor = item.signalOutcome === 'SIGNAL' ? 'border-emerald-500/25 bg-emerald-500/10 text-emerald-400'
+                                  : item.signalOutcome === 'WATCH' ? 'border-amber-500/25 bg-amber-500/10 text-amber-400'
+                                  : 'border-[var(--border)] bg-[var(--input-bg)] text-[var(--subtext)]';
+
+                                return (
+                                  <div
+                                    key={idx}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onGenerateSignal?.(item.symbol);
+                                    }}
+                                    className="group relative border border-[var(--border)] bg-[var(--sidebar-bg)]/60 hover:border-[var(--accent)]/45 hover:bg-[var(--accent)]/5 hover:translate-y-[-2px] transition-all duration-300 p-4 rounded-2xl shadow-sm flex items-center justify-between cursor-pointer select-none"
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      <CoinIcon symbol={item.displaySymbol} />
+                                      <div className="text-left">
+                                        <h4 className="text-sm font-black text-[var(--text)] uppercase tracking-wide group-hover:text-[var(--accent)] transition-colors">{item.displaySymbol}</h4>
+                                        <span className="text-[10px] text-[var(--subtext)] font-semibold font-mono">
+                                          {item.price > 0 ? `$${item.price > 999 ? item.price.toLocaleString('en-US', { minimumFractionDigits: 2 }) : item.price.toFixed(4)}` : '—'}
+                                        </span>
+                                      </div>
+                                    </div>
+                                    <div className="text-right flex flex-col items-end gap-1">
+                                      <span className={`text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider ${
+                                        isSell ? 'bg-red-500/10 text-red-500'
+                                        : isBuy ? 'bg-green-500/10 text-green-500'
+                                        : 'bg-[var(--border)] text-[var(--subtext)]'
+                                      }`}>
+                                        {item.confluenceDirection}
+                                      </span>
+                                      <div className="flex items-center gap-1.5 mt-0.5">
+                                        <span className="text-[9px] text-[var(--subtext)] font-mono">{item.confluenceScore}% ({item.confidenceGrade})</span>
+                                        <span className={`text-[8px] font-black px-1.5 py-0.5 rounded border uppercase tracking-widest leading-none ${outcomeColor}`}>
+                                          {item.signalOutcome}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
                       )}
 
