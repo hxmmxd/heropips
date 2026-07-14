@@ -240,6 +240,115 @@ const GATES = [
 ];
 
 /* ── 12-Gates Grid Section ──────────────────────────────────── */
+/* ── Comparison Section (Retail Chaos vs Xyro Engine) ────── */
+function ComparisonSection() {
+  return (
+    <section className="lp-comp">
+      <div className="lp-comp-inner">
+        <div className="lp-comp-grid">
+          
+          {/* Left Card: Retail Chaos */}
+          <div className="lp-comp-card lp-comp-left">
+            <div className="lp-comp-card-content">
+              <div className="lp-comp-badge lp-comp-badge-bad">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: '6px' }}>
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                  <line x1="12" y1="9" x2="12" y2="13" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+                STATUS: UNRESOLVED CHAOS
+              </div>
+              
+              <h3 className="lp-comp-card-title">
+                Fighting charts with <br />
+                <span className="lp-comp-strike">"retail indicators"</span>
+              </h3>
+            </div>
+
+            {/* Floating Alert Cards simulating retail trader logs */}
+            <div className="lp-comp-alerts">
+              <div className="lp-comp-alert-box alert-1">
+                <div className="lp-comp-alert-hdr">
+                  <span className="lp-alert-status bad">RSI ERROR</span>
+                  <span className="lp-alert-tag">P0</span>
+                </div>
+                <p className="lp-comp-alert-txt">RSI oversold. Entered BUY. Market continues 200-pip liquidation dump.</p>
+              </div>
+
+              <div className="lp-comp-alert-box alert-2">
+                <div className="lp-comp-alert-hdr">
+                  <span className="lp-alert-status bad">SL HUNTED</span>
+                  <span className="lp-alert-tag">P1</span>
+                </div>
+                <p className="lp-comp-alert-txt">Late breakout BUY. Stop-loss hunted by market makers before rebound.</p>
+              </div>
+
+              <div className="lp-comp-alert-box alert-3">
+                <div className="lp-comp-alert-hdr">
+                  <span className="lp-alert-status bad">CPI SLIPPAGE</span>
+                  <span className="lp-alert-tag">P0</span>
+                </div>
+                <p className="lp-comp-alert-txt">Slipped entry by 18 pips during high volatility, margin liquidated.</p>
+              </div>
+            </div>
+
+            {/* Subtle red waveform graph */}
+            <div className="lp-comp-wave-bg">
+              <svg viewBox="0 0 400 100" fill="none" className="lp-comp-wave-svg">
+                <path d="M0,70 C80,10 120,90 200,40 C280,-10 320,110 400,60" stroke="rgba(239, 68, 68, 0.15)" strokeWidth="2" />
+                <path d="M0,80 C60,40 100,100 180,60 C260,20 300,90 400,70" stroke="rgba(239, 68, 68, 0.08)" strokeWidth="1" strokeDasharray="3 3" />
+              </svg>
+            </div>
+          </div>
+
+          {/* Right Card: Xyro Solution */}
+          <div className="lp-comp-card lp-comp-right">
+            <div className="lp-comp-card-content">
+              <div className="lp-comp-badge lp-comp-badge-good">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ marginRight: '6px' }}>
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                ACTIVE: 12-GATE ENGINE
+              </div>
+
+              <h3 className="lp-comp-card-title text-white">
+                Trading with <br />
+                <strong>Xyro Terminal</strong>
+              </h3>
+            </div>
+
+            {/* Center Dotted Line & Pill Badge matching Cloudflare look */}
+            <div className="lp-comp-dotted-line" />
+            <div className="lp-comp-center-badge-container">
+              <div className="lp-comp-center-badge">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ marginRight: '8px', color: '#ffea00' }}>
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                <span>Confluence verified <span style={{ textDecoration: 'underline' }}>12<sup>2</sup></span> times today</span>
+              </div>
+            </div>
+
+            <div className="lp-comp-metrics">
+              <div className="lp-comp-features">
+                <div className="lp-comp-feat-item">
+                  <span className="lp-comp-bullet">✓</span> Volatility regime filter blocks entries during panic
+                </div>
+                <div className="lp-comp-feat-item">
+                  <span className="lp-comp-bullet">✓</span> Real-time liquidity sweeps check institutional interest
+                </div>
+                <div className="lp-comp-feat-item">
+                  <span className="lp-comp-bullet">✓</span> Strict 1:2 risk-to-reward ratio mathematically enforced
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function GatesSection() {
   return (
     <section className="lp-gates">
@@ -551,6 +660,9 @@ export default function LandingPage() {
 
       {/* ── NARRATIVE ── */}
       <NarrativeSection />
+
+      {/* ── COMPARISON ── */}
+      <ComparisonSection />
 
       {/* ── GATES GRID ── */}
       <GatesSection />

@@ -1821,5 +1821,279 @@
 }
 
 
+/* ══════════════════════════════════════════════════════════════
+   COMPARISON SECTION (RETAIL CHAOS VS XYRO TERMINAL)
+   ══════════════════════════════════════════════════════════════ */
+.lp-comp {
+  padding: 80px 24px;
+  background: #F5F0E8;
+  position: relative;
+  z-index: 10;
+}
+
+.lp-comp-inner {
+  max-width: var(--max-w);
+  margin: 0 auto;
+  width: 100%;
+}
+
+.lp-comp-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  width: 100%;
+}
+
+.lp-comp-card {
+  border-radius: 24px;
+  padding: 44px 40px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 520px;
+  box-shadow: 
+    0 24px 80px rgba(0, 0, 0, 0.02),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.lp-comp-left {
+  background-color: #ffffff;
+  background-image: 
+    linear-gradient(rgba(0, 0, 0, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.015) 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-position: center;
+  border: 1px solid rgba(0, 0, 0, 0.07);
+}
+
+.lp-comp-right {
+  background: #ff3c00;
+  border: 1px solid #ff3c00;
+  box-shadow: 
+    0 32px 72px rgba(255, 60, 0, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.lp-comp-badge {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 5px 10px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  text-transform: uppercase;
+}
+
+.lp-comp-badge-bad {
+  background: rgba(239, 68, 68, 0.06);
+  border: 1px solid rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.lp-comp-badge-good {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+.lp-comp-card-title {
+  font-size: clamp(26px, 3.2vw, 36px);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -1.6px;
+  color: #0f0f0f;
+  margin-bottom: 32px;
+  z-index: 2;
+}
+
+.lp-comp-strike {
+  text-decoration: line-through;
+  text-decoration-color: #ef4444;
+  text-decoration-thickness: 3px;
+  color: rgba(0, 0, 0, 0.35);
+}
+
+/* Floating Alerts stack */
+.lp-comp-alerts {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 2;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+.lp-comp-alert-box {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  border-radius: 12px;
+  padding: 12px 16px;
+  box-shadow: 
+    0 10px 30px rgba(0, 0, 0, 0.02),
+    0 2px 5px rgba(0, 0, 0, 0.01);
+  max-width: 82%;
+}
+
+.lp-comp-alert-box.alert-1 {
+  align-self: flex-start;
+}
+
+.lp-comp-alert-box.alert-2 {
+  align-self: flex-end;
+  background: #ffffff;
+  border-color: rgba(239, 68, 68, 0.15);
+  box-shadow: 0 12px 36px rgba(239, 68, 68, 0.04);
+}
+
+.lp-comp-alert-box.alert-3 {
+  align-self: flex-start;
+}
+
+.lp-comp-alert-hdr {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.lp-alert-status {
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.lp-alert-status.bad {
+  color: #ef4444;
+}
+
+.lp-alert-tag {
+  font-size: 7.5px;
+  font-weight: 800;
+  color: #ffffff;
+  background: #ef4444;
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.lp-comp-alert-txt {
+  font-size: 11px;
+  color: rgba(0, 0, 0, 0.52);
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* Red waveform graph */
+.lp-comp-wave-bg {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 120px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.lp-comp-wave-svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Xyro (Right Card) Centered Dotted divider style */
+.lp-comp-dotted-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 55%;
+  border-top: 1.5px dashed rgba(255, 255, 255, 0.25);
+  z-index: 1;
+}
+
+.lp-comp-center-badge-container {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 55%;
+  transform: translateY(-50%);
+  display: flex;
+  justify-content: center;
+  z-index: 2;
+}
+
+.lp-comp-center-badge {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  padding: 8px 18px;
+  border-radius: 100px;
+  font-size: 12.5px;
+  font-weight: 600;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: inline-flex;
+  align-items: center;
+  box-shadow: 0 8px 24px rgba(255, 60, 0, 0.15);
+}
+
+.lp-comp-metrics {
+  margin-top: auto;
+  z-index: 2;
+}
+
+.lp-comp-features {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.lp-comp-feat-item {
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.45;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.lp-comp-bullet {
+  color: #ffea00;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .lp-comp {
+    padding: 48px 16px;
+  }
+  
+  .lp-comp-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .lp-comp-card {
+    padding: 32px 24px;
+    min-height: 480px;
+  }
+
+  .lp-comp-dotted-line {
+    top: 50%;
+  }
+
+  .lp-comp-center-badge-container {
+    top: 50%;
+  }
+
+  .lp-comp-alert-box {
+    max-width: 100%;
+  }
+}
+
+
 
 
