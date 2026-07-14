@@ -6,7 +6,7 @@
     },
     {
       "path": "/api/cron/sync-deals",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 1 * * *"
     }
   ]
 }
