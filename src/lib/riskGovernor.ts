@@ -131,7 +131,7 @@ export function evaluateGate13(state: RiskState, tradeCount: number): RiskGateRe
     if (ema20 === null) {
       return { gate: 'Gate 13: Equity Curve', passed: true, detail: 'EMA₂₀ not computed yet — GREEN', multiplier: 1.0 };
     }
-    const status: ECPStatus = equity >= ema20 ? 'GREEN' : 'AMBER';
+    const status = (equity >= ema20 ? 'GREEN' : 'AMBER') as ECPStatus;
     return {
       gate: 'Gate 13: Equity Curve',
       passed: status !== 'RED',

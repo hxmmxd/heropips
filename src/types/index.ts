@@ -63,6 +63,8 @@ export interface ChatMessage {
     gates: { name: string; passed: boolean; detail: string }[];
     smcPatterns: string[];
     smcConfirmations: number;
+    riskSummary?: string | null;
+    riskMultipliers?: any | null;
   };
   astroGate?: {
     allowed: boolean;
