@@ -390,9 +390,8 @@ function Navbar() {
             <a href="/login" className="lp-nav-act-btn">Create account</a>
           </div>
 
-          {/* Mobile-only: Log in + Create account (visible before hamburger on small screens) */}
+          {/* Mobile-only: Create account (visible before hamburger on small screens) */}
           <div className="lp-nav-mobile-actions">
-            <a href="/login" className="lp-nav-mob-login">Log in</a>
             <a href="/login" className="lp-nav-mob-btn">Create account</a>
           </div>
 
