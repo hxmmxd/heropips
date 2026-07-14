@@ -1,7 +1,11 @@
 /**
  * Smart Money Concepts (SMC) Scanner
  * Detects: BOS, ChoCH, FVG, Order Blocks, Liquidity Sweeps, Equal Highs/Lows
- * Scores setups by confluence and generates trade signals.
+ * 
+ * UPGRADED: Phase D Signal Quality Fixes
+ * - SMC State Machine: Sweep → ChoCH → OB/FVG retest sequence validation
+ * - Precision entries at OB/FVG levels instead of at-market
+ * - OB/FVG quality scoring (fresh zones > retested zones)
  */
 
 // ── Types ───────────────────────────────────────────────────
@@ -30,6 +34,8 @@ export interface FairValueGap {
   midpoint: number;
   time: string;
   filled: boolean;
+  /** How many times price has revisited this zone. 0 = fresh, 1+ = retested */
+  retestCount: number;
 }
 
 export interface OrderBlock {
@@ -39,6 +45,8 @@ export interface OrderBlock {
   low: number;
   time: string;
   mitigated: boolean;
+  /** How many times price has revisited this zone. 0 = fresh, 1+ = retested */
+  retestCount: number;
 }
 
 export interface StructureBreak {
@@ -68,6 +76,134 @@ export interface TradeSignal {
   confluenceScore: number; // 1-10
   patterns: string[];
   timestamp: string;
+  /** Entry type: 'precision' (at OB/FVG level) or 'market' (at current price) */
+  entryType?: 'precision' | 'market';
+  /** SMC state machine validation: did this signal follow the Sweep → ChoCH → Retest sequence? */
+  sequenceValidated?: boolean;
+}
+
+// ── SMC State Machine ──────────────────────────────────────
+// Tracks the institutional order flow sequence:
+// State 0: WATCHING → Sweep detected → State 1
+// State 1: SWEEP_DETECTED → ChoCH confirmed → State 2
+// State 2: STRUCTURE_SHIFTED → Price at OB/FVG → FIRE SIGNAL
+//
+// Signals that follow the full sequence get higher scores.
+
+interface SMCState {
+  stage: 0 | 1 | 2;
+  direction: 'bullish' | 'bearish' | null;
+  sweepIndex: number;
+  chochIndex: number;
+  sweepLevel: number;
+  chochLevel: number;
+}
+
+function buildSMCStateMachine(
+  candles: Candle[],
+  sweeps: LiquiditySweep[],
+  breaks: StructureBreak[],
+  obs: OrderBlock[],
+  fvgs: FairValueGap[],
+): { bullish: SMCState; bearish: SMCState; bullishSequenceValid: boolean; bearishSequenceValid: boolean } {
+  const bullState: SMCState = { stage: 0, direction: 'bullish', sweepIndex: -1, chochIndex: -1, sweepLevel: 0, chochLevel: 0 };
+  const bearState: SMCState = { stage: 0, direction: 'bearish', sweepIndex: -1, chochIndex: -1, sweepLevel: 0, chochLevel: 0 };
+
+  const recentWindow = candles.length - 15; // Look back 15 candles for sequence
+
+  // Step 1: Find most recent bullish sweep (swept lows → reversed up)
+  const bullSweep = [...sweeps].reverse().find(s => s.direction === 'bullish' && s.index >= recentWindow);
+  if (bullSweep) {
+    bullState.stage = 1;
+    bullState.sweepIndex = bullSweep.index;
+    bullState.sweepLevel = bullSweep.sweptLevel;
+
+    // Step 2: Find ChoCH AFTER the sweep
+    const bullChoCH = breaks.find(b =>
+      b.direction === 'bullish' &&
+      b.type === 'ChoCH' &&
+      b.index > bullSweep.index &&
+      b.index >= recentWindow
+    );
+    // Also accept BOS if no ChoCH
+    const bullBOS = !bullChoCH ? breaks.find(b =>
+      b.direction === 'bullish' &&
+      b.type === 'BOS' &&
+      b.index > bullSweep.index &&
+      b.index >= recentWindow
+    ) : null;
+    const bullBreak = bullChoCH || bullBOS;
+
+    if (bullBreak) {
+      bullState.stage = 2;
+      bullState.chochIndex = bullBreak.index;
+      bullState.chochLevel = bullBreak.level;
+    }
+  }
+
+  // Same for bearish
+  const bearSweep = [...sweeps].reverse().find(s => s.direction === 'bearish' && s.index >= recentWindow);
+  if (bearSweep) {
+    bearState.stage = 1;
+    bearState.sweepIndex = bearSweep.index;
+    bearState.sweepLevel = bearSweep.sweptLevel;
+
+    const bearChoCH = breaks.find(b =>
+      b.direction === 'bearish' &&
+      b.type === 'ChoCH' &&
+      b.index > bearSweep.index &&
+      b.index >= recentWindow
+    );
+    const bearBOS = !bearChoCH ? breaks.find(b =>
+      b.direction === 'bearish' &&
+      b.type === 'BOS' &&
+      b.index > bearSweep.index &&
+      b.index >= recentWindow
+    ) : null;
+    const bearBreak = bearChoCH || bearBOS;
+
+    if (bearBreak) {
+      bearState.stage = 2;
+      bearState.chochIndex = bearBreak.index;
+      bearState.chochLevel = bearBreak.level;
+    }
+  }
+
+  // Step 3: Check if price is currently at an OB or FVG (for retest)
+  const price = candles[candles.length - 1].close;
+
+  let bullishAtLevel = false;
+  if (bullState.stage === 2) {
+    const activeBullOB = obs.find(o =>
+      o.type === 'bullish' && !o.mitigated &&
+      price >= o.low && price <= o.high
+    );
+    const activeBullFVG = fvgs.find(f =>
+      f.type === 'bullish' && !f.filled &&
+      price >= f.bottom && price <= f.top
+    );
+    bullishAtLevel = !!(activeBullOB || activeBullFVG);
+  }
+
+  let bearishAtLevel = false;
+  if (bearState.stage === 2) {
+    const activeBearOB = obs.find(o =>
+      o.type === 'bearish' && !o.mitigated &&
+      price >= o.low && price <= o.high
+    );
+    const activeBearFVG = fvgs.find(f =>
+      f.type === 'bearish' && !f.filled &&
+      price >= f.bottom && price <= f.top
+    );
+    bearishAtLevel = !!(activeBearOB || activeBearFVG);
+  }
+
+  return {
+    bullish: bullState,
+    bearish: bearState,
+    bullishSequenceValid: bullState.stage === 2 && bullishAtLevel,
+    bearishSequenceValid: bearState.stage === 2 && bearishAtLevel,
+  };
 }
 
 // ── Swing Point Detection ───────────────────────────────────
@@ -146,7 +282,7 @@ export function findFVGs(candles: Candle[]): FairValueGap[] {
         index: i - 1, type: 'bullish',
         top: c3.low, bottom: c1.high,
         midpoint: (c3.low + c1.high) / 2,
-        time: candles[i - 1].time, filled: false,
+        time: candles[i - 1].time, filled: false, retestCount: 0,
       });
     }
     // Bearish FVG: candle 3 high < candle 1 low (gap down)
@@ -155,15 +291,18 @@ export function findFVGs(candles: Candle[]): FairValueGap[] {
         index: i - 1, type: 'bearish',
         top: c1.low, bottom: c3.high,
         midpoint: (c1.low + c3.high) / 2,
-        time: candles[i - 1].time, filled: false,
+        time: candles[i - 1].time, filled: false, retestCount: 0,
       });
     }
   }
-  // Check if FVGs got filled
+  // Check if FVGs got filled and count retests
   for (const fvg of fvgs) {
     for (let i = fvg.index + 2; i < candles.length; i++) {
       if (fvg.type === 'bullish' && candles[i].low <= fvg.bottom) { fvg.filled = true; break; }
       if (fvg.type === 'bearish' && candles[i].high >= fvg.top) { fvg.filled = true; break; }
+      // Count retests (price touches the zone without fully filling it)
+      if (fvg.type === 'bullish' && candles[i].low <= fvg.top && candles[i].low >= fvg.bottom) { fvg.retestCount++; }
+      if (fvg.type === 'bearish' && candles[i].high >= fvg.bottom && candles[i].high <= fvg.top) { fvg.retestCount++; }
     }
   }
   return fvgs;
@@ -181,7 +320,11 @@ export function findOrderBlocks(candles: Candle[], swings: SwingPoint[]): OrderB
       for (let j = i; j >= Math.max(0, i - 3); j--) {
         if (candles[j].close < candles[j].open) {
           const mitigated = candles.slice(j + 1).some(c => c.low < candles[j].low);
-          obs.push({ index: j, type: 'bullish', high: candles[j].high, low: candles[j].low, time: candles[j].time, mitigated });
+          let retestCount = 0;
+          for (let k = j + 1; k < candles.length; k++) {
+            if (candles[k].low <= candles[j].high && candles[k].low >= candles[j].low && !mitigated) retestCount++;
+          }
+          obs.push({ index: j, type: 'bullish', high: candles[j].high, low: candles[j].low, time: candles[j].time, mitigated, retestCount });
           break;
         }
       }
@@ -190,7 +333,11 @@ export function findOrderBlocks(candles: Candle[], swings: SwingPoint[]): OrderB
       for (let j = i; j >= Math.max(0, i - 3); j--) {
         if (candles[j].close > candles[j].open) {
           const mitigated = candles.slice(j + 1).some(c => c.high > candles[j].high);
-          obs.push({ index: j, type: 'bearish', high: candles[j].high, low: candles[j].low, time: candles[j].time, mitigated });
+          let retestCount = 0;
+          for (let k = j + 1; k < candles.length; k++) {
+            if (candles[k].high >= candles[j].low && candles[k].high <= candles[j].high && !mitigated) retestCount++;
+          }
+          obs.push({ index: j, type: 'bearish', high: candles[j].high, low: candles[j].low, time: candles[j].time, mitigated, retestCount });
           break;
         }
       }
@@ -274,6 +421,10 @@ export function generateSignals(
   const signals: TradeSignal[] = [];
   const lastCandle = candles[candles.length - 1];
   const price = lastCandle.close;
+  const atr = calculateATR(candles, 14);
+
+  // ── SMC State Machine ─────────────────────────────────────
+  const smcState = buildSMCStateMachine(candles, sweeps, breaks, obs, fvgs);
 
   // Look for recent confluence (last 10 candles)
   const recentWindow = candles.length - 10;
@@ -290,32 +441,74 @@ export function generateSignals(
   if (bullBOS) { bullishScore += bullBOS.type === 'ChoCH' ? 3 : 2; bullishPatterns.push(bullBOS.type); }
 
   const bullFVG = recentFVGs.find(f => f.type === 'bullish' && price >= f.bottom && price <= f.top);
-  if (bullFVG) { bullishScore += 2; bullishPatterns.push('FVG'); }
-  else if (recentFVGs.find(f => f.type === 'bullish')) { bullishScore += 1; bullishPatterns.push('FVG nearby'); }
+  if (bullFVG) {
+    // Fresh FVG (0 retests) scores higher than retested FVG
+    bullishScore += bullFVG.retestCount === 0 ? 3 : 2;
+    bullishPatterns.push(bullFVG.retestCount === 0 ? 'FVG (fresh)' : 'FVG (retested)');
+  } else if (recentFVGs.find(f => f.type === 'bullish')) {
+    bullishScore += 1; bullishPatterns.push('FVG nearby');
+  }
 
   const bullSweep = recentSweeps.find(s => s.direction === 'bullish');
   if (bullSweep) { bullishScore += 2; bullishPatterns.push('Liquidity Sweep'); }
 
   const bullOB = recentOBs.find(o => o.type === 'bullish' && price >= o.low && price <= o.high);
-  if (bullOB) { bullishScore += 2; bullishPatterns.push('Order Block'); }
-  else if (recentOBs.find(o => o.type === 'bullish')) { bullishScore += 1; bullishPatterns.push('OB nearby'); }
+  if (bullOB) {
+    bullishScore += bullOB.retestCount === 0 ? 3 : 2;
+    bullishPatterns.push(bullOB.retestCount === 0 ? 'Order Block (fresh)' : 'Order Block (retested)');
+  } else if (recentOBs.find(o => o.type === 'bullish')) {
+    bullishScore += 1; bullishPatterns.push('OB nearby');
+  }
 
   const eqLows = equalLevels.find(e => e.type === 'equal_lows' && e.price < price);
   if (eqLows) { bullishScore += 1; bullishPatterns.push(`Equal Lows (${eqLows.count}x)`); }
 
+  // Sequence validation bonus
+  if (smcState.bullishSequenceValid) {
+    bullishScore += 2;
+    bullishPatterns.push('✓ Full Sequence (Sweep→ChoCH→Retest)');
+  }
+
   if (bullishScore >= 4 && bullishPatterns.length >= 2) {
-    const atr = calculateATR(candles, 14);
-    const sl = price - atr * 1.5;
-    const tp = price + atr * 3;
+    // PRECISION ENTRY: Use OB or FVG level instead of current market price
+    let entry = price;
+    let sl: number;
+    let tp: number;
+    let entryType: 'precision' | 'market' = 'market';
+
+    if (bullOB) {
+      // Enter at top of demand zone (Order Block high)
+      entry = bullOB.high;
+      sl = bullOB.low - atr * 0.3;
+      // TP at next supply zone or swing high
+      const nextSupply = obs.find(o => o.type === 'bearish' && !o.mitigated && o.low > price);
+      tp = nextSupply ? nextSupply.low : price + atr * 3;
+      entryType = 'precision';
+    } else if (bullFVG) {
+      // Enter at FVG midpoint
+      entry = bullFVG.midpoint;
+      sl = bullFVG.bottom - atr * 0.2;
+      tp = bullFVG.top + (bullFVG.top - bullFVG.bottom) * 3;
+      entryType = 'precision';
+    } else {
+      // Fallback: at-market entry with ATR-based SL/TP
+      sl = price - atr * 1.5;
+      tp = price + atr * 3;
+    }
+
+    const rr = Math.abs(tp - entry) / Math.abs(entry - sl);
+
     signals.push({
       symbol, timeframe, direction: 'BUY',
-      entry: Math.round(price * 100000) / 100000,
+      entry: Math.round(entry * 100000) / 100000,
       stopLoss: Math.round(sl * 100000) / 100000,
       takeProfit: Math.round(tp * 100000) / 100000,
-      riskReward: Math.round((tp - price) / (price - sl) * 10) / 10,
+      riskReward: Math.round(rr * 10) / 10,
       confluenceScore: Math.min(10, bullishScore),
       patterns: bullishPatterns,
       timestamp: lastCandle.time,
+      entryType,
+      sequenceValidated: smcState.bullishSequenceValid,
     });
   }
 
@@ -327,32 +520,69 @@ export function generateSignals(
   if (bearBOS) { bearishScore += bearBOS.type === 'ChoCH' ? 3 : 2; bearishPatterns.push(bearBOS.type); }
 
   const bearFVG = recentFVGs.find(f => f.type === 'bearish' && price <= f.top && price >= f.bottom);
-  if (bearFVG) { bearishScore += 2; bearishPatterns.push('FVG'); }
-  else if (recentFVGs.find(f => f.type === 'bearish')) { bearishScore += 1; bearishPatterns.push('FVG nearby'); }
+  if (bearFVG) {
+    bearishScore += bearFVG.retestCount === 0 ? 3 : 2;
+    bearishPatterns.push(bearFVG.retestCount === 0 ? 'FVG (fresh)' : 'FVG (retested)');
+  } else if (recentFVGs.find(f => f.type === 'bearish')) {
+    bearishScore += 1; bearishPatterns.push('FVG nearby');
+  }
 
   const bearSweep = recentSweeps.find(s => s.direction === 'bearish');
   if (bearSweep) { bearishScore += 2; bearishPatterns.push('Liquidity Sweep'); }
 
   const bearOB = recentOBs.find(o => o.type === 'bearish' && price >= o.low && price <= o.high);
-  if (bearOB) { bearishScore += 2; bearishPatterns.push('Order Block'); }
-  else if (recentOBs.find(o => o.type === 'bearish')) { bearishScore += 1; bearishPatterns.push('OB nearby'); }
+  if (bearOB) {
+    bearishScore += bearOB.retestCount === 0 ? 3 : 2;
+    bearishPatterns.push(bearOB.retestCount === 0 ? 'Order Block (fresh)' : 'Order Block (retested)');
+  } else if (recentOBs.find(o => o.type === 'bearish')) {
+    bearishScore += 1; bearishPatterns.push('OB nearby');
+  }
 
   const eqHighs = equalLevels.find(e => e.type === 'equal_highs' && e.price > price);
   if (eqHighs) { bearishScore += 1; bearishPatterns.push(`Equal Highs (${eqHighs.count}x)`); }
 
+  // Sequence validation bonus
+  if (smcState.bearishSequenceValid) {
+    bearishScore += 2;
+    bearishPatterns.push('✓ Full Sequence (Sweep→ChoCH→Retest)');
+  }
+
   if (bearishScore >= 4 && bearishPatterns.length >= 2) {
-    const atr = calculateATR(candles, 14);
-    const sl = price + atr * 1.5;
-    const tp = price - atr * 3;
+    let entry = price;
+    let sl: number;
+    let tp: number;
+    let entryType: 'precision' | 'market' = 'market';
+
+    if (bearOB) {
+      // Enter at bottom of supply zone (Order Block low)
+      entry = bearOB.low;
+      sl = bearOB.high + atr * 0.3;
+      const nextDemand = obs.find(o => o.type === 'bullish' && !o.mitigated && o.high < price);
+      tp = nextDemand ? nextDemand.high : price - atr * 3;
+      entryType = 'precision';
+    } else if (bearFVG) {
+      entry = bearFVG.midpoint;
+      sl = bearFVG.top + atr * 0.2;
+      tp = bearFVG.bottom - (bearFVG.top - bearFVG.bottom) * 3;
+      entryType = 'precision';
+    } else {
+      sl = price + atr * 1.5;
+      tp = price - atr * 3;
+    }
+
+    const rr = Math.abs(entry - tp) / Math.abs(sl - entry);
+
     signals.push({
       symbol, timeframe, direction: 'SELL',
-      entry: Math.round(price * 100000) / 100000,
+      entry: Math.round(entry * 100000) / 100000,
       stopLoss: Math.round(sl * 100000) / 100000,
       takeProfit: Math.round(tp * 100000) / 100000,
-      riskReward: Math.round((price - tp) / (sl - price) * 10) / 10,
+      riskReward: Math.round(rr * 10) / 10,
       confluenceScore: Math.min(10, bearishScore),
       patterns: bearishPatterns,
       timestamp: lastCandle.time,
+      entryType,
+      sequenceValidated: smcState.bearishSequenceValid,
     });
   }
 

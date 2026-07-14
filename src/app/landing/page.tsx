@@ -1,852 +1,561 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
-/* ═══════════════════════════════════════════════════════════
-   NAV DATA
-   ═══════════════════════════════════════════════════════════ */
-const NAV_LINKS = [
-  { label: 'Signals', href: '#signals' },
-  { label: 'Dashboard', href: '#dashboard' },
-  { label: 'Brokers', href: '#brokers' },
-  { label: 'AI Chat', href: '#ai-chat' },
-  { label: 'Pricing', href: '#pricing' },
+
+/* ── Stats data ──────────────────────────────────────────── */
+const STATS = [
+  { to: 4,   prefix: '',  suffix: '',  label: 'Markets',          desc: 'Global asset coverage',   raw: false },
+  { to: 18,  prefix: '',  suffix: '',  label: 'AI Models',        desc: 'Proprietary signal stack', raw: false },
+  { to: 12,  prefix: '',  suffix: '',  label: 'Analysis Engines', desc: '12-gate validation',       raw: false },
+  { to: 3,   prefix: '<', suffix: 's', label: 'Analysis Time',    desc: 'Per signal, live',         raw: false },
+  { to: 0,   prefix: '',  suffix: '',  label: 'Monitoring',       desc: 'Always-on coverage',       raw: true,  rawVal: '24/7' },
+  { to: 0,   prefix: '',  suffix: '',  label: 'Uptime',           desc: 'Guaranteed reliability',   raw: true,  rawVal: '99.9%' },
 ];
 
-export default function LandingPage() {
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [chatInput, setChatInput] = useState('');
-  const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  /* Lock body scroll when mobile menu is open */
-  useEffect(() => {
-    document.body.style.overflow = mobileOpen ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
-  }, [mobileOpen]);
 
-  /* Reset body/html for landing page scrolling */
+
+
+
+/* ── Animated counter ────────────────────────────────────── */
+function Counter({
+  to, prefix = '', suffix = '', duration = 1600,
+}: { to: number; prefix?: string; suffix?: string; duration?: number }) {
+  const [count, setCount] = useState(0);
+  const spanRef = useRef<HTMLSpanElement>(null);
+  const started = useRef(false);
+
   useEffect(() => {
-    const html = document.documentElement;
-    const body = document.body;
-    html.style.position = 'static';
-    html.style.overflow = 'auto';
-    html.style.height = 'auto';
-    body.style.position = 'static';
-    body.style.height = 'auto';
-    return () => {
-      html.style.position = '';
-      html.style.overflow = '';
-      html.style.height = '';
-      body.style.position = '';
-      body.style.height = '';
+    const el = spanRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !started.current) {
+          started.current = true;
+          const t0 = performance.now();
+          const tick = (now: number) => {
+            const p = Math.min((now - t0) / duration, 1);
+            const eased = 1 - Math.pow(1 - p, 3);   // ease-out cubic
+            setCount(Math.floor(eased * to));
+            if (p < 1) requestAnimationFrame(tick);
+            else setCount(to);
+          };
+          requestAnimationFrame(tick);
+        }
+      },
+      { threshold: 0.35 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [to, duration]);
+
+  return <span ref={spanRef}>{prefix}{count}{suffix}</span>;
+
+}
+
+function NarrativeSection() {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const el = containerRef.current;
+      if (!el) return;
+
+      const rect = el.getBoundingClientRect();
+      const viewHeight = window.innerHeight;
+
+      // Calculate how far the section has scrolled relative to the viewport entry
+      const scrolled = viewHeight - rect.top;
+
+      if (scrolled > 0 && rect.bottom > 0) {
+        // Slow float up for the box, slow drift for the glow background
+        const boxTranslate = scrolled * -0.05;
+        const glowTranslate = scrolled * 0.03;
+        el.style.setProperty('--narrative-box-translate', `${boxTranslate}px`);
+        el.style.setProperty('--narrative-glow-translate', `${glowTranslate}px`);
+      }
     };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  /* ── Canvas Shifting Chess Grid Animation ── */
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+  return (
+    <section className="lp-narrative" ref={containerRef}>
+      {/* Parallax background radial glow */}
+      <div className="lp-narrative-bg-glow" />
 
-    let animationFrameId: number;
-    let width = 0;
-    let height = 0;
-    
-    // Grid settings (large blocks for premium dashboard look)
-    const cellSize = 88;
-    let cols = 0;
-    let rows = 0;
-
-    // Premium Color Palette
-    const colors = {
-      bg: '#12100c', // Deep bronze/gold dark matte background
-      gridLine: 'rgba(212, 163, 89, 0.035)', // Mild golden grid lines
-      dotColor: 'rgba(212, 163, 89, 0.07)',  // Mild golden intersection dots
-      blocks: [
-        { fill: 'rgba(232, 90, 36, 0.85)', glow: 'rgba(232, 90, 36, 0.35)' }, // Xyro Orange
-        { fill: 'rgba(217, 119, 6, 0.8)', glow: 'rgba(217, 119, 6, 0.3)' },   // Amber Gold
-        { fill: 'rgba(153, 27, 27, 0.85)', glow: 'rgba(153, 27, 27, 0.3)' },  // Deep Red/Maroon
-        { fill: 'rgba(20, 20, 25, 0.95)', glow: 'rgba(255, 255, 255, 0.02)' }, // Matte Charcoal
-        { fill: 'rgba(17, 24, 39, 0.95)', glow: 'rgba(255, 255, 255, 0.02)' },  // Gunmetal Dark
-        { fill: 'rgba(30, 41, 59, 0.9)', glow: 'rgba(255, 255, 255, 0.03)' },  // Muted Slate
-      ]
-    };
-
-    interface AnimBlock {
-      id: number;
-      col: number;
-      row: number;
-      targetCol: number;
-      targetRow: number;
-      progress: number; // 0 to 1
-      colorIndex: number;
-      speed: number;
-      delay: number;
-      label: string;
-    }
-
-    let blocks: AnimBlock[] = [];
-    const maxBlocks = 17;
-
-    const gateLabels = [
-      'Confluence', 'SMC Conf.', 'HTF Align', 'Session Filter',
-      'Volatility', 'No Conflict', 'Cooldown', 'News Event',
-      'Correlation', 'MTF Stack', 'VWAP Filter', 'Candle Pattern',
-      'Lunar Align', 'Planet Aspect', 'Mercury Risk', 'Eclipse Block',
-      'Seasonal Cycle'
-    ];
-
-    // Center Lane settings
-    let minCenterCol = 0;
-    let maxCenterCol = 0;
-    const centerLaneWidth = 820; // Width in pixels to reserve for center content lane
-
-    const isCenterCol = (c: number) => c >= minCenterCol && c <= maxCenterCol;
-
-    function resize() {
-      if (!canvas) return;
-      const parent = canvas.parentElement;
-      if (!parent) return;
-      width = parent.clientWidth;
-      height = parent.clientHeight;
-      canvas.width = width * window.devicePixelRatio;
-      canvas.height = height * window.devicePixelRatio;
-      canvas.style.width = `${width}px`;
-      canvas.style.height = `${height}px`;
-      ctx!.scale(window.devicePixelRatio, window.devicePixelRatio);
-
-      cols = Math.ceil(width / cellSize) + 1;
-      rows = Math.ceil(height / cellSize) + 1;
-
-      const centerX = width / 2;
-      minCenterCol = Math.floor((centerX - centerLaneWidth / 2) / cellSize);
-      maxCenterCol = Math.ceil((centerX + centerLaneWidth / 2) / cellSize) - 1;
-
-      // Helper to generate a valid side column (left or right side of center lane)
-      const getRandomSideCol = () => {
-        const leftCount = Math.max(0, minCenterCol);
-        const rightStart = maxCenterCol + 1;
-        const rightCount = Math.max(0, cols - rightStart);
+      <div className="lp-narrative-inner">
         
-        if (leftCount > 0 && rightCount > 0) {
-          if (Math.random() < 0.5) {
-            return Math.floor(Math.random() * leftCount);
-          } else {
-            return rightStart + Math.floor(Math.random() * rightCount);
-          }
-        } else if (leftCount > 0) {
-          return Math.floor(Math.random() * leftCount);
-        } else if (rightCount > 0) {
-          return rightStart + Math.floor(Math.random() * rightCount);
-        }
-        return 0;
-      };
+        {/* Main Grid Box */}
+        <div className="lp-narrative-box">
+          {/* Outer corner dots */}
+          <div className="lp-grid-dot dot-tl" />
+          <div className="lp-grid-dot dot-tr" />
+          <div className="lp-grid-dot dot-bl" />
+          <div className="lp-grid-dot dot-br" />
 
-      // Initialize blocks if empty
-      if (blocks.length === 0) {
-        for (let i = 0; i < maxBlocks; i++) {
-          const col = getRandomSideCol();
-          const row = Math.floor(Math.random() * (rows - 2)) + 1;
-          const colorIndex = Math.floor(Math.random() * colors.blocks.length);
-          const label = gateLabels[i] || 'Confluence';
-          blocks.push({
-            id: i,
-            col,
-            row,
-            targetCol: col,
-            targetRow: row,
-            progress: 1,
-            colorIndex,
-            speed: 0.006 + Math.random() * 0.008,
-            delay: Math.floor(Math.random() * 120),
-            label,
-          });
-        }
-      } else {
-        // Adjust existing blocks if they end up inside the center lane or header on resize
-        blocks.forEach(b => {
-          if (isCenterCol(b.col) || isCenterCol(b.targetCol)) {
-            const newCol = getRandomSideCol();
-            b.col = newCol;
-            b.targetCol = newCol;
-            b.progress = 1;
-          }
-          if (b.row < 1 || b.targetRow < 1) {
-            b.row = 1;
-            b.targetRow = 1;
-            b.progress = 1;
-          }
-        });
-      }
-    }
+          {/* Left Column: Wording & CTA & Quant Panel */}
+          <div className="lp-narrative-intro-col">
+            <div className="lp-noise-badge">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
+                <path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9" />
+                <path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5" />
+                <circle cx="12" cy="12" r="2" />
+                <path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5" />
+                <path d="M19.1 4.9C23 8.8 23 15.2 19.1 19.1" />
+              </svg>
+              NOISE
+            </div>
+            
+            <h2 className="lp-narrative-main-title">
+              Trading isn't difficult. <span className="lp-narrative-main-highlight">Filtering noise is.</span>
+            </h2>
+            
+            <p className="lp-narrative-main-desc">
+              Most trading systems overwhelm you with conflicting signals. Xyro filters the chaos, delivering 12-gate validated confluence.
+            </p>
 
-    // Mouse spotlight interaction coordinates
-    let mouseX = -1000;
-    let mouseY = -1000;
-    
-    const handleMouseMove = (e: MouseEvent) => {
-      const rect = canvas.getBoundingClientRect();
-      mouseX = e.clientX - rect.left;
-      mouseY = e.clientY - rect.top;
-    };
+            <a href="/login" className="lp-narrative-cta-btn">
+              Explore scanner
+            </a>
 
-    const handleMouseLeave = () => {
-      mouseX = -1000;
-      mouseY = -1000;
-    };
+            {/* Inner column divider dots */}
+            <div className="lp-grid-dot dot-tr" />
+            <div className="lp-grid-dot dot-br" />
+          </div>
 
-    window.addEventListener('resize', resize);
-    canvas.addEventListener('mousemove', handleMouseMove);
-    canvas.addEventListener('mouseleave', handleMouseLeave);
-    resize();
+          {/* Right Column: Grid of Cards */}
+          <div className="lp-narrative-grid-col">
+            
+            {/* Card 1: Twitter */}
+            <div 
+              className="lp-noise-card-cell border-r border-b"
+              style={{ '--hover-glow': 'rgba(5, 150, 105, 0.05)' } as React.CSSProperties}
+            >
+              <div className="lp-grid-dot dot-tl" />
+              <span className="lp-noise-card-label">01 / SENTIMENT FEED</span>
+              <h3 className="lp-noise-card-title">
+                <img src="https://www.google.com/s2/favicons?sz=64&domain=twitter.com" alt="" className="lp-noise-favicon" />
+                Twitter says <span className="lp-badge-buy">BUY.</span>
+              </h3>
+              <p className="lp-noise-card-desc">Social sentiment spikes on retail FOMO, urging immediate market entry without confirmation.</p>
+            </div>
 
-    // Check if cell is occupied
-    function isCellOccupied(c: number, r: number, id: number) {
-      return blocks.some(b => {
-        if (b.id === id) return false;
-        const isCurrent = b.col === c && b.row === r;
-        const isTarget = b.targetCol === c && b.targetRow === r;
-        return isCurrent || isTarget;
-      });
-    }
+            {/* Card 2: YouTube */}
+            <div 
+              className="lp-noise-card-cell border-b"
+              style={{ '--hover-glow': 'rgba(180, 83, 9, 0.05)' } as React.CSSProperties}
+            >
+              <div className="lp-grid-dot dot-tl" />
+              <span className="lp-noise-card-label">02 / VIDEO MEDIA</span>
+              <h3 className="lp-noise-card-title">
+                <img src="https://www.google.com/s2/favicons?sz=64&domain=youtube.com" alt="" className="lp-noise-favicon" />
+                YouTube says <span className="lp-badge-hold">HOLD.</span>
+              </h3>
+              <p className="lp-noise-card-desc">Influencers preach long-term patience while hedging their own short-term exposures.</p>
+            </div>
 
-    function draw() {
-      if (!ctx) return;
+            {/* Card 3: Indicators */}
+            <div 
+              className="lp-noise-card-cell border-r border-b"
+              style={{ '--hover-glow': 'rgba(109, 40, 217, 0.05)' } as React.CSSProperties}
+            >
+              <div className="lp-grid-dot dot-tl" />
+              <span className="lp-noise-card-label">03 / MATH MODELLING</span>
+              <h3 className="lp-noise-card-title">
+                <img src="https://www.google.com/s2/favicons?sz=64&domain=tradingview.com" alt="" className="lp-noise-favicon" />
+                Indicators <span className="lp-badge-disagree">disagree.</span>
+              </h3>
+              <p className="lp-noise-card-desc">RSI signals oversold, MACD shows bearish divergence, and moving averages suggest a breakdown.</p>
+            </div>
 
-      // Base background fill
-      ctx.fillStyle = colors.bg;
-      ctx.fillRect(0, 0, width, height);
+            {/* Card 4: News */}
+            <div 
+              className="lp-noise-card-cell border-b"
+              style={{ '--hover-glow': 'rgba(29, 78, 216, 0.05)' } as React.CSSProperties}
+            >
+              <div className="lp-grid-dot dot-tl" />
+              <span className="lp-noise-card-label">04 / MACRO DATA</span>
+              <h3 className="lp-noise-card-title">
+                <img src="https://www.google.com/s2/favicons?sz=64&domain=bloomberg.com" alt="" className="lp-noise-favicon" />
+                News changes <span className="lp-badge-everything">everything.</span>
+              </h3>
+              <p className="lp-noise-card-desc">Breaking macroeconomic data or regulatory updates instantly invalidate hours of technical analysis.</p>
+            </div>
 
-      // Micro-animated breathing pulse for glowing auras
-      const pulse = 1 + 0.08 * Math.sin(Date.now() * 0.001);
+            {/* Card 5: Fear (Spans 2 columns) */}
+            <div 
+              className="lp-noise-card-cell span-2"
+              style={{ '--hover-glow': 'rgba(185, 28, 28, 0.05)' } as React.CSSProperties}
+            >
+              <div className="lp-grid-dot dot-tl" />
+              <span className="lp-noise-card-label">05 / HUMAN BIAS</span>
+              <h3 className="lp-noise-card-title">
+                <img src="https://www.google.com/s2/favicons?sz=64&domain=wsj.com" alt="" className="lp-noise-favicon" />
+                Fear <span className="lp-badge-wins">wins.</span>
+              </h3>
+              <p className="lp-noise-card-desc">Faced with conflicting inputs, emotional traders panic, exit positions prematurely, or freeze entirely.</p>
+            </div>
 
-      // Luminous amber aura on the left (behind the left-side grid blocks)
-      const leftGlow = ctx.createRadialGradient(width * 0.15, height * 0.5, 0, width * 0.15, height * 0.5, 480 * pulse);
-      leftGlow.addColorStop(0, 'rgba(217, 119, 6, 0.18)'); // Amber Gold
-      leftGlow.addColorStop(0.5, 'rgba(217, 119, 6, 0.05)');
-      leftGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      ctx.fillStyle = leftGlow;
-      ctx.fillRect(0, 0, width, height);
 
-      // Luminous orange aura on the right (behind the right-side grid blocks)
-      const rightGlow = ctx.createRadialGradient(width * 0.85, height * 0.5, 0, width * 0.85, height * 0.5, 480 * pulse);
-      rightGlow.addColorStop(0, 'rgba(232, 90, 36, 0.15)'); // Xyro Orange
-      rightGlow.addColorStop(0.5, 'rgba(232, 90, 36, 0.04)');
-      rightGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      ctx.fillStyle = rightGlow;
-      ctx.fillRect(0, 0, width, height);
+          </div>
 
-      // Soft center golden ambient glow under the main text
-      const centerGlow = ctx.createRadialGradient(width * 0.5, height * 0.4, 0, width * 0.5, height * 0.4, 600 * pulse);
-      centerGlow.addColorStop(0, 'rgba(212, 163, 89, 0.09)'); // Golden accent
-      centerGlow.addColorStop(0.6, 'rgba(212, 163, 89, 0.02)');
-      centerGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      ctx.fillStyle = centerGlow;
-      ctx.fillRect(0, 0, width, height);
+          {/* Integrated Bottom Solution Row */}
+          <div className="lp-narrative-solution-row">
+            <div className="lp-grid-dot dot-tl" />
+            <div className="lp-grid-dot dot-tr" />
+            <div className="lp-grid-dot dot-mid" />
+            
+            <div className="lp-sol-badge">THE XYRO ENGINE</div>
+            <h3 className="lp-sol-text">
+              Xyro combines everything <span className="lp-sol-highlight">before giving an answer.</span>
+            </h3>
+          </div>
 
-      // 1. Draw Subtle Grid Lines
-      ctx.strokeStyle = colors.gridLine;
-      ctx.lineWidth = 1;
-      
-      for (let c = 0; c <= cols; c++) {
-        ctx.beginPath();
-        ctx.moveTo(c * cellSize, 0);
-        ctx.lineTo(c * cellSize, height);
-        ctx.stroke();
-      }
-      for (let r = 0; r <= rows; r++) {
-        ctx.beginPath();
-        ctx.moveTo(0, r * cellSize);
-        ctx.lineTo(width, r * cellSize);
-        ctx.stroke();
-      }
+        </div>
+      </div>
+    </section>
+  );
+}
 
-      // Draw dots at grid line intersections
-      ctx.fillStyle = colors.dotColor;
-      for (let c = 0; c <= cols; c++) {
-        for (let r = 0; r <= rows; r++) {
-          ctx.beginPath();
-          ctx.arc(c * cellSize, r * cellSize, 1.2, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
 
-      // 2. Draw Interactive Spotlight
-      if (mouseX !== -1000 && mouseY !== -1000) {
-        ctx.save();
-        ctx.globalCompositeOperation = 'screen';
-        const spotlight = ctx.createRadialGradient(mouseX, mouseY, 0, mouseX, mouseY, 280);
-        spotlight.addColorStop(0, 'rgba(232, 90, 36, 0.1)');
-        spotlight.addColorStop(0.6, 'rgba(232, 90, 36, 0.02)');
-        spotlight.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        ctx.fillStyle = spotlight;
-        ctx.fillRect(0, 0, width, height);
-        ctx.restore();
-      }
 
-      // 3. Update & Draw Shifting Chess Blocks (Desktop only, hidden on mobile for clean text layout)
-      if (width >= 768) {
-        blocks.forEach(b => {
-          if (b.progress < 1) {
-            b.progress += b.speed;
-            if (b.progress >= 1) {
-              b.progress = 1;
-              b.col = b.targetCol;
-              b.row = b.targetRow;
-              b.delay = Math.floor(Math.random() * 180) + 60; // Wait before moving again
-            }
-          } else {
-            if (b.delay > 0) {
-              b.delay--;
-            } else {
-              // Find valid adjacent cells to move to (must not be inside center column lane or top header row)
-              const moves = [
-                { c: b.col + 1, r: b.row },
-                { c: b.col - 1, r: b.row },
-                { c: b.col, r: b.row + 1 },
-                { c: b.col, r: b.row - 1 }
-              ].filter(m => 
-                m.c >= 0 && m.c < cols && 
-                m.r >= 1 && m.r < rows && 
-                !isCenterCol(m.c) &&
-                !isCellOccupied(m.c, m.r, b.id)
-              );
+/* ── 12-Gates Confluence Engine data ────────────────────────── */
+const GATES = [
+  { num: '01', name: 'Vol Regime Filter', desc: 'ATR & GARCH model volatility regime detection. Restricts trading in highly erratic market states.', formula: 'σ = ATR(14)', glow: 'rgba(255, 60, 0, 0.08)', accent: '#ff3c00' },
+  { num: '02', name: 'Order Flow Imbalance', desc: 'L2/L3 order book bid-ask imbalance analysis to verify real institutional buying or selling pressure.', formula: 'L2_Imb > 0.65', glow: 'rgba(6, 182, 212, 0.08)', accent: '#0891b2' },
+  { num: '03', name: 'Liquidity Sweeps', desc: 'Identifies stop-runs and high-volume clusters to avoid bad entries at local swing extremes.', formula: 'stop_run()', glow: 'rgba(99, 102, 241, 0.08)', accent: '#6366f1' },
+  { num: '04', name: 'Macro Sentiment Bias', desc: 'Real-time NLP parsing of major financial news streams and headlines for fundamental bias alignment.', formula: 'NLP_BIAS > 0.70', glow: 'rgba(236, 72, 153, 0.08)', accent: '#ec4899' },
+  { num: '05', name: 'Multi-Timeframe Align', desc: 'Confluence checks across M15, H1, H4, and D1 to ensure entries trade with the dominant macro direction.', formula: 'M15 ⋔ D1', glow: 'rgba(16, 185, 129, 0.08)', accent: '#10b981' },
+  { num: '06', name: 'Correlation Matrix', desc: 'Ensures the target asset is not trading in conflict with broader index and currency baskets.', formula: 'P_VAL < 0.05', glow: 'rgba(139, 92, 246, 0.08)', accent: '#8b5cf6' },
+  { num: '07', name: 'Volume Profile Node', desc: 'Verification of trading near high-volume nodes (POC) to confirm floor support or ceiling resistance.', formula: 'POC_SUPPORT', glow: 'rgba(245, 158, 11, 0.08)', accent: '#d97706' },
+  { num: '08', name: 'Funding Rate Check', desc: 'Derivative leverage bias check to guard against retail liquidation cascades and funding squeezes.', formula: 'FUT_PREM > 0', glow: 'rgba(20, 184, 166, 0.08)', accent: '#14b8a6' },
+  { num: '09', name: 'Mean Reversion Bands', desc: 'Bollinger/Keltner deviation and Z-score validation to prevent chasing extended, overbought runs.', formula: 'Z_SCORE > 2.0', glow: 'rgba(59, 130, 246, 0.08)', accent: '#3b82f6' },
+  { num: '10', name: 'Spread Arbitrage', desc: 'Cross-exchange spread and slippage cost analysis to optimize entry pricing and minimize entry friction.', formula: 'spread < 0.15%', glow: 'rgba(244, 63, 94, 0.08)', accent: '#f43f5e' },
+  { num: '11', name: 'Trend Velocity (ADX)', desc: 'Trend momentum decay and velocity checks using an advanced directional movement index stack.', formula: 'dx/dt > 0', glow: 'rgba(168, 85, 247, 0.08)', accent: '#a855f7' },
+  { num: '12', name: 'Risk-Reward Cutoff', desc: 'Automatic rejection of signals with less than a strict, mathematically sound 1:2 risk-to-reward ratio.', formula: 'R:R ≥ 1:2', glow: 'rgba(255, 60, 0, 0.08)', accent: '#ff3c00' },
+];
 
-              if (moves.length > 0) {
-                const nextMove = moves[Math.floor(Math.random() * moves.length)];
-                b.targetCol = nextMove.c;
-                b.targetRow = nextMove.r;
-                b.progress = 0;
-                b.speed = 0.005 + Math.random() * 0.006;
-              }
-            }
-          }
+/* ── 12-Gates Grid Section ──────────────────────────────────── */
+function GatesSection() {
+  return (
+    <section className="lp-gates">
+      <div className="lp-gates-inner">
+        <div className="lp-gates-header">
+          <p className="lp-gates-eyebrow">CONFLUENCE PIPELINE</p>
+          <h2 className="lp-gates-title">The 12-Gate Validation Engine</h2>
+          <p className="lp-gates-desc">
+            Every single signal must pass all 12 quantitative checks before execution. Rejects retail noise, executes on institutional probability.
+          </p>
+        </div>
+        
+        {/* Unified 12-Gates Grid Box Container */}
+        <div className="lp-gates-box">
+          {/* Corner dot crosshairs */}
+          <div className="lp-grid-dot dot-tl" />
+          <div className="lp-grid-dot dot-tr" />
+          <div className="lp-grid-dot dot-bl" />
+          <div className="lp-grid-dot dot-br" />
 
-          // Interpolated display position
-          const x = (b.col * (1 - b.progress) + b.targetCol * b.progress) * cellSize;
-          const y = (b.row * (1 - b.progress) + b.targetRow * b.progress) * cellSize;
+          <div className="lp-gates-grid">
+            {GATES.map((gate, i) => (
+              <div 
+                key={i} 
+                className="lp-gate-card"
+                style={{ 
+                  '--gate-glow': gate.glow,
+                  '--gate-accent': gate.accent
+                } as React.CSSProperties}
+              >
+                <div className="lp-gate-card-header">
+                  <span className="lp-gate-num">Gate {gate.num}</span>
+                  <span className="lp-gate-formula">{gate.formula}</span>
+                  <span className="lp-gate-status">
+                    <span className="lp-gate-status-dot"></span>
+                    Active
+                  </span>
+                </div>
+                <h3 className="lp-gate-name">{gate.name}</h3>
+                <p className="lp-gate-desc-text">{gate.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
 
-          const palette = colors.blocks[b.colorIndex];
-          
-          ctx.save();
-          
-          // Active neon glowing shadow for orange/gold/red blocks
-          if (b.colorIndex < 3) {
-            ctx.shadowColor = palette.glow;
-            ctx.shadowBlur = 25;
-          }
 
-          ctx.fillStyle = palette.fill;
-          const pad = 3;
-          const size = cellSize - pad * 2;
-          
-          // Draw elegant rounded block
-          const rx = x + pad;
-          const ry = y + pad;
-          const r = 5; // rounded corner radius
-          
-          ctx.beginPath();
-          ctx.moveTo(rx + r, ry);
-          ctx.lineTo(rx + size - r, ry);
-          ctx.quadraticCurveTo(rx + size, ry, rx + size, ry + r);
-          ctx.lineTo(rx + size, ry + size - r);
-          ctx.quadraticCurveTo(rx + size, ry + size, rx + size - r, ry + size);
-          ctx.lineTo(rx + r, ry + size);
-          ctx.quadraticCurveTo(rx, ry + size, rx, ry + size - r);
-          ctx.lineTo(rx, ry + r);
-          ctx.quadraticCurveTo(rx, ry, rx + r, ry);
-          ctx.closePath();
-          ctx.fill();
-          
-          // Subtle crisp border to define the block edges
-          ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
-          ctx.lineWidth = 1;
-          ctx.stroke();
 
-          ctx.restore();
 
-          // Monospace chess coordinate label (A1-H8)
-          ctx.fillStyle = b.colorIndex < 3 ? 'rgba(255, 255, 255, 0.6)' : 'rgba(255, 255, 255, 0.25)';
-          ctx.font = '500 9px monospace';
-          ctx.fillText(b.label, rx + 10, ry + 18);
 
-          // Technical corner symbol (+)
-          ctx.fillStyle = b.colorIndex < 3 ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.12)';
-          ctx.fillText('+', rx + size - 12, ry + size - 8);
-        });
-      }
 
-      animationFrameId = requestAnimationFrame(draw);
-    }
 
-    draw();
 
-    return () => {
-      window.removeEventListener('resize', resize);
-      if (canvas) {
-        canvas.removeEventListener('mousemove', handleMouseMove);
-        canvas.removeEventListener('mouseleave', handleMouseLeave);
-      }
-      cancelAnimationFrame(animationFrameId);
-    };
-  }, []);
 
-  const closeMobile = () => setMobileOpen(false);
+/* ── Nav data ─────────────────────────────────────────────── */
 
-  const handleChatSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (chatInput.trim()) {
-      window.location.href = `/login?prompt=${encodeURIComponent(chatInput)}`;
-    }
-  };
+const NAV_DROPDOWNS = {
+  Platform: [
+    { icon: '⚡', title: 'AI Signal Engine', desc: '12-gate quantitative validation' },
+    { icon: '🛡', title: 'Risk Governor', desc: 'Auto position sizing & drawdown guard' },
+    { icon: '📊', title: 'Analytics Dashboard', desc: 'Full performance tracking & journal' },
+    { icon: '🤖', title: 'AI Chat Assistant', desc: 'Ask anything, get instant analysis' },
+  ],
+  'For Traders': [
+    { icon: '🎯', title: 'Prop Firm Traders', desc: 'Pass challenges with governed risk' },
+    { icon: '💼', title: 'Institutional', desc: 'White-label & API for firms & funds' },
+    { icon: '🔰', title: 'Beginners', desc: 'Start with guided, validated signals' },
+  ],
+  Resources: [
+    { icon: '📖', title: 'Documentation', desc: 'Guides, API refs & tutorials' },
+    { icon: '✍️', title: 'Blog', desc: 'Strategy breakdowns & market insights' },
+    { icon: '💬', title: 'Community', desc: 'Telegram & Discord trader groups' },
+  ],
+};
+
+function ChevronDown() {
+  return (
+    <svg className="lp-nav-chevron" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path d="M3 5l4 4 4-4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/* ── Navbar ─────────────────────────────────────────────────── */
+function Navbar() {
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
     <>
-      {/* ── S1: NAVIGATION BAR ── */}
-      <nav className="ld-nav" id="nav">
-        <div className="ld-container ld-nav-inner">
+      <nav className="lp-nav">
+        <div className="lp-nav-inner">
+
           {/* Logo */}
-          <a href="/landing" className="ld-nav-logo" id="nav-logo">
-            <div className="ld-nav-logo-icon">
-              <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M6 10L14 6L22 10V18L14 22L6 18V10Z" stroke="currentColor" strokeWidth="1.8" fill="none"/>
-                <path d="M6 10L14 14L22 10" stroke="currentColor" strokeWidth="1.8"/>
-                <path d="M14 14V22" stroke="currentColor" strokeWidth="1.8"/>
-                <circle cx="14" cy="14" r="2" fill="currentColor"/>
-              </svg>
-            </div>
-            <span className="ld-nav-logo-text">XyroTrade</span>
+          <a href="#" className="lp-nav-logo" aria-label="XyroTrade">
+            <img
+              src="/logos/xyrotrade-logo.png"
+              alt="XyroTrade"
+              className="lp-nav-logo-img"
+            />
           </a>
 
-          {/* Center Pill with Nav Links */}
-          <ul className="ld-nav-pill" id="nav-pill">
-            {NAV_LINKS.map((link) => (
-              <li key={link.label}>
-                <a href={link.href} id={`nav-${link.label.toLowerCase()}`}>{link.label}</a>
-              </li>
-            ))}
-          </ul>
 
-          {/* Right Side */}
-          <div className="ld-nav-right">
-            <a href="/login" className="ld-nav-login" id="nav-login">
-              <span className="ld-arrow">▸</span> LOGIN <span className="ld-arrow">◂</span>
-            </a>
-            <a href="/login" className="ld-nav-cta" id="nav-cta">
-              <span className="ld-arrow">▸</span> SIGN UP
+          {/* Center links */}
+          <div className="lp-nav-links">
+
+            {/* Dropdown items */}
+            {(Object.keys(NAV_DROPDOWNS) as Array<keyof typeof NAV_DROPDOWNS>).map((label) => (
+              <div className="lp-nav-item" key={label}>
+                <button className="lp-nav-link">
+                  {label}
+                  <ChevronDown />
+                </button>
+                <div className="lp-nav-dropdown">
+                  {NAV_DROPDOWNS[label].map((item) => (
+                    <a key={item.title} href="#" className="lp-nav-dropdown-item">
+                      <div className="lp-nav-dd-icon">{item.icon}</div>
+                      <div>
+                        <div className="lp-nav-dd-title">{item.title}</div>
+                        <div className="lp-nav-dd-desc">{item.desc}</div>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            ))}
+
+            {/* Plain links */}
+            <a href="#" className="lp-nav-link">Signals</a>
+            <a href="#" className="lp-nav-link">Pricing</a>
+            <a href="#" className="lp-nav-link">Brokers</a>
+
+            {/* Orange badge pill */}
+            <a href="#" className="lp-nav-badge">
+              <span className="lp-nav-badge-dot" />
+              Live Signals
             </a>
           </div>
 
-          {/* Mobile Hamburger */}
+          {/* Right actions */}
+          <div className="lp-nav-actions">
+            <a href="#" className="lp-nav-act-link">Contact sales</a>
+            <div className="lp-nav-act-sep" />
+            <a href="/login" className="lp-nav-act-link">Log in</a>
+            <a href="/login" className="lp-nav-act-btn">Create account</a>
+          </div>
+
+          {/* Mobile-only: Log in + Create account (visible before hamburger on small screens) */}
+          <div className="lp-nav-mobile-actions">
+            <a href="/login" className="lp-nav-mob-login">Log in</a>
+            <a href="/login" className="lp-nav-mob-btn">Create account</a>
+          </div>
+
+          {/* Hamburger */}
           <button
-            className={`ld-hamburger ${mobileOpen ? 'ld-open' : ''}`}
+            className={`lp-nav-hamburger${mobileOpen ? ' open' : ''}`}
             onClick={() => setMobileOpen(!mobileOpen)}
             aria-label="Toggle menu"
-            id="nav-hamburger"
           >
-            <span />
-            <span />
-            <span />
+            <span /><span /><span />
           </button>
+
         </div>
       </nav>
 
-      {/* Mobile Menu Drawer */}
-      <div className={`ld-mobile-menu ${mobileOpen ? 'ld-open' : ''}`}>
-        {NAV_LINKS.map((link) => (
-          <a key={link.label} href={link.href} onClick={closeMobile}>
-            <span>{link.label}</span>
-            <span className="ld-mobile-arrow">›</span>
-          </a>
-        ))}
-        <a href="/login" onClick={closeMobile}>
-          <span>Login</span>
-          <span className="ld-mobile-arrow">›</span>
-        </a>
-        <a href="/login" className="ld-mobile-cta" onClick={closeMobile}>
-          <span>▸</span> Sign Up
-        </a>
-
-        {/* Technical Footer */}
-        <div className="ld-mobile-footer">
-          <div className="ld-mobile-status">
-            <span className="ld-status-dot" /> SYSTEM ONLINE (V4.2)
-          </div>
-          <div className="ld-mobile-copy">© 2026 XYROTRADE</div>
-        </div>
+      {/* Mobile menu */}
+      <div className={`lp-nav-mobile${mobileOpen ? ' open' : ''}`}>
+        <a href="#">Platform</a>
+        <a href="#">For Traders</a>
+        <a href="#">Resources</a>
+        <a href="#">Signals</a>
+        <a href="#">Pricing</a>
+        <a href="#">Brokers</a>
+        <div className="lp-nav-mobile-sep" />
+        <a href="/login">Log in</a>
+        <a href="/login" className="lp-nav-mobile-cta">Create account</a>
       </div>
+    </>
+  );
+}
 
-      {/* ── S2: HERO (MISTRAL STYLE) ── */}
-      <section className="ld-hero" id="hero">
-        {/* Shifting Chess Grid Canvas */}
-        <canvas ref={canvasRef} className="ld-hero-canvas" />
-        
-        {/* Hero Content */}
-        <div className="ld-hero-inner">
-          {/* Headline */}
-          <h1 className="ld-hero-headline">
-            Next-Generation Trading. In Your Hands.
-          </h1>
+/* ── Page ───────────────────────────────────────────── */
+export default function LandingPage() {
+  return (
+    <>
+      <Navbar />
 
-          {/* Subtitle */}
-          <p className="ld-hero-desc">
-            Xyro bot automates proven algorithmic strategies, turning market volatility into consistent, emotion-free profits. Start trading 24/7 with confidence.
-          </p>
+      {/* ── HERO ── */}
+      <section className="lp-hero-wrap">
+        <div className="lp-hero">
 
-          {/* Chat Input Container */}
-          <form className="ld-hero-chat-container" onSubmit={handleChatSubmit}>
-            <input
-              type="text"
-              className="ld-hero-chat-input"
-              placeholder="Talk to Xyro Bot"
-              value={chatInput}
-              onChange={(e) => setChatInput(e.target.value)}
-            />
-            <button type="submit" className="ld-hero-chat-btn" aria-label="Send message">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M5 12H19M19 12L13 6M19 12L13 18" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
-          </form>
+          {/* Dot-grid texture */}
+          <div className="lp-hero-dots" aria-hidden />
 
-          {/* Links Below Input */}
-          <div className="ld-hero-links">
-            <a href="/login" className="ld-hero-link">
-              Connect Broker <span>›</span>
-            </a>
-            <a href="#signals" className="ld-hero-link">
-              Algorithmic Signals <span>›</span>
-            </a>
+          {/* Bottom radial glow */}
+          <div className="lp-hero-glow" aria-hidden />
+
+          {/* Two-column inner */}
+          <div className="lp-hero-inner">
+
+            {/* LEFT — text */}
+            <div className="lp-hero-left">
+              <div className="lp-hero-announce">
+                <span className="lp-hero-announce-dot" />
+                <span className="lp-hero-announce-brand">Xyro Trade 2.0</span>
+                {' · 12-Gate Confluence Engine · Now Live'}
+              </div>
+
+              <h1 className="lp-hero-h1">
+                Institutional AI —{' '}<br />
+                built for traders<br />
+                who trade{' '}
+                <span className="lp-hero-cycle">
+                  <span className="lp-hero-cycle-inner">
+                    <span>smarter.</span>
+                    <span>faster.</span>
+                    <span>better.</span>
+                  </span>
+                </span>
+              </h1>
+
+              <p className="lp-hero-sub">
+                12-gate confluence signals, automated risk governance, and one-click MT5 execution — all in one terminal.
+              </p>
+
+
+              {/* Trust bar — premium stat pills */}
+              <div className="lp-hero-trust">
+                <div className="lp-hero-trust-pill">
+                  <div className="lp-hero-trust-icon">
+                    {/* Lightning bolt */}
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M13 2L4.5 13.5H11.5L11 22L19.5 10.5H12.5L13 2Z" fill="white" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  <div className="lp-hero-trust-text">
+                    <span className="lp-hero-trust-num">5,000+</span>
+                    <span className="lp-hero-trust-label">Signals</span>
+                  </div>
+                </div>
+                <div className="lp-hero-trust-pill">
+                  <div className="lp-hero-trust-icon">
+                    {/* Shield with checkmark */}
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 2L4 6V12C4 16.418 7.582 20.418 12 22C16.418 20.418 20 16.418 20 12V6L12 2Z" fill="white" fillOpacity="0.2" stroke="white" strokeWidth="1.8" strokeLinejoin="round"/>
+                      <path d="M9 12L11 14L15 10" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  <div className="lp-hero-trust-text">
+                    <span className="lp-hero-trust-num">12-Gate</span>
+                    <span className="lp-hero-trust-label">Validation</span>
+                  </div>
+                </div>
+                <div className="lp-hero-trust-pill">
+                  <div className="lp-hero-trust-icon">
+                    {/* Padlock */}
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <rect x="5" y="11" width="14" height="10" rx="2" fill="white" fillOpacity="0.2" stroke="white" strokeWidth="1.8"/>
+                      <path d="M8 11V7C8 4.791 9.791 3 12 3C14.209 3 16 4.791 16 7V11" stroke="white" strokeWidth="1.8" strokeLinecap="round"/>
+                      <circle cx="12" cy="16" r="1.5" fill="white"/>
+                    </svg>
+                  </div>
+                  <div className="lp-hero-trust-text">
+                    <span className="lp-hero-trust-num">Non-custodial</span>
+                    <span className="lp-hero-trust-label">Always</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* RIGHT — video placeholder */}
+            <div className="lp-hero-right">
+              <div className="lp-hero-video">
+                {/* Fake screen reflection */}
+                <div className="lp-hero-video-shine" aria-hidden />
+                {/* Play button */}
+                <button className="lp-hero-play" aria-label="Watch demo">
+                  <svg viewBox="0 0 24 24" fill="currentColor" width="28" height="28">
+                    <path d="M8 5.14v14l11-7-11-7z" />
+                  </svg>
+                </button>
+                <p className="lp-hero-video-label">Watch 2-min demo</p>
+              </div>
+            </div>
+
           </div>
         </div>
       </section>
 
-
-      {/* Solid Brand Logos Bar at the bottom of Hero Section */}
-      <div className="ld-trust-logo-bar">
-        <div className="ld-logos-inner">
-          {/* MetaTrader 5 (MT5) */}
-          <div className="ld-brand-logo" title="MetaTrader 5">
-            <img src="https://logo.clearbit.com/metatrader5.com" alt="MetaTrader 5" className="ld-partner-img" />
-          </div>
-
-          {/* Binance */}
-          <div className="ld-brand-logo" title="Binance">
-            <img src="https://logo.clearbit.com/binance.com" alt="Binance" className="ld-partner-img" />
-          </div>
-
-          {/* Bybit */}
-          <div className="ld-brand-logo" title="Bybit">
-            <img src="https://logo.clearbit.com/bybit.com" alt="Bybit" className="ld-partner-img" />
-          </div>
-
-          {/* Exness */}
-          <div className="ld-brand-logo" title="Exness">
-            <img src="https://logo.clearbit.com/exness.com" alt="Exness" className="ld-partner-img" />
-          </div>
-
-          {/* XM */}
-          <div className="ld-brand-logo" title="XM">
-            <img src="https://logo.clearbit.com/xm.com" alt="XM" className="ld-partner-img" />
-          </div>
-
-          {/* IC Markets */}
-          <div className="ld-brand-logo" title="IC Markets">
-            <img src="https://logo.clearbit.com/icmarkets.com" alt="IC Markets" className="ld-partner-img" />
-          </div>
-
-          {/* Pepperstone */}
-          <div className="ld-brand-logo" title="Pepperstone">
-            <img src="https://logo.clearbit.com/pepperstone.com" alt="Pepperstone" className="ld-partner-img" />
-          </div>
-        </div>
-      </div>
-
-
-      {/* ── S3: NEXT-GENERATION QUANT EXPERIENCE ── */}
-      <section className="ld-quant-section" id="features">
-        <div className="ld-container">
-          <h2 className="ld-section-title">Next-Generation Quant Experience</h2>
-          <p className="ld-section-desc">Zero code, zero lag, direct institutional execution.</p>
-
-          <div className="ld-quant-grid">
-            {/* Card 1: Extreme Performance */}
-            <div className="ld-quant-card">
-              <div className="ld-quant-card-header">
-                <span className="ld-quant-chip">
-                  <span className="ld-quant-chip-icon">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                      <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-                    </svg>
-                  </span>
-                  Extreme Performance
-                </span>
+      {/* ── STATS ── */}
+      <section className="lp-stats">
+        <div className="lp-stats-inner">
+          {STATS.map((s, i) => (
+            <div className="lp-stat" key={i}>
+              <span className="lp-stat-num">
+                {s.raw
+                  ? <span className="lp-stat-raw">{s.rawVal}</span>
+                  : <Counter to={s.to} prefix={s.prefix} suffix={s.suffix} />}
+              </span>
+              <div className="lp-stat-info">
+                <span className="lp-stat-label">{s.label}</span>
+                <span className="lp-stat-desc">{s.desc}</span>
               </div>
-              <div className="ld-quant-visual">
-                <svg className="ld-quant-svg" viewBox="0 0 200 160" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <defs>
-                    <linearGradient id="gauge-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="#10b981" />
-                      <stop offset="100%" stopColor="#00ff66" />
-                    </linearGradient>
-                    <radialGradient id="card-glow" cx="50%" cy="50%" r="50%">
-                      <stop offset="0%" stopColor="rgba(0,255,102,0.12)" />
-                      <stop offset="100%" stopColor="rgba(0,255,102,0)" />
-                    </radialGradient>
-                  </defs>
-                  
-                  {/* Glow background */}
-                  <circle cx="100" cy="80" r="60" fill="url(#card-glow)" />
-                  
-                  {/* Gauge Background Track */}
-                  <path d="M40 120 A 70 70 0 0 1 160 120" stroke="#eaeae4" strokeWidth="8" strokeLinecap="round" />
-                  {/* Gauge Filled Track */}
-                  <path d="M40 120 A 70 70 0 0 1 160 120" stroke="url(#gauge-grad)" strokeWidth="8" strokeLinecap="round" strokeDasharray="377" strokeDashoffset="105" />
-                  
-                  {/* Ticks */}
-                  <line x1="45" y1="110" x2="52" y2="106" stroke="#dcdcd6" strokeWidth="1.5"/>
-                  <line x1="60" y1="80" x2="68" y2="80" stroke="#dcdcd6" strokeWidth="1.5"/>
-                  <line x1="100" y1="50" x2="100" y2="58" stroke="#dcdcd6" strokeWidth="1.5"/>
-                  <line x1="140" y1="80" x2="148" y2="80" stroke="#dcdcd6" strokeWidth="1.5"/>
-                  <line x1="148" y1="106" x2="155" y2="110" stroke="#dcdcd6" strokeWidth="1.5"/>
-                  
-                  {/* Speedometer Needle */}
-                  <line x1="100" y1="120" x2="100" y2="65" stroke="#000000" strokeWidth="3" strokeLinecap="round" className="ld-svg-needle" />
-                  <circle cx="100" cy="120" r="6" fill="#000000" />
-                  
-                  {/* Speed text */}
-                  <text x="100" y="90" textAnchor="middle" fill="#000000" fontSize="24" fontWeight="900" style={{ fontFamily: 'system-ui, sans-serif' }}>8.4ms</text>
-                  
-                  {/* Status Badge */}
-                  <rect x="70" y="100" width="60" height="12" rx="6" fill="#0d0d0d" />
-                  <text x="100" y="109" textAnchor="middle" fill="#00ff66" fontSize="7" fontWeight="800" letterSpacing="0.04em" style={{ fontFamily: 'system-ui, sans-serif' }}>DMA ACTIVE</text>
-                  
-                  {/* Floating Specs Card */}
-                  <g filter="drop-shadow(0px 8px 16px rgba(0,0,0,0.06))">
-                    <rect x="25" y="128" width="150" height="24" rx="6" fill="#ffffff" stroke="#eaeae4" strokeWidth="1" />
-                    <circle cx="35" cy="140" r="2.5" fill="#ff5f56" />
-                    <circle cx="42" cy="140" r="2.5" fill="#ffbd2e" />
-                    <circle cx="49" cy="140" r="2.5" fill="#27c93f" />
-                    <text x="108" y="144" textAnchor="middle" fill="#55554f" fontSize="8" fontWeight="600" style={{ fontFamily: 'monospace' }}>ROUTE: NY4-EQUINIX</text>
-                  </g>
-                </svg>
-              </div>
-              <h3 className="ld-quant-heading">Ultra-Low Latency DMA</h3>
-              <p className="ld-quant-desc">Execute trades directly to institutional liquidity pools. Sub-10ms latency ensures minimal slippage and maximum fill rate.</p>
             </div>
-
-            {/* Card 2: Risk Filtration */}
-            <div className="ld-quant-card">
-              <div className="ld-quant-card-header">
-                <span className="ld-quant-chip">
-                  <span className="ld-quant-chip-icon">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                    </svg>
-                  </span>
-                  Risk Engine
-                </span>
-              </div>
-              <div className="ld-quant-visual">
-                <svg className="ld-quant-svg" viewBox="0 0 200 160" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <defs>
-                    <linearGradient id="gate-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#00ff66" />
-                      <stop offset="100%" stopColor="#10b981" />
-                    </linearGradient>
-                  </defs>
-
-                  {/* Flow chart step lines */}
-                  <path d="M30 80h140" stroke="#eaeae4" strokeWidth="3" strokeLinecap="round" />
-                  <path d="M30 80h80" stroke="url(#gate-grad)" strokeWidth="3" strokeLinecap="round" className="ld-dash-flow" />
-                  
-                  {/* Moving pulse */}
-                  <circle cx="30" cy="80" r="4" fill="#ffffff" stroke="#10b981" strokeWidth="1.5">
-                    <animate attributeName="cx" values="30;110;110" dur="2.5s" repeatCount="indefinite" />
-                  </circle>
-
-                  {/* Node 1 */}
-                  <g transform="translate(35, 80)">
-                    <circle cx="0" cy="0" r="16" fill="#ffffff" stroke="url(#gate-grad)" strokeWidth="3" className="ld-pulse-node" />
-                    <text x="0" y="4" textAnchor="middle" fill="#000" fontSize="11" fontWeight="800" style={{ fontFamily: 'system-ui, sans-serif' }}>17</text>
-                    <text x="0" y="26" textAnchor="middle" fill="#8a8a80" fontSize="7.5" fontWeight="700" letterSpacing="0.05em" style={{ fontFamily: 'system-ui, sans-serif' }}>GATES</text>
-                  </g>
-                  
-                  {/* Node 2 */}
-                  <g transform="translate(110, 80)">
-                    <circle cx="0" cy="0" r="16" fill="url(#gate-grad)" />
-                    <path d="M-5 0l3 3 6-6" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <text x="0" y="26" textAnchor="middle" fill="#10b981" fontSize="7.5" fontWeight="800" letterSpacing="0.05em" style={{ fontFamily: 'system-ui, sans-serif' }}>PASSED</text>
-                  </g>
-                  
-                  {/* Node 3 */}
-                  <g transform="translate(165, 80)">
-                    <circle cx="0" cy="0" r="12" fill="#ffffff" stroke="#eaeae4" strokeWidth="2" />
-                    <circle cx="0" cy="0" r="4" fill="#8a8a80" />
-                    <text x="0" y="26" textAnchor="middle" fill="#8a8a80" fontSize="7.5" fontWeight="700" letterSpacing="0.05em" style={{ fontFamily: 'system-ui, sans-serif' }}>EXECUTE</text>
-                  </g>
-                  
-                  {/* Toggle switch representation */}
-                  <g transform="translate(85, 128)">
-                    <rect x="0" y="0" width="30" height="16" rx="8" fill="#00ff66" />
-                    <circle cx="22" cy="8" r="6" fill="#ffffff" />
-                  </g>
-                </svg>
-              </div>
-              <h3 className="ld-quant-heading">17-Gate Confirmation</h3>
-              <p className="ld-quant-desc">Every trade ticket must pass through 17 advanced filters. Discards setups during news, high spread, or range chop.</p>
-            </div>
-
-            {/* Card 3: Global Routing */}
-            <div className="ld-quant-card">
-              <div className="ld-quant-card-header">
-                <span className="ld-quant-chip">
-                  <span className="ld-quant-chip-icon">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                      <circle cx="12" cy="12" r="10" />
-                      <line x1="2" y1="12" x2="22" y2="12" />
-                      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                    </svg>
-                  </span>
-                  Global Network
-                </span>
-              </div>
-              <div className="ld-quant-visual">
-                <svg className="ld-quant-svg" viewBox="0 0 200 160" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <defs>
-                    <radialGradient id="map-glow" cx="50%" cy="50%" r="50%">
-                      <stop offset="0%" stopColor="rgba(0, 255, 102, 0.12)" />
-                      <stop offset="100%" stopColor="rgba(0, 0, 0, 0)" />
-                    </radialGradient>
-                  </defs>
-                  
-                  {/* Subtle map glow */}
-                  <rect x="10" y="10" width="180" height="140" rx="8" fill="url(#map-glow)" />
-
-                  {/* Dotted Map Outlines */}
-                  {/* North America */}
-                  <circle cx="35" cy="40" r="3" fill="#eaeae4" /><circle cx="45" cy="45" r="4" fill="#eaeae4" /><circle cx="55" cy="42" r="3" fill="#eaeae4" /><circle cx="38" cy="50" r="3" fill="#eaeae4" /><circle cx="48" cy="55" r="4" fill="#eaeae4" />
-                  {/* South America */}
-                  <circle cx="52" cy="75" r="3" fill="#eaeae4" /><circle cx="58" cy="85" r="3" fill="#eaeae4" /><circle cx="62" cy="95" r="2" fill="#eaeae4" />
-                  {/* Europe & Africa */}
-                  <circle cx="95" cy="38" r="4" fill="#eaeae4" /><circle cx="105" cy="42" r="3" fill="#eaeae4" /><circle cx="98" cy="55" r="3" fill="#eaeae4" /><circle cx="102" cy="70" r="4" fill="#eaeae4" /><circle cx="106" cy="85" r="3" fill="#eaeae4" />
-                  {/* Asia */}
-                  <circle cx="135" cy="35" r="3" fill="#eaeae4" /><circle cx="145" cy="42" r="4" fill="#eaeae4" /><circle cx="155" cy="48" r="3" fill="#eaeae4" /><circle cx="140" cy="55" r="3" fill="#eaeae4" /><circle cx="150" cy="65" r="4" fill="#eaeae4" /><circle cx="165" cy="95" r="3" fill="#eaeae4" />
-
-                  {/* Network paths */}
-                  <path d="M48 55 C 70 50, 80 50, 98 55" stroke="rgba(0, 255, 102, 0.4)" strokeWidth="1.2" strokeDasharray="3 3" />
-                  <path d="M98 55 C 120 58, 130 60, 150 65" stroke="rgba(0, 255, 102, 0.4)" strokeWidth="1.2" strokeDasharray="3 3" />
-
-                  {/* NY4 Hub */}
-                  <g transform="translate(48, 55)">
-                    <circle cx="0" cy="0" r="3.5" fill="#00ff66" />
-                    <circle cx="0" cy="0" r="3.5" stroke="#00ff66" strokeWidth="1.5" fill="none" className="ld-radar-ring" />
-                    <text x="0" y="-8" textAnchor="middle" fill="#000000" fontSize="7" fontWeight="800" style={{ fontFamily: 'system-ui, sans-serif' }}>NY4 0.8ms</text>
-                  </g>
-
-                  {/* LD4 Hub */}
-                  <g transform="translate(98, 55)">
-                    <circle cx="0" cy="0" r="3.5" fill="#00ff66" />
-                    <circle cx="0" cy="0" r="3.5" stroke="#00ff66" strokeWidth="1.5" fill="none" className="ld-radar-ring" />
-                    <text x="0" y="-8" textAnchor="middle" fill="#000000" fontSize="7" fontWeight="800" style={{ fontFamily: 'system-ui, sans-serif' }}>LD4 1.2ms</text>
-                  </g>
-
-                  {/* SG1 Hub */}
-                  <g transform="translate(150, 65)">
-                    <circle cx="0" cy="0" r="3.5" fill="#00ff66" />
-                    <circle cx="0" cy="0" r="3.5" stroke="#00ff66" strokeWidth="1.5" fill="none" className="ld-radar-ring" />
-                    <text x="0" y="-8" textAnchor="middle" fill="#000000" fontSize="7" fontWeight="800" style={{ fontFamily: 'system-ui, sans-serif' }}>SG1 5.2ms</text>
-                  </g>
-
-                  {/* Terminal block */}
-                  <g filter="drop-shadow(0px 6px 12px rgba(0,0,0,0.1))">
-                    <rect x="25" y="116" width="150" height="30" rx="5" fill="#0a0a0a" stroke="#1c1c1c" strokeWidth="1" />
-                    <text x="32" y="126" fill="#8a8a80" fontSize="7.5" style={{ fontFamily: 'monospace' }}>$ tradegpt route --node=NY4</text>
-                    <text x="32" y="137" fill="#00ff66" fontSize="7.5" style={{ fontFamily: 'monospace' }}>&gt; ROUTE OPTIMIZED VIA FIBER</text>
-                  </g>
-                </svg>
-              </div>
-              <h3 className="ld-quant-heading">Multi-Hub Co-location</h3>
-              <p className="ld-quant-desc">Your strategies run in isolated containers hosted in Equinix datacenters adjacent to your broker's trade servers.</p>
-            </div>
-
-            {/* Card 4: Integrations */}
-            <div className="ld-quant-card">
-              <div className="ld-quant-card-header">
-                <span className="ld-quant-chip">
-                  <span className="ld-quant-chip-icon">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                      <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                    </svg>
-                  </span>
-                  Integrations
-                </span>
-              </div>
-              <div className="ld-quant-visual">
-                <svg className="ld-quant-svg" viewBox="0 0 200 160" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <defs>
-                    <radialGradient id="ring-glow" cx="50%" cy="50%" r="50%">
-                      <stop offset="0%" stopColor="rgba(0,255,102,0.1)" />
-                      <stop offset="100%" stopColor="rgba(0,0,0,0)" />
-                    </radialGradient>
-                  </defs>
-                  
-                  {/* Glowing background */}
-                  <circle cx="100" cy="80" r="60" fill="url(#ring-glow)" />
-
-                  {/* Outer dashed ring */}
-                  <circle cx="100" cy="80" r="45" stroke="#eaeae4" strokeWidth="1.5" strokeDasharray="4 4" className="ld-spin-slow" />
-
-                  {/* Connecting fiber lines */}
-                  <line x1="100" y1="80" x2="60" y2="40" stroke="#eaeae4" strokeWidth="1.5" />
-                  <line x1="100" y1="80" x2="140" y2="40" stroke="#eaeae4" strokeWidth="1.5" />
-                  <line x1="100" y1="80" x2="60" y2="120" stroke="#eaeae4" strokeWidth="1.5" />
-                  <line x1="100" y1="80" x2="140" y2="120" stroke="#eaeae4" strokeWidth="1.5" />
-
-                  {/* Pulse particles flowing along connectors */}
-                  <circle cx="100" cy="80" r="45" stroke="#00ff66" strokeWidth="1.5" strokeDasharray="12 88" strokeDashoffset="0">
-                    <animate attributeName="strokeDashoffset" values="360;0" dur="5s" repeatCount="indefinite" />
-                  </circle>
-
-                  {/* Center Node */}
-                  <circle cx="100" cy="80" r="18" fill="#000000" filter="drop-shadow(0 4px 10px rgba(0,0,0,0.3))" />
-                  <text x="100" y="83" textAnchor="middle" fill="#00ff66" fontSize="7.5" fontWeight="950" letterSpacing="-0.04em" style={{ fontFamily: 'system-ui, sans-serif' }}>XYRO</text>
-
-                  {/* MT5 Node */}
-                  <g transform="translate(60, 40)">
-                    <circle cx="0" cy="0" r="13" fill="#ffffff" stroke="#f1f1eb" strokeWidth="1.5" filter="drop-shadow(0 4px 8px rgba(0,0,0,0.03))" />
-                    <path d="M-5 3V-5l3 3 3-3v8" stroke="#1a73e8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                  </g>
-
-                  {/* TradingView Node */}
-                  <g transform="translate(140, 40)">
-                    <circle cx="0" cy="0" r="13" fill="#ffffff" stroke="#f1f1eb" strokeWidth="1.5" filter="drop-shadow(0 4px 8px rgba(0,0,0,0.03))" />
-                    <path d="M-5 3l3-6 2 3 4-5" stroke="#f7a600" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                  </g>
-
-                  {/* Telegram Node */}
-                  <g transform="translate(60, 120)">
-                    <circle cx="0" cy="0" r="13" fill="#ffffff" stroke="#f1f1eb" strokeWidth="1.5" filter="drop-shadow(0 4px 8px rgba(0,0,0,0.03))" />
-                    <path d="M-5 0l9-4-2 7-3-2-2 1v-2z" fill="#0088cc" />
-                  </g>
-
-                  {/* Python Node */}
-                  <g transform="translate(140, 120)">
-                    <circle cx="0" cy="0" r="13" fill="#ffffff" stroke="#f1f1eb" strokeWidth="1.5" filter="drop-shadow(0 4px 8px rgba(0,0,0,0.03))" />
-                    <path d="M-4-2.5c0-1 1-1.5 2-1.5s2 .5 2 1.5v1.5H-4V-2.5zm5 5c0 1-.5 1.5-2 1.5s-2-.5-2-1.5v-1.5h4v1.5z" fill="#306998" />
-                    <path d="M-1-2.5v1.5M1 2.5v1.5" stroke="#ffd43b" strokeWidth="1.2" />
-                  </g>
-                </svg>
-              </div>
-              <h3 className="ld-quant-heading">Integrate With Anything</h3>
-              <p className="ld-quant-desc">Connect any platform. Receive signals on Telegram, execute from TradingView webhooks, or build custom bots via our Python SDK.</p>
-            </div>
-          </div>
+          ))}
         </div>
       </section>
 
+      {/* ── NARRATIVE ── */}
+      <NarrativeSection />
+
+      {/* ── GATES GRID ── */}
+      <GatesSection />
     </>
   );
 }

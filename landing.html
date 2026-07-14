@@ -7,21 +7,21 @@
   <meta name="description" content="Turn market noise into profits. TradeGPT delivers institutional-grade AI analysis, 12-gate confluence signals, and one-click execution for serious traders." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg: #E8E8E6;
-      --surface: #FFFFFF;
-      --surface-dim: #F2F1EF;
-      --border: #D8D7D4;
+      --bg: #F5F0E8;
+      --surface: #FDFAF6;
+      --surface-dim: #EDE8DF;
+      --border: #DDD8CE;
       --text-primary: #0D0D0D;
       --text-secondary: #6B6B6B;
       --text-muted: #9B9B9B;
-      --gold: #B8972D;
-      --gold-light: #C9A84C;
-      --gold-bg: #F5EFD6;
+      --gold: #ff3c00;
+      --gold-light: #ff5a26;
+      --gold-bg: #fff0eb;
       --green: #2DAF6B;
       --red: #E05050;
       --blue: #3B6FE8;
@@ -37,7 +37,7 @@
     html { scroll-behavior: smooth; }
 
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
       background-color: var(--bg);
       color: var(--text-primary);
       line-height: 1.5;
@@ -180,24 +180,122 @@
 
     /* ── HERO ── */
     #hero {
-      padding-top: 80px;
-      padding-bottom: 0;
+      padding: 20px 20px 0;
       text-align: center;
     }
-    #hero .section-heading { font-size: 68px; }
+    .hero-card {
+      background: #ff3c00;
+      border-radius: 28px;
+      padding: 72px 48px 0;
+      position: relative;
+      overflow: hidden;
+      min-height: 560px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    /* Dot-grid texture */
+    .hero-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(rgba(255,255,255,0.12) 1px, transparent 1px);
+      background-size: 22px 22px;
+      pointer-events: none;
+    }
+    /* Bottom radial glow */
+    .hero-card::after {
+      content: '';
+      position: absolute;
+      bottom: -60px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 300px;
+      background: radial-gradient(ellipse at center, rgba(255,220,100,0.65) 0%, rgba(255,160,40,0.3) 40%, transparent 70%);
+      pointer-events: none;
+      border-radius: 50%;
+    }
+    .hero-announce {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid rgba(255,255,255,0.35);
+      border-radius: 100px;
+      padding: 7px 18px;
+      font-size: 13px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.9);
+      margin-bottom: 40px;
+      position: relative;
+      z-index: 1;
+      backdrop-filter: blur(4px);
+    }
+    .hero-announce a {
+      color: #fff;
+      font-weight: 700;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .hero-announce-dot {
+      width: 6px;
+      height: 6px;
+      background: rgba(255,255,255,0.6);
+      border-radius: 50%;
+    }
+    .hero-heading {
+      font-size: 72px;
+      font-weight: 700;
+      letter-spacing: -3px;
+      line-height: 1.05;
+      color: #fff;
+      max-width: 860px;
+      position: relative;
+      z-index: 1;
+      margin-bottom: 28px;
+    }
+    .hero-sub {
+      font-size: 17px;
+      color: rgba(255,255,255,0.8);
+      line-height: 1.6;
+      max-width: 460px;
+      margin: 0 auto 40px;
+      position: relative;
+      z-index: 1;
+    }
     .hero-cta-group {
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 12px;
-      margin-top: 36px;
+      margin-bottom: 64px;
+      position: relative;
+      z-index: 1;
     }
     .btn-primary {
-      background: var(--gold);
-      color: #fff;
+      background: #fff;
+      color: #1a1a1a;
       border: none;
       border-radius: 100px;
-      padding: 14px 28px;
+      padding: 16px 36px;
+      font-size: 15px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: transform 0.15s, box-shadow 0.15s;
+      text-decoration: none;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.2); }
+    .btn-secondary {
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.4);
+      border-radius: 100px;
+      padding: 16px 28px;
       font-size: 15px;
       font-weight: 600;
       font-family: inherit;
@@ -205,27 +303,17 @@
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      transition: background 0.15s, transform 0.15s;
-      text-decoration: none;
-    }
-    .btn-primary:hover { background: var(--gold-light); transform: translateY(-1px); }
-    .btn-secondary {
-      background: transparent;
-      color: var(--text-secondary);
-      border: 1px solid var(--border);
-      border-radius: 100px;
-      padding: 14px 24px;
-      font-size: 15px;
-      font-weight: 500;
-      font-family: inherit;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
       transition: all 0.15s;
       text-decoration: none;
+      backdrop-filter: blur(4px);
     }
-    .btn-secondary:hover { background: var(--surface); color: var(--text-primary); }
+    .btn-secondary:hover { background: rgba(255,255,255,0.25); }
+    @media (max-width: 768px) {
+      #hero { padding: 12px 12px 0; }
+      .hero-card { padding: 48px 24px 0; min-height: 480px; }
+      .hero-heading { font-size: 40px; letter-spacing: -1.5px; }
+      .hero-sub { font-size: 15px; }
+    }
 
     /* Hero app preview */
     .hero-preview {
@@ -581,7 +669,7 @@
     }
     .risk-check-content .rc-title { font-weight: 600; color: var(--text-primary); line-height: 1; margin-bottom: 2px; }
     .risk-check-content .rc-val { color: var(--text-muted); font-size: 10px; }
-    .risk-check-item.highlight { background: #FFFBEE; border-color: #E8D5A0; }
+    .risk-check-item.highlight { background: #fff5f2; border-color: #ffcbbb; }
 
     /* Execution visual */
     .exec-steps {
@@ -605,7 +693,7 @@
       width: 28px;
       height: 28px;
       border-radius: 50%;
-      background: var(--blue);
+      background: #ff3c00;
       color: #fff;
       font-size: 13px;
       font-weight: 700;
@@ -727,7 +815,7 @@
       text-align: center;
     }
     .comparison-table td.highlight-col {
-      background: #FDFAF0;
+      background: #fff5f2;
       text-align: center;
     }
     .check-yes { color: var(--green); font-size: 17px; }
@@ -778,7 +866,7 @@
     .play-btn {
       width: 56px;
       height: 56px;
-      background: #7B52E8;
+      background: #ff3c00;
       border-radius: 12px;
       display: flex;
       align-items: center;
@@ -966,7 +1054,7 @@
       padding: 0 32px 80px;
     }
     .cta-inner {
-      background: linear-gradient(135deg, #3B6FE8 0%, #6B3FE8 100%);
+      background: linear-gradient(135deg, #ff3c00 0%, #d42d00 100%);
       border-radius: var(--radius-xl);
       padding: 72px 60px;
       text-align: center;
@@ -1146,80 +1234,28 @@
 
 <!-- ── HERO ── -->
 <section id="hero">
-  <div class="container">
-    <div class="section-badge">
-      <span class="section-badge-icon">✦</span>
-      AI-Powered Trading Terminal
-    </div>
-    <h1 class="section-heading">
-      Turn Market Noise<br/>
-      Into <span class="accent-icon">📈</span><span class="accent">Profits</span>
-    </h1>
-    <p class="section-sub" style="text-align:center;">
-      From analysis to execution: everything you need to trade smarter on autopilot.
-    </p>
-    <div class="hero-cta-group">
-      <a href="/login" class="btn-primary">Get Started Free →</a>
-      <a href="#features" class="btn-secondary">See Features</a>
+  <div class="hero-card">
+    <!-- Announcement pill -->
+    <div class="hero-announce">
+      <span class="hero-announce-dot"></span>
+      TradeGPT 2.0 · 12-Gate Confluence Engine · Now Live
+      <a href="#features">Explore →</a>
     </div>
 
-    <!-- App preview -->
-    <div class="hero-preview fade-up">
-      <div class="preview-dots">
-        <div class="preview-dot"></div>
-        <div class="preview-dot"></div>
-        <div class="preview-dot"></div>
-      </div>
-      <div class="preview-body">
-        <div class="preview-left">
-          <div class="preview-prompt">Scan EUR/USD for buy setups on H1</div>
-          <div class="preview-custodial">
-            <div class="custodial-dot">🛡</div>
-            Non-Custodial · EUR/USD on H1 timeframe... Confluence engine running.
-          </div>
-          <div class="signal-card">
-            <div class="signal-header">
-              <div>
-                <div class="signal-pair">EUR/USD — BUY</div>
-              </div>
-              <span class="signal-dir dir-buy">BUY</span>
-              <span class="signal-badge">AAA</span>
-            </div>
-            <div class="signal-row"><span>Entry</span><span>1.08542</span></div>
-            <div class="signal-row"><span>Stop Loss</span><span>1.08210</span></div>
-            <div class="signal-row"><span>Take Profit</span><span>1.09205</span></div>
-            <div class="signal-row"><span>Confluence</span><span>11/12 Gates ✓</span></div>
-            <button class="execute-btn">⚡ Execute Trade</button>
-          </div>
-        </div>
-        <div class="preview-right">
-          <div class="preview-chart-card" style="position:relative;">
-            <div class="live-dot"><span class="live-pulse"></span> Live</div>
-            <div class="chart-header" style="margin-top:24px;">
-              <div class="chart-pair">EUR/USD · H1</div>
-              <div class="chart-change">+1.24%</div>
-            </div>
-            <div class="mini-chart">
-              <div class="bar bar-up" style="height:35px;"></div>
-              <div class="bar bar-down" style="height:20px;"></div>
-              <div class="bar bar-up" style="height:42px;"></div>
-              <div class="bar bar-up" style="height:30px;"></div>
-              <div class="bar bar-down" style="height:18px;"></div>
-              <div class="bar bar-up" style="height:50px;"></div>
-              <div class="bar bar-up" style="height:38px;"></div>
-              <div class="bar bar-down" style="height:22px;"></div>
-              <div class="bar bar-up" style="height:58px;"></div>
-              <div class="bar bar-up" style="height:45px;"></div>
-              <div class="bar bar-down" style="height:15px;"></div>
-              <div class="bar bar-up" style="height:60px;"></div>
-            </div>
-          </div>
-          <div class="aaa-badge" style="align-self:flex-end;">
-            <div class="aaa-icon">⭐</div>
-            AAA Grade Signals
-          </div>
-        </div>
-      </div>
+    <!-- Main headline -->
+    <h1 class="hero-heading">
+      AI that turns market<br/>noise into profits
+    </h1>
+
+    <!-- Subtitle -->
+    <p class="hero-sub">
+      Institutional-grade signals, automated risk management, and one-click execution — built for serious traders.
+    </p>
+
+    <!-- CTA -->
+    <div class="hero-cta-group">
+      <a href="/login" class="btn-primary">Start Trading Free →</a>
+      <a href="#features" class="btn-secondary">See How It Works</a>
     </div>
   </div>
 </section>

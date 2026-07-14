@@ -43,5 +43,21 @@
     "timezone_offset": 0,
     "broker_timezone_name": "UTC",
     "allowed_symbols": []
+  },
+  {
+    "id": "mt5_5052941723",
+    "userId": "dded1522-9719-4672-b24a-52827ba4a9fb",
+    "name": "MetaQuotes-5052941723",
+    "login": "5052941723",
+    "server": "MetaQuotes-Demo",
+    "platform": "mt5",
+    "status": "connecting",
+    "balance": 0,
+    "equity": 0,
+    "pnl": 0,
+    "positions": [],
+    "timezone_offset": 0,
+    "broker_timezone_name": "UTC",
+    "allowed_symbols": []
   }
 ]

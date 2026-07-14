@@ -49,6 +49,8 @@ export default function ManagerRisk({ accountInfo, positions, activeBrokerId, is
   const [loading, setLoading] = useState(true);
   const [lbMode, setLbMode] = useState<'net' | 'pnl'>('net');
   const [liveRisk, setLiveRisk] = useState<any>(null);
+  const [sentinelData, setSentinelData] = useState<any>(null);
+  const [analyticsData, setAnalyticsData] = useState<any>(null);
 
   const fetchDeals = useCallback(async () => {
     if (!activeBrokerId || activeBrokerId === 'none') return;
@@ -71,6 +73,37 @@ export default function ManagerRisk({ accountInfo, positions, activeBrokerId, is
     setLoading(true);
     fetchDeals();
   }, [fetchDeals]);
+
+  // Poll sentinel status every 10 seconds
+  useEffect(() => {
+    const fetchSentinel = async () => {
+      try {
+        const res = await fetch('/api/sentinel');
+        const data = await res.json();
+        setSentinelData(data);
+      } catch {
+        // Sentinel API may not exist yet — ignore
+      }
+    };
+    fetchSentinel();
+    const interval = setInterval(fetchSentinel, 10_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Fetch VaR / Monte Carlo analytics (once on mount + when broker changes)
+  useEffect(() => {
+    if (!activeBrokerId || activeBrokerId === 'none') return;
+    const fetchAnalytics = async () => {
+      try {
+        const res = await fetch(`/api/risk-analytics?accountId=${activeBrokerId}`);
+        const data = await res.json();
+        if (data.status === 'ok') setAnalyticsData(data);
+      } catch {
+        // Analytics API may not have data yet
+      }
+    };
+    fetchAnalytics();
+  }, [activeBrokerId]);
 
   // Compute liveRisk from props (no extra API call needed)
   useEffect(() => {
@@ -170,6 +203,182 @@ export default function ManagerRisk({ accountInfo, positions, activeBrokerId, is
         </div>
       </div>
 
+      {/* ── RISK GOVERNOR ── */}
+      {sentinelData && (
+        <div className="rsk-section">
+          <div className="rsk-section-header">
+            <span className="rsk-section-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{
+                width: '8px', height: '8px', borderRadius: '50%',
+                background: sentinelData.sentinel?.running ? '#22c55e' : '#ef4444',
+                animation: sentinelData.sentinel?.running ? 'pulse 2s infinite' : 'none',
+                display: 'inline-block',
+              }} />
+              RISK GOVERNOR
+            </span>
+            <span className="rsk-section-meta">
+              {sentinelData.sentinel?.running
+                ? `Tick #${sentinelData.sentinel.tickCount} · ${sentinelData.sentinel.openPositions} pos`
+                : 'Sentinel offline'
+              }
+            </span>
+          </div>
+
+          {sentinelData.risk && (
+            <>
+              {/* Gate Status Cards */}
+              <div className="rsk-trio-cards" style={{ marginTop: '8px' }}>
+                {sentinelData.risk.gates.map((gate: any, i: number) => {
+                  const pct = gate.multiplier * 100;
+                  const bg = gate.passed
+                    ? 'rgba(16,185,129,0.06)'
+                    : pct > 50
+                      ? 'rgba(245,158,11,0.06)'
+                      : 'rgba(239,68,68,0.06)';
+                  const accent = gate.passed
+                    ? '#10b981'
+                    : pct > 50
+                      ? '#f59e0b'
+                      : '#ef4444';
+                  return (
+                    <div key={i} className="rsk-trio-card" style={{
+                      background: bg,
+                      borderLeft: `3px solid ${accent}`,
+                    }}>
+                      <div className="rsk-trio-label" style={{ fontSize: '10px', letterSpacing: '0.05em' }}>
+                        {gate.name.replace('Gate ', 'G').toUpperCase()}
+                      </div>
+                      <div className={`rsk-trio-value ${gate.passed ? 'mgr-positive' : 'mgr-negative'}`}
+                           style={{ fontSize: '16px' }}>
+                        {pct.toFixed(0)}%
+                      </div>
+                      <div className="rsk-trio-sub" style={{ fontSize: '10px', lineHeight: '1.3', maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {gate.detail.replace(/^[✅🔴🟢🟡🟠🔶⚠️🚨] ?/, '')}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Gauges Row */}
+              <div className="rsk-stats-grid" style={{ marginTop: '8px' }}>
+                {/* Daily Loss Gauge */}
+                <div className="rsk-stat-row">
+                  <span className="rsk-stat-label">Daily Loss</span>
+                  <span className="rsk-stat-value">
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', width: '100%' }}>
+                      <span style={{
+                        flex: 1, height: '6px', borderRadius: '3px',
+                        background: 'rgba(255,255,255,0.08)',
+                        position: 'relative' as const, overflow: 'hidden',
+                      }}>
+                        <span style={{
+                          position: 'absolute' as const, left: 0, top: 0, bottom: 0,
+                          width: `${Math.min(100, ((sentinelData.risk.multipliers?.daily !== undefined
+                            ? (1 - Math.abs(sentinelData.risk.multipliers.daily)) : 0) * 100 / 6) * 100)}%`,
+                          borderRadius: '3px',
+                          background: sentinelData.risk.multipliers?.daily >= 1 ? '#22c55e'
+                            : sentinelData.risk.multipliers?.daily >= 0.5 ? '#f59e0b'
+                            : '#ef4444',
+                          transition: 'width 0.5s ease',
+                        }} />
+                      </span>
+                      <span style={{ fontSize: '11px', minWidth: '32px', textAlign: 'right' as const }}>
+                        / 6%
+                      </span>
+                    </span>
+                  </span>
+                </div>
+
+                {/* Drawdown Gauge */}
+                <div className="rsk-stat-row">
+                  <span className="rsk-stat-label">Drawdown</span>
+                  <span className="rsk-stat-value">
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', width: '100%' }}>
+                      <span style={{
+                        flex: 1, height: '6px', borderRadius: '3px',
+                        background: 'rgba(255,255,255,0.08)',
+                        position: 'relative' as const, overflow: 'hidden',
+                      }}>
+                        <span style={{
+                          position: 'absolute' as const, left: 0, top: 0, bottom: 0,
+                          width: `${Math.min(100, (sentinelData.risk.multipliers?.drawdown !== undefined
+                            ? ((1 - sentinelData.risk.multipliers.drawdown) * 100) : 0))}%`,
+                          borderRadius: '3px',
+                          background: sentinelData.risk.multipliers?.drawdown >= 1 ? '#22c55e'
+                            : sentinelData.risk.multipliers?.drawdown >= 0.5 ? '#eab308'
+                            : sentinelData.risk.multipliers?.drawdown >= 0.25 ? '#f97316'
+                            : '#ef4444',
+                          transition: 'width 0.5s ease',
+                        }} />
+                      </span>
+                      <span style={{ fontSize: '11px', minWidth: '32px', textAlign: 'right' as const }}>
+                        / 25%
+                      </span>
+                    </span>
+                  </span>
+                </div>
+
+                {/* Combined Multiplier */}
+                <div className="rsk-stat-row">
+                  <span className="rsk-stat-label">Sizing Multiplier</span>
+                  <span className={`rsk-stat-value ${sentinelData.risk.multipliers?.combined >= 0.75 ? 'mgr-positive' : sentinelData.risk.multipliers?.combined > 0 ? '' : 'mgr-negative'}`}
+                        style={{ fontSize: '14px', fontWeight: 700 }}>
+                    {((sentinelData.risk.multipliers?.combined || 0) * 100).toFixed(0)}%
+                  </span>
+                  <span className="rsk-stat-label">Streak</span>
+                  <span className="rsk-stat-value">
+                    {(sentinelData.risk.multipliers?.streak || 1) < 1
+                      ? `⚠️ ${((sentinelData.risk.multipliers?.streak || 1) * 100).toFixed(0)}%`
+                      : 'Normal'
+                    }
+                  </span>
+                </div>
+              </div>
+
+              {/* Active Flags */}
+              {(sentinelData.risk.flags?.shouldShadowTrade ||
+                sentinelData.risk.flags?.shouldHalt ||
+                sentinelData.risk.flags?.shouldLiquidate) && (
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' as const, marginTop: '8px' }}>
+                  {sentinelData.risk.flags?.shouldLiquidate && (
+                    <span style={{
+                      padding: '3px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700,
+                      background: 'rgba(239,68,68,0.2)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)',
+                    }}>🚨 KILL SWITCH</span>
+                  )}
+                  {sentinelData.risk.flags?.shouldHalt && !sentinelData.risk.flags?.shouldLiquidate && (
+                    <span style={{
+                      padding: '3px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700,
+                      background: 'rgba(245,158,11,0.2)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.3)',
+                    }}>⛔ TRADING HALTED</span>
+                  )}
+                  {sentinelData.risk.flags?.shouldShadowTrade && (
+                    <span style={{
+                      padding: '3px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700,
+                      background: 'rgba(139,92,246,0.2)', color: '#8b5cf6', border: '1px solid rgba(139,92,246,0.3)',
+                    }}>📋 SHADOW MODE</span>
+                  )}
+                </div>
+              )}
+
+              {/* Summary Line */}
+              {sentinelData.risk.summary && (
+                <div style={{ marginTop: '6px', fontSize: '11px', color: 'var(--text-muted, #9ca3af)', fontStyle: 'italic' }}>
+                  {sentinelData.risk.summary}
+                </div>
+              )}
+            </>
+          )}
+
+          {!sentinelData.risk && sentinelData.sentinel && !sentinelData.sentinel.running && (
+            <div style={{ padding: '12px 0', fontSize: '12px', color: 'var(--text-muted, #9ca3af)' }}>
+              Sentinel is offline. Connect a broker to enable real-time risk monitoring.
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ── 2. Equity Curve ── */}
       <div className="rsk-section">
         <EquityCurve
@@ -177,6 +386,145 @@ export default function ManagerRisk({ accountInfo, positions, activeBrokerId, is
           label={`EQUITY CURVE (${period.toUpperCase()})`}
         />
       </div>
+
+      {/* ── VaR / Monte Carlo Analytics ── */}
+      {analyticsData && (
+        <div className="rsk-section">
+          <div className="rsk-section-header">
+            <span className="rsk-section-title">📊 VALUE-AT-RISK</span>
+            <span className="rsk-section-meta">
+              {analyticsData.var?.dataPoints || 0} day window · {analyticsData.var?.method?.replace('_', ' ')}
+            </span>
+          </div>
+
+          {/* VaR Cards */}
+          <div className="rsk-trio-cards">
+            <div className="rsk-trio-card">
+              <div className="rsk-trio-label">VaR (95%)</div>
+              <div className={`rsk-trio-value ${(analyticsData.var?.varFinal95 || 0) >= 3 ? 'mgr-negative' : ''}`}>
+                ${analyticsData.var?.varDollar95?.toLocaleString() || '—'}
+              </div>
+              <div className="rsk-trio-sub">{analyticsData.var?.varFinal95?.toFixed(2) || '—'}% of equity</div>
+            </div>
+
+            <div className="rsk-trio-card">
+              <div className="rsk-trio-label">CVaR (95%)</div>
+              <div className={`rsk-trio-value ${(analyticsData.var?.cvar95 || 0) >= 5 ? 'mgr-negative' : (analyticsData.var?.cvar95 || 0) >= 3 ? 'mgr-warning' : ''}`}>
+                ${analyticsData.var?.cvarDollar95?.toLocaleString() || '—'}
+              </div>
+              <div className="rsk-trio-sub">{analyticsData.var?.cvar95?.toFixed(2) || '—'}% expected shortfall</div>
+            </div>
+
+            <div className="rsk-trio-card">
+              <div className="rsk-trio-label">VaR (99%)</div>
+              <div className={`rsk-trio-value ${(analyticsData.var?.varFinal99 || 0) >= 6 ? 'mgr-negative' : ''}`}>
+                ${analyticsData.var?.varDollar99?.toLocaleString() || '—'}
+              </div>
+              <div className="rsk-trio-sub">{analyticsData.var?.varFinal99?.toFixed(2) || '—'}% tail risk</div>
+            </div>
+          </div>
+
+          {/* VaR Budget Bar */}
+          {analyticsData.var?.varFinal95 > 0 && (
+            <div style={{ marginTop: '10px', padding: '0 4px' }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: 'rgba(255,255,255,0.5)', marginBottom: '4px'
+              }}>
+                <span>Daily Budget</span>
+                <span style={{ marginLeft: 'auto' }}>
+                  {analyticsData.var?.varFinal95?.toFixed(1)}% / 6.0% limit
+                </span>
+              </div>
+              <div style={{
+                height: '6px', borderRadius: '3px', background: 'rgba(255,255,255,0.08)',
+                position: 'relative' as const, overflow: 'hidden',
+              }}>
+                <div style={{
+                  position: 'absolute' as const, left: 0, top: 0, bottom: 0,
+                  width: `${Math.min((analyticsData.var.varFinal95 / 6) * 100, 100)}%`,
+                  borderRadius: '3px',
+                  background: analyticsData.var.varFinal95 >= 5 ? '#ef4444' :
+                              analyticsData.var.varFinal95 >= 3 ? '#f59e0b' : '#10b981',
+                  transition: 'width 0.5s ease',
+                }} />
+              </div>
+            </div>
+          )}
+
+          {/* VaR Warning */}
+          {analyticsData.varWarning !== 'normal' && (
+            <div style={{
+              marginTop: '8px', padding: '8px 12px', borderRadius: '8px',
+              background: analyticsData.varWarning === 'critical'
+                ? 'rgba(239,68,68,0.15)' : 'rgba(245,158,11,0.15)',
+              border: `1px solid ${analyticsData.varWarning === 'critical'
+                ? 'rgba(239,68,68,0.3)' : 'rgba(245,158,11,0.3)'}`,
+              fontSize: '11px', color: analyticsData.varWarning === 'critical'
+                ? '#fca5a5' : '#fcd34d',
+            }}>
+              {analyticsData.varWarning === 'critical' ? '🔴' : '⚠️'} {analyticsData.varAction}
+            </div>
+          )}
+
+          {/* Monte Carlo Ruin */}
+          {analyticsData.monteCarlo && (
+            <div style={{ marginTop: '12px' }}>
+              <div className="rsk-section-header" style={{ padding: '0 0 6px 0' }}>
+                <span className="rsk-section-title" style={{ fontSize: '11px' }}>🎲 MONTE CARLO RUIN</span>
+                <span className="rsk-section-meta">10K paths × 500 trades</span>
+              </div>
+              <div className="rsk-trio-cards">
+                <div className="rsk-trio-card">
+                  <div className="rsk-trio-label">P(RUIN)</div>
+                  <div className={`rsk-trio-value ${
+                    analyticsData.monteCarlo.ruinProbability >= 0.15 ? 'mgr-negative' :
+                    analyticsData.monteCarlo.ruinProbability >= 0.05 ? 'mgr-warning' : 'mgr-positive'
+                  }`} style={{ fontSize: '20px' }}>
+                    {analyticsData.monteCarlo.ruinProbabilityPct}
+                  </div>
+                  <div className="rsk-trio-sub">{analyticsData.monteCarlo.assessment?.split('—')[0]?.trim()}</div>
+                </div>
+
+                <div className="rsk-trio-card">
+                  <div className="rsk-trio-label">MEDIAN EQUITY</div>
+                  <div className="rsk-trio-value">
+                    ${analyticsData.monteCarlo.medianFinalEquity?.toLocaleString()}
+                  </div>
+                  <div className="rsk-trio-sub">after 500 trades</div>
+                </div>
+
+                <div className="rsk-trio-card">
+                  <div className="rsk-trio-label">5th %ile</div>
+                  <div className={`rsk-trio-value ${analyticsData.monteCarlo.percentile5Equity < accountInfo.equity * 0.75 ? 'mgr-negative' : ''}`}>
+                    ${analyticsData.monteCarlo.percentile5Equity?.toLocaleString()}
+                  </div>
+                  <div className="rsk-trio-sub">worst-case scenario</div>
+                </div>
+              </div>
+
+              {/* Trade Stats Used */}
+              <div className="rsk-stats-grid" style={{ marginTop: '8px' }}>
+                <div className="rsk-stat-row">
+                  <span className="rsk-stat-label">Win Rate</span>
+                  <span className="rsk-stat-value">{((analyticsData.monteCarlo.parameters?.winRate || 0) * 100).toFixed(1)}%</span>
+                </div>
+                <div className="rsk-stat-row">
+                  <span className="rsk-stat-label">Avg R:R</span>
+                  <span className="rsk-stat-value">1:{analyticsData.monteCarlo.parameters?.avgRewardRisk?.toFixed(1)}</span>
+                </div>
+                <div className="rsk-stat-row">
+                  <span className="rsk-stat-label">Risk/Trade</span>
+                  <span className="rsk-stat-value">{((analyticsData.monteCarlo.parameters?.riskPerTrade || 0) * 100).toFixed(1)}%</span>
+                </div>
+                <div className="rsk-stat-row">
+                  <span className="rsk-stat-label">DD Limit</span>
+                  <span className="rsk-stat-value">{((analyticsData.monteCarlo.parameters?.maxDrawdownLimit || 0) * 100).toFixed(0)}%</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── Live Risk Exposure ── */}
       {liveRisk && (
@@ -251,7 +599,7 @@ export default function ManagerRisk({ accountInfo, positions, activeBrokerId, is
         <div className="rsk-trio-card">
           <div className="rsk-trio-label">P. FACTOR</div>
           <div className="rsk-trio-value">
-            {stats.profitFactor === Infinity ? '∞' : stats.profitFactor === 0 ? '—' : stats.profitFactor.toFixed(2)}
+            {stats.profitFactor == null ? '—' : stats.profitFactor === Infinity ? '∞' : stats.profitFactor === 0 ? '—' : stats.profitFactor.toFixed(2)}
           </div>
           <div className="rsk-trio-sub">gross P/L</div>
         </div>

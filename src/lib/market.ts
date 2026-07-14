@@ -13,6 +13,15 @@ import { getMTFBias, type MTFBias } from './mtfBias';
 import { detectCandlePatterns, type PatternResult } from './candlePatterns';
 import { computeKellySizing, type KellyResult } from './kellyCriterion';
 import { computeAstroSnapshot, getAstroGate, type AstroSnapshot } from './astro';
+// Phase E: Risk Management (Gates 13–15)
+import {
+  evaluateAllRiskGates,
+  getRiskState,
+  saveRiskState,
+  createInitialRiskState,
+  type RiskMultipliers,
+  type RiskGateResult,
+} from './riskGovernor';
 
 const BASE_URL = 'https://api.twelvedata.com';
 
@@ -258,7 +267,7 @@ export function calculateRiskParams(
 
 // ── Gating Types ──────────────────────────────────────────
 
-export type SignalOutcome = 'SIGNAL' | 'WATCH' | 'NO_TRADE';
+export type SignalOutcome = 'SIGNAL' | 'WATCH' | 'NO_TRADE' | 'SHADOW';
 
 export interface GateResult {
   name: string;
@@ -303,6 +312,10 @@ export interface MarketSnapshot {
   astroMode?: boolean;
   astroData?: AstroSnapshot;
   astroGates?: GateResult[];
+  // Phase E: Risk Management (Gates 13–15)
+  riskGates?: GateResult[];
+  riskMultipliers?: RiskMultipliers;
+  riskSummary?: string;
 }
 
 // ── Fetch Helpers ──────────────────────────────────────────
@@ -423,46 +436,95 @@ function scoreIndicators(
   ema20: number | null,
   ema50: number | null,
   ema200: number | null,
-  bbands: { upper: number; middle: number; lower: number } | null,
+  bbands: { upper: number; middle: number; lower: number; width?: number; percentB?: number } | null,
   stoch: { k: number; d: number } | null,
   htfBias: 'bullish' | 'bearish' | 'neutral',
   // Phase C optional additions
   vwap?: { signal: 'bullish' | 'bearish' | 'neutral'; detail: string; weight: number } | null,
   mtf?: { signal: 'bullish' | 'bearish' | 'neutral'; detail: string; weight: number } | null,
   pattern?: { signal: 'bullish' | 'bearish' | 'neutral'; detail: string; weight: number } | null,
+  // Phase D: Adaptive context
+  atrRatio?: number | null,
+  prevHistogram?: number | null,
 ): { score: number; direction: 'BUY' | 'SELL' | 'NEUTRAL'; signals: IndicatorSignal[] } {
   const signals: IndicatorSignal[] = [];
+  const volRegime = (atrRatio ?? 1);
 
-  // 1. RSI (15%)
+  // 1. RSI (15%) — FIXED: Adaptive thresholds based on ATR regime
   if (rsi !== null) {
-    if (rsi < 35) {
-      signals.push({ name: 'RSI(14)', weight: 15, direction: 'bullish', detail: `${rsi.toFixed(1)} — Oversold` });
-    } else if (rsi > 65) {
-      signals.push({ name: 'RSI(14)', weight: 15, direction: 'bearish', detail: `${rsi.toFixed(1)} — Overbought` });
+    // Trending market (ATR ratio > 1.5): widen neutral zone to avoid false counter-trend signals
+    // Ranging market (ATR ratio < 0.7): tighten thresholds, require stronger extremes
+    const bullThreshold = volRegime > 1.5 ? 40 : volRegime < 0.7 ? 30 : 35;
+    const bearThreshold = volRegime > 1.5 ? 60 : volRegime < 0.7 ? 70 : 65;
+
+    if (rsi < bullThreshold) {
+      signals.push({ name: 'RSI(14)', weight: 15, direction: 'bullish', detail: `${rsi.toFixed(1)} — Oversold (threshold: ${bullThreshold}, ATR regime: ${volRegime.toFixed(2)})` });
+    } else if (rsi > bearThreshold) {
+      signals.push({ name: 'RSI(14)', weight: 15, direction: 'bearish', detail: `${rsi.toFixed(1)} — Overbought (threshold: ${bearThreshold}, ATR regime: ${volRegime.toFixed(2)})` });
     } else {
-      signals.push({ name: 'RSI(14)', weight: 15, direction: 'neutral', detail: `${rsi.toFixed(1)} — Neutral zone` });
+      signals.push({ name: 'RSI(14)', weight: 15, direction: 'neutral', detail: `${rsi.toFixed(1)} — Neutral (adaptive zone ${bullThreshold}–${bearThreshold})` });
     }
   }
 
-  // 2. MACD (20%)
+  // 2. MACD (20%) — FIXED: Histogram momentum check (expanding = strong, contracting = weak)
   if (macd !== null) {
-    if (macd.histogram > 0 && macd.macd > macd.signal) {
-      signals.push({ name: 'MACD', weight: 20, direction: 'bullish', detail: `Bullish crossover, histogram +${macd.histogram.toFixed(4)}` });
+    const histExpanding = prevHistogram !== null && prevHistogram !== undefined
+      ? (macd.histogram > 0 ? macd.histogram > prevHistogram : macd.histogram < prevHistogram)
+      : true; // If no previous data, assume momentum is fine
+    const aboveZero = macd.macd > 0;
+
+    if (macd.histogram > 0 && macd.macd > macd.signal && histExpanding) {
+      signals.push({ name: 'MACD', weight: 20, direction: 'bullish', detail: `Bullish crossover + expanding histogram +${macd.histogram.toFixed(4)}${aboveZero ? ' (above zero)' : ''}` });
+    } else if (macd.histogram < 0 && macd.macd < macd.signal && histExpanding) {
+      signals.push({ name: 'MACD', weight: 20, direction: 'bearish', detail: `Bearish crossover + expanding histogram ${macd.histogram.toFixed(4)}${!aboveZero ? ' (below zero)' : ''}` });
+    } else if (macd.histogram > 0 && macd.macd > macd.signal) {
+      // Crossover present but histogram contracting — weak signal, still directional
+      signals.push({ name: 'MACD', weight: 20, direction: 'bullish', detail: `Bullish crossover but momentum fading (histogram contracting)` });
     } else if (macd.histogram < 0 && macd.macd < macd.signal) {
-      signals.push({ name: 'MACD', weight: 20, direction: 'bearish', detail: `Bearish crossover, histogram ${macd.histogram.toFixed(4)}` });
+      signals.push({ name: 'MACD', weight: 20, direction: 'bearish', detail: `Bearish crossover but momentum fading (histogram contracting)` });
     } else {
       signals.push({ name: 'MACD', weight: 20, direction: 'neutral', detail: 'No clear crossover' });
     }
   }
 
-  // 3. EMA Alignment (20%) — full stack if all available, single EMA50 fallback
-  if (ema20 !== null && ema50 !== null && ema200 !== null) {
-    if (price > ema20 && ema20 > ema50 && ema50 > ema200) {
-      signals.push({ name: 'EMA Stack', weight: 20, direction: 'bullish', detail: `Price > EMA20 > EMA50 > EMA200 — Perfect bullish alignment` });
-    } else if (price < ema20 && ema20 < ema50 && ema50 < ema200) {
-      signals.push({ name: 'EMA Stack', weight: 20, direction: 'bearish', detail: `Price < EMA20 < EMA50 < EMA200 — Perfect bearish alignment` });
+  // 3. EMA Alignment (20%) — FIXED: Allows pullback touches with 0.3% tolerance
+  if (ema20 !== null && ema50 !== null) {
+    const pctFromEma20 = ((price - ema20) / ema20) * 100;
+    const nearEma20 = Math.abs(pctFromEma20) < 0.3; // Within 0.3% counts as "at" EMA20
+
+    if (ema200 !== null) {
+      // Full stack available — use tolerance-based alignment
+      const bullishStack = (price > ema20 || nearEma20) && ema20 > ema50 && ema50 > ema200;
+      const bearishStack = (price < ema20 || nearEma20) && ema20 < ema50 && ema50 < ema200;
+      // Partial alignment: price above EMA50 and EMA50 above EMA200 (pullback to EMA20)
+      const partialBull = price > ema50 && ema50 > ema200 && nearEma20;
+      const partialBear = price < ema50 && ema50 < ema200 && nearEma20;
+
+      if (bullishStack) {
+        signals.push({ name: 'EMA Stack', weight: 20, direction: 'bullish', detail: `Price > EMA20 > EMA50 > EMA200 — Bullish alignment` });
+      } else if (bearishStack) {
+        signals.push({ name: 'EMA Stack', weight: 20, direction: 'bearish', detail: `Price < EMA20 < EMA50 < EMA200 — Bearish alignment` });
+      } else if (partialBull) {
+        signals.push({ name: 'EMA Stack', weight: 20, direction: 'bullish', detail: `Pullback to EMA20 in uptrend (${pctFromEma20.toFixed(2)}% from EMA20)` });
+      } else if (partialBear) {
+        signals.push({ name: 'EMA Stack', weight: 20, direction: 'bearish', detail: `Pullback to EMA20 in downtrend (${pctFromEma20.toFixed(2)}% from EMA20)` });
+      } else {
+        signals.push({ name: 'EMA Stack', weight: 20, direction: 'neutral', detail: 'Mixed EMA alignment — no trend conviction' });
+      }
     } else {
-      signals.push({ name: 'EMA Stack', weight: 20, direction: 'neutral', detail: 'Mixed EMA alignment — no trend conviction' });
+      // No EMA200 — use EMA20/50 pair
+      if (price > ema20 && ema20 > ema50) {
+        signals.push({ name: 'EMA Stack', weight: 20, direction: 'bullish', detail: `Price > EMA20 > EMA50 — Bullish (no EMA200 data)` });
+      } else if (price < ema20 && ema20 < ema50) {
+        signals.push({ name: 'EMA Stack', weight: 20, direction: 'bearish', detail: `Price < EMA20 < EMA50 — Bearish (no EMA200 data)` });
+      } else if (nearEma20 && price > ema50) {
+        signals.push({ name: 'EMA Stack', weight: 20, direction: 'bullish', detail: `Pullback to EMA20 (${pctFromEma20.toFixed(2)}%), above EMA50` });
+      } else if (nearEma20 && price < ema50) {
+        signals.push({ name: 'EMA Stack', weight: 20, direction: 'bearish', detail: `Pullback to EMA20 (${pctFromEma20.toFixed(2)}%), below EMA50` });
+      } else {
+        const pctFromEma50 = ((price - ema50) / ema50) * 100;
+        signals.push({ name: 'EMA Stack', weight: 20, direction: 'neutral', detail: `Mixed alignment (${pctFromEma50.toFixed(2)}% from EMA50)` });
+      }
     }
   } else if (ema50 !== null) {
     // Fallback: single EMA50 trend filter
@@ -476,26 +538,63 @@ function scoreIndicators(
     }
   }
 
-  // 4. Bollinger Bands (15%)
+  // 4. Bollinger Bands (15%) — FIXED: %B + Band Width logic instead of naive mean-reversion
   if (bbands !== null) {
-    const bandWidth = bbands.upper - bbands.lower;
-    if (price <= bbands.lower) {
-      signals.push({ name: 'Bollinger Bands', weight: 15, direction: 'bullish', detail: `Price at lower band (${bbands.lower.toFixed(2)}) — potential bounce` });
-    } else if (price >= bbands.upper) {
-      signals.push({ name: 'Bollinger Bands', weight: 15, direction: 'bearish', detail: `Price at upper band (${bbands.upper.toFixed(2)}) — potential rejection` });
+    const percentB = bbands.percentB ?? ((price - bbands.lower) / ((bbands.upper - bbands.lower) || 1));
+    const bWidth = bbands.width ?? ((bbands.upper - bbands.lower) / bbands.middle);
+    const bandExpanding = bWidth > 0.02; // Normalized width > 2% = breakout regime
+
+    if (bandExpanding) {
+      // BREAKOUT regime: Band Walk is trend continuation, NOT reversal
+      if (percentB > 0.8) {
+        signals.push({ name: 'Bollinger Bands', weight: 15, direction: 'bullish', detail: `Band Walk — %B=${(percentB*100).toFixed(0)}%, expanding bands (trend continuation UP)` });
+      } else if (percentB < 0.2) {
+        signals.push({ name: 'Bollinger Bands', weight: 15, direction: 'bearish', detail: `Band Walk — %B=${(percentB*100).toFixed(0)}%, expanding bands (trend continuation DOWN)` });
+      } else {
+        signals.push({ name: 'Bollinger Bands', weight: 15, direction: 'neutral', detail: `%B=${(percentB*100).toFixed(0)}%, bands expanding (width: ${(bWidth*100).toFixed(1)}%)` });
+      }
     } else {
-      signals.push({ name: 'Bollinger Bands', weight: 15, direction: 'neutral', detail: `Mid-range (band width: ${bandWidth.toFixed(2)})` });
+      // SQUEEZE/RANGE regime: mean-reversion logic applies
+      if (percentB < 0.15) {
+        signals.push({ name: 'Bollinger Bands', weight: 15, direction: 'bullish', detail: `Squeeze — %B=${(percentB*100).toFixed(0)}%, near lower band (mean-reversion bounce)` });
+      } else if (percentB > 0.85) {
+        signals.push({ name: 'Bollinger Bands', weight: 15, direction: 'bearish', detail: `Squeeze — %B=${(percentB*100).toFixed(0)}%, near upper band (mean-reversion rejection)` });
+      } else {
+        signals.push({ name: 'Bollinger Bands', weight: 15, direction: 'neutral', detail: `Squeeze — %B=${(percentB*100).toFixed(0)}%, mid-range (width: ${(bWidth*100).toFixed(1)}%)` });
+      }
     }
   }
 
-  // 5. Stochastic (10%)
+  // 5. Stochastic (10%) — FIXED: Confirmation filter, not signal generator
+  //    Confirms if there's "room to run" in the primary direction
   if (stoch !== null) {
-    if (stoch.k < 20 && stoch.k > stoch.d) {
-      signals.push({ name: 'Stochastic', weight: 10, direction: 'bullish', detail: `%K=${stoch.k.toFixed(1)} — Oversold bullish crossover` });
-    } else if (stoch.k > 80 && stoch.k < stoch.d) {
-      signals.push({ name: 'Stochastic', weight: 10, direction: 'bearish', detail: `%K=${stoch.k.toFixed(1)} — Overbought bearish crossover` });
+    // Determine primary direction from accumulated signals so far
+    let primaryBull = 0;
+    let primaryBear = 0;
+    for (const s of signals) {
+      if (s.direction === 'bullish') primaryBull += s.weight;
+      if (s.direction === 'bearish') primaryBear += s.weight;
+    }
+    const primaryDir = primaryBull > primaryBear ? 'bullish' : primaryBear > primaryBull ? 'bearish' : 'neutral';
+
+    if (primaryDir === 'bullish') {
+      if (stoch.k < 50) {
+        signals.push({ name: 'Stochastic', weight: 10, direction: 'bullish', detail: `%K=${stoch.k.toFixed(1)} — Room to run upward (confirms bullish)` });
+      } else if (stoch.k > 80) {
+        signals.push({ name: 'Stochastic', weight: 10, direction: 'bearish', detail: `%K=${stoch.k.toFixed(1)} — Overbought (conflicts with bullish signal)` });
+      } else {
+        signals.push({ name: 'Stochastic', weight: 10, direction: 'neutral', detail: `%K=${stoch.k.toFixed(1)} — Mid-range, no confirmation` });
+      }
+    } else if (primaryDir === 'bearish') {
+      if (stoch.k > 50) {
+        signals.push({ name: 'Stochastic', weight: 10, direction: 'bearish', detail: `%K=${stoch.k.toFixed(1)} — Room to fall (confirms bearish)` });
+      } else if (stoch.k < 20) {
+        signals.push({ name: 'Stochastic', weight: 10, direction: 'bullish', detail: `%K=${stoch.k.toFixed(1)} — Oversold (conflicts with bearish signal)` });
+      } else {
+        signals.push({ name: 'Stochastic', weight: 10, direction: 'neutral', detail: `%K=${stoch.k.toFixed(1)} — Mid-range, no confirmation` });
+      }
     } else {
-      signals.push({ name: 'Stochastic', weight: 10, direction: 'neutral', detail: `%K=${stoch.k.toFixed(1)}, %D=${stoch.d.toFixed(1)}` });
+      signals.push({ name: 'Stochastic', weight: 10, direction: 'neutral', detail: `%K=${stoch.k.toFixed(1)}, %D=${stoch.d.toFixed(1)} — No primary direction to confirm` });
     }
   }
 
@@ -557,36 +656,67 @@ function gradeConfidence(score: number): 'AAA' | 'AA' | 'A' | 'BBB' {
 }
 
 
-// ── Session Filter ─────────────────────────────────────────
+// ── Kill Zone Session Filter ──────────────────────────────
+// FIXED: Replaced broad session windows with institutional Kill Zones.
+// Grade A = highest probability windows (London Open, NY Open)
+// Grade B = decent windows (Asian, London Close)
+// Grade C = low probability (mid-session, off-hours)
 
-const SESSION_MAP: Record<string, string[]> = {
-  'XAU/USD': ['london', 'newyork', 'overlap'],
-  'EUR/USD': ['london', 'newyork', 'overlap'],
-  'GBP/USD': ['london', 'newyork', 'overlap'],
-  'USD/JPY': ['tokyo', 'london', 'overlap'],
-  'BTC/USD': ['any'],
-  'ETH/USD': ['any'],
-  'QQQ':     ['newyork'],
-  'DIA':     ['newyork'],
-  'SPY':     ['newyork'],
-  'USO':     ['newyork'],
-};
+type KillZoneQuality = 'A' | 'B' | 'C';
 
-function getCurrentSession(): string {
-  const utcHour = new Date().getUTCHours();
-  if (utcHour >= 0 && utcHour < 7) return 'tokyo';
-  if (utcHour >= 7 && utcHour < 12) return 'london';
-  if (utcHour >= 12 && utcHour < 16) return 'overlap'; // London+NY
-  if (utcHour >= 16 && utcHour < 21) return 'newyork';
-  return 'off-hours'; // 21-00 UTC
+interface KillZoneInfo {
+  zone: string;
+  quality: KillZoneQuality;
+  session: string;
 }
 
-function isOptimalSession(symbol: string): { ok: boolean; session: string; detail: string } {
-  const session = getCurrentSession();
-  const allowed = SESSION_MAP[symbol] || (isStockSymbol(symbol) ? ['newyork'] : ['any']);
-  if (allowed.includes('any')) return { ok: true, session, detail: `${session} session (24h asset)` };
-  const ok = allowed.includes(session);
-  return { ok, session, detail: ok ? `${session} — optimal trading window` : `${session} — low liquidity for this pair` };
+const SYMBOL_SESSIONS: Record<string, string[]> = {
+  'XAU/USD': ['london_open', 'ny_open', 'london_close'],
+  'EUR/USD': ['london_open', 'ny_open', 'london_close'],
+  'GBP/USD': ['london_open', 'ny_open', 'london_close'],
+  'USD/JPY': ['asian', 'london_open', 'ny_open'],
+  'BTC/USD': ['any'],
+  'ETH/USD': ['any'],
+  'QQQ':     ['ny_open', 'ny_mid'],
+  'DIA':     ['ny_open', 'ny_mid'],
+  'SPY':     ['ny_open', 'ny_mid'],
+  'USO':     ['ny_open', 'ny_mid'],
+};
+
+function getKillZone(): KillZoneInfo {
+  const utcHour = new Date().getUTCHours();
+  const utcMin = new Date().getUTCMinutes();
+  const time = utcHour + utcMin / 60;
+
+  if (time >= 7.0 && time < 9.0)  return { zone: 'london_open',  quality: 'A', session: 'London Open Kill Zone (07:00–09:00 UTC)' };
+  if (time >= 12.0 && time < 14.0) return { zone: 'ny_open',      quality: 'A', session: 'New York Open Kill Zone (12:00–14:00 UTC)' };
+  if (time >= 15.0 && time < 16.0) return { zone: 'london_close', quality: 'B', session: 'London Close (15:00–16:00 UTC)' };
+  if (time >= 0.0 && time < 3.0)   return { zone: 'asian',        quality: 'B', session: 'Asian Kill Zone (00:00–03:00 UTC)' };
+  if (time >= 9.0 && time < 12.0)  return { zone: 'london_mid',   quality: 'C', session: 'London Mid-Session (09:00–12:00 UTC)' };
+  if (time >= 14.0 && time < 15.0) return { zone: 'ny_mid',       quality: 'C', session: 'NY Mid-Session (14:00–15:00 UTC)' };
+  if (time >= 16.0 && time < 21.0) return { zone: 'ny_late',      quality: 'C', session: 'NY Late Session (16:00–21:00 UTC)' };
+  if (time >= 3.0 && time < 7.0)   return { zone: 'asian_late',   quality: 'C', session: 'Asian Late / Pre-London (03:00–07:00 UTC)' };
+  return { zone: 'off_hours', quality: 'C', session: 'Off-Hours (21:00–00:00 UTC)' };
+}
+
+function isOptimalSession(symbol: string): { ok: boolean; session: string; detail: string; killZoneQuality: KillZoneQuality } {
+  const kz = getKillZone();
+  const allowedZones = SYMBOL_SESSIONS[symbol] || (isStockSymbol(symbol) ? ['ny_open', 'ny_mid'] : ['any']);
+
+  if (allowedZones.includes('any')) {
+    return { ok: true, session: kz.session, detail: `${kz.session} (24h asset, grade ${kz.quality})`, killZoneQuality: kz.quality };
+  }
+
+  const inKillZone = allowedZones.includes(kz.zone);
+  if (inKillZone && kz.quality === 'A') {
+    return { ok: true, session: kz.session, detail: `🟢 ${kz.session} — Grade A kill zone (highest probability)`, killZoneQuality: 'A' };
+  } else if (inKillZone && kz.quality === 'B') {
+    return { ok: true, session: kz.session, detail: `🟡 ${kz.session} — Grade B window (good probability)`, killZoneQuality: 'B' };
+  } else if (inKillZone) {
+    return { ok: true, session: kz.session, detail: `⚪ ${kz.session} — Grade C window (reduced probability)`, killZoneQuality: 'C' };
+  } else {
+    return { ok: false, session: kz.session, detail: `🔴 ${kz.session} — Outside kill zones for ${symbol}`, killZoneQuality: kz.quality };
+  }
 }
 
 // ── Volatility Filter ──────────────────────────────────────
@@ -658,9 +788,11 @@ export async function getMarketSnapshot(symbol: string, astroMode?: boolean): Pr
       return null;
     }
 
-    const { price, rsi, macd, ema50, atr } = results;
+    const { price, rsi, macd, prevHistogram, ema20, ema50, ema200, atr, atrRatio, bbands, stoch } = results;
     console.log(`[Market Engine] Price: $${price}`);
-    console.log(`[Market Engine] Indicators — RSI: ${rsi}, MACD: ${macd ? 'ok' : 'null'}, EMA50: ${ema50}, ATR: ${atr}`);
+    console.log(`[Market Engine] Indicators — RSI: ${rsi?.toFixed(1)}, MACD: ${macd ? 'ok' : 'null'}, EMA20: ${ema20?.toFixed(2)}, EMA50: ${ema50?.toFixed(2)}, EMA200: ${ema200?.toFixed(2) ?? 'N/A'}, ATR: ${atr?.toFixed(4)}, ATR Ratio: ${atrRatio?.toFixed(2)}`);
+    if (bbands) console.log(`[Market Engine] BBands — Upper: ${bbands.upper.toFixed(2)}, Lower: ${bbands.lower.toFixed(2)}, %B: ${(bbands.percentB*100).toFixed(0)}%, Width: ${(bbands.width*100).toFixed(1)}%`);
+    if (stoch) console.log(`[Market Engine] Stochastic — %K: ${stoch.k.toFixed(1)}, %D: ${stoch.d.toFixed(1)}`);
 
     // ── A5: Higher Timeframe Bias (4H RSI) ────────────────
     const htfBias = await fetchHTFBias(symbol);
@@ -686,9 +818,10 @@ export async function getMarketSnapshot(symbol: string, astroMode?: boolean): Pr
     const kellyResult = await computeKellySizing(symbol, 10000, 0.02);
     console.log(`[Market Engine] Kelly: ${kellyResult.detail}`);
 
-    // ── A3: Weighted Scoring (now includes C1/C2/C3 signals) ─
+    // ── A3: Weighted Scoring (now includes all indicators + adaptive context) ─
     const macdForScorer = macd ? { macd: macd.value, signal: macd.signal, histogram: macd.histogram } : null;
-    const scoring = scoreIndicators(price, rsi, macdForScorer, null, ema50, null, null, null, htfBias, vwapResult, mtfResult, patternResult);
+    const bbandsForScorer = bbands ? { upper: bbands.upper, middle: bbands.middle, lower: bbands.lower, width: bbands.width, percentB: bbands.percentB } : null;
+    const scoring = scoreIndicators(price, rsi, macdForScorer, ema20, ema50, ema200, bbandsForScorer, stoch, htfBias, vwapResult, mtfResult, patternResult, atrRatio, prevHistogram);
     const { score, direction, signals: indicatorSignals } = scoring;
     console.log(`[Market Engine] Weighted Confluence: ${score}% ${direction}`);
     console.log(`[Market Engine] Signals: ${indicatorSignals.map(s => `${s.name}:${s.direction}`).join(', ')}`);
@@ -728,7 +861,7 @@ export async function getMarketSnapshot(symbol: string, astroMode?: boolean): Pr
     const gates: GateResult[] = [];
 
     // Gate 1: Confluence ≥ 45%
-    gates.push({ name: 'Confluence', passed: score >= 45, detail: `${score}% (need ≥45%)` });
+    gates.push({ name: 'Confluence', passed: score >= 60, detail: `${score}% (need ≥60%)` });
 
     // Gate 2: SMC Confirmation ≥ 1
     gates.push({ name: 'SMC Confirmation', passed: smcConfirmations >= 1, detail: `${smcConfirmations} pattern(s): ${smcPatterns.join(', ') || 'none'}` });
@@ -753,7 +886,7 @@ export async function getMarketSnapshot(symbol: string, astroMode?: boolean): Pr
     }, { bull: 0, bear: 0 });
     const totalW = bullBear.bull + bullBear.bear || 1;
     const spread = Math.abs(bullBear.bull - bullBear.bear) / totalW;
-    gates.push({ name: 'No Conflict', passed: spread > 0.1, detail: `Bull/Bear spread: ${(spread * 100).toFixed(0)}% (need >10%)` });
+    gates.push({ name: 'No Conflict', passed: spread > 0.25, detail: `Bull/Bear spread: ${(spread * 100).toFixed(0)}% (need >25%)` });
 
     // Gate 7: Cooldown
     const cooldownCheck = checkCooldown(symbol);
@@ -843,6 +976,9 @@ export async function getMarketSnapshot(symbol: string, astroMode?: boolean): Pr
     const passedCount = gates.filter(g => g.passed).length;
     const totalGates = gates.length;
     const criticalGates = ['Confluence', 'News Event', 'MTF Stack'];
+    if (astroMode) {
+      criticalGates.push('Mercury Risk', 'Eclipse / VOC Block');
+    }
     const criticalFailed = gates.filter(g => criticalGates.includes(g.name) && !g.passed);
 
     let signalOutcome: SignalOutcome;
@@ -889,6 +1025,88 @@ export async function getMarketSnapshot(symbol: string, astroMode?: boolean): Pr
 
     console.log(`[Market Engine] Outcome: ${signalOutcome} — ${outcomeReason}`);
 
+    // ── Phase E: Risk Management Gates 13–15 ────────────────
+    // Fetch risk state from Supabase for the first connected broker
+    let riskGatesArr: GateResult[] = [];
+    let riskMults: RiskMultipliers | undefined;
+    try {
+      // Try to find an active account — use env var, or auto-detect from broker_accounts
+      let accountId = process.env.PRIMARY_MT5_ACCOUNT || null;
+      console.log(`[Risk Governor] ENV PRIMARY_MT5_ACCOUNT = ${accountId ?? 'not set'}`);
+
+      if (!accountId) {
+        // Auto-detect: query Supabase for the first connected broker account
+        try {
+          const { createClient: createSC } = await import('@/lib/supabase/server');
+          const sb = createSC();
+          const { data: accts, error: acctErr } = await sb.from('broker_accounts').select('mt5_login,equity,balance,user_id').limit(1).single();
+          console.log(`[Risk Governor] Auto-detect query result:`, accts, acctErr?.message || 'no error');
+          if (accts?.mt5_login) accountId = String(accts.mt5_login);
+        } catch (detectErr: any) {
+          console.warn(`[Risk Governor] Auto-detect failed: ${detectErr.message}`);
+        }
+      }
+
+      console.log(`[Risk Governor] Resolved accountId = ${accountId ?? 'null'}`);
+
+      if (accountId) {
+        let riskState = await getRiskState(accountId);
+        console.log(`[Risk Governor] getRiskState returned: ${riskState ? 'found' : 'null'}`);
+
+        // Auto-create initial risk state if table exists but no row for this account
+        if (!riskState) {
+          try {
+            const { createClient: createSC } = await import('@/lib/supabase/server');
+            const sb = createSC();
+            // Get broker equity/balance for the initial risk state
+            const { data: broker } = await sb.from('broker_accounts').select('equity,balance,user_id').eq('mt5_login', accountId).single();
+            const userId = broker?.user_id || 'system';
+            const equity = Number(broker?.equity) || 10000;
+            const balance = Number(broker?.balance) || 10000;
+            console.log(`[Risk Governor] Auto-create with userId=${userId}, equity=${equity}, balance=${balance}`);
+            const initial = createInitialRiskState(accountId, userId, equity, balance);
+            await saveRiskState(initial);
+            riskState = initial;
+            console.log(`[Risk Governor] Auto-created initial risk state for account ${accountId}`);
+          } catch (initErr: any) {
+            console.warn(`[Risk Governor] Could not auto-create risk state: ${initErr.message}`);
+          }
+        }
+
+        if (riskState) {
+          const { multipliers, gates: rGates } = evaluateAllRiskGates(riskState, kellyResult.tradeCount);
+          riskMults = multipliers;
+          riskGatesArr = rGates.map(g => ({
+            name: g.gate,
+            passed: g.passed,
+            detail: g.detail,
+          }));
+
+          // Log risk state
+          console.log(`[Risk Governor] ${multipliers.riskSummary}`);
+          for (const g of rGates) {
+            console.log(`[Risk Governor] ${g.gate}: ${g.passed ? '✅' : '❌'} ${g.detail}`);
+          }
+
+          // Override outcomes based on risk gates
+          if (multipliers.shouldLiquidate) {
+            signalOutcome = 'NO_TRADE';
+            outcomeReason = `🚨 RISK GOVERNOR: ${multipliers.riskSummary}`;
+          } else if (multipliers.shouldShadowTrade && signalOutcome === 'SIGNAL') {
+            signalOutcome = 'SHADOW';
+            outcomeReason = `📋 Equity Curve RED — signal logged as shadow trade | ${outcomeReason}`;
+          } else if (multipliers.shouldHalt && signalOutcome === 'SIGNAL') {
+            signalOutcome = 'NO_TRADE';
+            outcomeReason = `⛔ Risk halt active — ${multipliers.riskSummary} | ${outcomeReason}`;
+          }
+        }
+      } else {
+        console.log(`[Risk Governor] No account found — skipping Gates 13–15`);
+      }
+    } catch (riskErr: any) {
+      console.warn(`[Risk Governor] Skipped — ${riskErr.message}`);
+    }
+
     // Apply Astro lot multiplier to Kelly sizing result if active
     let finalLots = kellyResult.recommendedLots;
     let finalDetail = kellyResult.detail;
@@ -897,6 +1115,16 @@ export async function getMarketSnapshot(symbol: string, astroMode?: boolean): Pr
       if (astroGate) {
         finalLots = Math.max(0.01, parseFloat((finalLots * astroGate.lotMultiplier).toFixed(2)));
         finalDetail = `${finalDetail} | Astro Sizing adjustment x${astroGate.lotMultiplier} → ${finalLots} lots`;
+      }
+    }
+
+    // Apply risk multipliers to Kelly sizing
+    if (riskMults && riskMults.combinedMultiplier < 1.0) {
+      const prevLots = finalLots;
+      finalLots = Math.max(0.01, parseFloat((finalLots * riskMults.combinedMultiplier).toFixed(2)));
+      finalDetail = `${finalDetail} | Risk adj x${riskMults.combinedMultiplier.toFixed(2)} → ${finalLots} lots`;
+      if (prevLots !== finalLots) {
+        console.log(`[Risk Governor] Kelly sizing: ${prevLots} → ${finalLots} lots (x${riskMults.combinedMultiplier.toFixed(2)})`);
       }
     }
 
@@ -935,7 +1163,11 @@ export async function getMarketSnapshot(symbol: string, astroMode?: boolean): Pr
       // Phase D additions
       astroMode,
       astroData: astroSnap,
-      astroGates: astroGates.length > 0 ? astroGates : undefined
+      astroGates: astroGates.length > 0 ? astroGates : undefined,
+      // Phase E: Risk Management
+      riskGates: riskGatesArr.length > 0 ? riskGatesArr : undefined,
+      riskMultipliers: riskMults,
+      riskSummary: riskMults?.riskSummary,
     };
 
     // Store in cache

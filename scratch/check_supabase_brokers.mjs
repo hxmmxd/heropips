@@ -9,7 +9,19 @@ const sb = createClient(
   if (error) {
     console.error('Error:', error);
   } else {
-    console.log('Broker Accounts:', JSON.stringify(data, null, 2));
+    if (data && data.length > 0) {
+      const clean = data.map(d => {
+        const copy = { ...d };
+        delete copy.allowed_symbols;
+        return copy;
+      });
+      console.log('Broker Accounts:', JSON.stringify(clean, null, 2));
+    } else {
+      console.log('No accounts found');
+    }
   }
   process.exit(0);
 })();
+
+
+

@@ -88,15 +88,6 @@ export async function POST(request: Request) {
     const astroGate = astroMode && symbol ? getAstroGate(symbol) : null;
     const astroContext = astroGate ? `\n\n${astroGate.contextBlock}` : '';
 
-    // Hard block: Mercury Retrograde / VOC / Eclipse — return immediately, no signal
-    if (astroGate && !astroGate.allowed) {
-      return NextResponse.json({
-        text: `**${astroGate.statusLine}**\n\n${astroGate.blockReason}\n\nI can still provide market analysis, but no trade ticket will be issued due to celestial blocks.`,
-        ticket: null,
-        astroGate: { allowed: false, lotMultiplier: 0, statusLine: astroGate.statusLine, blockReason: astroGate.blockReason },
-      });
-    }
-
     // Keywords that trigger the analysis card (even in longer messages)
     const ANALYSIS_KEYWORDS = [
       'forecast', 'prediction', 'predict', 'analysis', 'analyze', 'analyse',
@@ -161,20 +152,52 @@ export async function POST(request: Request) {
 
     // 3. No asset detected OR conversational mention → general conversation
     if (!symbol || !isDirectQuery) {
-      const chatSystemPrompt = `You are TradeGPT, an institutional AI trading terminal. Be friendly, concise (2 sentences max). Suggest analyzing Gold, EURUSD, Bitcoin, or Nasdaq. Respond ONLY as JSON: {"text":"your response"}${astroContext}`;
+      const chatSystemPrompt = `You are TradeGPT, an elite institutional AI trading terminal built for professional traders. You have deep expertise in forex, commodities, crypto, indices, technical analysis, macro economics, and trading psychology.
+
+RESPONSE RULES:
+1. Answer every question thoroughly and professionally with structured markdown.
+2. Use ## for section headers, **bold** for key terms, and bullet points (- ) for lists.
+3. When comparing data, use markdown tables with | column | headers |.
+4. Include specific numbers, ranges, and real financial data whenever possible.
+5. End with a brief actionable insight or suggestion to analyze a specific asset.
+6. Keep the tone authoritative yet approachable — like a senior analyst briefing a trader.
+7. If the question is about a specific asset, include price context, key levels, and what to watch.
+8. For educational questions (e.g. "what is RSI"), give a concise masterclass with practical examples.
+
+FORMAT: Respond ONLY as JSON (no code fences): {"text":"your full markdown response here"}
+Use \\n for newlines inside the JSON string.${astroContext}`;
 
       // Chat path — LLM Router handles failover (Groq → NVIDIA → fallback)
-      const chatResult = await callLLM(userMessages, chatSystemPrompt, 150);
+      const chatResult = await callLLM(userMessages, chatSystemPrompt, 800);
       let parsedText = '';
 
       if (chatResult) {
         let rawContent = chatResult.text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+
+        // Try 1: Standard JSON.parse
         try {
           const parsed = JSON.parse(rawContent);
           parsedText = parsed.text || rawContent;
         } catch {
-          parsedText = rawContent;
+          // Try 2: Extract "text" field via regex (handles malformed JSON)
+          const textMatch = rawContent.match(/"text"\s*:\s*"((?:[^"\\]|\\.)*)"/s);
+          if (textMatch) {
+            parsedText = textMatch[1]
+              .replace(/\\n/g, '\n')
+              .replace(/\\"/g, '"')
+              .replace(/\\\\/g, '\\');
+          } else {
+            // Try 3: Strip JSON wrapper and use as plain text
+            parsedText = rawContent
+              .replace(/^\s*\{\s*"text"\s*:\s*"/i, '')
+              .replace(/"\s*\}\s*$/, '')
+              .replace(/\\n/g, '\n')
+              .replace(/\\"/g, '"');
+          }
         }
+
+        // Safety: always convert any remaining literal \n to real newlines
+        parsedText = parsedText.replace(/\\n/g, '\n');
       } else {
         // All providers failed — use static fallback
         const welcomeGreetings = ['hello', 'hi', 'hey', 'greetings', 'welcome'];
@@ -220,11 +243,15 @@ ${newsBlock}
 
       const outcomeEmoji = snapshot.signalOutcome === 'SIGNAL' ? '🟢' : snapshot.signalOutcome === 'WATCH' ? '🟡' : '🔴';
 
-      const analysisText = `### 🤖 ${symDisplay} Analysis — ${outcomeEmoji} ${snapshot.signalOutcome}\n` +
+      let analysisText = `### 🤖 ${symDisplay} Analysis — ${outcomeEmoji} ${snapshot.signalOutcome}\n` +
         `* **Price:** $${snapshot.price.toFixed(2)}\n` +
         `* **Technical:** RSI ${snapshot.indicators.rsi?.toFixed(1) ?? 'N/A'} | MACD ${snapshot.indicators.macd ? (snapshot.indicators.macd.histogram > 0 ? 'Bullish' : 'Bearish') : 'N/A'} | EMA50 ${snapshot.indicators.ema50 ? (snapshot.price > snapshot.indicators.ema50 ? 'Above' : 'Below') : 'N/A'}\n` +
         `* **Confluence:** ${snapshot.confluenceScore}% ${snapshot.confluenceDirection} (${snapshot.confidenceGrade})\n` +
         `* **4H Bias:** ${snapshot.htfBias}${smcBlock}`;
+
+      if (astroGate && !astroGate.allowed) {
+        analysisText = `**${astroGate.statusLine}**\n\n${astroGate.blockReason}\n\nI can still provide market analysis, but no trade ticket will be issued due to celestial blocks.`;
+      }
 
       const marketData = {
         symbol, displaySymbol: symDisplay, price: snapshot.price,
@@ -238,8 +265,11 @@ ${newsBlock}
         text: analysisText, ticket: null, signalSymbol: symbol, marketData,
         gating: {
           outcome: snapshot.signalOutcome, reason: snapshot.outcomeReason,
-          gates: snapshot.gateResults, smcPatterns: snapshot.smcPatterns,
+          gates: [...snapshot.gateResults, ...(snapshot.riskGates || [])],
+          smcPatterns: snapshot.smcPatterns,
           smcConfirmations: snapshot.smcConfirmations,
+          riskSummary: snapshot.riskSummary || null,
+          riskMultipliers: snapshot.riskMultipliers || null,
         },
       });
     }
@@ -275,6 +305,10 @@ Respond ONLY with JSON (no code fences):
 
       parsed.text = `### 🤖 Multi-Agent Consensus\n* **Technical Analysis:** ${rsiLabel} · ${macdLabel} · ${emaLabel}\n* **Macro News:** Sentiment ${sentimentLabel}\n* **Master Synthesis:** ${dir} ${symDisplay} @ $${snapshot.price.toFixed(2)} — ${snapshot.confidenceGrade} grade`;
       parsed.newsSentiment = sentimentLabel;
+    }
+
+    if (astroGate && !astroGate.allowed) {
+      parsed.text = `**${astroGate.statusLine}**\n\n${astroGate.blockReason}\n\nI can still provide market analysis, but no trade ticket will be issued due to celestial blocks.`;
     }
 
     // 7. Build ticket from engine-calculated risk params (engine ALWAYS decides — not the LLM)
@@ -384,9 +418,11 @@ Respond ONLY with JSON (no code fences):
       gating: {
         outcome: gatingOutcome,
         reason: snapshot?.outcomeReason || '',
-        gates: snapshot?.gateResults || [],
+        gates: [...(snapshot?.gateResults || []), ...(snapshot?.riskGates || [])],
         smcPatterns: snapshot?.smcPatterns || [],
         smcConfirmations: snapshot?.smcConfirmations || 0,
+        riskSummary: snapshot?.riskSummary || null,
+        riskMultipliers: snapshot?.riskMultipliers || null,
       },
       astroGate: astroGate ? {
         allowed: astroGate.allowed,

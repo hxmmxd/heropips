@@ -1029,12 +1029,14 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
                             <div className={`relative px-5 py-3 flex items-center gap-3 border-b border-[var(--border)] overflow-hidden ${
                               msg.gating.outcome === 'SIGNAL' ? 'bg-gradient-to-r from-emerald-500/12 via-emerald-500/4 to-transparent'
                               : msg.gating.outcome === 'WATCH' ? 'bg-gradient-to-r from-amber-500/12 via-amber-500/4 to-transparent'
+                              : msg.gating.outcome === 'SHADOW' ? 'bg-gradient-to-r from-blue-500/12 via-blue-500/4 to-transparent'
                               : 'bg-gradient-to-r from-red-500/12 via-red-500/4 to-transparent'
                             }`}>
                               {/* Glow line */}
                               <div className={`absolute left-0 top-0 bottom-0 w-[3px] ${
                                 msg.gating.outcome === 'SIGNAL' ? 'bg-gradient-to-b from-emerald-400 to-emerald-600'
                                 : msg.gating.outcome === 'WATCH' ? 'bg-gradient-to-b from-amber-400 to-amber-600'
+                                : msg.gating.outcome === 'SHADOW' ? 'bg-gradient-to-b from-blue-400 to-blue-600'
                                 : 'bg-gradient-to-b from-red-400 to-red-600'
                               }`} />
                               <div className="flex items-center gap-2">
@@ -1042,22 +1044,27 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
                                 <div className={`relative w-2 h-2 rounded-full ${
                                   msg.gating.outcome === 'SIGNAL' ? 'bg-emerald-400'
                                   : msg.gating.outcome === 'WATCH' ? 'bg-amber-400'
+                                  : msg.gating.outcome === 'SHADOW' ? 'bg-blue-400'
                                   : 'bg-red-400'
                                 }`}>
                                   {msg.gating.outcome === 'SIGNAL' && (
                                     <div className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-60" />
                                   )}
+                                  {msg.gating.outcome === 'SHADOW' && (
+                                    <div className="absolute inset-0 rounded-full bg-blue-400 animate-pulse opacity-50" />
+                                  )}
                                 </div>
                                 <span className={`text-[11px] font-black uppercase tracking-[0.15em] ${
                                   msg.gating.outcome === 'SIGNAL' ? 'text-emerald-500'
                                   : msg.gating.outcome === 'WATCH' ? 'text-amber-500'
+                                  : msg.gating.outcome === 'SHADOW' ? 'text-blue-400'
                                   : 'text-red-500'
                                 }`}>
-                                  {msg.gating.outcome === 'SIGNAL' ? 'SIGNAL' : msg.gating.outcome === 'WATCH' ? 'WATCH' : 'NO_TRADE'}
+                                  {msg.gating.outcome === 'SIGNAL' ? 'SIGNAL' : msg.gating.outcome === 'WATCH' ? 'WATCH' : msg.gating.outcome === 'SHADOW' ? 'SHADOW' : 'NO SIGNAL'}
                                 </span>
                               </div>
                               <div className={`w-[1px] h-4 ${
-                                msg.gating.outcome === 'SIGNAL' ? 'bg-emerald-500/30' : msg.gating.outcome === 'WATCH' ? 'bg-amber-500/30' : 'bg-red-500/30'
+                                msg.gating.outcome === 'SIGNAL' ? 'bg-emerald-500/30' : msg.gating.outcome === 'WATCH' ? 'bg-amber-500/30' : msg.gating.outcome === 'SHADOW' ? 'bg-blue-500/30' : 'bg-red-500/30'
                               }`} />
                               <span className="text-[10px] text-[var(--subtext)] font-medium leading-tight flex-1">
                                 {msg.gating.reason}
@@ -1067,6 +1074,7 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
                                 <span className={`text-[9px] font-black px-2 py-1 rounded-lg shrink-0 ${
                                   msg.gating.outcome === 'SIGNAL' ? 'bg-emerald-500/12 text-emerald-500'
                                   : msg.gating.outcome === 'WATCH' ? 'bg-amber-500/12 text-amber-500'
+                                  : msg.gating.outcome === 'SHADOW' ? 'bg-blue-500/12 text-blue-400'
                                   : 'bg-red-500/12 text-red-500'
                                 }`}>
                                   {msg.gating.gates.filter((g: any) => g.passed).length}/{msg.gating.gates.length}
@@ -1189,6 +1197,19 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
                                   {msg.astroGate.statusLine}
                                 </span>
                               )}
+
+                              {/* ── Risk Governor Chip ── */}
+                              {msg.gating?.riskSummary && (
+                                <span className={`text-[10px] font-bold tracking-wider px-2.5 py-1.5 rounded-lg border ${
+                                  msg.gating.riskSummary.includes('LIQUIDATE') || msg.gating.riskSummary.includes('halted')
+                                    ? 'bg-red-500/8 text-red-400 border-red-500/20'
+                                    : msg.gating.riskSummary.includes('Shadow') || msg.gating.riskSummary.includes('Sizing')
+                                    ? 'bg-violet-500/8 text-violet-400 border-violet-500/20'
+                                    : 'bg-emerald-500/8 text-emerald-400 border-emerald-500/20'
+                                }`}>
+                                  🛡️ {msg.gating.riskSummary}
+                                </span>
+                              )}
                             </div>
                           </div>
 
@@ -1230,17 +1251,20 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
                                   <div className="mt-2 space-y-1">
                                     {msg.gating.gates.map((gate: any, gi: number) => {
                                       const isAstroGate = ['Lunar Alignment','Planetary Aspect','Mercury Risk','Eclipse / VOC Block','Seasonal Cycle'].includes(gate.name);
+                                      const isRiskGate = gate.name?.startsWith('Gate 13') || gate.name?.startsWith('Gate 14') || gate.name?.startsWith('Gate 15');
                                       return (
                                       <div key={gi} className={`relative flex items-start gap-2.5 pl-3 pr-3 py-2 rounded-xl overflow-hidden ${
                                         gate.passed
-                                          ? isAstroGate ? 'bg-amber-500/5 border border-amber-500/10' : 'bg-emerald-500/5 border border-emerald-500/10'
+                                          ? isRiskGate ? 'bg-violet-500/5 border border-violet-500/10'
+                                          : isAstroGate ? 'bg-amber-500/5 border border-amber-500/10'
+                                          : 'bg-emerald-500/5 border border-emerald-500/10'
                                           : 'bg-red-500/5 border border-red-500/10'
                                       }`}>
                                         {/* Left accent stripe */}
                                         <div className={`absolute left-0 top-0 bottom-0 w-[2px] ${
-                                          gate.passed ? (isAstroGate ? 'bg-amber-500' : 'bg-emerald-500') : 'bg-red-500'
+                                          gate.passed ? (isRiskGate ? 'bg-violet-500' : isAstroGate ? 'bg-amber-500' : 'bg-emerald-500') : 'bg-red-500'
                                         }`} />
-                                        {/* Icon — planet symbol for astro gates, tick/cross for tech gates */}
+                                        {/* Icon — shield for risk gates, planet symbol for astro gates, tick/cross for tech gates */}
                                         {(() => {
                                           const ASTRO_GATE_ICONS: Record<string, string> = {
                                             'Lunar Alignment': '☽',
@@ -1249,7 +1273,25 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
                                             'Eclipse / VOC Block': '◑',
                                             'Seasonal Cycle': '✦',
                                           };
+                                          const RISK_GATE_ICONS: Record<string, string> = {
+                                            'Gate 13': '📈',
+                                            'Gate 14': '⚡',
+                                            'Gate 15': '🛡️',
+                                          };
                                           const astroIcon = ASTRO_GATE_ICONS[gate.name];
+                                          const riskKey = Object.keys(RISK_GATE_ICONS).find(k => gate.name?.startsWith(k));
+                                          const riskIcon = riskKey ? RISK_GATE_ICONS[riskKey] : null;
+                                          if (riskIcon) {
+                                            return (
+                                              <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 mt-0.5 text-[11px] ${
+                                                gate.passed
+                                                  ? 'bg-violet-500/15 text-violet-400'
+                                                  : 'bg-red-500/15 text-red-400'
+                                              }`}>
+                                                {riskIcon}
+                                              </div>
+                                            );
+                                          }
                                           if (astroIcon) {
                                             return (
                                               <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 mt-0.5 text-[11px] ${
@@ -1281,6 +1323,9 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
                                             )}
                                             {isAstroGate && (
                                               <span className="text-[7px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/12 text-amber-400 border border-amber-500/15">ASTRO</span>
+                                            )}
+                                            {isRiskGate && (
+                                              <span className="text-[7px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-violet-500/12 text-violet-400 border border-violet-500/15">RISK</span>
                                             )}
                                           </div>
                                           <p className="text-[9px] text-[var(--subtext)] leading-relaxed mt-0.5 font-mono">{gate.detail}</p>
@@ -1322,13 +1367,26 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
                               <div className="flex items-center gap-2">
                                 {/* Generate Signal button */}
                                 {msg.signalSymbol && !msg.ticket && (
-                                  <button
-                                    onClick={() => onGenerateSignal?.(msg.signalSymbol!)}
-                                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-white text-[10px] font-bold uppercase tracking-wider hover:shadow-lg active:scale-95 transition-all whitespace-nowrap shrink-0" style={{ background: 'var(--accent)', boxShadow: '0 4px 12px rgba(180,145,108,0.3)' }}
-                                  >
-                                    <Zap className="w-3 h-3" />
-                                    Generate Signal
-                                  </button>
+                                  msg.gating?.outcome === 'SIGNAL' ? (
+                                    <button
+                                      onClick={() => onGenerateSignal?.(msg.signalSymbol!)}
+                                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-white text-[10px] font-bold uppercase tracking-wider hover:shadow-lg active:scale-95 transition-all whitespace-nowrap shrink-0" style={{ background: 'var(--accent)', boxShadow: '0 4px 12px rgba(180,145,108,0.3)' }}
+                                    >
+                                      <Zap className="w-3 h-3" />
+                                      Generate Signal
+                                    </button>
+                                  ) : (
+                                    <button
+                                      disabled
+                                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-slate-400 bg-slate-800/80 text-[10px] font-bold uppercase tracking-wider cursor-not-allowed whitespace-nowrap shrink-0 border border-slate-700/50"
+                                    >
+                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3 h-3">
+                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                                      </svg>
+                                      NO SIGNAL
+                                    </button>
+                                  )
                                 )}
 
                               </div>
@@ -1339,7 +1397,7 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
 
                       {/* Plain text response (for general chat without market data) */}
                       {msg.text && msg.text !== '__TYPING__' && !msg.marketData && (
-                        <div className="bg-gradient-to-br from-[var(--sidebar-bg)] to-[var(--input-bg)]/80 backdrop-blur-md border border-[var(--border)] hover:border-[var(--accent)]/20 transition-all duration-300 px-5.5 py-4 rounded-[22px] max-w-full shadow-[0_4px_22px_rgba(0,0,0,0.14)] text-[14px] leading-relaxed text-[var(--text)]">
+                        <div className="max-w-full px-2 py-1 text-[14px] leading-relaxed text-[var(--text)]">
                           {parseMarkdown(msg.text)}
 
                           {/* Screener Cards inside the message block */}
@@ -1628,14 +1686,101 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
 function parseMarkdown(text: string) {
   if (!text) return null;
   const lines = text.split('\n');
-  return lines.map((line, idx) => {
-    const cleanLine = line.trim();
-    if (cleanLine.startsWith('###')) {
-      const headerText = cleanLine.replace('###', '').trim();
-      const hasRobot = headerText.includes('🤖') || headerText.includes('🤖') || headerText.toLowerCase().includes('agent');
+  const elements: React.ReactNode[] = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    // ── Table detection ──
+    if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+      const tableRows: string[][] = [];
+      let hasHeader = false;
+      while (i < lines.length && lines[i].trim().startsWith('|') && lines[i].trim().endsWith('|')) {
+        const row = lines[i].trim();
+        // Skip separator rows like |---|---|
+        if (/^\|[\s\-:]+\|/.test(row) && !row.replace(/[\s|\-:]/g, '')) {
+          hasHeader = tableRows.length === 1;
+          i++;
+          continue;
+        }
+        const cells = row.split('|').slice(1, -1).map(c => c.trim());
+        tableRows.push(cells);
+        i++;
+      }
+      if (tableRows.length > 0) {
+        const headerRow = hasHeader ? tableRows[0] : null;
+        const bodyRows = hasHeader ? tableRows.slice(1) : tableRows;
+        elements.push(
+          <div key={`tbl-${i}`} style={{ overflowX: 'auto', margin: '12px 0', borderRadius: '12px', border: '1px solid var(--border)' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+              {headerRow && (
+                <thead>
+                  <tr>
+                    {headerRow.map((cell, ci) => (
+                      <th key={ci} style={{
+                        padding: '8px 12px', textAlign: 'left', fontWeight: 800,
+                        fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.06em',
+                        color: 'var(--subtext)', borderBottom: '2px solid var(--border)',
+                        background: 'var(--input-bg)',
+                      }}>{parseInlineMarkdown(cell)}</th>
+                    ))}
+                  </tr>
+                </thead>
+              )}
+              <tbody>
+                {bodyRows.map((row, ri) => (
+                  <tr key={ri} style={{ background: ri % 2 === 0 ? 'transparent' : 'var(--input-bg)' }}>
+                    {row.map((cell, ci) => (
+                      <td key={ci} style={{
+                        padding: '7px 12px', borderBottom: '1px solid var(--border)',
+                        color: 'var(--text)', fontFamily: /^[\d$+\-.,% ]+$/.test(cell.trim()) ? 'ui-monospace, monospace' : 'inherit',
+                      }}>{parseInlineMarkdown(cell)}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+      }
+      continue;
+    }
+
+    // ── Horizontal rule ──
+    if (/^(-{3,}|\*{3,}|_{3,})$/.test(trimmed)) {
+      elements.push(
+        <div key={`hr-${i}`} style={{
+          height: '1px', margin: '14px 0',
+          background: 'linear-gradient(to right, transparent, var(--border), transparent)',
+        }} />
+      );
+      i++;
+      continue;
+    }
+
+    // ── ## Header ──
+    if (trimmed.startsWith('## ') && !trimmed.startsWith('###')) {
+      const headerText = trimmed.replace(/^##\s*/, '');
+      elements.push(
+        <h2 key={`h2-${i}`} style={{
+          fontSize: '14px', fontWeight: 800, color: 'var(--text)',
+          marginTop: '16px', marginBottom: '8px', paddingBottom: '6px',
+          borderBottom: '1px solid var(--border)', letterSpacing: '-0.01em',
+        }}>{parseInlineMarkdown(headerText)}</h2>
+      );
+      i++;
+      continue;
+    }
+
+    // ── ### Header ──
+    if (trimmed.startsWith('###')) {
+      const headerText = trimmed.replace('###', '').trim();
+      const hasRobot = headerText.includes('🤖') || headerText.toLowerCase().includes('agent');
       const cleanText = headerText.replace(/🤖/g, '').trim();
-      return (
-        <h3 key={idx} className="text-[10px] font-bold text-[var(--subtext)] mt-4 mb-2.5 flex items-center gap-1.5 uppercase tracking-widest">
+      elements.push(
+        <h3 key={`h3-${i}`} className="text-[10px] font-bold text-[var(--subtext)] mt-4 mb-2.5 flex items-center gap-1.5 uppercase tracking-widest">
           {hasRobot && (
             <svg className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--accent)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V9a2 2 0 00-2-2H7a2 2 0 00-2 2v8a2 2 0 002 2zM9 9h.01M15 9h.01M8 14h8" />
@@ -1644,35 +1789,116 @@ function parseMarkdown(text: string) {
           <span>{cleanText}</span>
         </h3>
       );
+      i++;
+      continue;
     }
-    if (cleanLine.startsWith('*')) {
-      const content = cleanLine.replace(/^\*\s*/, '');
-      return (
-        <div key={idx} className="text-[12.5px] leading-relaxed pl-3.5 border-l-2 my-2.5 text-[var(--text)] opacity-90" style={{ borderColor: 'color-mix(in srgb, var(--accent) 40%, transparent)' }}>
-          {formatBulletContent(content)}
+
+    // ── Blockquote ──
+    if (trimmed.startsWith('>')) {
+      const quoteLines: string[] = [];
+      while (i < lines.length && lines[i].trim().startsWith('>')) {
+        quoteLines.push(lines[i].trim().replace(/^>\s*/, ''));
+        i++;
+      }
+      elements.push(
+        <div key={`bq-${i}`} style={{
+          borderLeft: '3px solid var(--accent)', paddingLeft: '14px',
+          margin: '10px 0', padding: '10px 14px',
+          background: 'color-mix(in srgb, var(--accent) 5%, transparent)',
+          borderRadius: '0 10px 10px 0', fontSize: '12.5px',
+          color: 'var(--text)', lineHeight: '1.6', fontStyle: 'italic',
+        }}>
+          {quoteLines.map((ql, qi) => <span key={qi}>{parseInlineMarkdown(ql)}{qi < quoteLines.length - 1 ? <br /> : null}</span>)}
         </div>
       );
+      continue;
     }
-    if (cleanLine === '') {
-      return <div key={idx} className="h-1.5" />;
+
+    // ── Numbered list ──
+    if (/^\d+\.\s/.test(trimmed)) {
+      const listItems: string[] = [];
+      while (i < lines.length && /^\d+\.\s/.test(lines[i].trim())) {
+        listItems.push(lines[i].trim().replace(/^\d+\.\s*/, ''));
+        i++;
+      }
+      elements.push(
+        <ol key={`ol-${i}`} style={{ margin: '8px 0', paddingLeft: '0', listStyle: 'none', counterReset: 'md-counter' }}>
+          {listItems.map((item, li) => (
+            <li key={li} style={{
+              display: 'flex', alignItems: 'flex-start', gap: '10px',
+              fontSize: '12.5px', lineHeight: '1.6', color: 'var(--text)',
+              marginBottom: '6px', opacity: 0.92,
+            }}>
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                width: '20px', height: '20px', borderRadius: '6px', flexShrink: 0,
+                background: 'color-mix(in srgb, var(--accent) 12%, transparent)',
+                color: 'var(--accent)', fontSize: '10px', fontWeight: 800, marginTop: '1px',
+              }}>{li + 1}</span>
+              <span>{formatBulletContent(item)}</span>
+            </li>
+          ))}
+        </ol>
+      );
+      continue;
     }
-    return (
-      <p key={idx} className="text-[13px] leading-relaxed text-[var(--text)] opacity-90 my-1.5">
-        {parseInlineMarkdown(cleanLine)}
-      </p>
+
+    // ── Bullet list (- or *) ──
+    if (/^[-*]\s/.test(trimmed)) {
+      const listItems: string[] = [];
+      while (i < lines.length && /^[-*]\s/.test(lines[i].trim())) {
+        listItems.push(lines[i].trim().replace(/^[-*]\s*/, ''));
+        i++;
+      }
+      elements.push(
+        <ul key={`ul-${i}`} style={{ margin: '8px 0', paddingLeft: '0', listStyle: 'none' }}>
+          {listItems.map((item, li) => (
+            <li key={li} style={{
+              display: 'flex', alignItems: 'flex-start', gap: '10px',
+              fontSize: '12.5px', lineHeight: '1.6', color: 'var(--text)',
+              marginBottom: '5px', opacity: 0.92,
+            }}>
+              <span style={{
+                width: '5px', height: '5px', borderRadius: '50%', flexShrink: 0,
+                background: 'var(--accent)', marginTop: '7px', opacity: 0.6,
+              }} />
+              <span>{formatBulletContent(item)}</span>
+            </li>
+          ))}
+        </ul>
+      );
+      continue;
+    }
+
+    // ── Empty line ──
+    if (trimmed === '') {
+      elements.push(<div key={`sp-${i}`} className="h-1.5" />);
+      i++;
+      continue;
+    }
+
+    // ── Paragraph ──
+    elements.push(
+      <p key={`p-${i}`} style={{
+        fontSize: '13px', lineHeight: '1.7', color: 'var(--text)',
+        opacity: 0.92, margin: '6px 0',
+      }}>{parseInlineMarkdown(trimmed)}</p>
     );
-  });
+    i++;
+  }
+
+  return elements;
 }
 
 function formatBulletContent(content: string) {
   const colonIndex = content.indexOf(':');
-  if (colonIndex !== -1) {
+  if (colonIndex !== -1 && colonIndex < 60) {
     const header = content.substring(0, colonIndex).trim();
     const body = content.substring(colonIndex + 1);
     const cleanHeader = header.replace(/\*\*|^\*|\*$/g, '').trim();
     return (
       <>
-        <strong className="font-bold text-[var(--text)] mr-1">{cleanHeader}:</strong>
+        <strong style={{ fontWeight: 700, color: 'var(--text)', marginRight: '4px' }}>{cleanHeader}:</strong>
         {parseInlineMarkdown(body)}
       </>
     );
@@ -1681,15 +1907,38 @@ function formatBulletContent(content: string) {
 }
 
 function parseInlineMarkdown(text: string) {
-  const parts = text.split(/(\*\*.*?\*\*)/g);
+  // Clean up orphaned ** markers (e.g. "** Hammer" or "value **")
+  let cleaned = text.replace(/\*\*\s+/g, '').replace(/\s+\*\*/g, '');
+  // Also strip any remaining standalone ** that have no pair
+  const starCount = (cleaned.match(/\*\*/g) || []).length;
+  if (starCount % 2 !== 0) cleaned = cleaned.replace(/\*\*/, '');
+  // Handle bold (**text**), italic (*text*), and inline code (`text`)
+  const parts = cleaned.split(/(\*\*.*?\*\*|\*[^*]+?\*|`[^`]+?`)/g);
   return parts.map((part, idx) => {
     if (part.startsWith('**') && part.endsWith('**')) {
       return (
-        <strong key={idx} className="font-bold text-[var(--text)]">
+        <strong key={idx} style={{ fontWeight: 700, color: 'var(--text)' }}>
           {part.slice(2, -2)}
         </strong>
+      );
+    }
+    if (part.startsWith('*') && part.endsWith('*') && !part.startsWith('**')) {
+      return (
+        <em key={idx} style={{ fontStyle: 'italic', opacity: 0.85 }}>
+          {part.slice(1, -1)}
+        </em>
+      );
+    }
+    if (part.startsWith('`') && part.endsWith('`')) {
+      return (
+        <code key={idx} style={{
+          fontFamily: 'ui-monospace, monospace', fontSize: '11.5px',
+          background: 'var(--input-bg)', padding: '1px 5px', borderRadius: '4px',
+          border: '1px solid var(--border)',
+        }}>{part.slice(1, -1)}</code>
       );
     }
     return part;
   });
 }
+

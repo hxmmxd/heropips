@@ -31,6 +31,12 @@ import {
   type FarmAccount,
   type TradePayload,
 } from './mt5farm';
+import {
+  getRiskState,
+  evaluateAllRiskGates,
+  updateRiskMetrics,
+  saveRiskState,
+} from './riskGovernor';
 
 export interface BrokerNode {
   id: string;
@@ -369,9 +375,13 @@ export async function executeBrokerOrder(
   const accountId = byId?.login || byLogin?.login || id;
 
   // Pre-trade margin check
+  let liveEquity = 0;
+  let liveBalance = 0;
   try {
     const info = await farmGetAccountInfo(accountId);
     if (info) {
+      liveEquity = info.equity ?? 0;
+      liveBalance = info.balance ?? 0;
       const marginFree = info.marginFree ?? info.equity ?? 0;
       if (marginFree <= 0) {
         throw new Error(`Insufficient funds: account free margin is ${marginFree}.`);
@@ -380,6 +390,42 @@ export async function executeBrokerOrder(
   } catch (marginErr: any) {
     if (marginErr.message.includes('Insufficient funds:')) throw marginErr;
     console.warn(`[Broker Engine] Pre-trade margin check bypassed: ${marginErr.message}`);
+  }
+
+  // ── Risk Governor: Last Line of Defense ──────────────────────────
+  try {
+    const riskState = await getRiskState(accountId);
+    if (riskState) {
+      // Update risk metrics with live equity
+      const updated = updateRiskMetrics(riskState, liveEquity || riskState.currentEquity, liveBalance || riskState.dailyStartBalance);
+      const { multipliers } = evaluateAllRiskGates(updated);
+
+      if (multipliers.shouldLiquidate) {
+        console.error(`[Risk Governor] 🚨 TERMINAL EVENT — blocking trade and saving state`);
+        await saveRiskState({ ...updated, isTradingEnabled: false, shutdownTime: new Date().toISOString() });
+        throw new Error(`🚨 Risk Governor: Trading halted — ${multipliers.riskSummary}`);
+      }
+
+      if (!updated.isTradingEnabled || multipliers.shouldHalt) {
+        console.warn(`[Risk Governor] ⛔ Trade blocked: ${multipliers.riskSummary}`);
+        await saveRiskState(updated);
+        throw new Error(`⛔ Risk Governor: ${multipliers.riskSummary}`);
+      }
+
+      // Apply risk multiplier to volume
+      if (multipliers.combinedMultiplier < 1.0 && multipliers.combinedMultiplier > 0) {
+        const adjVol = Math.max(0.01, parseFloat((Number(volume) * multipliers.combinedMultiplier).toFixed(2)));
+        console.log(`[Risk Governor] Volume adjusted: ${volume} → ${adjVol} (x${multipliers.combinedMultiplier.toFixed(2)})`);
+        volume = adjVol;
+      }
+
+      // Persist updated state
+      await saveRiskState(updated);
+    }
+  } catch (riskErr: any) {
+    // Re-throw risk blocks
+    if (riskErr.message.includes('Risk Governor')) throw riskErr;
+    console.warn(`[Risk Governor] Pre-trade check skipped: ${riskErr.message}`);
   }
 
   // Resolve symbol with allowed_symbols suffix matching

@@ -1,6 +1,13 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { FARM_HEADERS, sidecarUrl, resolveAccountId } from '@/lib/mt5farm';
+import {
+  getRiskState,
+  saveRiskState,
+  updateTradeResult,
+  updateRiskMetrics,
+  updateEquityCurve,
+} from '@/lib/riskGovernor';
 
 export const dynamic = 'force-dynamic';
 
@@ -115,7 +122,24 @@ export async function GET(request: Request) {
 
         // Upsert to closed_deals
         let dealsUpserted = 0;
+        let newDealCount = 0;
+        const newDeals: any[] = [];
         if (closedTrades.length > 0) {
+          // Check which deals already exist to avoid re-counting streaks
+          const dealIds = closedTrades.map(ct => ct.deal_id);
+          const { data: existingDeals } = await admin
+            .from('closed_deals')
+            .select('deal_id')
+            .in('deal_id', dealIds);
+          const existingIds = new Set((existingDeals || []).map((d: any) => d.deal_id));
+
+          for (const ct of closedTrades) {
+            if (!existingIds.has(ct.deal_id)) {
+              newDeals.push(ct);
+            }
+          }
+          newDealCount = newDeals.length;
+
           const { error } = await admin
             .from('closed_deals')
             .upsert(closedTrades, { onConflict: 'deal_id', ignoreDuplicates: true });
@@ -137,6 +161,40 @@ export async function GET(request: Request) {
               .eq('broker_id', ct.broker_id)
               .order('created_at', { ascending: false })
               .limit(1);
+          }
+
+          // ── Risk Governor: Update streak ONLY for genuinely new deals ──
+          if (newDeals.length > 0) {
+            try {
+              let riskState = await getRiskState(accountId);
+              if (riskState) {
+                for (const ct of newDeals) {
+                  const isWin = ct.profit > 0;
+                  riskState = updateTradeResult(riskState, isWin);
+                }
+
+                if (info.equity > 0) {
+                  riskState = updateRiskMetrics(riskState, info.equity, info.balance);
+                }
+
+                const equityHistory = newDeals.map((_ct, i) =>
+                  (info.equity || riskState!.currentEquity) - newDeals.slice(i + 1).reduce((a, d) => a + d.profit, 0)
+                );
+                if (equityHistory.length > 0) {
+                  riskState = updateEquityCurve(riskState, equityHistory);
+                }
+
+                await saveRiskState(riskState);
+                console.log(
+                  `[Sync Deals] Risk updated for ${accountId}: ` +
+                  `${newDeals.length} new deals | ` +
+                  `Streak W${riskState.consecutiveWins}/L${riskState.consecutiveLosses}, ` +
+                  `DD: ${riskState.drawdownPct.toFixed(2)}%`
+                );
+              }
+            } catch (riskErr: any) {
+              console.warn(`[Sync Deals] Risk state update failed:`, riskErr.message);
+            }
           }
         }
 

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
+import { IBM_Plex_Sans } from 'next/font/google';
 import './globals.css';
 import { SignalProvider } from '@/contexts/SignalContext';
 
@@ -8,21 +8,32 @@ function SignalProviderWrapper({ children }: { children: React.ReactNode }) {
   return <SignalProvider>{children}</SignalProvider>;
 }
 
-const inter = Inter({
+const ibmPlexSans = IBM_Plex_Sans({
   variable: '--font-inter',
   subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
 });
 
 export const metadata: Metadata = {
-  title: 'TradeGPT | Institutional AI',
+  title: 'XyroTrade | AI-Powered Trading Signals',
   description: 'Automated AI Trading Terminal & MetaTrader 5 Node Infrastructure Dashboard.',
   manifest: '/manifest.json',
+  icons: {
+    icon: [
+      { url: '/favicon-icon.png', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/favicon-icon.png', type: 'image/png' },
+    ],
+    shortcut: '/favicon-icon.png',
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'TradeGPT',
+    title: 'XyroTrade',
   },
 };
+
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -40,7 +51,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} h-full antialiased`}
+      className={`${ibmPlexSans.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col" suppressHydrationWarning><SignalProviderWrapper>{children}</SignalProviderWrapper></body>

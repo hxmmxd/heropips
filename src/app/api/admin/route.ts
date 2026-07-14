@@ -155,7 +155,45 @@ export async function GET(request: Request) {
   const rebatePromotions = rebatePromosRes.data || [];
   const rebateVolumeTiers = rebateTiersRes.data || [];
 
-  return NextResponse.json({ stats, users, brokers, trades, announcements, config, auditLog, riskRules, signupTrends, revenueTrends, topSymbols, brokerProviders, rebateRules, rebateRiskSettings, rebatePromotions, rebateVolumeTiers });
+  // ── Risk Governor Data ──
+  let sentinelStatus = null;
+  try {
+    const { getSentinelStatus } = await import('@/lib/sentinel');
+    sentinelStatus = getSentinelStatus();
+  } catch {}
+
+  // Fetch risk config from platform_config
+  const riskConfigEntries: Record<string, any> = {};
+  const riskConfigRows = (configRes.data || []).filter((c: any) => c.key.startsWith('risk_'));
+  riskConfigRows.forEach((c: any) => {
+    riskConfigEntries[c.key.replace('risk_', '')] = c.value;
+  });
+
+  // Fetch active risk states
+  const { data: riskStates } = await supabaseAdmin
+    .from('portfolio_risk_states')
+    .select('account_id, user_id, current_equity, peak_equity, daily_loss_pct, drawdown_pct, consecutive_losses, consecutive_wins, daily_tier, drawdown_zone, ecp_status, is_trading_enabled, trades_today, last_updated')
+    .order('last_updated', { ascending: false })
+    .limit(10);
+
+  // Fetch last 7 daily reports
+  const { data: dailyReports } = await supabaseAdmin
+    .from('daily_risk_reports')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(7);
+
+  return NextResponse.json({
+    stats, users, brokers, trades, announcements, config, auditLog, riskRules,
+    signupTrends, revenueTrends, topSymbols, brokerProviders,
+    rebateRules, rebateRiskSettings, rebatePromotions, rebateVolumeTiers,
+    riskGovernor: {
+      sentinel: sentinelStatus,
+      riskConfig: riskConfigEntries,
+      riskStates: riskStates || [],
+      dailyReports: dailyReports || [],
+    },
+  });
 }
 
 // Update user plan or admin status

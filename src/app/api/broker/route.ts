@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { connectBroker, disconnectBroker, getAllBrokers, getBrokerDetails, searchBrokerServers, syncBrokerToSupabase } from '@/lib/broker';
 import { createClient } from '@/lib/supabase/server';
 import { farmGetAccount, farmGetAccountInfo, farmGetSymbols, resolveAccountId, FARM_BASE, FARM_HEADERS, sidecarUrl } from '@/lib/mt5farm';
+import { startSentinel, stopSentinel, isSentinelRunning } from '@/lib/sentinel';
 
 export const dynamic = 'force-dynamic';
 
@@ -112,6 +113,12 @@ export async function GET(request: Request) {
             };
             // Fire-and-forget sync; don't block the response
             syncBrokerToSupabase(node, user.id).catch(() => {});
+
+            // Auto-start sentinel if not already running
+            if (!isSentinelRunning()) {
+              startSentinel(accountId, user.id);
+            }
+
             return node;
           }
 
@@ -205,6 +212,10 @@ export async function DELETE(request: Request) {
 
     const success = await disconnectBroker(brokerId, user.id);
     if (success) {
+      // Stop sentinel if it was monitoring this account
+      if (isSentinelRunning()) {
+        stopSentinel();
+      }
       return NextResponse.json({ success: true });
     } else {
       return NextResponse.json({ error: 'Broker not found' }, { status: 404 });

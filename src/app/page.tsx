@@ -643,7 +643,7 @@ function HomeContent() {
 
           {currentTab === 'history' && (
             <Suspense fallback={<TabSkeleton />}>
-              <HistoryTab logs={logs} />
+              <HistoryTab logs={logs} activeBrokerId={activeBroker.acc} />
             </Suspense>
           )}
 
