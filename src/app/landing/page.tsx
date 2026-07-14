@@ -133,7 +133,7 @@ function NarrativeSection() {
             
             {/* Card 1: Twitter */}
             <div 
-              className="lp-noise-card-cell border-r border-b"
+              className="lp-noise-card-cell c-span-2"
               style={{ '--hover-glow': 'rgba(5, 150, 105, 0.05)' } as React.CSSProperties}
             >
               <div className="lp-grid-dot dot-tl" />
@@ -147,7 +147,7 @@ function NarrativeSection() {
 
             {/* Card 2: YouTube */}
             <div 
-              className="lp-noise-card-cell border-b"
+              className="lp-noise-card-cell c-span-2"
               style={{ '--hover-glow': 'rgba(180, 83, 9, 0.05)' } as React.CSSProperties}
             >
               <div className="lp-grid-dot dot-tl" />
@@ -161,7 +161,7 @@ function NarrativeSection() {
 
             {/* Card 3: Indicators */}
             <div 
-              className="lp-noise-card-cell border-r border-b"
+              className="lp-noise-card-cell c-span-2"
               style={{ '--hover-glow': 'rgba(109, 40, 217, 0.05)' } as React.CSSProperties}
             >
               <div className="lp-grid-dot dot-tl" />
@@ -175,7 +175,7 @@ function NarrativeSection() {
 
             {/* Card 4: News */}
             <div 
-              className="lp-noise-card-cell border-b"
+              className="lp-noise-card-cell c-span-3"
               style={{ '--hover-glow': 'rgba(29, 78, 216, 0.05)' } as React.CSSProperties}
             >
               <div className="lp-grid-dot dot-tl" />
@@ -187,9 +187,9 @@ function NarrativeSection() {
               <p className="lp-noise-card-desc">Breaking macroeconomic data or regulatory updates instantly invalidate hours of technical analysis.</p>
             </div>
 
-            {/* Card 5: Fear (Spans 2 columns) */}
+            {/* Card 5: Fear */}
             <div 
-              className="lp-noise-card-cell span-2"
+              className="lp-noise-card-cell c-span-3"
               style={{ '--hover-glow': 'rgba(185, 28, 28, 0.05)' } as React.CSSProperties}
             >
               <div className="lp-grid-dot dot-tl" />
@@ -200,7 +200,6 @@ function NarrativeSection() {
               </h3>
               <p className="lp-noise-card-desc">Faced with conflicting inputs, emotional traders panic, exit positions prematurely, or freeze entirely.</p>
             </div>
-
 
           </div>
 
