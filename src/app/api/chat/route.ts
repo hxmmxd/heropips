@@ -180,7 +180,7 @@ Use \\n for newlines inside the JSON string.${astroContext}`;
           parsedText = parsed.text || rawContent;
         } catch {
           // Try 2: Extract "text" field via regex (handles malformed JSON)
-          const textMatch = rawContent.match(/"text"\s*:\s*"((?:[^"\\]|\\.)*)"/s);
+          const textMatch = rawContent.match(/"text"\s*:\s*"((?:[^"\\]|\\[\s\S])*)"/);
           if (textMatch) {
             parsedText = textMatch[1]
               .replace(/\\n/g, '\n')
