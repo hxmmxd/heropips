@@ -242,18 +242,18 @@ const GATES = [
 /* ── 12-Gates Grid Section ──────────────────────────────────── */
 /* ── Comparison Section (12-Gate Flow & Signal Output) ────── */
 const MINI_GATES = [
-  { num: '01', name: 'Vol Regime' },
-  { num: '02', name: 'Order Flow' },
-  { num: '03', name: 'Liquidity' },
-  { num: '04', name: 'Macro Bias' },
-  { num: '05', name: 'MTF Align' },
-  { num: '06', name: 'Correlation' },
-  { num: '07', name: 'Vol Profile' },
-  { num: '08', name: 'Funding Rate' },
-  { num: '09', name: 'Mean Rev' },
-  { num: '10', name: 'Spread Arb' },
-  { num: '11', name: 'ADX Velocity' },
-  { num: '12', name: 'Risk-Reward' },
+  { icon: '🌊', label: 'VOLATILITY', statusText: 'ATR 1.2x Stable' },
+  { icon: '📊', label: 'ORDER FLOW', statusText: 'Bid Imb. 68%' },
+  { icon: '💧', label: 'LIQUIDITY', statusText: 'BSL Sweep Clear' },
+  { icon: '📰', label: 'NEWS FILTER', statusText: 'FOMC Clear' },
+  { icon: '📶', label: 'MTF STACK', statusText: 'W1/D1/4H Aligned' },
+  { icon: '🔗', label: 'CORRELATION', statusText: 'DXY Bearish Bias' },
+  { icon: '🎯', label: 'VOL PROFILE', statusText: 'Inside POC Node' },
+  { icon: '💸', label: 'FUNDING RATE', statusText: 'Prem <0.02%' },
+  { icon: '📈', label: 'VWAP', statusText: 'Inside ±1.5σ' },
+  { icon: '⚖️', label: 'SPREAD ARB', statusText: 'Slippage <0.1%' },
+  { icon: '⚡', label: 'VELOCITY', statusText: 'ADX >25 Bullish' },
+  { icon: '🛡️', label: 'CANDLE PATTERN', statusText: 'H1 Hammer Conf.' },
 ];
 
 function ComparisonSection() {
@@ -284,11 +284,12 @@ function ComparisonSection() {
                 {MINI_GATES.map((g, idx) => (
                   <div key={idx} className="lp-comp-gate-mini-card">
                     <div className="lp-comp-gate-mini-hdr">
-                      <span className="lp-comp-gate-mini-num">{g.num}</span>
+                      <span className="lp-comp-gate-mini-label">
+                        <span style={{ marginRight: '4px' }}>{g.icon}</span> {g.label}
+                      </span>
                       <span className="lp-comp-gate-mini-dot" />
                     </div>
-                    <span className="lp-comp-gate-mini-name">{g.name}</span>
-                    <span className="lp-comp-gate-mini-status">PASSED</span>
+                    <span className="lp-comp-gate-mini-status-text">{g.statusText}</span>
                   </div>
                 ))}
               </div>

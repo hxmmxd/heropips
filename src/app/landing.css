@@ -1938,20 +1938,22 @@
 }
 
 .lp-comp-gate-mini-card {
-  background: rgba(0, 0, 0, 0.02);
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  border-radius: 10px;
-  padding: 10px 12px;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.03);
+  border-radius: 12px;
+  padding: 12px 14px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  transition: all 0.2s ease;
+  gap: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+  transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .lp-comp-gate-mini-card:hover {
-  background: rgba(0, 0, 0, 0.04);
-  border-color: rgba(0, 0, 0, 0.1);
-  transform: translateY(-1px);
+  background: #fafaf9;
+  border-color: rgba(0, 0, 0, 0.06);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.04);
 }
 
 .lp-comp-gate-mini-hdr {
@@ -1960,11 +1962,13 @@
   align-items: center;
 }
 
-.lp-comp-gate-mini-num {
+.lp-comp-gate-mini-label {
   font-size: 8.5px;
-  font-weight: 800;
-  color: rgba(0, 0, 0, 0.25);
-  font-family: var(--font-mono, monospace);
+  font-weight: 700;
+  color: rgba(0, 0, 0, 0.42);
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
 }
 
 .lp-comp-gate-mini-dot {
@@ -1972,24 +1976,14 @@
   height: 5px;
   border-radius: 50%;
   background: #10b981;
-  box-shadow: 0 0 6px #10b981;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
 }
 
-.lp-comp-gate-mini-name {
-  font-size: 11px;
+.lp-comp-gate-mini-status-text {
+  font-size: 11.5px;
   font-weight: 700;
-  color: #0f0f0f;
+  color: #111827;
   letter-spacing: -0.2px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.lp-comp-gate-mini-status {
-  font-size: 8px;
-  font-weight: 850;
-  color: #10b981;
-  letter-spacing: 0.05em;
 }
 
 /* Connector Arrow (Desktop) */
