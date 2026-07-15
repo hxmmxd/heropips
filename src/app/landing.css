@@ -171,7 +171,7 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  background: var(--c-accent);
+  background: #0f0f0f;
   color: #fff;
   font-size: 12px;
   font-weight: 700;
@@ -187,12 +187,12 @@
   margin-left: 4px;
 }
 
-.lp-nav-badge:hover { background: var(--c-accent-hover); }
+.lp-nav-badge:hover { background: #242424; }
 
 .lp-nav-badge-dot {
   width: 6px;
   height: 6px;
-  background: rgba(255,255,255,.7);
+  background: #10b981;
   border-radius: 50%;
 }
 
@@ -516,7 +516,7 @@
   animation: stat-fade-up 0.45s ease both;
 }
 .lp-stat:first-child { padding-left: 0; }
-.lp-stat:hover { background: rgba(255, 60, 0, 0.025); }
+.lp-stat:hover { background: rgba(0, 0, 0, 0.015); }
 
 /* Gradient vertical divider — fades from transparent at top/bottom */
 .lp-stat:not(:last-child)::after {
@@ -563,34 +563,36 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* Orange number */
+/* Charcoal number */
 .lp-stat-num {
   font-size: 34px;
   font-weight: 800;
-  color: #ff3c00;
+  color: #111111;
   letter-spacing: -2px;
   line-height: 1;
   flex-shrink: 0;
   font-feature-settings: "tnum";
   font-variant-numeric: tabular-nums;
-  transition: text-shadow 0.2s;
+  transition: text-shadow 0.2s, color 0.2s;
 }
 .lp-stat:hover .lp-stat-num {
-  text-shadow: 0 0 24px rgba(255, 60, 0, 0.35);
+  color: #ff3c00;
+  text-shadow: 0 0 24px rgba(255, 60, 0, 0.15);
 }
 
 /* 24/7 raw string */
 .lp-stat-raw {
   font-size: 34px;
   font-weight: 800;
-  color: #ff3c00;
+  color: #111111;
   letter-spacing: -2px;
   line-height: 1;
   flex-shrink: 0;
-  transition: text-shadow 0.2s;
+  transition: text-shadow 0.2s, color 0.2s;
 }
 .lp-stat:hover .lp-stat-raw {
-  text-shadow: 0 0 24px rgba(255, 60, 0, 0.35);
+  color: #ff3c00;
+  text-shadow: 0 0 24px rgba(255, 60, 0, 0.15);
 }
 
 /* Label + sub-description stacked */
@@ -738,13 +740,13 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  border: 1px solid rgba(255, 60, 0, 0.15);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 9999px;
   padding: 5px 14px;
   font-size: 12px;
   font-weight: 500;
   color: rgba(0, 0, 0, 0.65);
-  background: rgba(255, 60, 0, 0.04);
+  background: rgba(0, 0, 0, 0.03);
   margin-bottom: 24px;
   position: relative;
   z-index: 1;
@@ -764,7 +766,7 @@
 }
 
 .lp-hero-announce-link {
-  color: #ff3c00;
+  color: #0f0f0f;
   font-weight: 700;
   text-decoration: underline;
   text-underline-offset: 2px;
@@ -773,7 +775,7 @@
 /* Brand name in announcement pill */
 .lp-hero-announce-brand {
   font-weight: 700;
-  color: #ff3c00;
+  color: #0f0f0f;
 }
 
 /* Headline */
@@ -790,17 +792,16 @@
   animation-delay: 0.12s;
 }
 
-/* Animated cycling word container */
 .lp-hero-cycle {
   display: inline-block;
   overflow: hidden;
   vertical-align: bottom;
   height: 1.05em;
   /* Highlight chip */
-  background: rgba(255, 60, 0, 0.05);
+  background: rgba(0, 0, 0, 0.03);
   border-radius: 8px;
   padding: 0 8px 2px 6px;
-  border-bottom: 2px solid rgba(255, 60, 0, 0.30);
+  border-bottom: 2px solid rgba(0, 0, 0, 0.08);
 }
 
 
@@ -848,7 +849,7 @@
 }
 
 .lp-hero-btn-primary {
-  background: #ff3c00;
+  background: #0f0f0f;
   color: #ffffff;
   border: none;
   border-radius: 9999px;
@@ -861,15 +862,15 @@
   align-items: center;
   gap: 5px;
   text-decoration: none;
-  box-shadow: 0 4px 14px rgba(255, 60, 0, 0.25);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
   transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
   white-space: nowrap;
 }
 
 .lp-hero-btn-primary:hover {
   transform: translateY(-2px);
-  background: #e03500;
-  box-shadow: 0 8px 24px rgba(255, 60, 0, 0.35);
+  background: #242424;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
 }
 
 .lp-hero-btn-secondary {
@@ -913,8 +914,8 @@
   align-items: center;
   gap: 7px;
   padding: 6px 12px 6px 8px;
-  background: rgba(255, 60, 0, 0.04);
-  border: 1px solid rgba(255, 60, 0, 0.12);
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.06);
   border-radius: 9999px;
   backdrop-filter: blur(8px);
   cursor: default;
@@ -926,8 +927,8 @@
 
 .lp-hero-trust-pill:hover {
   transform: translateY(-2px);
-  background: rgba(255, 60, 0, 0.08);
-  border-color: rgba(255, 60, 0, 0.22);
+  background: rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 0, 0, 0.12);
 }
 
 /* Shimmer sweep on hover */
@@ -938,7 +939,7 @@
   background: linear-gradient(
     105deg,
     transparent 40%,
-    rgba(255, 60, 0, 0.1) 50%,
+    rgba(0, 0, 0, 0.04) 50%,
     transparent 60%
   );
   transform: translateX(-100%);
@@ -953,23 +954,23 @@
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: rgba(255, 60, 0, 0.06);
+  background: rgba(0, 0, 0, 0.03);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 11px;
   flex-shrink: 0;
-  border: 1px solid rgba(255, 60, 0, 0.15);
+  border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .lp-hero-trust-icon svg path,
 .lp-hero-trust-icon svg rect,
 .lp-hero-trust-icon svg circle {
-  stroke: #ff3c00 !important;
+  stroke: #0f0f0f !important;
 }
 
 .lp-hero-trust-icon svg [fill="white"] {
-  fill: #ff3c00 !important;
+  fill: #0f0f0f !important;
 }
 
 .lp-hero-trust-text {
@@ -981,7 +982,7 @@
 .lp-hero-trust-num {
   font-size: 12px;
   font-weight: 700;
-  color: #ff3c00;
+  color: #0f0f0f;
   line-height: 1.2;
   letter-spacing: -0.3px;
 }
@@ -1033,7 +1034,7 @@
 .lp-hero-video {
   width: 100%;
   aspect-ratio: 16 / 10;
-  background: rgba(255, 60, 0, 0.02);
+  background: rgba(0, 0, 0, 0.02);
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 18px;
   backdrop-filter: blur(12px);
@@ -1050,8 +1051,8 @@
 }
 
 .lp-hero-video:hover {
-  background: rgba(255, 60, 0, 0.05);
-  border-color: rgba(255, 60, 0, 0.15);
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.12);
 }
 
 /* Top-left glare streak */
@@ -1063,7 +1064,7 @@
   height: 120px;
   background: linear-gradient(
     135deg,
-    rgba(255, 60, 0, 0.06) 0%,
+    rgba(0, 0, 0, 0.03) 0%,
     transparent 60%
   );
   border-radius: 50%;
@@ -1075,7 +1076,7 @@
 .lp-hero-play {
   width: 64px;
   height: 64px;
-  background: #ff3c00;
+  background: #0f0f0f;
   border: none;
   border-radius: 50%;
   display: flex;
@@ -1083,14 +1084,14 @@
   justify-content: center;
   color: #ffffff;
   cursor: pointer;
-  box-shadow: 0 4px 20px rgba(255, 60, 0, 0.35);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
   transition: transform 0.18s, box-shadow 0.18s;
   padding-left: 4px; /* optical center for play icon */
 }
 
 .lp-hero-play:hover {
   transform: scale(1.08);
-  box-shadow: 0 8px 28px rgba(255, 60, 0, 0.45);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
 }
 
 .lp-hero-video-label {
@@ -1248,7 +1249,7 @@
   width: 750px;
   height: 750px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 60, 0, 0.055) 0%, transparent 68%);
+  background: radial-gradient(circle, rgba(255, 60, 0, 0.035) 0%, transparent 68%);
   pointer-events: none;
   z-index: 1;
   transform: translateY(var(--narrative-glow-translate, 0px));
@@ -1313,9 +1314,9 @@
   border-right: 1px solid rgba(0, 0, 0, 0.07);
   position: relative;
   background-image: 
-    radial-gradient(circle at 0% 0%, rgba(255, 60, 0, 0.08) 0%, transparent 60%),
-    linear-gradient(to right, rgba(255, 60, 0, 0.095) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 60, 0, 0.095) 1px, transparent 1px),
+    radial-gradient(circle at 0% 0%, rgba(255, 60, 0, 0.05) 0%, transparent 60%),
+    linear-gradient(to right, rgba(0, 0, 0, 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.045) 1px, transparent 1px),
     linear-gradient(135deg, rgba(255, 255, 255, 0.55) 0%, rgba(245, 240, 232, 0.5) 100%);
   background-size: auto, 16px 16px, 16px 16px, auto;
   background-repeat: no-repeat, repeat, repeat, no-repeat;
@@ -1323,8 +1324,8 @@
 
 
 .lp-noise-badge {
-  border: 1px solid rgba(255, 60, 0, 0.18);
-  color: #ff3c00;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  color: #0f0f0f;
   padding: 4px 10px 4px 22px;
   font-size: 10px;
   font-weight: 700;
@@ -1333,7 +1334,7 @@
   display: inline-flex;
   align-items: center;
   letter-spacing: 0.1em;
-  background: rgba(255, 60, 0, 0.03);
+  background: rgba(0, 0, 0, 0.03);
   position: relative;
 }
 
