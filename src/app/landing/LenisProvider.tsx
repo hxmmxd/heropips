@@ -9,6 +9,10 @@ interface LenisProviderProps {
 
 export default function LenisProvider({ children }: LenisProviderProps) {
   useEffect(() => {
+    // Enable scrolling on html and body for landing page
+    document.documentElement.classList.add('lp-scrollable');
+    document.body.classList.add('lp-scrollable');
+
     // Initialize Lenis smooth scroll
     const lenis = new Lenis({
       duration: 1.2,
@@ -28,6 +32,8 @@ export default function LenisProvider({ children }: LenisProviderProps) {
 
     // Cleanup on unmount
     return () => {
+      document.documentElement.classList.remove('lp-scrollable');
+      document.body.classList.remove('lp-scrollable');
       lenis.destroy();
     };
   }, []);

@@ -271,215 +271,534 @@ const LOGS = [
   "Confluence engine: US30 key volume block validated."
 ];
 
-function ComparisonSection() {
-  const [signalIdx, setSignalIdx] = useState(0);
-  const [stage, setStage] = useState<'entering' | 'visible' | 'exiting'>('visible');
+const PROCESSOR_GATES = [
+  { num: '01', name: 'Vol Regime Filter', desc: 'ATR volatility state', log: 'ATR: Volatility breakout band verified.' },
+  { num: '02', name: 'Order Flow Imbalance', desc: 'L2 Bid-Ask depth check', log: 'L2 Depth: Bids outpacing asks (+14.2%).' },
+  { num: '03', name: 'Liquidity Sweeps', desc: 'Stop-run cluster scan', log: 'Sweeps: Buy-side liquidity pool swept.' },
+  { num: '04', name: 'Macro Sentiment Bias', desc: 'Financial NLP headlines', log: 'NLP: Sentiment indices tracking bullish (0.76).' },
+  { num: '05', name: 'Multi-Timeframe Align', desc: 'M15/H1/H4 market stack', log: 'Timeframes: H1 & H4 trends fully stacked.' },
+  { num: '06', name: 'Correlation Matrix', desc: 'Index correlation index', log: 'Matrix: Asset beta dispersion normalized.' },
+  { num: '07', name: 'Volume Profile Node', desc: 'POC value support', log: 'POC: Dynamic support node holding block.' },
+  { num: '08', name: 'Funding Rate Check', desc: 'Leverage liquidation guard', log: 'Funding: Liquidation threat matrix: safe.' },
+  { num: '09', name: 'Mean Reversion Bands', desc: 'Z-score standard deviation', log: 'Bands: Z-score at -1.4 (oversold bounds).' },
+  { num: '10', name: 'Spread Arbitrage', desc: 'Exchange slip cost check', log: 'Arbitrage: Feed spread verified < 0.1 pips.' },
+  { num: '11', name: 'Trend Velocity (ADX)', desc: 'Directional momentum ADX', log: 'ADX: Momentum velocity confirmed at 32.5.' },
+  { num: '12', name: 'Risk-Reward Cutoff', desc: 'R:R ratio validation', log: 'R:R Cutoff: 1:2.5 minimum target cleared.' },
+];
 
+function ConfluenceProcessorSection() {
+  const [hoveredGate, setHoveredGate] = useState<number | null>(null);
+  const [activeCycleGate, setActiveCycleGate] = useState(0);
+  const [chipScore, setChipScore] = useState(83);
+
+  // Cycle the chip score to make it look active!
   useEffect(() => {
     const interval = setInterval(() => {
-      // 1. Exit current signal
-      setStage('exiting');
-      
-      // 2. Wait for exit animation to complete (500ms), update index, and start entering
-      setTimeout(() => {
-        setSignalIdx((prev) => (prev + 1) % TICKER_SIGNALS.length);
-        setStage('entering');
-        
-        // 3. Render the entrance slide-up transition in the next tick
-        setTimeout(() => {
-          setStage('visible');
-        }, 50);
-      }, 500);
-
-    }, 4500); // Cycle every 4.5 seconds
-
+      setChipScore(() => Math.floor(Math.random() * (98 - 80 + 1)) + 80);
+    }, 1500);
     return () => clearInterval(interval);
   }, []);
 
-  const s = TICKER_SIGNALS[signalIdx];
+  // Auto-cycle active gate state when not hovering/tapping
+  useEffect(() => {
+    if (hoveredGate !== null) return;
+    const interval = setInterval(() => {
+      setActiveCycleGate((prev) => (prev + 1) % 12);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [hoveredGate]);
+
+  const activeGate = hoveredGate !== null ? hoveredGate : activeCycleGate;
+
+  // Dynamic colors and shadows based on active side
+  let glowColor = 'rgba(255, 60, 0, 0.05)';
+  let glowBorder = 'rgba(0, 0, 0, 0.07)';
+  let spinnerColor = 'rgba(255, 60, 0, 0.35)';
+  let scoreColor = '#ff3c00';
+
+  if (activeGate !== null) {
+    if (activeGate < 6) {
+      glowColor = 'rgba(255, 60, 0, 0.14)';
+      glowBorder = 'rgba(255, 60, 0, 0.3)';
+      spinnerColor = '#ff3c00';
+    } else {
+      glowColor = 'rgba(8, 145, 178, 0.14)';
+      glowBorder = 'rgba(8, 145, 178, 0.3)';
+      spinnerColor = '#0891b2';
+      scoreColor = '#0891b2';
+    }
+  }
+
+  const handleGateClick = (idx: number) => {
+    if (hoveredGate === idx) {
+      setHoveredGate(null);
+    } else {
+      setHoveredGate(idx);
+    }
+  };
 
   return (
-    <section className="lp-comp">
-      <motion.div 
-        className="lp-comp-inner"
-        initial={{ opacity: 0, y: 40 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: "-120px" }}
-        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] as const }}
-      >
-        
-        {/* Unified Dashboard Widget */}
-        <div className="lp-comp-unified-widget">
-          
-          {/* Left Panel: 12 Gates Processing Flow */}
-          <div className="lp-comp-widget-left">
-            <div className="lp-comp-card-content">
-              <div className="lp-comp-badge lp-comp-badge-bad">
-                <span className="lp-comp-badge-dot-glowing" />
-                CONFLUENCE PIPELINE ACTIVE
-              </div>
-              
-              <h3 className="lp-comp-card-title">
-                12 Quantitative Filters <br />
-                <span className="text-[13px] font-medium tracking-normal text-black/50 block mt-2">
-                  Analyzing raw price and institutional book depth at millisecond speeds.
-                </span>
-              </h3>
-            </div>
-
-            {/* Grid of 12 Gates flowing like a marquee */}
-            <div className="lp-comp-pipeline-flow">
-              <div className="lp-comp-marquee-container">
-                
-                {/* Row 1 */}
-                <div className="lp-comp-marquee-row">
-                  <div className="lp-comp-marquee-track speed-normal">
-                    {ROW_1.map((g, idx) => (
-                      <div key={`r1-a-${idx}`} className="lp-comp-gate-mini-card">
-                        <div className="lp-comp-gate-mini-hdr">
-                          <span className="lp-comp-gate-mini-label">
-                            <span style={{ marginRight: '4px' }}>{g.icon}</span> {g.label}
-                          </span>
-                          <span className="lp-comp-gate-mini-dot" />
-                        </div>
-                        <span className="lp-comp-gate-mini-status-text">{g.statusText}</span>
-                      </div>
-                    ))}
-                    {ROW_1.map((g, idx) => (
-                      <div key={`r1-b-${idx}`} className="lp-comp-gate-mini-card">
-                        <div className="lp-comp-gate-mini-hdr">
-                          <span className="lp-comp-gate-mini-label">
-                            <span style={{ marginRight: '4px' }}>{g.icon}</span> {g.label}
-                          </span>
-                          <span className="lp-comp-gate-mini-dot" />
-                        </div>
-                        <span className="lp-comp-gate-mini-status-text">{g.statusText}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Row 2 */}
-                <div className="lp-comp-marquee-row">
-                  <div className="lp-comp-marquee-track speed-slow">
-                    {ROW_2.map((g, idx) => (
-                      <div key={`r2-a-${idx}`} className="lp-comp-gate-mini-card">
-                        <div className="lp-comp-gate-mini-hdr">
-                          <span className="lp-comp-gate-mini-label">
-                            <span style={{ marginRight: '4px' }}>{g.icon}</span> {g.label}
-                          </span>
-                          <span className="lp-comp-gate-mini-dot" />
-                        </div>
-                        <span className="lp-comp-gate-mini-status-text">{g.statusText}</span>
-                      </div>
-                    ))}
-                    {ROW_2.map((g, idx) => (
-                      <div key={`r2-b-${idx}`} className="lp-comp-gate-mini-card">
-                        <div className="lp-comp-gate-mini-hdr">
-                          <span className="lp-comp-gate-mini-label">
-                            <span style={{ marginRight: '4px' }}>{g.icon}</span> {g.label}
-                          </span>
-                          <span className="lp-comp-gate-mini-dot" />
-                        </div>
-                        <span className="lp-comp-gate-mini-status-text">{g.statusText}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Row 3 */}
-                <div className="lp-comp-marquee-row">
-                  <div className="lp-comp-marquee-track speed-fast">
-                    {ROW_3.map((g, idx) => (
-                      <div key={`r3-a-${idx}`} className="lp-comp-gate-mini-card">
-                        <div className="lp-comp-gate-mini-hdr">
-                          <span className="lp-comp-gate-mini-label">
-                            <span style={{ marginRight: '4px' }}>{g.icon}</span> {g.label}
-                          </span>
-                          <span className="lp-comp-gate-mini-dot" />
-                        </div>
-                        <span className="lp-comp-gate-mini-status-text">{g.statusText}</span>
-                      </div>
-                    ))}
-                    {ROW_3.map((g, idx) => (
-                      <div key={`r3-b-${idx}`} className="lp-comp-gate-mini-card">
-                        <div className="lp-comp-gate-mini-hdr">
-                          <span className="lp-comp-gate-mini-label">
-                            <span style={{ marginRight: '4px' }}>{g.icon}</span> {g.label}
-                          </span>
-                          <span className="lp-comp-gate-mini-dot" />
-                        </div>
-                        <span className="lp-comp-gate-mini-status-text">{g.statusText}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-              </div>
-            </div>
-          </div>
-
-          {/* Right Panel: Orange Box outputting validated Trade Signals */}
-          <div className="lp-comp-widget-right">
-            {/* Holographic light background flare */}
-            <div className="lp-comp-right-flare" />
-            
-            <div className="lp-comp-card-content">
-              <div className="lp-comp-badge lp-comp-badge-good">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ marginRight: '6px' }}>
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-                VALIDATED SIGNAL
-              </div>
-
-              <h3 className="lp-comp-card-title text-white">
-                Executed <br />
-                <strong>Trade Signal</strong>
-              </h3>
-            </div>
-
-            {/* Single signal with 3D entrance/exit animation */}
-            <div className="lp-comp-signal-anim-wrap">
-              <div className={`lp-comp-output-signal-card ${s.buy ? 'buy' : 'sell'} stage-${stage}`}>
-                {/* Shiny glass overlay sheen */}
-                <div className="lp-comp-osc-sheen" />
-                
-                <div className="lp-comp-osc-hdr">
-                  <div className="flex items-center gap-2">
-                    <span className={`lp-comp-osc-pill ${s.buy ? 'buy' : 'sell'}`}>{s.action}</span>
-                    <span className="lp-comp-osc-symbol">{s.symbol}</span>
-                  </div>
-                  <span className={`lp-comp-osc-pct ${s.buy ? 'buy' : 'sell'}`}>{s.pct}</span>
-                </div>
-                
-                <div className="lp-comp-osc-meta">
-                  <span className="lp-comp-osc-price">{s.price}</span>
-                  <span className="lp-comp-osc-dot-sep">·</span>
-                  <span className="lp-comp-osc-rr">{s.rr}</span>
-                  <span className="lp-comp-osc-dot-sep">·</span>
-                  <span className="lp-comp-osc-session">{s.session}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Dynamic log execution line */}
-            <div className={`lp-comp-signal-log-footer stage-${stage}`}>
-              <span className="lp-comp-signal-log-pulse" />
-              <span className="lp-comp-signal-log-text">{LOGS[signalIdx]}</span>
-            </div>
-          </div>
-
-          {/* Flow indicators pointing to the right (positioned absolutely over the split line) */}
-          <div className="lp-comp-flow-arrow-desktop">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <line x1="5" y1="12" x2="19" y2="12" />
-              <polyline points="12 5 19 12 12 19" />
-            </svg>
-          </div>
-
+    <section className="lp-proc-wrap">
+      <div className="lp-proc-inner">
+        <div className="lp-proc-header">
+          <p className="lp-proc-eyebrow">Real-Time Synthesis</p>
+          <h2 className="lp-proc-title">The 12-Gate Confluence Processor</h2>
+          <p className="lp-proc-desc">
+            Hover over any quantitative gate to highlight its data stream connection. Watch the engine process inputs and calculate the live confluence probability score in real-time.
+          </p>
         </div>
-      </motion.div>
+
+        {/* Microcontroller Chip at the Top Center */}
+        <div 
+          className="lp-proc-chip-top"
+          style={{
+            borderColor: glowBorder,
+            boxShadow: `0 25px 50px rgba(0,0,0,0.25), 0 0 35px ${glowColor}`,
+          }}
+        >
+          <div 
+            className="lp-proc-chip-glow-bg" 
+            style={{
+              background: `radial-gradient(circle, ${glowColor}, transparent 70%)`
+            }}
+          />
+          
+          <div 
+            className="lp-proc-chip-core"
+            style={{
+              boxShadow: `0 12px 24px rgba(0, 0, 0, 0.3), 0 0 15px ${glowColor} inset`
+            }}
+          >
+            {/* Rotating core dashed ring */}
+            <div 
+              className="lp-proc-chip-spinner" 
+              style={{
+                borderColor: spinnerColor,
+                animationDuration: '8s'
+              }}
+            />
+            <span 
+              className="lp-proc-chip-score"
+              style={{
+                color: scoreColor,
+                textShadow: `0 0 8px ${scoreColor}40`
+              }}
+            >
+              {chipScore}%
+            </span>
+          </div>
+
+          <div className="lp-proc-chip-info">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: '4px' }}>
+              <h3 className="lp-proc-chip-title">XYRO CONFLUENCE CORE</h3>
+              <span className="lp-proc-chip-status">
+                <span className="lp-proc-chip-status-dot" />
+                ACTIVE SYNTHESIS
+              </span>
+            </div>
+
+            {/* Terminal console screen displaying active log */}
+            <div 
+              style={{
+                fontFamily: 'Courier New, monospace',
+                fontSize: '10px',
+                background: '#080708',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                textAlign: 'left',
+                minHeight: '40px',
+                display: 'flex',
+                alignItems: 'center',
+                border: '1px solid rgba(255,255,255,0.06)',
+                lineHeight: '1.4',
+                wordBreak: 'break-word'
+              }}
+            >
+              {(() => {
+                const log = PROCESSOR_GATES[activeGate].log;
+                const colonIdx = log.indexOf(':');
+                if (colonIdx === -1) {
+                  return <span style={{ color: '#ffffff' }}>{log}</span>;
+                }
+                const prefix = log.substring(0, colonIdx + 1);
+                const rest = log.substring(colonIdx + 1);
+                const tagColor = activeGate < 6 ? '#ff5522' : '#00e5ff';
+                return (
+                  <div>
+                    <span style={{ color: tagColor, fontWeight: 700, marginRight: '6px' }}>{prefix}</span>
+                    <span style={{ color: '#ffffff' }}>{rest}</span>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+
+        {/* Wires SVG Canvas linking Chip to the Grid Columns */}
+        <svg className="lp-proc-wires-svg" viewBox="0 0 100 40" preserveAspectRatio="none">
+          {/* Symmetrical branching traces from center to columns */}
+          {Array.from({ length: 6 }).map((_, idx) => {
+            const startXLeft = 38 + idx * 2;
+            const endXLeft = 10 + idx * 6;
+            const isActiveLeft = activeGate === idx;
+
+            const startXRight = 62 - idx * 2;
+            const endXRight = 90 - idx * 6;
+            const isActiveRight = activeGate === (idx + 6);
+
+            return (
+              <g key={`bus-${idx}`}>
+                {/* Left wire base & glow */}
+                <path 
+                  d={`M ${startXLeft} 0 L ${startXLeft} 10 C ${startXLeft} 20, ${endXLeft} 20, ${endXLeft} 30 L ${endXLeft} 40`}
+                  className="lp-proc-wire"
+                  style={{ stroke: isActiveLeft ? 'rgba(255, 60, 0, 0.25)' : undefined }}
+                />
+                <path 
+                  d={`M ${startXLeft} 0 L ${startXLeft} 10 C ${startXLeft} 20, ${endXLeft} 20, ${endXLeft} 30 L ${endXLeft} 40`}
+                  className="lp-proc-wire-glow left-flow"
+                  style={{
+                    animationDuration: isActiveLeft ? '1.2s' : '3.5s',
+                    strokeWidth: isActiveLeft ? '1.5px' : '0.8px',
+                    opacity: activeGate === idx ? 0.9 : 0.15
+                  }}
+                />
+                <circle cx={startXLeft} cy="1" r="0.6" fill={isActiveLeft ? '#ff3c00' : 'rgba(255,255,255,0.2)'} />
+                <circle cx={endXLeft} cy="39" r="0.6" fill={isActiveLeft ? '#ff3c00' : 'rgba(0,0,0,0.1)'} />
+
+                {/* Right wire base & glow */}
+                <path 
+                  d={`M ${startXRight} 0 L ${startXRight} 10 C ${startXRight} 20, ${endXRight} 20, ${endXRight} 30 L ${endXRight} 40`}
+                  className="lp-proc-wire"
+                  style={{ stroke: isActiveRight ? 'rgba(8, 145, 178, 0.25)' : undefined }}
+                />
+                <path 
+                  d={`M ${startXRight} 0 L ${startXRight} 10 C ${startXRight} 20, ${endXRight} 20, ${endXRight} 30 L ${endXRight} 40`}
+                  className="lp-proc-wire-glow right-flow"
+                  style={{
+                    animationDuration: isActiveRight ? '1.2s' : '3.5s',
+                    strokeWidth: isActiveRight ? '1.5px' : '0.8px',
+                    opacity: activeGate === (idx + 6) ? 0.9 : 0.15
+                  }}
+                />
+                <circle cx={startXRight} cy="1" r="0.6" fill={isActiveRight ? '#0891b2' : 'rgba(255,255,255,0.2)'} />
+                <circle cx={endXRight} cy="39" r="0.6" fill={isActiveRight ? '#0891b2' : 'rgba(0,0,0,0.1)'} />
+              </g>
+            );
+          })}
+        </svg>
+
+        {/* 12 Gates Grid at the Bottom */}
+        <div className="lp-proc-gates-grid">
+          {PROCESSOR_GATES.map((g, idx) => {
+            const isActive = activeGate === idx;
+            const isLeft = idx < 6;
+            const activeColor = isLeft ? 'rgba(255, 60, 0, 0.3)' : 'rgba(8, 145, 178, 0.3)';
+            const numBg = isLeft ? '#ff3c00' : '#0891b2';
+            
+            return (
+              <div 
+                key={idx}
+                className="lp-proc-gate-card"
+                onMouseEnter={() => setHoveredGate(idx)}
+                onMouseLeave={() => setHoveredGate(null)}
+                onClick={() => handleGateClick(idx)}
+                style={{
+                  borderColor: isActive ? activeColor : undefined,
+                  boxShadow: isActive ? `0 6px 16px ${activeColor}15` : undefined
+                }}
+              >
+                <span 
+                  className="lp-proc-gate-num"
+                  style={{
+                    color: isActive ? '#ffffff' : undefined,
+                    background: isActive ? numBg : undefined,
+                    borderColor: isActive ? numBg : undefined
+                  }}
+                >
+                  {g.num}
+                </span>
+                
+                <div className="lp-proc-gate-info">
+                  <h4 className="lp-proc-gate-name">{g.name}</h4>
+                  <span className="lp-proc-gate-desc">{g.desc}</span>
+                </div>
+                <span 
+                  className="lp-proc-gate-indicator"
+                  style={{
+                    background: isActive ? '#10b981' : undefined,
+                    boxShadow: isActive ? '0 0 6px rgba(16, 185, 129, 0.7)' : undefined
+                  }}
+                />
+              </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+  );
+}
+
+
+
+function XyroEcosystemSection() {
+  return (
+    <section className="lp-bento-wrap">
+      <div className="lp-bento-inner">
+        <div className="lp-bento-header">
+          <h2 className="lp-bento-title">Learn more about Xyro engineering</h2>
+        </div>
+
+        <div className="lp-bento-grid">
+          {/* Card 1: Academy (Tall left card) */}
+          <div className="lp-bento-card card-academy">
+            <div className="lp-bento-img-wrap">
+              <img src="/bento_academy_1784132288526.png" alt="Xyro Academy" className="lp-bento-img" />
+            </div>
+            <div className="lp-bento-content">
+              <span className="lp-bento-tag tag-purple">CONFERENCE</span>
+              <h3 className="lp-bento-card-title">Sculpt: The quantitative trading conference returns in 2026</h3>
+              <a href="#" className="lp-bento-link">Get tickets →</a>
+            </div>
+          </div>
+
+          {/* Card 2: Get Started with APIs (Wide top center card) */}
+          <div className="lp-bento-card card-get-started">
+            <div className="lp-bento-content-split">
+              <div className="lp-bento-text">
+                <h3 className="lp-bento-card-title">Get started with Xyro</h3>
+                <p className="lp-bento-card-desc">
+                  Find the content that helps you level up your trading skills and build confidently with Xyro.
+                </p>
+                <a href="#" className="lp-bento-link">Go to University →</a>
+              </div>
+              <div className="lp-bento-img-side">
+                <img src="/bento_path_1784132304631.png" alt="Xyro Path" className="lp-bento-img" />
+              </div>
+            </div>
+          </div>
+
+          {/* Card 3: Livestream (Middle center card) */}
+          <div className="lp-bento-card card-livestream">
+            <div className="lp-bento-img-wrap">
+              <div className="lp-bento-livestream-overlay">
+                <span className="lp-bento-live-badge">● LIVESTREAM</span>
+              </div>
+              <div style={{
+                width: '100%',
+                height: '100%',
+                background: 'linear-gradient(135deg, #0f0c0b 0%, #1c1a18 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                position: 'relative',
+                overflow: 'hidden'
+              }}>
+                <svg viewBox="0 0 100 50" style={{ width: '80%', height: '80%', opacity: 0.2 }}>
+                  <path d="M 10 10 L 30 10 L 50 30 L 90 30" fill="none" stroke="#ff3c00" strokeWidth="1" />
+                  <path d="M 10 40 L 40 40 L 60 20 L 90 20" fill="none" stroke="#0ea5e9" strokeWidth="1" />
+                </svg>
+                <span style={{ position: 'absolute', fontFamily: 'Courier New, monospace', fontSize: '9px', color: '#ff3c00', fontWeight: 'bold' }}>
+                  XYRO_FEED_STREAM_OK
+                </span>
+              </div>
+            </div>
+            <div className="lp-bento-content">
+              <span className="lp-bento-tag tag-orange">LIVESTREAM</span>
+              <h3 className="lp-bento-card-title">How Xyro Uses Xyro: ABM data flows to find high-probability signals</h3>
+              <a href="#" className="lp-bento-link">Watch →</a>
+            </div>
+          </div>
+
+          {/* Card 4: Community Story (Right tall card) */}
+          <div className="lp-bento-card card-story-tokyo">
+            <div className="lp-bento-img-wrap">
+              <img src="/bento_story_quant_1784132323620.png" alt="Tokyo Quant Story" className="lp-bento-img" />
+            </div>
+            <div className="lp-bento-content">
+              <span className="lp-bento-tag tag-blue">COMMUNITY STORY</span>
+              <h3 className="lp-bento-card-title">Where traders often choose between gut or data, she carved her own path</h3>
+              <a href="#" className="lp-bento-link">Read story →</a>
+            </div>
+          </div>
+
+          {/* Card 5: Sandra Lagos Community (Bottom Left card) */}
+          <div className="lp-bento-card card-story-lagos">
+            <div className="lp-bento-content-side">
+              <div className="lp-bento-img-left">
+                <img src="/bento_story_lagos_1784132342109.png" alt="Sandra Lagos Story" className="lp-bento-img" />
+              </div>
+              <div className="lp-bento-text">
+                <span className="lp-bento-tag tag-green">COMMUNITY STORY</span>
+                <h3 className="lp-bento-card-title">Sandra has built the Xyro developer community in Lagos</h3>
+                <a href="#" className="lp-bento-link">Read story →</a>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 6: Join Discord (Bottom Center card) */}
+          <div className="lp-bento-card card-join-us">
+            <div className="lp-bento-img-wrap">
+              <img src="/bento_team_1784132380508.png" alt="Xyro Team" className="lp-bento-img" />
+            </div>
+            <div className="lp-bento-content">
+              <span className="lp-bento-tag tag-white" style={{ color: '#ffcc00' }}>COME AND JOIN US</span>
+              <h3 className="lp-bento-card-title" style={{ color: '#ffffff' }}>Connect and build with us: See open roles</h3>
+              <a href="#" className="lp-bento-link" style={{ color: '#ffffff' }}>See open roles →</a>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
+  );
+}
+
+function IntegrationsSection() {
+  const integrations = [
+    {
+      name: 'MetaTrader 5',
+      desc: 'Sub-millisecond execution. Execute complex institutional signals via native API gateway bridges.',
+      latency: '12ms',
+      status: 'Connected',
+      logo: (
+        <svg width="28" height="28" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M32 4L12 15.5V38.5L32 50L52 38.5V15.5L32 4Z" fill="#ff3c00" fillOpacity="0.1" stroke="#ff3c00" strokeWidth="2.5" strokeLinejoin="round" />
+          <path d="M32 4V50M12 15.5L52 38.5M12 38.5L52 15.5" stroke="#ff3c00" strokeWidth="2" strokeOpacity="0.4" />
+          <circle cx="32" cy="27" r="8" fill="#ff3c00" />
+          <path d="M28 27H36M32 23V31" stroke="white" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      )
+    },
+    {
+      name: 'Binance',
+      desc: 'Spot & Futures trading. Automated portfolio balancing with state-of-the-art secure API key encryption.',
+      latency: '8ms',
+      status: 'Connected',
+      logo: (
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L8.5 5.5L12 9L15.5 5.5L12 2Z" fill="#F0B90B" />
+          <path d="M5.5 8.5L2 12L5.5 15.5L9 12L5.5 8.5Z" fill="#F0B90B" />
+          <path d="M18.5 8.5L15 12L18.5 15.5L22 12L18.5 8.5Z" fill="#F0B90B" />
+          <path d="M12 15L8.5 18.5L12 22L15.5 18.5L12 15Z" fill="#F0B90B" />
+          <path d="M12 9.5L9.5 12L12 14.5L14.5 12L12 9.5Z" fill="#F0B90B" />
+        </svg>
+      )
+    },
+    {
+      name: 'Bybit',
+      desc: 'High-leverage derivatives. Execute momentum trades instantly with direct liquidity access.',
+      latency: '15ms',
+      status: 'Connected',
+      logo: (
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 6H20L14 18H4L10 6Z" fill="#ff7a00" fillOpacity="0.1" stroke="#ff7a00" strokeWidth="2" strokeLinejoin="round" />
+          <path d="M10 6L16 18" stroke="#ff7a00" strokeWidth="2" strokeLinecap="round" />
+          <circle cx="13" cy="12" r="3" fill="#ff7a00" />
+        </svg>
+      )
+    },
+    {
+      name: 'Telegram Alerts',
+      desc: 'Real-time alerts. Receive instant 12-gate confluence signals, logs, and execution reports directly in your channel.',
+      latency: 'Instant',
+      status: 'Connected',
+      logo: (
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M21.5 2L2 11.5L9.5 14.5L18 7.5L11.5 15.5L18.5 21L21.5 2Z" fill="#0088cc" />
+        </svg>
+      )
+    }
+  ];
+
+  return (
+    <section className="lp-integrations-section">
+      <div className="lp-integrations-wrap">
+        <div className="lp-integrations-inner">
+          <div className="lp-integrations-header">
+            <span className="lp-integrations-tag">CONNECTIVITY</span>
+            <h2 className="lp-integrations-title">Connected to your trading ecosystem</h2>
+            <p className="lp-integrations-desc">
+              Execute signals directly to your favorite brokers and receive real-time notifications on your channels.
+            </p>
+          </div>
+
+          <div className="lp-integrations-grid">
+            {integrations.map((item, idx) => (
+              <div className="lp-integration-card" key={idx}>
+                <div className="lp-integration-top">
+                  <div className="lp-integration-logo-box">
+                    {item.logo}
+                  </div>
+                  <div className="lp-integration-status">
+                    <span className="lp-status-dot" />
+                    <span className="lp-status-label">{item.status} ({item.latency})</span>
+                  </div>
+                </div>
+                <h3 className="lp-integration-card-title">{item.name}</h3>
+                <p className="lp-integration-card-desc">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function FooterSection() {
+  return (
+    <footer className="lp-footer">
+      <div className="lp-footer-top">
+        <h2 className="lp-footer-cta-title">Try XyroTrade today</h2>
+        <p className="lp-footer-cta-sub">Free to start. No commitments.</p>
+        <a href="#" className="lp-footer-btn">Start for Free</a>
+      </div>
+
+      <div className="lp-footer-middle">
+        <div className="lp-footer-nav">
+          <a href="#">Pricing</a>
+          <a href="#">Terms & Conditions</a>
+          <a href="#">Privacy Policy</a>
+          <a href="#">Help</a>
+          <a href="#">Partner Program</a>
+          <a href="#">Changelog</a>
+        </div>
+        <div className="lp-footer-socials">
+          <a href="#" aria-label="Instagram">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+              <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+              <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+            </svg>
+          </a>
+          <a href="#" aria-label="LinkedIn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
+              <rect x="2" y="9" width="4" height="12" />
+              <circle cx="4" cy="4" r="2" />
+            </svg>
+          </a>
+          <a href="#" aria-label="YouTube">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46a2.78 2.78 0 0 0-1.95 1.96A29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z" />
+              <polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02" />
+            </svg>
+          </a>
+        </div>
+      </div>
+
+      <div className="lp-footer-divider" />
+
+      <div className="lp-footer-bottom">
+        <p className="lp-footer-copyright">
+          © 2026 XyroTrade. Built with precision for quantitative systems.
+        </p>
+      </div>
+
+      <div className="lp-footer-brand-huge">
+        XYRO TRADE
+      </div>
+    </footer>
   );
 }
 
@@ -542,16 +861,76 @@ const statsContainer = {
 
 /* ── Page ───────────────────────────────────────────── */
 export default function LandingPage() {
+  const heroRef = useRef<HTMLDivElement>(null);
+  const [coords, setCoords] = useState({ x: 0, y: 0 });
+  const [isHovered, setIsHovered] = useState(false);
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!heroRef.current) return;
+    const rect = heroRef.current.getBoundingClientRect();
+    setCoords({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    });
+  };
+
   return (
     <>
       <Navbar />
 
       {/* ── HERO ── */}
       <section className="lp-hero-wrap">
-        <div className="lp-hero">
+        <div 
+          className="lp-hero"
+          ref={heroRef}
+          onMouseMove={handleMouseMove}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+        >
+          {/* Glowing neon atmosphere spots */}
+          <div className="lp-hero-glow-orange" aria-hidden />
+          <div className="lp-hero-glow-cyan" aria-hidden />
 
-          {/* Dot-grid texture */}
-          <div className="lp-hero-dots" aria-hidden />
+          {/* Border Beam Glow Overlay */}
+          <svg className="lp-border-beam-svg" aria-hidden>
+            <defs>
+              <linearGradient id="hero-beam-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#ff3c00" stopOpacity="0" />
+                <stop offset="50%" stopColor="#ff3c00" stopOpacity="1" />
+                <stop offset="100%" stopColor="#f59e0b" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            <rect width="100%" height="100%" rx="24" ry="24" className="lp-border-beam-rect" stroke="url(#hero-beam-grad)" />
+          </svg>
+
+          {/* Mouse tracking radial spotlight glow */}
+          <div 
+            className="lp-hero-hover-glow" 
+            style={{
+              position: 'absolute',
+              inset: 0,
+              pointerEvents: 'none',
+              zIndex: 0,
+              opacity: isHovered ? 1 : 0,
+              transition: 'opacity 0.4s ease',
+              background: `radial-gradient(450px circle at ${coords.x}px ${coords.y}px, rgba(255, 60, 0, 0.045), transparent 75%)`,
+            }}
+            aria-hidden
+          />
+
+          {/* Dot-grid texture that reveals itself around the cursor */}
+          <div 
+            className="lp-hero-dots" 
+            style={{
+              maskImage: isHovered 
+                ? `radial-gradient(320px circle at ${coords.x}px ${coords.y}px, black 30%, transparent 100%)`
+                : undefined,
+              WebkitMaskImage: isHovered 
+                ? `radial-gradient(320px circle at ${coords.x}px ${coords.y}px, black 30%, transparent 100%)`
+                : undefined,
+            }}
+            aria-hidden 
+          />
 
           {/* Bottom radial glow */}
           <div className="lp-hero-glow" aria-hidden />
@@ -658,15 +1037,23 @@ export default function LandingPage() {
                   <span className="lp-terminal-title">xyrotrade-demo.sh</span>
                 </div>
 
-                {/* Fake screen reflection */}
-                <div className="lp-hero-video-shine" aria-hidden />
-                {/* Play button */}
-                <button className="lp-hero-play" aria-label="Watch demo">
-                  <svg viewBox="0 0 24 24" fill="currentColor" width="28" height="28">
-                    <path d="M8 5.14v14l11-7-11-7z" />
-                  </svg>
-                </button>
-                <p className="lp-hero-video-label">Watch 2-min demo</p>
+                {/* Simple video element placeholder */}
+                <div className="lp-video-container">
+                  <video
+                    className="lp-hero-video-element"
+                    poster="/images/feat-placeholder.png"
+                    controls
+                    preload="none"
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      display: 'block'
+                    }}
+                  >
+                    <source src="#" type="video/mp4" />
+                  </video>
+                </div>
               </div>
             </motion.div>
 
@@ -702,8 +1089,17 @@ export default function LandingPage() {
       {/* ── NARRATIVE ── */}
       <NarrativeSection />
 
-      {/* ── COMPARISON ── */}
-      <ComparisonSection />
+      {/* ── CONFLUENCE PROCESSOR ── */}
+      <ConfluenceProcessorSection />
+
+      {/* ── INTEGRATIONS ── */}
+      <IntegrationsSection />
+
+      {/* ── BENTO ECOSYSTEM ── */}
+      <XyroEcosystemSection />
+
+      {/* ── FOOTER ── */}
+      <FooterSection />
     </>
   );
 }
