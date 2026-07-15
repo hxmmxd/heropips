@@ -669,7 +669,7 @@ function IntegrationsSection() {
     {
       key: 'mt5',
       name: 'MetaTrader 5',
-      desc: 'Sub-millisecond execution. Execute complex institutional signals via Mt5 Farm in house.',
+      desc: 'Sub-millisecond execution. Route complex institutional signals via our proprietary, in-house MT5 farm infrastructure.',
       glowColor: 'rgba(0, 136, 255, 0.08)',
       borderColor: 'rgba(0, 136, 255, 0.25)',
       logo: (
