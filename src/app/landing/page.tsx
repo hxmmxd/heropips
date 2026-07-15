@@ -69,9 +69,9 @@ function NarrativeSection() {
       const scrolled = viewHeight - rect.top;
 
       if (scrolled > 0 && rect.bottom > 0) {
-        // Slow float up for the box, slow drift for the glow background
-        const boxTranslate = scrolled * -0.05;
-        const glowTranslate = scrolled * 0.03;
+        // Slow float up for the box (clamped to prevent overlapping stats section), slow drift for the glow background
+        const boxTranslate = Math.max(scrolled * -0.04, -32);
+        const glowTranslate = Math.min(scrolled * 0.03, 40);
         el.style.setProperty('--narrative-box-translate', `${boxTranslate}px`);
         el.style.setProperty('--narrative-glow-translate', `${glowTranslate}px`);
       }
