@@ -2374,8 +2374,30 @@
   }
 
   .lp-comp-widget-right {
-    padding: 32px 20px;
-    min-height: 380px;
+    padding: 40px 20px 32px 20px;
+    min-height: 480px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    background-image: 
+      linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+      radial-gradient(circle at 10% 10%, rgba(255, 255, 255, 0.15) 0%, transparent 60%),
+      radial-gradient(130% 130% at 0% 0%, #ff6a3d 0%, #ff3b00 50%, #d82c00 100%);
+    background-size: 24px 24px, 24px 24px, 100% 100%, 100% 100%;
+    background-position: center;
+  }
+
+  .lp-comp-widget-right .lp-comp-card-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .lp-comp-signal-anim-wrap {
+    margin: 24px auto;
   }
 }
 
