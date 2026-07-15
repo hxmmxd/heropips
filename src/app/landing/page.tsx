@@ -654,64 +654,106 @@ function XyroEcosystemSection() {
 }
 
 function IntegrationsSection() {
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  const [coords, setCoords] = useState({ x: 0, y: 0 });
+  const [latencies, setLatencies] = useState({
+    mt5: 12,
+    binance: 8,
+    bybit: 15
+  });
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLatencies({
+        mt5: Math.floor(10 + Math.random() * 5),
+        binance: Math.floor(6 + Math.random() * 4),
+        bybit: Math.floor(12 + Math.random() * 6),
+      });
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>, idx: number) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setCoords({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    });
+  };
+
   const integrations = [
     {
+      key: 'mt5',
       name: 'MetaTrader 5',
       desc: 'Sub-millisecond execution. Execute complex institutional signals via native API gateway bridges.',
       latency: '12ms',
       status: 'Connected',
+      glowColor: 'rgba(0, 136, 255, 0.08)',
+      borderColor: 'rgba(0, 136, 255, 0.25)',
       logo: (
-        <svg width="28" height="28" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M32 4L12 15.5V38.5L32 50L52 38.5V15.5L32 4Z" fill="#ff3c00" fillOpacity="0.1" stroke="#ff3c00" strokeWidth="2.5" strokeLinejoin="round" />
-          <path d="M32 4V50M12 15.5L52 38.5M12 38.5L52 15.5" stroke="#ff3c00" strokeWidth="2" strokeOpacity="0.4" />
-          <circle cx="32" cy="27" r="8" fill="#ff3c00" />
-          <path d="M28 27H36M32 23V31" stroke="white" strokeWidth="2" strokeLinecap="round" />
-        </svg>
+        <img 
+          src="/logos/metatrader5_icon.png" 
+          alt="MetaTrader 5 logo" 
+          className="lp-integration-img-logo"
+        />
       )
     },
     {
+      key: 'binance',
       name: 'Binance',
       desc: 'Spot & Futures trading. Automated portfolio balancing with state-of-the-art secure API key encryption.',
       latency: '8ms',
       status: 'Connected',
+      glowColor: 'rgba(240, 185, 11, 0.08)',
+      borderColor: 'rgba(240, 185, 11, 0.25)',
       logo: (
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12 2L8.5 5.5L12 9L15.5 5.5L12 2Z" fill="#F0B90B" />
-          <path d="M5.5 8.5L2 12L5.5 15.5L9 12L5.5 8.5Z" fill="#F0B90B" />
-          <path d="M18.5 8.5L15 12L18.5 15.5L22 12L18.5 8.5Z" fill="#F0B90B" />
-          <path d="M12 15L8.5 18.5L12 22L15.5 18.5L12 15Z" fill="#F0B90B" />
-          <path d="M12 9.5L9.5 12L12 14.5L14.5 12L12 9.5Z" fill="#F0B90B" />
-        </svg>
+        <img 
+          src="/logos/binance_icon.png" 
+          alt="Binance logo" 
+          className="lp-integration-img-logo"
+        />
       )
     },
     {
+      key: 'bybit',
       name: 'Bybit',
       desc: 'High-leverage derivatives. Execute momentum trades instantly with direct liquidity access.',
       latency: '15ms',
       status: 'Connected',
+      glowColor: 'rgba(255, 122, 0, 0.08)',
+      borderColor: 'rgba(255, 122, 0, 0.25)',
       logo: (
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M4 6H20L14 18H4L10 6Z" fill="#ff7a00" fillOpacity="0.1" stroke="#ff7a00" strokeWidth="2" strokeLinejoin="round" />
-          <path d="M10 6L16 18" stroke="#ff7a00" strokeWidth="2" strokeLinecap="round" />
-          <circle cx="13" cy="12" r="3" fill="#ff7a00" />
-        </svg>
+        <img 
+          src="/logos/bybit_icon.png" 
+          alt="Bybit logo" 
+          className="lp-integration-img-logo"
+        />
       )
     },
     {
+      key: 'telegram',
       name: 'Telegram Alerts',
       desc: 'Real-time alerts. Receive instant 12-gate confluence signals, logs, and execution reports directly in your channel.',
       latency: 'Instant',
       status: 'Connected',
+      glowColor: 'rgba(0, 172, 238, 0.08)',
+      borderColor: 'rgba(0, 172, 238, 0.25)',
       logo: (
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M21.5 2L2 11.5L9.5 14.5L18 7.5L11.5 15.5L18.5 21L21.5 2Z" fill="#0088cc" />
-        </svg>
+        <img 
+          src="/logos/telegram_icon.png" 
+          alt="Telegram logo" 
+          className="lp-integration-img-logo"
+        />
       )
     }
   ];
 
   return (
     <section className="lp-integrations-section">
+      {/* Background Mesh Glow Ambient Spots */}
+      <div className="lp-integrations-ambient-left" aria-hidden />
+      <div className="lp-integrations-ambient-right" aria-hidden />
+
       <div className="lp-integrations-wrap">
         <div className="lp-integrations-inner">
           <div className="lp-integrations-header">
@@ -723,21 +765,46 @@ function IntegrationsSection() {
           </div>
 
           <div className="lp-integrations-grid">
-            {integrations.map((item, idx) => (
-              <div className="lp-integration-card" key={idx}>
-                <div className="lp-integration-top">
-                  <div className="lp-integration-logo-box">
-                    {item.logo}
+            {integrations.map((item, idx) => {
+              const currentLatency = item.latency === 'Instant'
+                ? 'Instant'
+                : `${latencies[item.key as keyof typeof latencies]}ms`;
+
+              return (
+                <TiltCard 
+                  key={idx}
+                  className="lp-integration-card-wrapper"
+                >
+                  <div 
+                    className={`lp-integration-card ${hoveredIdx === idx ? 'active-glow' : ''}`}
+                    onMouseEnter={() => setHoveredIdx(idx)}
+                    onMouseLeave={() => setHoveredIdx(null)}
+                    onMouseMove={(e) => handleMouseMove(e, idx)}
+                    style={{
+                      '--brand-glow-color': item.glowColor,
+                      '--brand-border-color': item.borderColor,
+                      '--mouse-x': `${coords.x}px`,
+                      '--mouse-y': `${coords.y}px`
+                    } as React.CSSProperties}
+                  >
+                    <div className="lp-integration-top">
+                      <div className="lp-integration-logo-box">
+                        {item.logo}
+                      </div>
+                      <div className="lp-integration-status">
+                        <div className="lp-status-dot-container">
+                          <span className="lp-status-dot-ping" />
+                          <span className="lp-status-dot" />
+                        </div>
+                        <span className="lp-status-label">{item.status} ({currentLatency})</span>
+                      </div>
+                    </div>
+                    <h3 className="lp-integration-card-title">{item.name}</h3>
+                    <p className="lp-integration-card-desc">{item.desc}</p>
                   </div>
-                  <div className="lp-integration-status">
-                    <span className="lp-status-dot" />
-                    <span className="lp-status-label">{item.status} ({item.latency})</span>
-                  </div>
-                </div>
-                <h3 className="lp-integration-card-title">{item.name}</h3>
-                <p className="lp-integration-card-desc">{item.desc}</p>
-              </div>
-            ))}
+                </TiltCard>
+              );
+            })}
           </div>
         </div>
       </div>
