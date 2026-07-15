@@ -272,6 +272,32 @@ const TICKER_SIGNALS = [
 ];
 
 function ComparisonSection() {
+  const [signalIdx, setSignalIdx] = useState(0);
+  const [stage, setStage] = useState<'entering' | 'visible' | 'exiting'>('visible');
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // 1. Exit current signal
+      setStage('exiting');
+      
+      // 2. Wait for exit animation to complete (500ms), update index, and start entering
+      setTimeout(() => {
+        setSignalIdx((prev) => (prev + 1) % TICKER_SIGNALS.length);
+        setStage('entering');
+        
+        // 3. Render the entrance slide-up transition in the next tick
+        setTimeout(() => {
+          setStage('visible');
+        }, 50);
+      }, 500);
+
+    }, 4500); // Cycle every 4.5 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const s = TICKER_SIGNALS[signalIdx];
+
   return (
     <section className="lp-comp">
       <div className="lp-comp-inner">
@@ -400,54 +426,32 @@ function ComparisonSection() {
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ marginRight: '6px' }}>
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
-                VALIDATED SIGNALS
+                VALIDATED SIGNAL
               </div>
 
               <h3 className="lp-comp-card-title text-white">
                 Executed <br />
-                <strong>Trade Signals</strong>
+                <strong>Trade Signal</strong>
               </h3>
             </div>
 
-            {/* Real-time scrolling ticket marquee */}
-            <div className="lp-comp-signals-marquee-container">
-              <div className="lp-comp-signals-marquee-track">
-                {TICKER_SIGNALS.map((s, idx) => (
-                  <div key={`sig-a-${idx}`} className={`lp-comp-output-signal-card ${s.buy ? 'buy' : 'sell'}`}>
-                    <div className="lp-comp-osc-hdr">
-                      <div className="flex items-center gap-2">
-                        <span className={`lp-comp-osc-pill ${s.buy ? 'buy' : 'sell'}`}>{s.action}</span>
-                        <span className="lp-comp-osc-symbol">{s.symbol}</span>
-                      </div>
-                      <span className={`lp-comp-osc-pct ${s.buy ? 'buy' : 'sell'}`}>{s.pct}</span>
-                    </div>
-                    <div className="lp-comp-osc-meta">
-                      <span className="lp-comp-osc-price">{s.price}</span>
-                      <span className="lp-comp-osc-dot-sep">·</span>
-                      <span className="lp-comp-osc-rr">{s.rr}</span>
-                      <span className="lp-comp-osc-dot-sep">·</span>
-                      <span className="lp-comp-osc-session">{s.session}</span>
-                    </div>
+            {/* Single signal with entrance/exit animation */}
+            <div className="lp-comp-signal-anim-wrap">
+              <div className={`lp-comp-output-signal-card ${s.buy ? 'buy' : 'sell'} stage-${stage}`}>
+                <div className="lp-comp-osc-hdr">
+                  <div className="flex items-center gap-2">
+                    <span className={`lp-comp-osc-pill ${s.buy ? 'buy' : 'sell'}`}>{s.action}</span>
+                    <span className="lp-comp-osc-symbol">{s.symbol}</span>
                   </div>
-                ))}
-                {TICKER_SIGNALS.map((s, idx) => (
-                  <div key={`sig-b-${idx}`} className={`lp-comp-output-signal-card ${s.buy ? 'buy' : 'sell'}`}>
-                    <div className="lp-comp-osc-hdr">
-                      <div className="flex items-center gap-2">
-                        <span className={`lp-comp-osc-pill ${s.buy ? 'buy' : 'sell'}`}>{s.action}</span>
-                        <span className="lp-comp-osc-symbol">{s.symbol}</span>
-                      </div>
-                      <span className={`lp-comp-osc-pct ${s.buy ? 'buy' : 'sell'}`}>{s.pct}</span>
-                    </div>
-                    <div className="lp-comp-osc-meta">
-                      <span className="lp-comp-osc-price">{s.price}</span>
-                      <span className="lp-comp-osc-dot-sep">·</span>
-                      <span className="lp-comp-osc-rr">{s.rr}</span>
-                      <span className="lp-comp-osc-dot-sep">·</span>
-                      <span className="lp-comp-osc-session">{s.session}</span>
-                    </div>
-                  </div>
-                ))}
+                  <span className={`lp-comp-osc-pct ${s.buy ? 'buy' : 'sell'}`}>{s.pct}</span>
+                </div>
+                <div className="lp-comp-osc-meta">
+                  <span className="lp-comp-osc-price">{s.price}</span>
+                  <span className="lp-comp-osc-dot-sep">·</span>
+                  <span className="lp-comp-osc-rr">{s.rr}</span>
+                  <span className="lp-comp-osc-dot-sep">·</span>
+                  <span className="lp-comp-osc-session">{s.session}</span>
+                </div>
               </div>
             </div>
           </div>

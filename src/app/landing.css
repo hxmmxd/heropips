@@ -2046,33 +2046,18 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
 }
 
-/* Trade Signals Marquee Ticker (Right Card) */
-.lp-comp-signals-marquee-container {
-  overflow: hidden;
+/* Single Signal Animation Container (Right Card) */
+.lp-comp-signal-anim-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
-  position: relative;
+  height: 110px;
+  z-index: 2;
   margin-top: auto;
   margin-bottom: auto;
-  z-index: 2;
-  /* Fade out both the left and right edges for a premium scroll look */
-  mask-image: linear-gradient(to right, transparent 0%, #000 8%, #000 92%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 8%, #000 92%, transparent 100%);
-}
-
-.lp-comp-signals-marquee-track {
-  display: flex;
-  gap: 14px;
-  width: max-content;
-  animation: marquee-flow-left 25s linear infinite;
-}
-
-@keyframes marquee-flow-left {
-  0% {
-    transform: translateX(0);
-  }
-  100% {
-    transform: translateX(-50%);
-  }
+  overflow: hidden;
+  position: relative;
 }
 
 .lp-comp-output-signal-card {
@@ -2086,13 +2071,26 @@
   flex-direction: column;
   gap: 8px;
   border-left: 4px solid transparent;
-  transition: transform 0.2s ease;
+  width: 240px;
   flex-shrink: 0;
-  width: 210px;
+  transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s ease;
 }
 
-.lp-comp-output-signal-card:hover {
-  transform: translateY(-2px);
+.lp-comp-output-signal-card.stage-entering {
+  opacity: 0;
+  transform: translateY(30px) scale(0.94);
+  transition: none !important;
+}
+
+.lp-comp-output-signal-card.stage-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.lp-comp-output-signal-card.stage-exiting {
+  opacity: 0;
+  transform: translateY(-30px) scale(0.94);
+  transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.35s ease !important;
 }
 
 .lp-comp-output-signal-card.buy {
