@@ -1868,7 +1868,12 @@
 }
 
 .lp-comp-widget-right {
-  background: radial-gradient(130% 130% at 0% 0%, #ff6a3d 0%, #ff3b00 50%, #d82c00 100%);
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    radial-gradient(130% 130% at 0% 0%, #ff6a3d 0%, #ff3b00 50%, #d82c00 100%);
+  background-size: 24px 24px, 24px 24px, 100% 100%;
+  background-position: center;
   padding: 40px;
   display: flex;
   flex-direction: column;
