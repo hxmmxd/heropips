@@ -240,105 +240,127 @@ const GATES = [
 ];
 
 /* ── 12-Gates Grid Section ──────────────────────────────────── */
-/* ── Comparison Section (Retail Chaos vs Xyro Engine) ────── */
+/* ── Comparison Section (12-Gate Flow & Signal Output) ────── */
+const MINI_GATES = [
+  { num: '01', name: 'Vol Regime' },
+  { num: '02', name: 'Order Flow' },
+  { num: '03', name: 'Liquidity' },
+  { num: '04', name: 'Macro Bias' },
+  { num: '05', name: 'MTF Align' },
+  { num: '06', name: 'Correlation' },
+  { num: '07', name: 'Vol Profile' },
+  { num: '08', name: 'Funding Rate' },
+  { num: '09', name: 'Mean Rev' },
+  { num: '10', name: 'Spread Arb' },
+  { num: '11', name: 'ADX Velocity' },
+  { num: '12', name: 'Risk-Reward' },
+];
+
 function ComparisonSection() {
   return (
     <section className="lp-comp">
       <div className="lp-comp-inner">
         <div className="lp-comp-grid">
           
-          {/* Left Card: Retail Chaos */}
+          {/* Left Panel: 12 Gates Processing Flow */}
           <div className="lp-comp-card lp-comp-left">
             <div className="lp-comp-card-content">
               <div className="lp-comp-badge lp-comp-badge-bad">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: '6px' }}>
-                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                  <line x1="12" y1="9" x2="12" y2="13" />
-                  <line x1="12" y1="17" x2="12.01" y2="17" />
-                </svg>
-                STATUS: UNRESOLVED CHAOS
+                <span className="lp-comp-badge-dot-glowing" />
+                CONFLUENCE PIPELINE ACTIVE
               </div>
               
               <h3 className="lp-comp-card-title">
-                Fighting charts with <br />
-                <span className="lp-comp-strike">"retail indicators"</span>
+                12 Quantitative Filters <br />
+                <span className="text-[13px] font-medium tracking-normal text-black/50 block mt-2">
+                  Analyzing raw price and institutional book depth at millisecond speeds.
+                </span>
               </h3>
             </div>
 
-            {/* Floating Alert Cards simulating retail trader logs */}
-            <div className="lp-comp-alerts">
-              <div className="lp-comp-alert-box alert-1">
-                <div className="lp-comp-alert-hdr">
-                  <span className="lp-alert-status bad">RSI ERROR</span>
-                  <span className="lp-alert-tag">P0</span>
-                </div>
-                <p className="lp-comp-alert-txt">RSI oversold. Entered BUY. Market continues 200-pip liquidation dump.</p>
+            {/* Grid of 12 Gates flowing */}
+            <div className="lp-comp-pipeline-flow">
+              <div className="lp-comp-gates-mini-grid">
+                {MINI_GATES.map((g, idx) => (
+                  <div key={idx} className="lp-comp-gate-mini-card">
+                    <div className="lp-comp-gate-mini-hdr">
+                      <span className="lp-comp-gate-mini-num">{g.num}</span>
+                      <span className="lp-comp-gate-mini-dot" />
+                    </div>
+                    <span className="lp-comp-gate-mini-name">{g.name}</span>
+                    <span className="lp-comp-gate-mini-status">PASSED</span>
+                  </div>
+                ))}
               </div>
-
-              <div className="lp-comp-alert-box alert-2">
-                <div className="lp-comp-alert-hdr">
-                  <span className="lp-alert-status bad">SL HUNTED</span>
-                  <span className="lp-alert-tag">P1</span>
-                </div>
-                <p className="lp-comp-alert-txt">Late breakout BUY. Stop-loss hunted by market makers before rebound.</p>
+              
+              {/* Flow indicators pointing to the right */}
+              <div className="lp-comp-flow-arrow-desktop">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                  <polyline points="12 5 19 12 12 19" />
+                </svg>
               </div>
-
-              <div className="lp-comp-alert-box alert-3">
-                <div className="lp-comp-alert-hdr">
-                  <span className="lp-alert-status bad">CPI SLIPPAGE</span>
-                  <span className="lp-alert-tag">P0</span>
-                </div>
-                <p className="lp-comp-alert-txt">Slipped entry by 18 pips during high volatility, margin liquidated.</p>
-              </div>
-            </div>
-
-            {/* Subtle red waveform graph */}
-            <div className="lp-comp-wave-bg">
-              <svg viewBox="0 0 400 100" fill="none" className="lp-comp-wave-svg">
-                <path d="M0,70 C80,10 120,90 200,40 C280,-10 320,110 400,60" stroke="rgba(239, 68, 68, 0.15)" strokeWidth="2" />
-                <path d="M0,80 C60,40 100,100 180,60 C260,20 300,90 400,70" stroke="rgba(239, 68, 68, 0.08)" strokeWidth="1" strokeDasharray="3 3" />
-              </svg>
             </div>
           </div>
 
-          {/* Right Card: Xyro Solution */}
+          {/* Right Panel: Orange Box outputting validated Trade Signal */}
           <div className="lp-comp-card lp-comp-right">
             <div className="lp-comp-card-content">
               <div className="lp-comp-badge lp-comp-badge-good">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ marginRight: '6px' }}>
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
-                ACTIVE: 12-GATE ENGINE
+                VALIDATED SIGNAL OUTPUT
               </div>
 
               <h3 className="lp-comp-card-title text-white">
-                Trading with <br />
-                <strong>Xyro Terminal</strong>
+                Executed <br />
+                <strong>Trade Signal</strong>
               </h3>
             </div>
 
-            {/* Center Dotted Line & Pill Badge matching Cloudflare look */}
-            <div className="lp-comp-dotted-line" />
-            <div className="lp-comp-center-badge-container">
-              <div className="lp-comp-center-badge">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ marginRight: '8px', color: '#ffea00' }}>
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-                <span>Confluence verified <span style={{ textDecoration: 'underline' }}>12<sup>2</sup></span> times today</span>
+            {/* Translucent glassmorphic Trade Signal Ticket */}
+            <div className="lp-comp-signal-ticket">
+              <div className="lp-comp-ticket-hdr">
+                <div className="lp-comp-ticket-status">
+                  <span className="lp-comp-ticket-glowing-dot" />
+                  <span>● LIVE SIGNAL ACTIVE</span>
+                </div>
+                <span className="lp-comp-ticket-id">#T-9042</span>
               </div>
-            </div>
-
-            <div className="lp-comp-metrics">
-              <div className="lp-comp-features">
-                <div className="lp-comp-feat-item">
-                  <span className="lp-comp-bullet">✓</span> Volatility regime filter blocks entries during panic
+              
+              <div className="lp-comp-ticket-body">
+                <div className="lp-comp-ticket-symbol-row">
+                  <span className="lp-comp-ticket-symbol">XAUUSD</span>
+                  <span className="lp-comp-ticket-action">BUY</span>
                 </div>
-                <div className="lp-comp-feat-item">
-                  <span className="lp-comp-bullet">✓</span> Real-time liquidity sweeps check institutional interest
+                
+                <div className="lp-comp-ticket-details-grid">
+                  <div className="lp-comp-ticket-detail-item">
+                    <span className="lp-comp-ticket-lbl">ENTRY</span>
+                    <span className="lp-comp-ticket-val">2,342.50</span>
+                  </div>
+                  <div className="lp-comp-ticket-detail-item">
+                    <span className="lp-comp-ticket-lbl">TAKE PROFIT</span>
+                    <span className="lp-comp-ticket-val text-emerald-400">2,365.00</span>
+                  </div>
+                  <div className="lp-comp-ticket-detail-item">
+                    <span className="lp-comp-ticket-lbl">STOP LOSS</span>
+                    <span className="lp-comp-ticket-val text-red-400">2,335.00</span>
+                  </div>
+                  <div className="lp-comp-ticket-detail-item">
+                    <span className="lp-comp-ticket-lbl">LOTS (1% RISK)</span>
+                    <span className="lp-comp-ticket-val">0.50</span>
+                  </div>
                 </div>
-                <div className="lp-comp-feat-item">
-                  <span className="lp-comp-bullet">✓</span> Strict 1:2 risk-to-reward ratio mathematically enforced
+              </div>
+              
+              <div className="lp-comp-ticket-footer">
+                <div className="flex items-center gap-1">
+                  <span className="lp-comp-ticket-check">✓</span>
+                  <span>12/12 GATES PASSED</span>
                 </div>
+                <span className="lp-comp-ticket-status-pill">MT5 ACTIVE</span>
               </div>
             </div>
           </div>
