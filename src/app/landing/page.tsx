@@ -241,15 +241,21 @@ const GATES = [
 
 /* ── 12-Gates Grid Section ──────────────────────────────────── */
 /* ── Comparison Section (12-Gate Flow & Signal Output) ────── */
-const MINI_GATES = [
+const ROW_1 = [
   { icon: '🌊', label: 'VOLATILITY', statusText: 'ATR 1.2x Stable' },
   { icon: '📊', label: 'ORDER FLOW', statusText: 'Bid Imb. 68%' },
   { icon: '💧', label: 'LIQUIDITY', statusText: 'BSL Sweep Clear' },
   { icon: '📰', label: 'NEWS FILTER', statusText: 'FOMC Clear' },
+];
+
+const ROW_2 = [
   { icon: '📶', label: 'MTF STACK', statusText: 'W1/D1/4H Aligned' },
   { icon: '🔗', label: 'CORRELATION', statusText: 'DXY Bearish Bias' },
   { icon: '🎯', label: 'VOL PROFILE', statusText: 'Inside POC Node' },
   { icon: '💸', label: 'FUNDING RATE', statusText: 'Prem <0.02%' },
+];
+
+const ROW_3 = [
   { icon: '📈', label: 'VWAP', statusText: 'Inside ±1.5σ' },
   { icon: '⚖️', label: 'SPREAD ARB', statusText: 'Slippage <0.1%' },
   { icon: '⚡', label: 'VELOCITY', statusText: 'ADX >25 Bullish' },
@@ -278,20 +284,94 @@ function ComparisonSection() {
               </h3>
             </div>
 
-            {/* Grid of 12 Gates flowing */}
+            {/* Grid of 12 Gates flowing like a marquee */}
             <div className="lp-comp-pipeline-flow">
-              <div className="lp-comp-gates-mini-grid">
-                {MINI_GATES.map((g, idx) => (
-                  <div key={idx} className="lp-comp-gate-mini-card">
-                    <div className="lp-comp-gate-mini-hdr">
-                      <span className="lp-comp-gate-mini-label">
-                        <span style={{ marginRight: '4px' }}>{g.icon}</span> {g.label}
-                      </span>
-                      <span className="lp-comp-gate-mini-dot" />
-                    </div>
-                    <span className="lp-comp-gate-mini-status-text">{g.statusText}</span>
+              <div className="lp-comp-marquee-container">
+                
+                {/* Row 1 */}
+                <div className="lp-comp-marquee-row">
+                  <div className="lp-comp-marquee-track speed-normal">
+                    {ROW_1.map((g, idx) => (
+                      <div key={`r1-a-${idx}`} className="lp-comp-gate-mini-card">
+                        <div className="lp-comp-gate-mini-hdr">
+                          <span className="lp-comp-gate-mini-label">
+                            <span style={{ marginRight: '4px' }}>{g.icon}</span> {g.label}
+                          </span>
+                          <span className="lp-comp-gate-mini-dot" />
+                        </div>
+                        <span className="lp-comp-gate-mini-status-text">{g.statusText}</span>
+                      </div>
+                    ))}
+                    {ROW_1.map((g, idx) => (
+                      <div key={`r1-b-${idx}`} className="lp-comp-gate-mini-card">
+                        <div className="lp-comp-gate-mini-hdr">
+                          <span className="lp-comp-gate-mini-label">
+                            <span style={{ marginRight: '4px' }}>{g.icon}</span> {g.label}
+                          </span>
+                          <span className="lp-comp-gate-mini-dot" />
+                        </div>
+                        <span className="lp-comp-gate-mini-status-text">{g.statusText}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                </div>
+
+                {/* Row 2 */}
+                <div className="lp-comp-marquee-row">
+                  <div className="lp-comp-marquee-track speed-slow">
+                    {ROW_2.map((g, idx) => (
+                      <div key={`r2-a-${idx}`} className="lp-comp-gate-mini-card">
+                        <div className="lp-comp-gate-mini-hdr">
+                          <span className="lp-comp-gate-mini-label">
+                            <span style={{ marginRight: '4px' }}>{g.icon}</span> {g.label}
+                          </span>
+                          <span className="lp-comp-gate-mini-dot" />
+                        </div>
+                        <span className="lp-comp-gate-mini-status-text">{g.statusText}</span>
+                      </div>
+                    ))}
+                    {ROW_2.map((g, idx) => (
+                      <div key={`r2-b-${idx}`} className="lp-comp-gate-mini-card">
+                        <div className="lp-comp-gate-mini-hdr">
+                          <span className="lp-comp-gate-mini-label">
+                            <span style={{ marginRight: '4px' }}>{g.icon}</span> {g.label}
+                          </span>
+                          <span className="lp-comp-gate-mini-dot" />
+                        </div>
+                        <span className="lp-comp-gate-mini-status-text">{g.statusText}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Row 3 */}
+                <div className="lp-comp-marquee-row">
+                  <div className="lp-comp-marquee-track speed-fast">
+                    {ROW_3.map((g, idx) => (
+                      <div key={`r3-a-${idx}`} className="lp-comp-gate-mini-card">
+                        <div className="lp-comp-gate-mini-hdr">
+                          <span className="lp-comp-gate-mini-label">
+                            <span style={{ marginRight: '4px' }}>{g.icon}</span> {g.label}
+                          </span>
+                          <span className="lp-comp-gate-mini-dot" />
+                        </div>
+                        <span className="lp-comp-gate-mini-status-text">{g.statusText}</span>
+                      </div>
+                    ))}
+                    {ROW_3.map((g, idx) => (
+                      <div key={`r3-b-${idx}`} className="lp-comp-gate-mini-card">
+                        <div className="lp-comp-gate-mini-hdr">
+                          <span className="lp-comp-gate-mini-label">
+                            <span style={{ marginRight: '4px' }}>{g.icon}</span> {g.label}
+                          </span>
+                          <span className="lp-comp-gate-mini-dot" />
+                        </div>
+                        <span className="lp-comp-gate-mini-status-text">{g.statusText}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
               </div>
               
               {/* Flow indicators pointing to the right */}

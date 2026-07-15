@@ -1930,11 +1930,50 @@
   margin-bottom: auto;
 }
 
-.lp-comp-gates-mini-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
+.lp-comp-marquee-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
   width: 100%;
+  position: relative;
+  /* Fade out both the left and right edges for a premium scroll look */
+  mask-image: linear-gradient(to right, transparent 0%, #000 8%, #000 92%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 8%, #000 92%, transparent 100%);
+}
+
+.lp-comp-marquee-row {
+  overflow: hidden;
+  width: 100%;
+  display: flex;
+}
+
+.lp-comp-marquee-track {
+  display: flex;
+  gap: 12px;
+  width: max-content;
+  animation: marquee-flow-right 24s linear infinite;
+}
+
+.speed-normal {
+  animation-duration: 22s;
+}
+
+.speed-slow {
+  animation-duration: 30s;
+}
+
+.speed-fast {
+  animation-duration: 16s;
+}
+
+@keyframes marquee-flow-right {
+  0% {
+    transform: translateX(-50%);
+  }
+  100% {
+    transform: translateX(0);
+  }
 }
 
 .lp-comp-gate-mini-card {
@@ -1947,6 +1986,8 @@
   gap: 6px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
   transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  flex-shrink: 0;
+  width: 145px;
 }
 
 .lp-comp-gate-mini-card:hover {
@@ -2159,9 +2200,6 @@
     min-height: 480px;
   }
 
-  .lp-comp-gates-mini-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
 }
 
 
