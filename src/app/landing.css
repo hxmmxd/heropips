@@ -3529,7 +3529,6 @@ body.lp-scrollable {
 }
 
 .lp-integration-top,
-.lp-integration-card-title,
 .lp-integration-card-desc {
   position: relative;
   z-index: 2;
@@ -3561,13 +3560,6 @@ body.lp-scrollable {
 .lp-integration-card:hover .lp-integration-brand-logo,
 .lp-integration-card:hover .lp-integration-brand-logo-square {
   transform: scale(1.04);
-}
-
-.lp-integration-card-title {
-  font-size: 17px;
-  font-weight: 700;
-  color: #1c1917;
-  margin-bottom: 10px;
 }
 
 .lp-integration-card-desc {

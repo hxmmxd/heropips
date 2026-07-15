@@ -762,7 +762,6 @@ function IntegrationsSection() {
                     <div className="lp-integration-top">
                       {item.logo}
                     </div>
-                    <h3 className="lp-integration-card-title">{item.name}</h3>
                     <p className="lp-integration-card-desc">{item.desc}</p>
                   </div>
                 </TiltCard>
