@@ -2046,136 +2046,99 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
 }
 
-/* Trade Signal Ticket (Right Card) */
-.lp-comp-signal-ticket {
-  background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 16px;
-  padding: 24px;
-  color: #ffffff;
-  box-shadow: 
-    0 24px 64px rgba(0, 0, 0, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+/* Trade Signals Stack (Right Card) */
+.lp-comp-signals-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
   z-index: 2;
   margin-top: auto;
   margin-bottom: auto;
-  width: 100%;
 }
 
-.lp-comp-ticket-hdr {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 14px;
-}
-
-.lp-comp-ticket-status {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 9px;
-  font-weight: 700;
-  color: #10b981;
-  letter-spacing: 0.08em;
-}
-
-.lp-comp-ticket-glowing-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: #10b981;
-  box-shadow: 0 0 6px #10b981;
-  animation: badge-pulse 1.8s infinite ease-in-out;
-}
-
-.lp-comp-ticket-id {
-  font-size: 9px;
-  font-family: var(--font-mono, monospace);
-  color: rgba(255, 255, 255, 0.45);
-}
-
-.lp-comp-ticket-body {
+.lp-comp-output-signal-card {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 16px 20px;
+  box-shadow: 
+    0 12px 32px rgba(0, 0, 0, 0.08),
+    0 4px 12px rgba(0, 0, 0, 0.02);
   display: flex;
   flex-direction: column;
+  gap: 8px;
+  border-left: 4px solid transparent;
+  transition: transform 0.2s ease;
 }
 
-.lp-comp-ticket-symbol-row {
+.lp-comp-output-signal-card:hover {
+  transform: translateY(-2px);
+}
+
+.lp-comp-output-signal-card.buy {
+  border-left-color: #10b981;
+}
+
+.lp-comp-output-signal-card.sell {
+  border-left-color: #ef4444;
+}
+
+.lp-comp-osc-hdr {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 14px;
+  align-items: center;
 }
 
-.lp-comp-ticket-symbol {
-  font-size: 26px;
+.lp-comp-osc-pill {
+  font-size: 9px;
   font-weight: 800;
-  letter-spacing: -0.8px;
-}
-
-.lp-comp-ticket-action {
-  font-size: 10px;
-  font-weight: 850;
-  background: #10b981;
-  color: #ffffff;
-  padding: 3px 8px;
+  padding: 2.5px 7px;
   border-radius: 4px;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
 }
 
-.lp-comp-ticket-details-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  border-top: 1px dashed rgba(255, 255, 255, 0.15);
-  padding-top: 14px;
-  margin-bottom: 14px;
+.lp-comp-osc-pill.buy {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
 }
 
-.lp-comp-ticket-detail-item {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.lp-comp-osc-pill.sell {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
 }
 
-.lp-comp-ticket-lbl {
-  font-size: 8.5px;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.45);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.lp-comp-ticket-val {
+.lp-comp-osc-symbol {
   font-size: 13.5px;
-  font-weight: 700;
-}
-
-.lp-comp-ticket-footer {
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  padding-top: 12px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 9.5px;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.65);
-}
-
-.lp-comp-ticket-check {
-  color: #10b981;
-  font-weight: 900;
-}
-
-.lp-comp-ticket-status-pill {
-  font-size: 8px;
   font-weight: 800;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #ffffff;
-  padding: 2px 6px;
-  border-radius: 4px;
+  color: #1f2937;
+  letter-spacing: -0.2px;
+}
+
+.lp-comp-osc-pct {
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.lp-comp-osc-pct.buy {
+  color: #10b981;
+}
+
+.lp-comp-osc-pct.sell {
+  color: #ef4444;
+}
+
+.lp-comp-osc-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 650;
+  color: #4b5563;
+}
+
+.lp-comp-osc-dot-sep {
+  color: #d1d5db;
+  font-weight: 900;
 }
 
 /* Responsive Media Queries */

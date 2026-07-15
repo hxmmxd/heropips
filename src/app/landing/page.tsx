@@ -384,65 +384,61 @@ function ComparisonSection() {
             </div>
           </div>
 
-          {/* Right Panel: Orange Box outputting validated Trade Signal */}
+          {/* Right Panel: Orange Box outputting validated Trade Signals */}
           <div className="lp-comp-card lp-comp-right">
             <div className="lp-comp-card-content">
               <div className="lp-comp-badge lp-comp-badge-good">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ marginRight: '6px' }}>
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
-                VALIDATED SIGNAL OUTPUT
+                VALIDATED SIGNALS
               </div>
 
               <h3 className="lp-comp-card-title text-white">
                 Executed <br />
-                <strong>Trade Signal</strong>
+                <strong>Trade Signals</strong>
               </h3>
             </div>
 
-            {/* Translucent glassmorphic Trade Signal Ticket */}
-            <div className="lp-comp-signal-ticket">
-              <div className="lp-comp-ticket-hdr">
-                <div className="lp-comp-ticket-status">
-                  <span className="lp-comp-ticket-glowing-dot" />
-                  <span>● LIVE SIGNAL ACTIVE</span>
-                </div>
-                <span className="lp-comp-ticket-id">#T-9042</span>
-              </div>
+            {/* List of validated signals in the new screenshot format */}
+            <div className="lp-comp-signals-stack">
               
-              <div className="lp-comp-ticket-body">
-                <div className="lp-comp-ticket-symbol-row">
-                  <span className="lp-comp-ticket-symbol">XAUUSD</span>
-                  <span className="lp-comp-ticket-action">BUY</span>
+              {/* Signal 1: XAU/USD */}
+              <div className="lp-comp-output-signal-card buy">
+                <div className="lp-comp-osc-hdr">
+                  <div className="flex items-center gap-2">
+                    <span className="lp-comp-osc-pill buy">BUY</span>
+                    <span className="lp-comp-osc-symbol">XAU/USD</span>
+                  </div>
+                  <span className="lp-comp-osc-pct buy">94%</span>
                 </div>
-                
-                <div className="lp-comp-ticket-details-grid">
-                  <div className="lp-comp-ticket-detail-item">
-                    <span className="lp-comp-ticket-lbl">ENTRY</span>
-                    <span className="lp-comp-ticket-val">2,342.50</span>
-                  </div>
-                  <div className="lp-comp-ticket-detail-item">
-                    <span className="lp-comp-ticket-lbl">TAKE PROFIT</span>
-                    <span className="lp-comp-ticket-val text-emerald-400">2,365.00</span>
-                  </div>
-                  <div className="lp-comp-ticket-detail-item">
-                    <span className="lp-comp-ticket-lbl">STOP LOSS</span>
-                    <span className="lp-comp-ticket-val text-red-400">2,335.00</span>
-                  </div>
-                  <div className="lp-comp-ticket-detail-item">
-                    <span className="lp-comp-ticket-lbl">LOTS (1% RISK)</span>
-                    <span className="lp-comp-ticket-val">0.50</span>
-                  </div>
+                <div className="lp-comp-osc-meta">
+                  <span className="lp-comp-osc-price">2341.50</span>
+                  <span className="lp-comp-osc-dot-sep">·</span>
+                  <span className="lp-comp-osc-rr">2.0R</span>
+                  <span className="lp-comp-osc-dot-sep">·</span>
+                  <span className="lp-comp-osc-session">NY</span>
                 </div>
               </div>
-              
-              <div className="lp-comp-ticket-footer">
-                <div className="flex items-center gap-1">
-                  <span className="lp-comp-ticket-check">✓</span>
-                  <span>12/12 GATES PASSED</span>
+
+              {/* Signal 2: NAS100 */}
+              <div className="lp-comp-output-signal-card sell">
+                <div className="lp-comp-osc-hdr">
+                  <div className="flex items-center gap-2">
+                    <span className="lp-comp-osc-pill sell">SELL</span>
+                    <span className="lp-comp-osc-symbol">NAS100</span>
+                  </div>
+                  <span className="lp-comp-osc-pct sell">92%</span>
                 </div>
-                <span className="lp-comp-ticket-status-pill">MT5 ACTIVE</span>
+                <div className="lp-comp-osc-meta">
+                  <span className="lp-comp-osc-price">19,840</span>
+                  <span className="lp-comp-osc-dot-sep">·</span>
+                  <span className="lp-comp-osc-rr">2.3R</span>
+                  <span className="lp-comp-osc-dot-sep">·</span>
+                  <span className="lp-comp-osc-session">NY</span>
+                </div>
               </div>
+
             </div>
           </div>
 
