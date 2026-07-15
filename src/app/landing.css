@@ -2046,15 +2046,33 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
 }
 
-/* Trade Signals Stack (Right Card) */
-.lp-comp-signals-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+/* Trade Signals Marquee Ticker (Right Card) */
+.lp-comp-signals-marquee-container {
+  overflow: hidden;
   width: 100%;
-  z-index: 2;
+  position: relative;
   margin-top: auto;
   margin-bottom: auto;
+  z-index: 2;
+  /* Fade out both the left and right edges for a premium scroll look */
+  mask-image: linear-gradient(to right, transparent 0%, #000 8%, #000 92%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 8%, #000 92%, transparent 100%);
+}
+
+.lp-comp-signals-marquee-track {
+  display: flex;
+  gap: 14px;
+  width: max-content;
+  animation: marquee-flow-left 25s linear infinite;
+}
+
+@keyframes marquee-flow-left {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
 }
 
 .lp-comp-output-signal-card {
@@ -2069,6 +2087,8 @@
   gap: 8px;
   border-left: 4px solid transparent;
   transition: transform 0.2s ease;
+  flex-shrink: 0;
+  width: 210px;
 }
 
 .lp-comp-output-signal-card:hover {

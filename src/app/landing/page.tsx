@@ -262,6 +262,15 @@ const ROW_3 = [
   { icon: '🛡️', label: 'CANDLE PATTERN', statusText: 'H1 Hammer Conf.' },
 ];
 
+const TICKER_SIGNALS = [
+  { action: 'BUY', symbol: 'XAU/USD', pct: '94%', price: '2341.50', rr: '2.0R', session: 'NY', buy: true },
+  { action: 'SELL', symbol: 'NAS100', pct: '92%', price: '19,840', rr: '2.3R', session: 'NY', buy: false },
+  { action: 'BUY', symbol: 'BTC/USD', pct: '86%', price: '67,420', rr: '1.8R', session: 'NY', buy: true },
+  { action: 'BUY', symbol: 'EUR/USD', pct: '88%', price: '1.08420', rr: '2.0R', session: 'LDN', buy: true },
+  { action: 'SELL', symbol: 'GBP/JPY', pct: '91%', price: '196.450', rr: '2.5R', session: 'ASI', buy: false },
+  { action: 'BUY', symbol: 'US30', pct: '83%', price: '38,720', rr: '2.0R', session: 'NY', buy: true },
+];
+
 function ComparisonSection() {
   return (
     <section className="lp-comp">
@@ -400,45 +409,46 @@ function ComparisonSection() {
               </h3>
             </div>
 
-            {/* List of validated signals in the new screenshot format */}
-            <div className="lp-comp-signals-stack">
-              
-              {/* Signal 1: XAU/USD */}
-              <div className="lp-comp-output-signal-card buy">
-                <div className="lp-comp-osc-hdr">
-                  <div className="flex items-center gap-2">
-                    <span className="lp-comp-osc-pill buy">BUY</span>
-                    <span className="lp-comp-osc-symbol">XAU/USD</span>
+            {/* Real-time scrolling ticket marquee */}
+            <div className="lp-comp-signals-marquee-container">
+              <div className="lp-comp-signals-marquee-track">
+                {TICKER_SIGNALS.map((s, idx) => (
+                  <div key={`sig-a-${idx}`} className={`lp-comp-output-signal-card ${s.buy ? 'buy' : 'sell'}`}>
+                    <div className="lp-comp-osc-hdr">
+                      <div className="flex items-center gap-2">
+                        <span className={`lp-comp-osc-pill ${s.buy ? 'buy' : 'sell'}`}>{s.action}</span>
+                        <span className="lp-comp-osc-symbol">{s.symbol}</span>
+                      </div>
+                      <span className={`lp-comp-osc-pct ${s.buy ? 'buy' : 'sell'}`}>{s.pct}</span>
+                    </div>
+                    <div className="lp-comp-osc-meta">
+                      <span className="lp-comp-osc-price">{s.price}</span>
+                      <span className="lp-comp-osc-dot-sep">·</span>
+                      <span className="lp-comp-osc-rr">{s.rr}</span>
+                      <span className="lp-comp-osc-dot-sep">·</span>
+                      <span className="lp-comp-osc-session">{s.session}</span>
+                    </div>
                   </div>
-                  <span className="lp-comp-osc-pct buy">94%</span>
-                </div>
-                <div className="lp-comp-osc-meta">
-                  <span className="lp-comp-osc-price">2341.50</span>
-                  <span className="lp-comp-osc-dot-sep">·</span>
-                  <span className="lp-comp-osc-rr">2.0R</span>
-                  <span className="lp-comp-osc-dot-sep">·</span>
-                  <span className="lp-comp-osc-session">NY</span>
-                </div>
-              </div>
-
-              {/* Signal 2: NAS100 */}
-              <div className="lp-comp-output-signal-card sell">
-                <div className="lp-comp-osc-hdr">
-                  <div className="flex items-center gap-2">
-                    <span className="lp-comp-osc-pill sell">SELL</span>
-                    <span className="lp-comp-osc-symbol">NAS100</span>
+                ))}
+                {TICKER_SIGNALS.map((s, idx) => (
+                  <div key={`sig-b-${idx}`} className={`lp-comp-output-signal-card ${s.buy ? 'buy' : 'sell'}`}>
+                    <div className="lp-comp-osc-hdr">
+                      <div className="flex items-center gap-2">
+                        <span className={`lp-comp-osc-pill ${s.buy ? 'buy' : 'sell'}`}>{s.action}</span>
+                        <span className="lp-comp-osc-symbol">{s.symbol}</span>
+                      </div>
+                      <span className={`lp-comp-osc-pct ${s.buy ? 'buy' : 'sell'}`}>{s.pct}</span>
+                    </div>
+                    <div className="lp-comp-osc-meta">
+                      <span className="lp-comp-osc-price">{s.price}</span>
+                      <span className="lp-comp-osc-dot-sep">·</span>
+                      <span className="lp-comp-osc-rr">{s.rr}</span>
+                      <span className="lp-comp-osc-dot-sep">·</span>
+                      <span className="lp-comp-osc-session">{s.session}</span>
+                    </div>
                   </div>
-                  <span className="lp-comp-osc-pct sell">92%</span>
-                </div>
-                <div className="lp-comp-osc-meta">
-                  <span className="lp-comp-osc-price">19,840</span>
-                  <span className="lp-comp-osc-dot-sep">·</span>
-                  <span className="lp-comp-osc-rr">2.3R</span>
-                  <span className="lp-comp-osc-dot-sep">·</span>
-                  <span className="lp-comp-osc-session">NY</span>
-                </div>
+                ))}
               </div>
-
             </div>
           </div>
 
