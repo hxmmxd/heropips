@@ -1053,7 +1053,7 @@ export default function LandingPage() {
               </motion.div>
             </div>
 
-            {/* RIGHT — video placeholder */}
+            {/* RIGHT — unDraw terminal illustration */}
             <motion.div className="lp-hero-right" variants={zoomIn}>
               <div className="lp-hero-video">
                 {/* macOS Window Title Bar */}
@@ -1066,22 +1066,19 @@ export default function LandingPage() {
                   <span className="lp-terminal-title">xyrotrade-demo.sh</span>
                 </div>
 
-                {/* Simple video element placeholder */}
+                {/* unDraw vector illustration */}
                 <div className="lp-video-container">
-                  <video
+                  <img 
+                    src="/images/undraw_trading_analytics.png" 
+                    alt="XyroTrade Algorithmic AI Terminal" 
                     className="lp-hero-video-element"
-                    poster="/images/feat-placeholder.png"
-                    controls
-                    preload="none"
                     style={{
                       width: '100%',
                       height: '100%',
                       objectFit: 'cover',
                       display: 'block'
                     }}
-                  >
-                    <source src="#" type="video/mp4" />
-                  </video>
+                  />
                 </div>
               </div>
             </motion.div>
