@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Navbar } from '../Navbar';
+import TiltCard from '../TiltCard';
 
 const GATES = [
   { num: '01', name: 'Vol Regime Filter', desc: 'ATR & GARCH model volatility regime detection. Restricts trading in highly erratic market states.', formula: 'σ = ATR(14)', glow: 'rgba(255, 60, 0, 0.08)', accent: '#ff3c00' },
@@ -88,23 +89,26 @@ export default function SignalEnginePage() {
               {GATES.map((gate, i) => (
                 <motion.div 
                   key={i} 
-                  className="lp-gate-card"
                   variants={fadeInUp}
-                  style={{ 
-                    '--gate-glow': gate.glow,
-                    '--gate-accent': gate.accent
-                  } as React.CSSProperties}
                 >
-                  <div className="lp-gate-card-header">
-                    <span className="lp-gate-num">Gate {gate.num}</span>
-                    <span className="lp-gate-formula">{gate.formula}</span>
-                    <span className="lp-gate-status">
-                      <span className="lp-gate-status-dot"></span>
-                      Active
-                    </span>
-                  </div>
-                  <h3 className="lp-gate-name">{gate.name}</h3>
-                  <p className="lp-gate-desc-text">{gate.desc}</p>
+                  <TiltCard
+                    className="lp-gate-card"
+                    style={{ 
+                      '--gate-glow': gate.glow,
+                      '--gate-accent': gate.accent
+                    } as React.CSSProperties}
+                  >
+                    <div className="lp-gate-card-header">
+                      <span className="lp-gate-num">Gate {gate.num}</span>
+                      <span className="lp-gate-formula">{gate.formula}</span>
+                      <span className="lp-gate-status">
+                        <span className="lp-gate-status-dot"></span>
+                        Active
+                      </span>
+                    </div>
+                    <h3 className="lp-gate-name">{gate.name}</h3>
+                    <p className="lp-gate-desc-text">{gate.desc}</p>
+                  </TiltCard>
                 </motion.div>
               ))}
             </motion.div>

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Navbar } from './Navbar';
+import TiltCard from './TiltCard';
 
 
 
@@ -136,7 +137,7 @@ function NarrativeSection() {
           <div className="lp-narrative-grid-col">
             
             {/* Card 1: Twitter */}
-            <div 
+            <TiltCard 
               className="lp-noise-card-cell c-span-2"
               style={{ '--hover-glow': 'rgba(5, 150, 105, 0.05)' } as React.CSSProperties}
             >
@@ -147,10 +148,10 @@ function NarrativeSection() {
                 Twitter says <span className="lp-badge-buy">BUY.</span>
               </h3>
               <p className="lp-noise-card-desc">Social sentiment spikes on retail FOMO, urging immediate market entry without confirmation.</p>
-            </div>
+            </TiltCard>
 
             {/* Card 2: YouTube */}
-            <div 
+            <TiltCard 
               className="lp-noise-card-cell c-span-2"
               style={{ '--hover-glow': 'rgba(180, 83, 9, 0.05)' } as React.CSSProperties}
             >
@@ -161,10 +162,10 @@ function NarrativeSection() {
                 YouTube says <span className="lp-badge-hold">HOLD.</span>
               </h3>
               <p className="lp-noise-card-desc">Influencers preach long-term patience while hedging their own short-term exposures.</p>
-            </div>
+            </TiltCard>
 
             {/* Card 3: Indicators */}
-            <div 
+            <TiltCard 
               className="lp-noise-card-cell c-span-2"
               style={{ '--hover-glow': 'rgba(109, 40, 217, 0.05)' } as React.CSSProperties}
             >
@@ -175,10 +176,10 @@ function NarrativeSection() {
                 Indicators <span className="lp-badge-disagree">disagree.</span>
               </h3>
               <p className="lp-noise-card-desc">RSI signals oversold, MACD shows bearish divergence, and moving averages suggest a breakdown.</p>
-            </div>
+            </TiltCard>
 
             {/* Card 4: News */}
-            <div 
+            <TiltCard 
               className="lp-noise-card-cell c-span-3"
               style={{ '--hover-glow': 'rgba(29, 78, 216, 0.05)' } as React.CSSProperties}
             >
@@ -189,10 +190,10 @@ function NarrativeSection() {
                 News changes <span className="lp-badge-everything">everything.</span>
               </h3>
               <p className="lp-noise-card-desc">Breaking macroeconomic data or regulatory updates instantly invalidate hours of technical analysis.</p>
-            </div>
+            </TiltCard>
 
             {/* Card 5: Fear */}
-            <div 
+            <TiltCard 
               className="lp-noise-card-cell c-span-3"
               style={{ '--hover-glow': 'rgba(185, 28, 28, 0.05)' } as React.CSSProperties}
             >
@@ -203,7 +204,7 @@ function NarrativeSection() {
                 Fear <span className="lp-badge-wins">wins.</span>
               </h3>
               <p className="lp-noise-card-desc">Faced with conflicting inputs, emotional traders panic, exit positions prematurely, or freeze entirely.</p>
-            </div>
+            </TiltCard>
 
           </div>
 
@@ -571,17 +572,28 @@ export default function LandingPage() {
                 {' · 12-Gate Confluence Engine · Now Live'}
               </motion.div>
 
-              <motion.h1 className="lp-hero-h1" variants={fadeInUp}>
-                Institutional AI —{' '}<br />
-                built for traders<br />
-                who trade{' '}
-                <span className="lp-hero-cycle">
-                  <span className="lp-hero-cycle-inner">
-                    <span>smarter.</span>
-                    <span>faster.</span>
-                    <span>better.</span>
+              <motion.h1 
+                className="lp-hero-h1" 
+                variants={staggerContainer}
+                initial="hidden"
+                animate="visible"
+              >
+                <motion.span variants={fadeInUp} style={{ display: 'block' }}>
+                  Institutional AI —
+                </motion.span>
+                <motion.span variants={fadeInUp} style={{ display: 'block' }}>
+                  built for traders
+                </motion.span>
+                <motion.span variants={fadeInUp} style={{ display: 'block' }}>
+                  who trade{' '}
+                  <span className="lp-hero-cycle">
+                    <span className="lp-hero-cycle-inner">
+                      <span>smarter.</span>
+                      <span>faster.</span>
+                      <span>better.</span>
+                    </span>
                   </span>
-                </span>
+                </motion.span>
               </motion.h1>
 
               <motion.p className="lp-hero-sub" variants={fadeInUp}>
@@ -636,6 +648,16 @@ export default function LandingPage() {
             {/* RIGHT — video placeholder */}
             <motion.div className="lp-hero-right" variants={zoomIn}>
               <div className="lp-hero-video">
+                {/* macOS Window Title Bar */}
+                <div className="lp-terminal-header">
+                  <div className="lp-terminal-dots">
+                    <span className="lp-terminal-dot dot-red" />
+                    <span className="lp-terminal-dot dot-yellow" />
+                    <span className="lp-terminal-dot dot-green" />
+                  </div>
+                  <span className="lp-terminal-title">xyrotrade-demo.sh</span>
+                </div>
+
                 {/* Fake screen reflection */}
                 <div className="lp-hero-video-shine" aria-hidden />
                 {/* Play button */}
