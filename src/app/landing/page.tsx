@@ -310,10 +310,12 @@ function ComparisonSection() {
   return (
     <section className="lp-comp">
       <div className="lp-comp-inner">
-        <div className="lp-comp-grid">
+        
+        {/* Unified Dashboard Widget */}
+        <div className="lp-comp-unified-widget">
           
           {/* Left Panel: 12 Gates Processing Flow */}
-          <div className="lp-comp-card lp-comp-left">
+          <div className="lp-comp-widget-left">
             <div className="lp-comp-card-content">
               <div className="lp-comp-badge lp-comp-badge-bad">
                 <span className="lp-comp-badge-dot-glowing" />
@@ -417,19 +419,11 @@ function ComparisonSection() {
                 </div>
 
               </div>
-              
-              {/* Flow indicators pointing to the right */}
-              <div className="lp-comp-flow-arrow-desktop">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                  <polyline points="12 5 19 12 12 19" />
-                </svg>
-              </div>
             </div>
           </div>
 
           {/* Right Panel: Orange Box outputting validated Trade Signals */}
-          <div className="lp-comp-card lp-comp-right">
+          <div className="lp-comp-widget-right">
             {/* Holographic light background flare */}
             <div className="lp-comp-right-flare" />
             
@@ -476,6 +470,14 @@ function ComparisonSection() {
               <span className="lp-comp-signal-log-pulse" />
               <span className="lp-comp-signal-log-text">{LOGS[signalIdx]}</span>
             </div>
+          </div>
+
+          {/* Flow indicators pointing to the right (positioned absolutely over the split line) */}
+          <div className="lp-comp-flow-arrow-desktop">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <line x1="5" y1="12" x2="19" y2="12" />
+              <polyline points="12 5 19 12 12 19" />
+            </svg>
           </div>
 
         </div>
