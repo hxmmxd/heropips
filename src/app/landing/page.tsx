@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { Navbar } from './Navbar';
 
 
@@ -90,7 +91,13 @@ function NarrativeSection() {
       {/* Parallax background radial glow */}
       <div className="lp-narrative-bg-glow" />
 
-      <div className="lp-narrative-inner">
+      <motion.div 
+        className="lp-narrative-inner"
+        initial={{ opacity: 0, y: 40 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-120px" }}
+        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] as const }}
+      >
         
         {/* Main Grid Box */}
         <div className="lp-narrative-box">
@@ -107,30 +114,25 @@ function NarrativeSection() {
                 <path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9" />
                 <path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5" />
                 <circle cx="12" cy="12" r="2" />
-                <path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5" />
-                <path d="M19.1 4.9C23 8.8 23 15.2 19.1 19.1" />
               </svg>
-              NOISE
+              <span>NOISE VS DATA</span>
             </div>
             
             <h2 className="lp-narrative-main-title">
-              Trading isn't difficult. <span className="lp-narrative-main-highlight">Filtering noise is.</span>
+              Trading isn't difficult.<br />
+              <span className="lp-narrative-main-highlight">Filtering noise is.</span>
             </h2>
             
             <p className="lp-narrative-main-desc">
-              Most trading systems overwhelm you with conflicting signals. Xyro filters the chaos, delivering 12-gate validated confluence.
+              Every day, retail terminals bombard you with thousands of conflicting data points. Under pressure, execution defaults to impulse.
             </p>
-
-            <a href="/login" className="lp-narrative-cta-btn">
-              Explore scanner
+            
+            <a href="#" className="lp-narrative-cta-btn">
+              See the 12 Gates
             </a>
-
-            {/* Inner column divider dots */}
-            <div className="lp-grid-dot dot-tr" />
-            <div className="lp-grid-dot dot-br" />
           </div>
 
-          {/* Right Column: Grid of Cards */}
+          {/* Right Column: Built-in 2x2 Grid of Bad Cases */}
           <div className="lp-narrative-grid-col">
             
             {/* Card 1: Twitter */}
@@ -218,7 +220,7 @@ function NarrativeSection() {
           </div>
 
         </div>
-      </div>
+      </motion.div>
     </section>
   );
 }
@@ -297,7 +299,13 @@ function ComparisonSection() {
 
   return (
     <section className="lp-comp">
-      <div className="lp-comp-inner">
+      <motion.div 
+        className="lp-comp-inner"
+        initial={{ opacity: 0, y: 40 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-120px" }}
+        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] as const }}
+      >
         
         {/* Unified Dashboard Widget */}
         <div className="lp-comp-unified-widget">
@@ -469,7 +477,7 @@ function ComparisonSection() {
           </div>
 
         </div>
-      </div>
+      </motion.div>
     </section>
   );
 }
@@ -484,6 +492,52 @@ function ComparisonSection() {
 
 
 
+
+/* ── Motion Variants ─────────────────────────────────── */
+const staggerContainer = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.12,
+      delayChildren: 0.1,
+    },
+  },
+};
+
+const fadeInUp = {
+  hidden: { opacity: 0, y: 24 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.65,
+      ease: [0.16, 1, 0.3, 1] as const,
+    },
+  },
+};
+
+const zoomIn = {
+  hidden: { opacity: 0, scale: 0.96 },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    transition: {
+      duration: 0.8,
+      ease: [0.16, 1, 0.3, 1] as const,
+    },
+  },
+};
+
+const statsContainer = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.06,
+    },
+  },
+};
 
 /* ── Page ───────────────────────────────────────────── */
 export default function LandingPage() {
@@ -502,17 +556,22 @@ export default function LandingPage() {
           <div className="lp-hero-glow" aria-hidden />
 
           {/* Two-column inner */}
-          <div className="lp-hero-inner">
+          <motion.div 
+            className="lp-hero-inner"
+            variants={staggerContainer}
+            initial="hidden"
+            animate="visible"
+          >
 
             {/* LEFT — text */}
             <div className="lp-hero-left">
-              <div className="lp-hero-announce">
+              <motion.div className="lp-hero-announce" variants={fadeInUp}>
                 <span className="lp-hero-announce-dot" />
                 <span className="lp-hero-announce-brand">Xyro Trade 2.0</span>
                 {' · 12-Gate Confluence Engine · Now Live'}
-              </div>
+              </motion.div>
 
-              <h1 className="lp-hero-h1">
+              <motion.h1 className="lp-hero-h1" variants={fadeInUp}>
                 Institutional AI —{' '}<br />
                 built for traders<br />
                 who trade{' '}
@@ -523,15 +582,15 @@ export default function LandingPage() {
                     <span>better.</span>
                   </span>
                 </span>
-              </h1>
+              </motion.h1>
 
-              <p className="lp-hero-sub">
+              <motion.p className="lp-hero-sub" variants={fadeInUp}>
                 12-gate confluence signals, automated risk governance, and one-click MT5 execution — all in one terminal.
-              </p>
+              </motion.p>
 
 
               {/* Trust bar — premium stat pills */}
-              <div className="lp-hero-trust">
+              <motion.div className="lp-hero-trust" variants={fadeInUp}>
                 <div className="lp-hero-trust-pill">
                   <div className="lp-hero-trust-icon">
                     {/* Lightning bolt */}
@@ -571,11 +630,11 @@ export default function LandingPage() {
                     <span className="lp-hero-trust-label">Always</span>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             </div>
 
             {/* RIGHT — video placeholder */}
-            <div className="lp-hero-right">
+            <motion.div className="lp-hero-right" variants={zoomIn}>
               <div className="lp-hero-video">
                 {/* Fake screen reflection */}
                 <div className="lp-hero-video-shine" aria-hidden />
@@ -587,17 +646,23 @@ export default function LandingPage() {
                 </button>
                 <p className="lp-hero-video-label">Watch 2-min demo</p>
               </div>
-            </div>
+            </motion.div>
 
-          </div>
+          </motion.div>
         </div>
       </section>
 
       {/* ── STATS ── */}
       <section className="lp-stats">
-        <div className="lp-stats-inner">
+        <motion.div 
+          className="lp-stats-inner"
+          variants={statsContainer}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-100px" }}
+        >
           {STATS.map((s, i) => (
-            <div className="lp-stat" key={i}>
+            <motion.div className="lp-stat" variants={fadeInUp} key={i}>
               <span className="lp-stat-num">
                 {s.raw
                   ? <span className="lp-stat-raw">{s.rawVal}</span>
@@ -607,9 +672,9 @@ export default function LandingPage() {
                 <span className="lp-stat-label">{s.label}</span>
                 <span className="lp-stat-desc">{s.desc}</span>
               </div>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       </section>
 
       {/* ── NARRATIVE ── */}

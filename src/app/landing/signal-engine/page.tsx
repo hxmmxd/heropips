@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { Navbar } from '../Navbar';
 
 const GATES = [
@@ -18,6 +19,29 @@ const GATES = [
   { num: '12', name: 'Risk-Reward Cutoff', desc: 'Automatic rejection of signals with less than a strict, mathematically sound 1:2 risk-to-reward ratio.', formula: 'R:R ≥ 1:2', glow: 'rgba(255, 60, 0, 0.08)', accent: '#ff3c00' },
 ];
 
+const staggerContainer = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.06,
+      delayChildren: 0.1,
+    },
+  },
+};
+
+const fadeInUp = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.6,
+      ease: [0.16, 1, 0.3, 1] as const, // easeOutExpo
+    },
+  },
+};
+
 export default function SignalEnginePage() {
   useEffect(() => {
     document.title = "XyroTrade | AI Signal Engine";
@@ -29,27 +53,43 @@ export default function SignalEnginePage() {
 
       <section className="lp-gates" style={{ minHeight: 'calc(100vh - 80px)', padding: '140px 24px 100px 24px' }}>
         <div className="lp-gates-inner">
-          <div className="lp-gates-header">
+          <motion.div 
+            className="lp-gates-header"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] as const }}
+          >
             <p className="lp-gates-eyebrow">CONFLUENCE PIPELINE</p>
             <h2 className="lp-gates-title">The 12-Gate Validation Engine</h2>
             <p className="lp-gates-desc">
               Every single signal must pass all 12 quantitative checks before execution. Rejects retail noise, executes on institutional probability.
             </p>
-          </div>
+          </motion.div>
           
           {/* Unified 12-Gates Grid Box Container */}
-          <div className="lp-gates-box">
+          <motion.div 
+            className="lp-gates-box"
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] as const, delay: 0.15 }}
+          >
             {/* Corner dot crosshairs */}
             <div className="lp-grid-dot dot-tl" />
             <div className="lp-grid-dot dot-tr" />
             <div className="lp-grid-dot dot-bl" />
             <div className="lp-grid-dot dot-br" />
 
-            <div className="lp-gates-grid">
+            <motion.div 
+              className="lp-gates-grid"
+              variants={staggerContainer}
+              initial="hidden"
+              animate="visible"
+            >
               {GATES.map((gate, i) => (
-                <div 
+                <motion.div 
                   key={i} 
                   className="lp-gate-card"
+                  variants={fadeInUp}
                   style={{ 
                     '--gate-glow': gate.glow,
                     '--gate-accent': gate.accent
@@ -65,10 +105,10 @@ export default function SignalEnginePage() {
                   </div>
                   <h3 className="lp-gate-name">{gate.name}</h3>
                   <p className="lp-gate-desc-text">{gate.desc}</p>
-                </div>
+                </motion.div>
               ))}
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         </div>
       </section>
     </>

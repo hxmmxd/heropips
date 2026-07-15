@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import '../landing.css';
+import LenisProvider from './LenisProvider';
 
 export const metadata: Metadata = {
   title: 'XyroTrade — AI Trading Signals',
@@ -7,5 +8,11 @@ export const metadata: Metadata = {
 };
 
 export default function LandingLayout({ children }: { children: React.ReactNode }) {
-  return <div className="lp">{children}</div>;
+  return (
+    <div className="lp">
+      <LenisProvider>
+        {children}
+      </LenisProvider>
+    </div>
+  );
 }
