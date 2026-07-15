@@ -271,6 +271,15 @@ const TICKER_SIGNALS = [
   { action: 'BUY', symbol: 'US30', pct: '83%', price: '38,720', rr: '2.0R', session: 'NY', buy: true },
 ];
 
+const LOGS = [
+  "Confluence engine: XAU/USD breakout verified.",
+  "Confluence engine: NAS100 rejection band hit.",
+  "Confluence engine: BTC/USD momentum sweep confirmed.",
+  "Confluence engine: EUR/USD trend stack fully aligned.",
+  "Confluence engine: GBP/JPY spread arbitrage execution.",
+  "Confluence engine: US30 key volume block validated."
+];
+
 function ComparisonSection() {
   const [signalIdx, setSignalIdx] = useState(0);
   const [stage, setStage] = useState<'entering' | 'visible' | 'exiting'>('visible');
@@ -421,6 +430,9 @@ function ComparisonSection() {
 
           {/* Right Panel: Orange Box outputting validated Trade Signals */}
           <div className="lp-comp-card lp-comp-right">
+            {/* Holographic light background flare */}
+            <div className="lp-comp-right-flare" />
+            
             <div className="lp-comp-card-content">
               <div className="lp-comp-badge lp-comp-badge-good">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ marginRight: '6px' }}>
@@ -435,9 +447,12 @@ function ComparisonSection() {
               </h3>
             </div>
 
-            {/* Single signal with entrance/exit animation */}
+            {/* Single signal with 3D entrance/exit animation */}
             <div className="lp-comp-signal-anim-wrap">
               <div className={`lp-comp-output-signal-card ${s.buy ? 'buy' : 'sell'} stage-${stage}`}>
+                {/* Shiny glass overlay sheen */}
+                <div className="lp-comp-osc-sheen" />
+                
                 <div className="lp-comp-osc-hdr">
                   <div className="flex items-center gap-2">
                     <span className={`lp-comp-osc-pill ${s.buy ? 'buy' : 'sell'}`}>{s.action}</span>
@@ -445,6 +460,7 @@ function ComparisonSection() {
                   </div>
                   <span className={`lp-comp-osc-pct ${s.buy ? 'buy' : 'sell'}`}>{s.pct}</span>
                 </div>
+                
                 <div className="lp-comp-osc-meta">
                   <span className="lp-comp-osc-price">{s.price}</span>
                   <span className="lp-comp-osc-dot-sep">·</span>
@@ -453,6 +469,12 @@ function ComparisonSection() {
                   <span className="lp-comp-osc-session">{s.session}</span>
                 </div>
               </div>
+            </div>
+
+            {/* Dynamic log execution line */}
+            <div className={`lp-comp-signal-log-footer stage-${stage}`}>
+              <span className="lp-comp-signal-log-pulse" />
+              <span className="lp-comp-signal-log-text">{LOGS[signalIdx]}</span>
             </div>
           </div>
 
