@@ -656,22 +656,6 @@ function XyroEcosystemSection() {
 function IntegrationsSection() {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const [coords, setCoords] = useState({ x: 0, y: 0 });
-  const [latencies, setLatencies] = useState({
-    mt5: 12,
-    binance: 8,
-    bybit: 15
-  });
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setLatencies({
-        mt5: Math.floor(10 + Math.random() * 5),
-        binance: Math.floor(6 + Math.random() * 4),
-        bybit: Math.floor(12 + Math.random() * 6),
-      });
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>, idx: number) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -686,15 +670,13 @@ function IntegrationsSection() {
       key: 'mt5',
       name: 'MetaTrader 5',
       desc: 'Sub-millisecond execution. Execute complex institutional signals via native API gateway bridges.',
-      latency: '12ms',
-      status: 'Connected',
       glowColor: 'rgba(0, 136, 255, 0.08)',
       borderColor: 'rgba(0, 136, 255, 0.25)',
       logo: (
         <img 
           src="/logos/metatrader5_icon.png" 
           alt="MetaTrader 5 logo" 
-          className="lp-integration-img-logo"
+          className="lp-integration-brand-logo"
         />
       )
     },
@@ -702,15 +684,13 @@ function IntegrationsSection() {
       key: 'binance',
       name: 'Binance',
       desc: 'Spot & Futures trading. Automated portfolio balancing with state-of-the-art secure API key encryption.',
-      latency: '8ms',
-      status: 'Connected',
       glowColor: 'rgba(240, 185, 11, 0.08)',
       borderColor: 'rgba(240, 185, 11, 0.25)',
       logo: (
         <img 
           src="/logos/binance_icon.png" 
           alt="Binance logo" 
-          className="lp-integration-img-logo"
+          className="lp-integration-brand-logo"
         />
       )
     },
@@ -718,15 +698,13 @@ function IntegrationsSection() {
       key: 'bybit',
       name: 'Bybit',
       desc: 'High-leverage derivatives. Execute momentum trades instantly with direct liquidity access.',
-      latency: '15ms',
-      status: 'Connected',
       glowColor: 'rgba(255, 122, 0, 0.08)',
       borderColor: 'rgba(255, 122, 0, 0.25)',
       logo: (
         <img 
           src="/logos/bybit_icon.png" 
           alt="Bybit logo" 
-          className="lp-integration-img-logo"
+          className="lp-integration-brand-logo"
         />
       )
     },
@@ -734,15 +712,13 @@ function IntegrationsSection() {
       key: 'telegram',
       name: 'Telegram Alerts',
       desc: 'Real-time alerts. Receive instant 12-gate confluence signals, logs, and execution reports directly in your channel.',
-      latency: 'Instant',
-      status: 'Connected',
       glowColor: 'rgba(0, 172, 238, 0.08)',
       borderColor: 'rgba(0, 172, 238, 0.25)',
       logo: (
         <img 
           src="/logos/telegram_icon.png" 
           alt="Telegram logo" 
-          className="lp-integration-img-logo"
+          className="lp-integration-brand-logo-square"
         />
       )
     }
@@ -766,10 +742,6 @@ function IntegrationsSection() {
 
           <div className="lp-integrations-grid">
             {integrations.map((item, idx) => {
-              const currentLatency = item.latency === 'Instant'
-                ? 'Instant'
-                : `${latencies[item.key as keyof typeof latencies]}ms`;
-
               return (
                 <TiltCard 
                   key={idx}
@@ -788,16 +760,7 @@ function IntegrationsSection() {
                     } as React.CSSProperties}
                   >
                     <div className="lp-integration-top">
-                      <div className="lp-integration-logo-box">
-                        {item.logo}
-                      </div>
-                      <div className="lp-integration-status">
-                        <div className="lp-status-dot-container">
-                          <span className="lp-status-dot-ping" />
-                          <span className="lp-status-dot" />
-                        </div>
-                        <span className="lp-status-label">{item.status} ({currentLatency})</span>
-                      </div>
+                      {item.logo}
                     </div>
                     <h3 className="lp-integration-card-title">{item.name}</h3>
                     <p className="lp-integration-card-desc">{item.desc}</p>

@@ -3537,81 +3537,30 @@ body.lp-scrollable {
 
 .lp-integration-top {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  height: 44px; /* consistent vertical bounding box for layout alignment */
+  margin-bottom: 20px;
 }
 
-.lp-integration-logo-box {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  background: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid rgba(27, 22, 19, 0.05);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.015);
+.lp-integration-brand-logo {
+  height: 28px;
+  width: auto;
+  object-fit: contain;
+  display: block;
   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.lp-integration-card:hover .lp-integration-logo-box {
-  transform: scale(1.06);
-}
-
-.lp-integration-img-logo {
-  width: 26px;
-  height: 26px;
+.lp-integration-brand-logo-square {
+  height: 32px;
+  width: 32px;
   object-fit: contain;
+  display: block;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.lp-integration-status {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(16, 185, 129, 0.04);
-  border: 1px solid rgba(16, 185, 129, 0.1);
-  padding: 4px 10px;
-  border-radius: 9999px;
-}
-
-.lp-status-dot-container {
-  position: relative;
-  width: 6px;
-  height: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.lp-status-dot {
-  width: 6px;
-  height: 6px;
-  background-color: #10b981;
-  border-radius: 50%;
-}
-
-.lp-status-dot-ping {
-  position: absolute;
-  width: 6px;
-  height: 6px;
-  background-color: #10b981;
-  border-radius: 50%;
-  animation: lp-ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
-  opacity: 0.75;
-}
-
-@keyframes lp-ping {
-  75%, 100% {
-    transform: scale(2.8);
-    opacity: 0;
-  }
-}
-
-.lp-status-label {
-  font-size: 10px;
-  font-weight: 600;
-  color: #047857;
+.lp-integration-card:hover .lp-integration-brand-logo,
+.lp-integration-card:hover .lp-integration-brand-logo-square {
+  transform: scale(1.04);
 }
 
 .lp-integration-card-title {
