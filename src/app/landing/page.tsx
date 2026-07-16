@@ -1066,19 +1066,20 @@ export default function LandingPage() {
                   <span className="lp-terminal-title">xyrotrade-demo.sh</span>
                 </div>
 
-                {/* unDraw vector illustration */}
+                {/* Glassmorphic video placeholder with play button */}
                 <div className="lp-video-container">
                   <img 
                     src="/images/undraw_trading_analytics.png" 
-                    alt="XyroTrade Algorithmic AI Terminal" 
-                    className="lp-hero-video-element"
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                      display: 'block'
-                    }}
+                    alt="XyroTrade Terminal Showcase" 
+                    className="lp-hero-video-poster"
                   />
+                  <div className="lp-video-overlay-glass">
+                    <button className="lp-video-play-btn" aria-label="Play video">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" className="lp-play-icon">
+                        <path d="M8 5V19L19 12L8 5Z" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               </div>
             </motion.div>

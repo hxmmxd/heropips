@@ -31,14 +31,39 @@ function ChevronDown() {
 
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [mobileActiveDropdown, setMobileActiveDropdown] = useState<string | null>(null);
+
+  const toggleDropdown = (label: string) => {
+    setActiveDropdown(activeDropdown === label ? null : label);
+  };
+
+  const closeAllMenus = () => {
+    setActiveDropdown(null);
+    setMobileOpen(false);
+    setMobileActiveDropdown(null);
+  };
 
   return (
     <>
+      {activeDropdown && (
+        <div 
+          className="lp-nav-backdrop" 
+          onClick={() => setActiveDropdown(null)} 
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 190,
+            background: 'transparent'
+          }}
+        />
+      )}
+
       <nav className="lp-nav">
         <div className="lp-nav-inner">
 
           {/* Logo */}
-          <a href="/landing" className="lp-nav-logo" aria-label="XyroTrade">
+          <a href="/landing" className="lp-nav-logo" aria-label="XyroTrade" onClick={closeAllMenus}>
             <img
               src="/logos/xyrotrade-logo.png"
               alt="XyroTrade"
@@ -52,14 +77,19 @@ export function Navbar() {
 
             {/* Dropdown items */}
             {(Object.keys(NAV_DROPDOWNS) as Array<keyof typeof NAV_DROPDOWNS>).map((label) => (
-              <div className="lp-nav-item" key={label}>
-                <button className="lp-nav-link">
+              <div className={`lp-nav-item ${activeDropdown === label ? 'open' : ''}`} key={label}>
+                <button className="lp-nav-link" onClick={() => toggleDropdown(label)}>
                   {label}
                   <ChevronDown />
                 </button>
                 <div className="lp-nav-dropdown">
                   {NAV_DROPDOWNS[label].map((item) => (
-                    <a key={item.title} href={item.href || '#'} className="lp-nav-dropdown-item">
+                    <a 
+                      key={item.title} 
+                      href={item.href || '#'} 
+                      className="lp-nav-dropdown-item"
+                      onClick={closeAllMenus}
+                    >
                       <div className="lp-nav-dd-icon">{item.icon}</div>
                       <div>
                         <div className="lp-nav-dd-title">{item.title}</div>
@@ -87,13 +117,13 @@ export function Navbar() {
           <div className="lp-nav-actions">
             <a href="#" className="lp-nav-act-link">Contact sales</a>
             <div className="lp-nav-act-sep" />
-            <a href="/login" className="lp-nav-act-link">Log in</a>
-            <a href="/login" className="lp-nav-act-btn">Create account</a>
+            <a href="/login" className="lp-nav-act-link" onClick={closeAllMenus}>Log in</a>
+            <a href="/login" className="lp-nav-act-btn" onClick={closeAllMenus}>Create account</a>
           </div>
 
           {/* Mobile-only: Create account (visible before hamburger on small screens) */}
           <div className="lp-nav-mobile-actions">
-            <a href="/login" className="lp-nav-mob-btn">Create account</a>
+            <a href="/login" className="lp-nav-mob-btn" onClick={closeAllMenus}>Create account</a>
           </div>
 
           {/* Hamburger */}
@@ -110,15 +140,41 @@ export function Navbar() {
 
       {/* Mobile menu */}
       <div className={`lp-nav-mobile${mobileOpen ? ' open' : ''}`}>
-        <a href="/landing/signal-engine">Platform</a>
-        <a href="#">For Traders</a>
-        <a href="#">Resources</a>
-        <a href="#">Signals</a>
-        <a href="#">Pricing</a>
-        <a href="#">Brokers</a>
+        {/* Dropdown items for mobile */}
+        {(Object.keys(NAV_DROPDOWNS) as Array<keyof typeof NAV_DROPDOWNS>).map((label) => (
+          <div className="lp-nav-mobile-group" key={label}>
+            <button 
+              className={`lp-nav-mobile-toggle ${mobileActiveDropdown === label ? 'active' : ''}`}
+              onClick={() => setMobileActiveDropdown(mobileActiveDropdown === label ? null : label)}
+            >
+              {label}
+              <ChevronDown />
+            </button>
+            <div className={`lp-nav-mobile-dropdown ${mobileActiveDropdown === label ? 'show' : ''}`}>
+              {NAV_DROPDOWNS[label].map((item) => (
+                <a 
+                  key={item.title} 
+                  href={item.href || '#'} 
+                  className="lp-nav-mobile-dropdown-item"
+                  onClick={closeAllMenus}
+                >
+                  <span className="lp-nav-mobile-dropdown-icon">{item.icon}</span>
+                  <div className="lp-nav-mobile-dropdown-info">
+                    <div className="lp-nav-mobile-dropdown-title">{item.title}</div>
+                    <div className="lp-nav-mobile-dropdown-desc">{item.desc}</div>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+        ))}
+
+        <a href="#" onClick={closeAllMenus}>Signals</a>
+        <a href="#" onClick={closeAllMenus}>Pricing</a>
+        <a href="#" onClick={closeAllMenus}>Brokers</a>
         <div className="lp-nav-mobile-sep" />
-        <a href="/login">Log in</a>
-        <a href="/login" className="lp-nav-mobile-cta">Create account</a>
+        <a href="/login" onClick={closeAllMenus}>Log in</a>
+        <a href="/login" className="lp-nav-mobile-cta" onClick={closeAllMenus}>Create account</a>
       </div>
     </>
   );
