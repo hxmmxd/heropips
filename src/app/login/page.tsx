@@ -61,6 +61,15 @@ export default function LoginPage() {
     document.documentElement.classList.toggle('dark', theme === 'dark');
   }, [theme]);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('signup') === 'true' || params.get('mode') === 'signup') {
+        setIsSignUp(true);
+      }
+    }
+  }, []);
+
   const handleToggleTheme = () => {
     playSwitchSound(theme === 'dark');
     setTheme(theme === 'dark' ? 'light' : 'dark');
@@ -130,10 +139,11 @@ export default function LoginPage() {
       <div className="auth-card">
         {/* Logo */}
         <div className="auth-logo">
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
-            <path d="M3 17L9 11L13 15L21 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M17 7H21V11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
+          <img
+            src="/logos/xyrotrade-logo.png"
+            alt="XyroTrade"
+            className="auth-logo-img"
+          />
         </div>
 
         <h1 className="auth-heading">
@@ -218,13 +228,6 @@ export default function LoginPage() {
               <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
             </svg>
             Continue with Google
-          </button>
-
-          <button className="auth-btn auth-btn-social" disabled={loading}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M16.365 1.43c0 1.14-.493 2.27-1.177 3.08-.744.9-1.99 1.57-2.987 1.57-.18 0-.36-.02-.53-.06.01-.18.04-.36.04-.55 0-1.08.47-2.23 1.2-3.04.37-.4.84-.74 1.37-1 .53-.26 1.03-.4 1.5-.42.02.15.03.3.03.42zm3.03 6.39c-.17.1-2.97 1.72-2.97 5.3 0 4.16 3.66 5.64 3.76 5.67-.01.1-.59 2.02-1.94 3.98-1.2 1.73-2.44 3.45-4.39 3.45-1.92 0-2.53-1.11-4.87-1.11-2.26 0-3.06 1.14-4.84 1.14-1.78 0-3.03-1.6-4.39-3.54C-.5 19.62.26 14.55 2.9 11.72c1.32-1.42 2.92-2.36 4.63-2.36 1.83 0 2.96 1.15 4.46 1.15 1.46 0 2.35-1.15 4.45-1.15 1.26 0 2.64.52 3.94 1.56z"/>
-            </svg>
-            Continue with Apple
           </button>
         </div>
 

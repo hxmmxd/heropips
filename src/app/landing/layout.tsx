@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import '../landing.css';
 import LenisProvider from './LenisProvider';
+import { Navbar } from './Navbar';
+import { Footer } from './Footer';
 
 export const metadata: Metadata = {
   title: 'XyroTrade — AI Trading Signals',
@@ -11,7 +13,9 @@ export default function LandingLayout({ children }: { children: React.ReactNode 
   return (
     <div className="lp">
       <LenisProvider>
+        <Navbar />
         {children}
+        <Footer />
       </LenisProvider>
     </div>
   );

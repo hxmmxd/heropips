@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Navbar } from './Navbar';
 import TiltCard from './TiltCard';
+import { ArrowRight, HelpCircle, ChevronDown, Mail } from 'lucide-react';
 
 
 
@@ -669,6 +669,8 @@ function IntegrationsSection() {
     {
       key: 'mt5',
       name: 'MetaTrader 5',
+      tag: 'EXECUTION',
+      badgeText: 'Sub-1ms Latency',
       desc: 'Sub-millisecond execution. Route complex institutional signals via our proprietary, in-house MT5 farm infrastructure.',
       glowColor: 'rgba(0, 136, 255, 0.08)',
       borderColor: 'rgba(0, 136, 255, 0.25)',
@@ -683,6 +685,8 @@ function IntegrationsSection() {
     {
       key: 'binance',
       name: 'Binance',
+      tag: 'EXCHANGE',
+      badgeText: 'Secure API Sync',
       desc: 'Spot & Futures trading. Automated portfolio balancing with state-of-the-art secure API key encryption.',
       glowColor: 'rgba(240, 185, 11, 0.08)',
       borderColor: 'rgba(240, 185, 11, 0.25)',
@@ -697,6 +701,8 @@ function IntegrationsSection() {
     {
       key: 'bybit',
       name: 'Bybit',
+      tag: 'DERIVATIVES',
+      badgeText: 'Direct Liquidity Access',
       desc: 'High-leverage derivatives. Execute momentum trades instantly with direct liquidity access.',
       glowColor: 'rgba(255, 122, 0, 0.08)',
       borderColor: 'rgba(255, 122, 0, 0.25)',
@@ -711,6 +717,8 @@ function IntegrationsSection() {
     {
       key: 'telegram',
       name: 'Telegram Alerts',
+      tag: 'INTEGRATION',
+      badgeText: 'Instant Notification Stream',
       desc: 'Real-time alerts. Receive instant 12-gate confluence signals, logs, and execution reports directly in your channel.',
       glowColor: 'rgba(0, 172, 238, 0.08)',
       borderColor: 'rgba(0, 172, 238, 0.25)',
@@ -761,8 +769,13 @@ function IntegrationsSection() {
                   >
                     <div className="lp-integration-top">
                       {item.logo}
+                      <span className="lp-integration-card-tag">{item.tag}</span>
                     </div>
                     <p className="lp-integration-card-desc">{item.desc}</p>
+                    <div className="lp-integration-card-footer">
+                      <span className="lp-integration-card-status">{item.badgeText}</span>
+                      <ArrowRight size={13} className="lp-integration-card-arrow" />
+                    </div>
                   </div>
                 </TiltCard>
               );
@@ -774,62 +787,93 @@ function IntegrationsSection() {
   );
 }
 
-function FooterSection() {
+function FaqSection() {
+  const [openIdx, setOpenIdx] = useState<number | null>(null);
+
+  const faqs = [
+    {
+      q: 'How does the 12-Gate Confluence Engine validate signals?',
+      a: 'Every signal undergoes real-time validation across 12 distinct quantitative gates. These gates analyze technical indicators, volume profiles, liquidity gaps, correlation matrixes, order block patterns, key economic data releases, and current news sentiment. A signal is only released if it meets a perfect consensus across all 12 validation gates.'
+    },
+    {
+      q: 'What is the MT5 Farm, and how does it achieve sub-millisecond execution?',
+      a: 'Our MT5 Farm is a proprietary, in-house infrastructure composed of co-located high-frequency servers situated in key global financial data centers (LD4 and NY4). By hosting direct API bridge connections close to liquidity providers, we reduce round-trip latency to sub-millisecond levels, eliminating slippage and maximizing execution speed.'
+    },
+    {
+      q: 'Can XyroTrade help me pass Prop Firm challenges?',
+      a: 'Absolutely. XyroTrade is specifically built with advanced risk governance controls to help traders pass challenges from firms like FTMO, FundedNext, and MFF. The Risk Governor automatically calculates position sizing based on your specific drawdown limits, ensuring you never violate daily loss thresholds or max drawdown rules.'
+    },
+    {
+      q: 'Is my broker account secure when connecting via API?',
+      a: 'Security is our highest priority. XyroTrade uses bank-grade AES-256 API key encryption. We only request trading execution permissions; withdrawal access is strictly blocked. Furthermore, your API keys are stored in isolated, hardware-security modules (HSMs) on our secure cloud architecture.'
+    },
+    {
+      q: 'How does the AI Chat Assistant analyze live market charts?',
+      a: 'The AI Chat Assistant is directly hooked into our real-time price feeds and news sentiment engine. When you ask about an asset, the AI dynamically extracts price structure, candlestick formations, order block imbalances, and sentiment reports, delivering technical analyses in seconds.'
+    },
+    {
+      q: 'Can I white-label XyroTrade\'s signals or connect via custom Webhooks?',
+      a: 'Yes. We offer white-label solutions and direct websocket/REST API feeds for quantitative desks, family offices, and professional trading communities. You can customize the signal routing, integrate custom risk templates, and broadcast alerts directly to your Discord, Telegram, or custom webhook endpoints.'
+    }
+  ];
+
   return (
-    <footer className="lp-footer">
-      <div className="lp-footer-top">
-        <h2 className="lp-footer-cta-title">Try XyroTrade today</h2>
-        <p className="lp-footer-cta-sub">Free to start. No commitments.</p>
-        <a href="#" className="lp-footer-btn">Start for Free</a>
-      </div>
+    <section className="lp-faq-section">
+      <div className="lp-faq-wrap">
+        <div className="lp-faq-inner">
+          <div className="lp-faq-header">
+            <span className="lp-faq-tag">
+              <HelpCircle size={12} style={{ marginRight: 5 }} />
+              Frequently Asked Questions
+            </span>
+            <h2 className="lp-faq-title">Questions? Answers!</h2>
+            <p className="lp-faq-desc">
+              Everything you need to know about our institutional validation, farm infrastructure, and risk models.
+            </p>
+          </div>
 
-      <div className="lp-footer-middle">
-        <div className="lp-footer-nav">
-          <a href="#">Pricing</a>
-          <a href="#">Terms & Conditions</a>
-          <a href="#">Privacy Policy</a>
-          <a href="#">Help</a>
-          <a href="#">Partner Program</a>
-          <a href="#">Changelog</a>
+          <div className="lp-faq-list">
+            {faqs.map((faq, idx) => {
+              const isOpen = openIdx === idx;
+              return (
+                <div 
+                  key={idx} 
+                  className={`lp-faq-item-card ${isOpen ? 'open' : ''}`}
+                >
+                  <button 
+                    className="lp-faq-question-btn"
+                    onClick={() => setOpenIdx(isOpen ? null : idx)}
+                    aria-expanded={isOpen}
+                  >
+                    <span>{faq.q}</span>
+                    <ChevronDown size={18} className="lp-faq-chevron" />
+                  </button>
+                  <div 
+                    className="lp-faq-answer-wrapper"
+                    style={{
+                      maxHeight: isOpen ? '200px' : '0',
+                      opacity: isOpen ? 1 : 0
+                    }}
+                  >
+                    <p className="lp-faq-answer">{faq.a}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="lp-faq-footer">
+            <Mail size={14} style={{ marginRight: 6 }} />
+            <span>Feel free to mail us for any enquiries: </span>
+            <a href="mailto:support@xyrotrade.com" className="lp-faq-mail-link">support@xyrotrade.com</a>
+          </div>
         </div>
-        <div className="lp-footer-socials">
-          <a href="#" aria-label="Instagram">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
-              <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-              <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
-            </svg>
-          </a>
-          <a href="#" aria-label="LinkedIn">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
-              <rect x="2" y="9" width="4" height="12" />
-              <circle cx="4" cy="4" r="2" />
-            </svg>
-          </a>
-          <a href="#" aria-label="YouTube">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46a2.78 2.78 0 0 0-1.95 1.96A29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z" />
-              <polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02" />
-            </svg>
-          </a>
-        </div>
       </div>
-
-      <div className="lp-footer-divider" />
-
-      <div className="lp-footer-bottom">
-        <p className="lp-footer-copyright">
-          © 2026 XyroTrade. Built with precision for quantitative systems.
-        </p>
-      </div>
-
-      <div className="lp-footer-brand-huge">
-        XYRO TRADE
-      </div>
-    </footer>
+    </section>
   );
 }
+
+
 
 
 
@@ -905,8 +949,6 @@ export default function LandingPage() {
 
   return (
     <>
-      <Navbar />
-
       {/* ── HERO ── */}
       <section className="lp-hero-wrap">
         <div 
@@ -1053,24 +1095,14 @@ export default function LandingPage() {
               </motion.div>
             </div>
 
-            {/* RIGHT — unDraw terminal illustration */}
+            {/* RIGHT — Video showcase placeholder */}
             <motion.div className="lp-hero-right" variants={zoomIn}>
               <div className="lp-hero-video">
-                {/* macOS Window Title Bar */}
-                <div className="lp-terminal-header">
-                  <div className="lp-terminal-dots">
-                    <span className="lp-terminal-dot dot-red" />
-                    <span className="lp-terminal-dot dot-yellow" />
-                    <span className="lp-terminal-dot dot-green" />
-                  </div>
-                  <span className="lp-terminal-title">xyrotrade-demo.sh</span>
-                </div>
-
                 {/* Glassmorphic video placeholder with play button */}
                 <div className="lp-video-container">
                   <img 
-                    src="/images/undraw_trading_analytics.png" 
-                    alt="XyroTrade Terminal Showcase" 
+                    src="/images/hero-video-placeholder.png" 
+                    alt="XyroTrade Showcase Overview" 
                     className="lp-hero-video-poster"
                   />
                   <div className="lp-video-overlay-glass">
@@ -1125,8 +1157,8 @@ export default function LandingPage() {
       {/* ── BENTO ECOSYSTEM ── */}
       <XyroEcosystemSection />
 
-      {/* ── FOOTER ── */}
-      <FooterSection />
+      {/* ── FAQ ── */}
+      <FaqSection />
     </>
   );
 }

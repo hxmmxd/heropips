@@ -189,12 +189,12 @@ export function Navbar() {
             <a href="#" className="lp-nav-act-link">Contact sales</a>
             <div className="lp-nav-act-sep" />
             <a href="/login" className="lp-nav-act-link" onClick={closeAllMenus}>Log in</a>
-            <a href="/login" className="lp-nav-act-btn" onClick={closeAllMenus}>Create account</a>
+            <a href="/login?signup=true" className="lp-nav-act-btn" onClick={closeAllMenus}>Create account</a>
           </div>
 
           {/* Mobile-only: Create account (visible before hamburger on small screens) */}
           <div className="lp-nav-mobile-actions">
-            <a href="/login" className="lp-nav-mob-btn" onClick={closeAllMenus}>Create account</a>
+            <a href="/login?signup=true" className="lp-nav-mob-btn" onClick={closeAllMenus}>Create account</a>
           </div>
 
           {/* Hamburger */}
@@ -247,7 +247,7 @@ export function Navbar() {
         <a href="#" onClick={closeAllMenus}>Brokers</a>
         <div className="lp-nav-mobile-sep" />
         <a href="/login" onClick={closeAllMenus}>Log in</a>
-        <a href="/login" className="lp-nav-mobile-cta" onClick={closeAllMenus}>Create account</a>
+        <a href="/login?signup=true" className="lp-nav-mobile-cta" onClick={closeAllMenus}>Create account</a>
       </div>
     </>
   );
