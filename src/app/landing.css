@@ -126,13 +126,18 @@ body.lp-scrollable {
 /* ── Center Links ── */
 .lp-nav-links {
   display: flex;
-  align-items: center;
+  align-items: stretch;
+  align-self: stretch;
   gap: 2px;
   flex: 1;
+  height: 100%;
 }
 
 .lp-nav-item {
   position: relative;
+  display: flex;
+  align-items: center;
+  height: 100%;
 }
 
 .lp-nav-link {
@@ -208,7 +213,7 @@ body.lp-scrollable {
 /* ── Dropdown ── */
 .lp-nav-dropdown {
   position: absolute;
-  top: calc(100% + 8px);
+  top: 100%;
   left: 50%;
   transform: translateX(-50%) translateY(4px);
   background: #ffffff; /* Solid opaque white, no transparency */

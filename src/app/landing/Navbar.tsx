@@ -41,6 +41,9 @@ export function Navbar() {
   const [mobileActiveDropdown, setMobileActiveDropdown] = useState<string | null>(null);
 
   const toggleDropdown = (label: string) => {
+    if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
+      return;
+    }
     setActiveDropdown(activeDropdown === label ? null : label);
   };
 
@@ -82,11 +85,7 @@ export function Navbar() {
           <div className="lp-nav-links">
 
             {/* Platform Dropdown */}
-            <div 
-              className={`lp-nav-item ${activeDropdown === 'Platform' ? 'open' : ''}`}
-              onMouseEnter={() => setActiveDropdown('Platform')}
-              onMouseLeave={() => setActiveDropdown(null)}
-            >
+            <div className={`lp-nav-item ${activeDropdown === 'Platform' ? 'open' : ''}`}>
               <button className="lp-nav-link" onClick={() => toggleDropdown('Platform')}>
                 Platform
                 <ChevronDown className="lp-nav-chevron" size={14} />
@@ -115,11 +114,7 @@ export function Navbar() {
             </div>
 
             {/* For Traders Dropdown */}
-            <div 
-              className={`lp-nav-item ${activeDropdown === 'For Traders' ? 'open' : ''}`}
-              onMouseEnter={() => setActiveDropdown('For Traders')}
-              onMouseLeave={() => setActiveDropdown(null)}
-            >
+            <div className={`lp-nav-item ${activeDropdown === 'For Traders' ? 'open' : ''}`}>
               <button className="lp-nav-link" onClick={() => toggleDropdown('For Traders')}>
                 For Traders
                 <ChevronDown className="lp-nav-chevron" size={14} />
@@ -152,11 +147,7 @@ export function Navbar() {
             </div>
 
             {/* Resources Dropdown */}
-            <div 
-              className={`lp-nav-item ${activeDropdown === 'Resources' ? 'open' : ''}`}
-              onMouseEnter={() => setActiveDropdown('Resources')}
-              onMouseLeave={() => setActiveDropdown(null)}
-            >
+            <div className={`lp-nav-item ${activeDropdown === 'Resources' ? 'open' : ''}`}>
               <button className="lp-nav-link" onClick={() => toggleDropdown('Resources')}>
                 Resources
                 <ChevronDown className="lp-nav-chevron" size={14} />
