@@ -209,7 +209,8 @@ body.lp-scrollable {
 .lp-nav-dropdown {
   position: absolute;
   top: calc(100% + 8px);
-  left: 0;
+  left: 50%;
+  transform: translateX(-50%) translateY(6px);
   background: #fff;
   border: 1px solid var(--c-gray-200);
   border-radius: var(--r-lg);
@@ -218,7 +219,6 @@ body.lp-scrollable {
   padding: 6px;
   opacity: 0;
   pointer-events: none;
-  transform: translateY(6px);
   transition: opacity .18s, transform .18s;
   z-index: 300;
 }
@@ -227,7 +227,7 @@ body.lp-scrollable {
 .lp-nav-item.open .lp-nav-dropdown {
   opacity: 1;
   pointer-events: auto;
-  transform: translateY(0);
+  transform: translateX(-50%) translateY(0);
 }
 
 .lp-nav-dropdown-item {
@@ -243,31 +243,148 @@ body.lp-scrollable {
 
 .lp-nav-dropdown-item:hover { background: var(--c-gray-50); }
 
+/* Premium Dropdown Sizes */
+.lp-dd-platform {
+  width: 520px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.lp-dd-traders {
+  width: 560px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.lp-dd-resources {
+  width: 320px;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* Platform 2x2 grid */
+.lp-dd-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px;
+  padding: 16px;
+}
+
+.lp-dd-grid-single {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px;
+}
+
+/* Footer bottom bar */
+.lp-dd-footer {
+  background: rgba(245, 240, 232, 0.4);
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  padding: 12px 18px;
+}
+
+.lp-dd-footer-link {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--c-gray-500);
+  transition: color 0.2s;
+}
+
+.lp-dd-footer-link:hover {
+  color: #ff3c00;
+}
+
+/* Columns Structure for Traders Dropdown */
+.lp-dd-cols {
+  display: flex;
+  width: 100%;
+}
+
+.lp-dd-col-left {
+  width: 60%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 16px;
+}
+
+.lp-dd-col-right {
+  width: 40%;
+  background: rgba(245, 240, 232, 0.4);
+  border-left: 1px solid rgba(0, 0, 0, 0.05);
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.lp-dd-sidebar-tag {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #ff3c00;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.lp-dd-sidebar-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--c-dark);
+  margin-bottom: 8px;
+}
+
+.lp-dd-sidebar-desc {
+  font-size: 11px;
+  color: var(--c-gray-500);
+  line-height: 1.45;
+  margin-bottom: 16px;
+}
+
+.lp-dd-sidebar-link {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #ff3c00;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  transition: transform 0.2s;
+}
+
+.lp-dd-sidebar-link:hover {
+  color: #d63200;
+}
+
 .lp-nav-dd-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--r-sm);
-  background: var(--c-gray-100);
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 15px;
   flex-shrink: 0;
-  margin-top: 1px;
+  transition: transform 0.2s ease;
+}
+
+.lp-nav-dropdown-item:hover .lp-nav-dd-icon {
+  transform: scale(1.05);
 }
 
 .lp-nav-dd-title {
   font-size: 13.5px;
   font-weight: 600;
   color: var(--c-dark);
-  line-height: 1.3;
   margin-bottom: 2px;
 }
 
 .lp-nav-dd-desc {
-  font-size: 12px;
+  font-size: 11.5px;
   color: var(--c-gray-500);
-  line-height: 1.4;
+  line-height: 1.35;
 }
 
 .lp-nav-dropdown-sep {

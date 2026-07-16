@@ -1,33 +1,39 @@
 'use client';
 
 import { useState } from 'react';
+import { 
+  Cpu, 
+  ShieldCheck, 
+  BarChart3, 
+  Bot, 
+  Target, 
+  Building2, 
+  Compass, 
+  BookOpen, 
+  FileText, 
+  Users,
+  ChevronDown,
+  ArrowRight
+} from 'lucide-react';
 
 export const NAV_DROPDOWNS = {
   Platform: [
-    { icon: '⚡', title: 'AI Signal Engine', desc: '12-gate quantitative validation', href: '/landing/signal-engine' },
-    { icon: '🛡', title: 'Risk Governor', desc: 'Auto position sizing & drawdown guard', href: '#' },
-    { icon: '📊', title: 'Analytics Dashboard', desc: 'Full performance tracking & journal', href: '#' },
-    { icon: '🤖', title: 'AI Chat Assistant', desc: 'Ask anything, get instant analysis', href: '#' },
+    { icon: Cpu, iconColor: '#ff3c00', title: 'AI Signal Engine', desc: '12-gate quantitative validation', href: '/landing/signal-engine' },
+    { icon: ShieldCheck, iconColor: '#10b981', title: 'Risk Governor', desc: 'Auto position sizing & drawdown guard', href: '#' },
+    { icon: BarChart3, iconColor: '#0088cc', title: 'Analytics Dashboard', desc: 'Full performance tracking & journal', href: '#' },
+    { icon: Bot, iconColor: '#8b5cf6', title: 'AI Chat Assistant', desc: 'Ask anything, get instant analysis', href: '#' },
   ],
   'For Traders': [
-    { icon: '🎯', title: 'Prop Firm Traders', desc: 'Pass challenges with governed risk', href: '#' },
-    { icon: '💼', title: 'Institutional', desc: 'White-label & API for firms & funds', href: '#' },
-    { icon: '🔰', title: 'Beginners', desc: 'Start with guided, validated signals', href: '#' },
+    { icon: Target, iconColor: '#ff3c00', title: 'Prop Firm Traders', desc: 'Pass challenges with governed risk', href: '#' },
+    { icon: Building2, iconColor: '#0088cc', title: 'Institutional', desc: 'White-label & API for firms & funds', href: '#' },
+    { icon: Compass, iconColor: '#10b981', title: 'Beginners', desc: 'Start with guided, validated signals', href: '#' },
   ],
   Resources: [
-    { icon: '📖', title: 'Documentation', desc: 'Guides, API refs & tutorials', href: '#' },
-    { icon: '✍️', title: 'Blog', desc: 'Strategy breakdowns & market insights', href: '#' },
-    { icon: '💬', title: 'Community', desc: 'Telegram & Discord trader groups', href: '#' },
+    { icon: BookOpen, iconColor: '#0088cc', title: 'Documentation', desc: 'Guides, API refs & tutorials', href: '#' },
+    { icon: FileText, iconColor: '#ff3c00', title: 'Blog', desc: 'Strategy breakdowns & market insights', href: '#' },
+    { icon: Users, iconColor: '#10b981', title: 'Community', desc: 'Telegram & Discord trader groups', href: '#' },
   ],
 };
-
-function ChevronDown() {
-  return (
-    <svg className="lp-nav-chevron" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path d="M3 5l4 4 4-4" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
 
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -75,31 +81,96 @@ export function Navbar() {
           {/* Center links */}
           <div className="lp-nav-links">
 
-            {/* Dropdown items */}
-            {(Object.keys(NAV_DROPDOWNS) as Array<keyof typeof NAV_DROPDOWNS>).map((label) => (
-              <div className={`lp-nav-item ${activeDropdown === label ? 'open' : ''}`} key={label}>
-                <button className="lp-nav-link" onClick={() => toggleDropdown(label)}>
-                  {label}
-                  <ChevronDown />
-                </button>
-                <div className="lp-nav-dropdown">
-                  {NAV_DROPDOWNS[label].map((item) => (
-                    <a 
-                      key={item.title} 
-                      href={item.href || '#'} 
-                      className="lp-nav-dropdown-item"
-                      onClick={closeAllMenus}
-                    >
-                      <div className="lp-nav-dd-icon">{item.icon}</div>
-                      <div>
+            {/* Platform Dropdown */}
+            <div className={`lp-nav-item ${activeDropdown === 'Platform' ? 'open' : ''}`}>
+              <button className="lp-nav-link" onClick={() => toggleDropdown('Platform')}>
+                Platform
+                <ChevronDown className="lp-nav-chevron" size={14} />
+              </button>
+              <div className="lp-nav-dropdown lp-dd-platform">
+                <div className="lp-dd-grid">
+                  {NAV_DROPDOWNS.Platform.map((item) => (
+                    <a key={item.title} href={item.href} className="lp-nav-dropdown-item" onClick={closeAllMenus}>
+                      <div className="lp-nav-dd-icon" style={{ color: item.iconColor, background: `${item.iconColor}0c` }}>
+                        <item.icon size={18} strokeWidth={2} />
+                      </div>
+                      <div className="lp-nav-dd-info">
                         <div className="lp-nav-dd-title">{item.title}</div>
                         <div className="lp-nav-dd-desc">{item.desc}</div>
                       </div>
                     </a>
                   ))}
                 </div>
+                <div className="lp-dd-footer">
+                  <a href="/landing/signal-engine" className="lp-dd-footer-link" onClick={closeAllMenus}>
+                    <span>System Status: 100% Operational (4.8ms)</span>
+                    <ArrowRight size={13} />
+                  </a>
+                </div>
               </div>
-            ))}
+            </div>
+
+            {/* For Traders Dropdown */}
+            <div className={`lp-nav-item ${activeDropdown === 'For Traders' ? 'open' : ''}`}>
+              <button className="lp-nav-link" onClick={() => toggleDropdown('For Traders')}>
+                For Traders
+                <ChevronDown className="lp-nav-chevron" size={14} />
+              </button>
+              <div className="lp-nav-dropdown lp-dd-traders">
+                <div className="lp-dd-cols">
+                  <div className="lp-dd-col-left">
+                    {NAV_DROPDOWNS['For Traders'].map((item) => (
+                      <a key={item.title} href={item.href} className="lp-nav-dropdown-item" onClick={closeAllMenus}>
+                        <div className="lp-nav-dd-icon" style={{ color: item.iconColor, background: `${item.iconColor}0c` }}>
+                          <item.icon size={18} strokeWidth={2} />
+                        </div>
+                        <div className="lp-nav-dd-info">
+                          <div className="lp-nav-dd-title">{item.title}</div>
+                          <div className="lp-nav-dd-desc">{item.desc}</div>
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                  <div className="lp-dd-col-right">
+                    <div className="lp-dd-sidebar-tag">XYRO API</div>
+                    <h4 className="lp-dd-sidebar-title">Institutional Feed</h4>
+                    <p className="lp-dd-sidebar-desc">Direct websocket execution & raw data streams.</p>
+                    <a href="#" className="lp-dd-sidebar-link" onClick={closeAllMenus}>
+                      Request API Key <ArrowRight size={11} style={{ marginLeft: 2 }} />
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Resources Dropdown */}
+            <div className={`lp-nav-item ${activeDropdown === 'Resources' ? 'open' : ''}`}>
+              <button className="lp-nav-link" onClick={() => toggleDropdown('Resources')}>
+                Resources
+                <ChevronDown className="lp-nav-chevron" size={14} />
+              </button>
+              <div className="lp-nav-dropdown lp-dd-resources">
+                <div className="lp-dd-grid-single">
+                  {NAV_DROPDOWNS.Resources.map((item) => (
+                    <a key={item.title} href={item.href} className="lp-nav-dropdown-item" onClick={closeAllMenus}>
+                      <div className="lp-nav-dd-icon" style={{ color: item.iconColor, background: `${item.iconColor}0c` }}>
+                        <item.icon size={18} strokeWidth={2} />
+                      </div>
+                      <div className="lp-nav-dd-info">
+                        <div className="lp-nav-dd-title">{item.title}</div>
+                        <div className="lp-nav-dd-desc">{item.desc}</div>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+                <div className="lp-dd-footer">
+                  <a href="#" className="lp-dd-footer-link" onClick={closeAllMenus}>
+                    <span>Learn strategies at Xyro Academy</span>
+                    <ArrowRight size={13} />
+                  </a>
+                </div>
+              </div>
+            </div>
 
             {/* Plain links */}
             <a href="#" className="lp-nav-link">Signals</a>
@@ -148,7 +219,7 @@ export function Navbar() {
               onClick={() => setMobileActiveDropdown(mobileActiveDropdown === label ? null : label)}
             >
               {label}
-              <ChevronDown />
+              <ChevronDown className="lp-nav-chevron" size={14} />
             </button>
             <div className={`lp-nav-mobile-dropdown ${mobileActiveDropdown === label ? 'show' : ''}`}>
               {NAV_DROPDOWNS[label].map((item) => (
@@ -158,7 +229,9 @@ export function Navbar() {
                   className="lp-nav-mobile-dropdown-item"
                   onClick={closeAllMenus}
                 >
-                  <span className="lp-nav-mobile-dropdown-icon">{item.icon}</span>
+                  <span className="lp-nav-mobile-dropdown-icon" style={{ color: item.iconColor }}>
+                    <item.icon size={16} />
+                  </span>
                   <div className="lp-nav-mobile-dropdown-info">
                     <div className="lp-nav-mobile-dropdown-title">{item.title}</div>
                     <div className="lp-nav-mobile-dropdown-desc">{item.desc}</div>
