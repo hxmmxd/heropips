@@ -686,11 +686,11 @@ body.lp-scrollable {
   left: 12px;
   right: 12px;
   z-index: 199;
-  /* Premium Glassmorphism */
-  background: rgba(255, 255, 255, 0.88);
+  /* Cream Glassmorphism - Matched with Theme Dock */
+  background: rgba(245, 240, 232, 0.94);
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border: 1px solid rgba(27, 22, 19, 0.08);
+  border: 1px solid rgba(27, 22, 19, 0.07);
   border-radius: 20px;
   box-shadow: 
     0 30px 60px -15px rgba(27, 22, 19, 0.18),
@@ -733,7 +733,7 @@ body.lp-scrollable {
 }
 
 .lp-nav-mobile-link:hover {
-  background: var(--c-gray-100);
+  background: rgba(27, 22, 19, 0.04);
   color: var(--c-dark);
 }
 
@@ -744,7 +744,7 @@ body.lp-scrollable {
 
 .lp-nav-mobile-sep {
   height: 1px;
-  background: rgba(27, 22, 19, 0.06);
+  background: rgba(27, 22, 19, 0.08);
   margin: 8px 12px;
 }
 
@@ -767,14 +767,14 @@ body.lp-scrollable {
   text-decoration: none;
   padding: 10px;
   border-radius: var(--r-full);
-  border: 1px solid rgba(27, 22, 19, 0.08);
-  background: #ffffff;
+  border: 1px solid rgba(27, 22, 19, 0.12);
+  background: rgba(255, 255, 255, 0.65);
   transition: background 0.2s, border-color 0.2s;
 }
 
 .lp-nav-mobile-login:hover {
-  background: var(--c-gray-50);
-  border-color: rgba(27, 22, 19, 0.15);
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(27, 22, 19, 0.2);
 }
 
 .lp-nav-mobile-signup {
@@ -788,13 +788,13 @@ body.lp-scrollable {
   text-decoration: none;
   padding: 11px;
   border-radius: var(--r-full);
-  background: var(--c-dark);
-  box-shadow: 0 4px 12px rgba(27, 22, 19, 0.12);
+  background: var(--c-accent); /* Matched with Orange Brand CTA Theme */
+  box-shadow: 0 4px 12px rgba(240, 90, 40, 0.2);
   transition: background 0.2s, transform 0.2s;
 }
 
 .lp-nav-mobile-signup:hover {
-  background: #242424;
+  background: var(--c-accent-hover);
   transform: translateY(-0.5px);
 }
 
@@ -4135,10 +4135,17 @@ body.lp-scrollable {
   color: var(--c-dark);
 }
 
-.lp-nav-mobile-toggle:hover,
-.lp-nav-mobile-toggle.active {
-  background: var(--c-gray-100);
+.lp-nav-mobile-toggle:hover {
+  background: rgba(27, 22, 19, 0.04);
   color: var(--c-dark);
+}
+
+.lp-nav-mobile-toggle.active {
+  background: #ffffff;
+  color: var(--c-dark);
+  box-shadow: 
+    0 2px 8px rgba(27, 22, 19, 0.04),
+    0 1px 2px rgba(27, 22, 19, 0.02);
 }
 
 .lp-nav-mobile-toggle .lp-nav-chevron {
@@ -4186,7 +4193,7 @@ body.lp-scrollable {
 }
 
 .lp-nav-mobile-dropdown-item:hover {
-  background: var(--c-gray-50) !important;
+  background: rgba(27, 22, 19, 0.035) !important;
 }
 
 .lp-nav-mobile-dropdown-icon {
