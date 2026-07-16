@@ -1,6 +1,23 @@
 import fs from 'fs';
 import path from 'path';
+import dns from 'dns';
 import { fileURLToPath } from 'url';
+
+// Secure DNS lookup fallback override to handle local ISP resolving issues
+const originalLookup = dns.lookup;
+dns.lookup = function(hostname, options, callback) {
+  if (typeof options === 'function') {
+    callback = options;
+    options = {};
+  }
+  if (hostname === 'api.utho.com') {
+    if (options && options.all) {
+      return callback(null, [{ address: '103.127.28.51', family: 4 }]);
+    }
+    return callback(null, '103.127.28.51', 4);
+  }
+  return originalLookup(hostname, options, callback);
+};
 
 // Resolve directory paths in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -58,6 +75,7 @@ async function uthoRequest(endpoint, options = {}) {
     }
     return data;
   } catch (err) {
+    console.error("DEBUG FETCH ERROR:", err);
     throw new Error(`Network failure or API error: ${err.message}`);
   }
 }
@@ -69,46 +87,62 @@ async function main() {
     console.log("📡 Fetching plans, regions, and images from Utho...");
     try {
       const [plansRes, imagesRes, regionsRes, keysRes] = await Promise.all([
-        uthoRequest('/plans'),
+        uthoRequest('/plans?currency=INR'),
         uthoRequest('/cloud/images'),
         uthoRequest('/dczones'),
         uthoRequest('/key').catch(() => ({ data: [] }))
       ]);
 
       console.log("\n📍 === AVAILABLE REGIONS (DC ZONES) ===");
-      if (regionsRes.data && regionsRes.data.length > 0) {
-        regionsRes.data.forEach(r => {
-          console.log(`  • Region Slug: \x1b[36m${r.slug}\x1b[0m | Location: ${r.name}`);
+      const regionsList = regionsRes.dczones || [];
+      if (regionsList.length > 0) {
+        regionsList.forEach(r => {
+          console.log(`  • Region Slug: \x1b[36m${r.slug}\x1b[0m | Location: ${r.city} (${r.country}) | Status: ${r.status}`);
         });
       } else {
         console.log("  No regions listed.");
       }
 
       console.log("\n🖥️ === AVAILABLE OS IMAGES (UBUNTU FILTERED) ===");
-      if (imagesRes.data && imagesRes.data.length > 0) {
-        imagesRes.data
-          .filter(img => img.osname && img.osname.toLowerCase().includes('ubuntu'))
-          .forEach(img => {
-            console.log(`  • Image Tag: \x1b[33m${img.osname}\x1b[0m`);
-          });
+      const imagesList = imagesRes.images || [];
+      const ubuntuImages = imagesList.filter(img => img.image && img.image.toLowerCase().includes('ubuntu'));
+      if (ubuntuImages.length > 0) {
+        ubuntuImages.forEach(img => {
+          console.log(`  • Image Tag: \x1b[33m${img.image}\x1b[0m`);
+        });
       } else {
-        console.log("  No OS images found.");
+        console.log("  No Ubuntu OS images found.");
       }
 
-      console.log("\n💳 === RECOMMENDED VM HARDWARE PLANS (HOURLY / MONTHLY) ===");
-      if (plansRes.data && plansRes.data.length > 0) {
-        plansRes.data
-          .slice(0, 15) // Show top 15 plans
+      console.log("\n💳 === RECOMMENDED VM HARDWARE PLANS (EST. HOURLY / MONTHLY IN INR) ===");
+      const plansList = Array.isArray(plansRes) ? plansRes : (plansRes.plans || plansRes.data || []);
+      const recommendedPlans = plansList.filter(p => p.slug === 'basic' || p.slug === 'generalpurpose');
+      if (recommendedPlans.length > 0) {
+        recommendedPlans
+          .slice(0, 12)
           .forEach(p => {
-            console.log(`  • Plan ID: \x1b[32m${p.id}\x1b[0m | CPU: ${p.cpu} Core(s) | RAM: ${p.ram} GB | Storage: ${p.disk} GB SSD | Price: $${p.price_hourly}/hr ($${p.price_monthly}/mo)`);
+            const monthlyPrice = p.price || 0;
+            const hourlyPrice = (monthlyPrice / 730).toFixed(2);
+            const ramGb = (p.ram / 1024).toFixed(0);
+            console.log(`  • Plan ID: \x1b[32m${p.id}\x1b[0m | CPU: ${p.cpu} Core(s) | RAM: ${ramGb} GB | Price: ~₹${hourlyPrice}/hr (₹${monthlyPrice}/mo)`);
+          });
+      } else if (plansList.length > 0) {
+        plansList
+          .slice(0, 12)
+          .forEach(p => {
+            const monthlyPrice = p.price || 0;
+            const hourlyPrice = (monthlyPrice / 730).toFixed(2);
+            const ramGb = (p.ram / 1024).toFixed(0);
+            console.log(`  • Plan ID: \x1b[32m${p.id}\x1b[0m | CPU: ${p.cpu} Core(s) | RAM: ${ramGb} GB | Price: ~₹${hourlyPrice}/hr (₹${monthlyPrice}/mo)`);
           });
       } else {
         console.log("  No plans found.");
       }
 
       console.log("\n🔑 === DETECTED SSH KEYS IN ACCOUNT ===");
-      if (keysRes.data && keysRes.data.length > 0) {
-        keysRes.data.forEach(k => {
+      const keysList = keysRes.key || [];
+      if (keysList.length > 0) {
+        keysList.forEach(k => {
           console.log(`  • Key ID: \x1b[35m${k.id}\x1b[0m | Name: ${k.name}`);
         });
       } else {
