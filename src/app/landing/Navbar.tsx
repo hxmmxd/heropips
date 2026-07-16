@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import * as NavigationMenu from '@radix-ui/react-navigation-menu';
 import { 
   Cpu, 
   ShieldCheck, 
@@ -82,110 +83,146 @@ export function Navbar() {
 
 
           {/* Center links */}
-          <div className="lp-nav-links">
+          <NavigationMenu.Root className="lp-nav-root">
+            <NavigationMenu.List className="lp-nav-links">
 
-            {/* Platform Dropdown */}
-            <div className={`lp-nav-item ${activeDropdown === 'Platform' ? 'open' : ''}`}>
-              <button className="lp-nav-link" onClick={() => toggleDropdown('Platform')}>
-                Platform
-                <ChevronDown className="lp-nav-chevron" size={14} />
-              </button>
-              <div className="lp-nav-dropdown lp-dd-platform">
-                <div className="lp-dd-grid">
-                  {NAV_DROPDOWNS.Platform.map((item) => (
-                    <a key={item.title} href={item.href} className="lp-nav-dropdown-item" onClick={closeAllMenus}>
-                      <div className="lp-nav-dd-icon" style={{ color: item.iconColor, background: `${item.iconColor}0c` }}>
-                        <item.icon size={18} strokeWidth={2} />
-                      </div>
-                      <div className="lp-nav-dd-info">
-                        <div className="lp-nav-dd-title">{item.title}</div>
-                        <div className="lp-nav-dd-desc">{item.desc}</div>
-                      </div>
-                    </a>
-                  ))}
-                </div>
-                <div className="lp-dd-footer">
-                  <a href="/landing/signal-engine" className="lp-dd-footer-link" onClick={closeAllMenus}>
-                    <span>System Status: 100% Operational (4.8ms)</span>
-                    <ArrowRight size={13} />
-                  </a>
-                </div>
-              </div>
-            </div>
-
-            {/* For Traders Dropdown */}
-            <div className={`lp-nav-item ${activeDropdown === 'For Traders' ? 'open' : ''}`}>
-              <button className="lp-nav-link" onClick={() => toggleDropdown('For Traders')}>
-                For Traders
-                <ChevronDown className="lp-nav-chevron" size={14} />
-              </button>
-              <div className="lp-nav-dropdown lp-dd-traders">
-                <div className="lp-dd-cols">
-                  <div className="lp-dd-col-left">
-                    {NAV_DROPDOWNS['For Traders'].map((item) => (
-                      <a key={item.title} href={item.href} className="lp-nav-dropdown-item" onClick={closeAllMenus}>
-                        <div className="lp-nav-dd-icon" style={{ color: item.iconColor, background: `${item.iconColor}0c` }}>
-                          <item.icon size={18} strokeWidth={2} />
-                        </div>
-                        <div className="lp-nav-dd-info">
-                          <div className="lp-nav-dd-title">{item.title}</div>
-                          <div className="lp-nav-dd-desc">{item.desc}</div>
-                        </div>
-                      </a>
+              {/* Platform Dropdown */}
+              <NavigationMenu.Item className={`lp-nav-item ${activeDropdown === 'Platform' ? 'open' : ''}`}>
+                <NavigationMenu.Trigger className="lp-nav-link" onClick={() => toggleDropdown('Platform')}>
+                  Platform
+                  <ChevronDown className="lp-nav-chevron" size={14} />
+                </NavigationMenu.Trigger>
+                <NavigationMenu.Content className="lp-nav-dropdown lp-dd-platform">
+                  <div className="lp-dd-grid">
+                    {NAV_DROPDOWNS.Platform.map((item) => (
+                      <NavigationMenu.Link key={item.title} asChild>
+                        <a href={item.href} className="lp-nav-dropdown-item" onClick={closeAllMenus}>
+                          <div className="lp-nav-dd-icon" style={{ color: item.iconColor, background: `${item.iconColor}0c` }}>
+                            <item.icon size={18} strokeWidth={2} />
+                          </div>
+                          <div className="lp-nav-dd-info">
+                            <div className="lp-nav-dd-title">{item.title}</div>
+                            <div className="lp-nav-dd-desc">{item.desc}</div>
+                          </div>
+                        </a>
+                      </NavigationMenu.Link>
                     ))}
                   </div>
-                  <div className="lp-dd-col-right">
-                    <div className="lp-dd-sidebar-tag">XYRO API</div>
-                    <h4 className="lp-dd-sidebar-title">Institutional Feed</h4>
-                    <p className="lp-dd-sidebar-desc">Direct websocket execution & raw data streams.</p>
-                    <a href="#" className="lp-dd-sidebar-link" onClick={closeAllMenus}>
-                      Request API Key <ArrowRight size={11} style={{ marginLeft: 2 }} />
-                    </a>
+                  <div className="lp-dd-footer">
+                    <NavigationMenu.Link asChild>
+                      <a href="/landing/signal-engine" className="lp-dd-footer-link" onClick={closeAllMenus}>
+                        <span>System Status: 100% Operational (4.8ms)</span>
+                        <ArrowRight size={13} />
+                      </a>
+                    </NavigationMenu.Link>
                   </div>
-                </div>
-              </div>
-            </div>
+                </NavigationMenu.Content>
+              </NavigationMenu.Item>
 
-            {/* Resources Dropdown */}
-            <div className={`lp-nav-item ${activeDropdown === 'Resources' ? 'open' : ''}`}>
-              <button className="lp-nav-link" onClick={() => toggleDropdown('Resources')}>
-                Resources
-                <ChevronDown className="lp-nav-chevron" size={14} />
-              </button>
-              <div className="lp-nav-dropdown lp-dd-resources">
-                <div className="lp-dd-grid-single">
-                  {NAV_DROPDOWNS.Resources.map((item) => (
-                    <a key={item.title} href={item.href} className="lp-nav-dropdown-item" onClick={closeAllMenus}>
-                      <div className="lp-nav-dd-icon" style={{ color: item.iconColor, background: `${item.iconColor}0c` }}>
-                        <item.icon size={18} strokeWidth={2} />
-                      </div>
-                      <div className="lp-nav-dd-info">
-                        <div className="lp-nav-dd-title">{item.title}</div>
-                        <div className="lp-nav-dd-desc">{item.desc}</div>
-                      </div>
-                    </a>
-                  ))}
-                </div>
-                <div className="lp-dd-footer">
-                  <a href="#" className="lp-dd-footer-link" onClick={closeAllMenus}>
-                    <span>Learn strategies at Xyro Academy</span>
-                    <ArrowRight size={13} />
+              {/* For Traders Dropdown */}
+              <NavigationMenu.Item className={`lp-nav-item ${activeDropdown === 'For Traders' ? 'open' : ''}`}>
+                <NavigationMenu.Trigger className="lp-nav-link" onClick={() => toggleDropdown('For Traders')}>
+                  For Traders
+                  <ChevronDown className="lp-nav-chevron" size={14} />
+                </NavigationMenu.Trigger>
+                <NavigationMenu.Content className="lp-nav-dropdown lp-dd-traders">
+                  <div className="lp-dd-cols">
+                    <div className="lp-dd-col-left">
+                      {NAV_DROPDOWNS['For Traders'].map((item) => (
+                        <NavigationMenu.Link key={item.title} asChild>
+                          <a href={item.href} className="lp-nav-dropdown-item" onClick={closeAllMenus}>
+                            <div className="lp-nav-dd-icon" style={{ color: item.iconColor, background: `${item.iconColor}0c` }}>
+                              <item.icon size={18} strokeWidth={2} />
+                            </div>
+                            <div className="lp-nav-dd-info">
+                              <div className="lp-nav-dd-title">{item.title}</div>
+                              <div className="lp-nav-dd-desc">{item.desc}</div>
+                            </div>
+                          </a>
+                        </NavigationMenu.Link>
+                      ))}
+                    </div>
+                    <div className="lp-dd-col-right">
+                      <div className="lp-dd-sidebar-tag">XYRO API</div>
+                      <h4 className="lp-dd-sidebar-title">Institutional Feed</h4>
+                      <p className="lp-dd-sidebar-desc">Direct websocket execution & raw data streams.</p>
+                      <NavigationMenu.Link asChild>
+                        <a href="#" className="lp-dd-sidebar-link" onClick={closeAllMenus}>
+                          Request API Key <ArrowRight size={11} style={{ marginLeft: 2 }} />
+                        </a>
+                      </NavigationMenu.Link>
+                    </div>
+                  </div>
+                </NavigationMenu.Content>
+              </NavigationMenu.Item>
+
+              {/* Resources Dropdown */}
+              <NavigationMenu.Item className={`lp-nav-item ${activeDropdown === 'Resources' ? 'open' : ''}`}>
+                <NavigationMenu.Trigger className="lp-nav-link" onClick={() => toggleDropdown('Resources')}>
+                  Resources
+                  <ChevronDown className="lp-nav-chevron" size={14} />
+                </NavigationMenu.Trigger>
+                <NavigationMenu.Content className="lp-nav-dropdown lp-dd-resources">
+                  <div className="lp-dd-grid-single">
+                    {NAV_DROPDOWNS.Resources.map((item) => (
+                      <NavigationMenu.Link key={item.title} asChild>
+                        <a href={item.href} className="lp-nav-dropdown-item" onClick={closeAllMenus}>
+                          <div className="lp-nav-dd-icon" style={{ color: item.iconColor, background: `${item.iconColor}0c` }}>
+                            <item.icon size={18} strokeWidth={2} />
+                          </div>
+                          <div className="lp-nav-dd-info">
+                            <div className="lp-nav-dd-title">{item.title}</div>
+                            <div className="lp-nav-dd-desc">{item.desc}</div>
+                          </div>
+                        </a>
+                      </NavigationMenu.Link>
+                    ))}
+                  </div>
+                  <div className="lp-dd-footer">
+                    <NavigationMenu.Link asChild>
+                      <a href="#" className="lp-dd-footer-link" onClick={closeAllMenus}>
+                        <span>Learn strategies at Xyro Academy</span>
+                        <ArrowRight size={13} />
+                      </a>
+                    </NavigationMenu.Link>
+                  </div>
+                </NavigationMenu.Content>
+              </NavigationMenu.Item>
+
+              {/* Plain links */}
+              <NavigationMenu.Item className="lp-nav-item">
+                <NavigationMenu.Link asChild>
+                  <a href="#" className="lp-nav-link">Signals</a>
+                </NavigationMenu.Link>
+              </NavigationMenu.Item>
+              <NavigationMenu.Item className="lp-nav-item">
+                <NavigationMenu.Link asChild>
+                  <a href="#" className="lp-nav-link">Pricing</a>
+                </NavigationMenu.Link>
+              </NavigationMenu.Item>
+              <NavigationMenu.Item className="lp-nav-item">
+                <NavigationMenu.Link asChild>
+                  <a href="#" className="lp-nav-link">Brokers</a>
+                </NavigationMenu.Link>
+              </NavigationMenu.Item>
+
+              {/* Orange badge pill */}
+              <NavigationMenu.Item className="lp-nav-item">
+                <NavigationMenu.Link asChild>
+                  <a href="#" className="lp-nav-badge">
+                    <span className="lp-nav-badge-dot" />
+                    Live Signals
                   </a>
-                </div>
-              </div>
+                </NavigationMenu.Link>
+              </NavigationMenu.Item>
+
+            </NavigationMenu.List>
+
+            {/* Viewport for smooth width/height animations */}
+            <div className="lp-nav-viewport-wrapper">
+              <NavigationMenu.Viewport className="lp-nav-dropdown-viewport" />
             </div>
-
-            {/* Plain links */}
-            <a href="#" className="lp-nav-link">Signals</a>
-            <a href="#" className="lp-nav-link">Pricing</a>
-            <a href="#" className="lp-nav-link">Brokers</a>
-
-            {/* Orange badge pill */}
-            <a href="#" className="lp-nav-badge">
-              <span className="lp-nav-badge-dot" />
-              Live Signals
-            </a>
-          </div>
+          </NavigationMenu.Root>
 
           {/* Right actions */}
           <div className="lp-nav-actions">

@@ -213,41 +213,113 @@ body.lp-scrollable {
 /* ── Dropdown ── */
 .lp-nav-dropdown {
   position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  min-width: auto;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: none;
+  transition: none;
+}
+
+/* Radix Navigation Menu Root & Viewport */
+.lp-nav-root {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  align-self: stretch;
+  height: 100%;
+  z-index: 300;
+}
+
+.lp-nav-viewport-wrapper {
+  position: absolute;
   top: 100%;
   left: 50%;
-  transform: translateX(-50%) translateY(4px);
-  background: #ffffff; /* Solid opaque white, no transparency */
+  transform: translateX(-50%);
+  width: auto;
+  perspective: 2000px;
+}
+
+.lp-nav-dropdown-viewport {
+  position: relative;
+  transform-origin: top center;
+  background-color: #ffffff;
   border: 1px solid rgba(27, 22, 19, 0.08);
   border-radius: 20px;
   box-shadow: 
     0 20px 48px -10px rgba(27, 22, 19, 0.15),
     0 6px 18px rgba(27, 22, 19, 0.05);
-  min-width: 220px;
-  padding: 0;
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transition: opacity 0.28s cubic-bezier(0.16, 1, 0.3, 1), transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.28s;
+  width: var(--radix-navigation-menu-viewport-width);
+  height: var(--radix-navigation-menu-viewport-height);
+  overflow: hidden;
   z-index: 300;
+  
+  /* Smooth size transitions */
+  transition: width 220ms cubic-bezier(0.16, 1, 0.3, 1), height 220ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Invisible hover bridge to prevent collapse when sliding mouse into the dropdown */
-.lp-nav-dropdown::before {
-  content: '';
-  position: absolute;
-  top: -24px;
-  left: 0;
-  right: 0;
-  height: 24px;
-  background: transparent;
+.lp-nav-dropdown-viewport[data-state="open"] {
+  animation: lpViewportEnter 220ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.lp-nav-item:hover .lp-nav-dropdown,
-.lp-nav-item.open .lp-nav-dropdown {
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
-  transform: translateX(-50%) translateY(0);
+.lp-nav-dropdown-viewport[data-state="closed"] {
+  animation: lpViewportExit 160ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes lpViewportEnter {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes lpViewportExit {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.96) translateY(-4px);
+  }
+}
+
+/* Content Animations inside Radix Viewport */
+.lp-nav-dropdown[data-state="open"] {
+  animation: lpContentEnter 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.lp-nav-dropdown[data-state="closed"] {
+  animation: lpContentExit 160ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes lpContentEnter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes lpContentExit {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
 
 .lp-nav-dropdown-item {
