@@ -269,25 +269,23 @@ export function Navbar() {
               </div>
               <ChevronDown className="lp-nav-chevron" size={14} />
             </button>
-            <div className={`lp-nav-mobile-dropdown-wrapper ${mobileActiveDropdown === label ? 'show' : ''}`}>
-              <div className="lp-nav-mobile-dropdown">
-                {NAV_DROPDOWNS[label].map((item) => (
-                  <a 
-                    key={item.title} 
-                    href={item.href || '#'} 
-                    className="lp-nav-mobile-dropdown-item"
-                    onClick={closeAllMenus}
-                  >
-                    <span className="lp-nav-mobile-dropdown-icon" style={{ color: item.iconColor }}>
-                      <item.icon size={16} />
-                    </span>
-                    <div className="lp-nav-mobile-dropdown-info">
-                      <div className="lp-nav-mobile-dropdown-title">{item.title}</div>
-                      <div className="lp-nav-mobile-dropdown-desc">{item.desc}</div>
-                    </div>
-                  </a>
-                ))}
-              </div>
+            <div className={`lp-nav-mobile-dropdown ${mobileActiveDropdown === label ? 'show' : ''}`}>
+              {NAV_DROPDOWNS[label].map((item) => (
+                <a 
+                  key={item.title} 
+                  href={item.href || '#'} 
+                  className="lp-nav-mobile-dropdown-item"
+                  onClick={closeAllMenus}
+                >
+                  <span className="lp-nav-mobile-dropdown-icon" style={{ color: item.iconColor }}>
+                    <item.icon size={16} />
+                  </span>
+                  <div className="lp-nav-mobile-dropdown-info">
+                    <div className="lp-nav-mobile-dropdown-title">{item.title}</div>
+                    <div className="lp-nav-mobile-dropdown-desc">{item.desc}</div>
+                  </div>
+                </a>
+              ))}
             </div>
           </div>
         ))}
