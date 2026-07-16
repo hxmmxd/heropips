@@ -223,6 +223,17 @@ body.lp-scrollable {
   z-index: 300;
 }
 
+/* Invisible hover bridge to prevent collapse when sliding mouse into the dropdown */
+.lp-nav-dropdown::before {
+  content: '';
+  position: absolute;
+  top: -12px;
+  left: 0;
+  right: 0;
+  height: 12px;
+  background: transparent;
+}
+
 .lp-nav-item:hover .lp-nav-dropdown,
 .lp-nav-item.open .lp-nav-dropdown {
   opacity: 1;
