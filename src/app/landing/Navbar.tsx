@@ -14,7 +14,10 @@ import {
   FileText, 
   Users,
   ChevronDown,
-  ArrowRight
+  ArrowRight,
+  TrendingUp,
+  Tag,
+  Globe
 } from 'lucide-react';
 
 export const NAV_DROPDOWNS = {
@@ -258,36 +261,57 @@ export function Navbar() {
               className={`lp-nav-mobile-toggle ${mobileActiveDropdown === label ? 'active' : ''}`}
               onClick={() => setMobileActiveDropdown(mobileActiveDropdown === label ? null : label)}
             >
-              {label}
+              <div className="lp-nav-mobile-toggle-left">
+                {label === 'Platform' && <Cpu size={16} className="lp-nav-mobile-toggle-icon" />}
+                {label === 'For Traders' && <Users size={16} className="lp-nav-mobile-toggle-icon" />}
+                {label === 'Resources' && <BookOpen size={16} className="lp-nav-mobile-toggle-icon" />}
+                <span>{label}</span>
+              </div>
               <ChevronDown className="lp-nav-chevron" size={14} />
             </button>
-            <div className={`lp-nav-mobile-dropdown ${mobileActiveDropdown === label ? 'show' : ''}`}>
-              {NAV_DROPDOWNS[label].map((item) => (
-                <a 
-                  key={item.title} 
-                  href={item.href || '#'} 
-                  className="lp-nav-mobile-dropdown-item"
-                  onClick={closeAllMenus}
-                >
-                  <span className="lp-nav-mobile-dropdown-icon" style={{ color: item.iconColor }}>
-                    <item.icon size={16} />
-                  </span>
-                  <div className="lp-nav-mobile-dropdown-info">
-                    <div className="lp-nav-mobile-dropdown-title">{item.title}</div>
-                    <div className="lp-nav-mobile-dropdown-desc">{item.desc}</div>
-                  </div>
-                </a>
-              ))}
+            <div className={`lp-nav-mobile-dropdown-wrapper ${mobileActiveDropdown === label ? 'show' : ''}`}>
+              <div className="lp-nav-mobile-dropdown">
+                {NAV_DROPDOWNS[label].map((item) => (
+                  <a 
+                    key={item.title} 
+                    href={item.href || '#'} 
+                    className="lp-nav-mobile-dropdown-item"
+                    onClick={closeAllMenus}
+                  >
+                    <span className="lp-nav-mobile-dropdown-icon" style={{ color: item.iconColor }}>
+                      <item.icon size={16} />
+                    </span>
+                    <div className="lp-nav-mobile-dropdown-info">
+                      <div className="lp-nav-mobile-dropdown-title">{item.title}</div>
+                      <div className="lp-nav-mobile-dropdown-desc">{item.desc}</div>
+                    </div>
+                  </a>
+                ))}
+              </div>
             </div>
           </div>
         ))}
 
-        <a href="#" onClick={closeAllMenus}>Signals</a>
-        <a href="#" onClick={closeAllMenus}>Pricing</a>
-        <a href="#" onClick={closeAllMenus}>Brokers</a>
+        {/* Plain links with premium left icons */}
+        <a href="#" className="lp-nav-mobile-link" onClick={closeAllMenus}>
+          <TrendingUp size={16} className="lp-nav-mobile-link-icon" />
+          <span>Signals</span>
+        </a>
+        <a href="#" className="lp-nav-mobile-link" onClick={closeAllMenus}>
+          <Tag size={16} className="lp-nav-mobile-link-icon" />
+          <span>Pricing</span>
+        </a>
+        <a href="#" className="lp-nav-mobile-link" onClick={closeAllMenus}>
+          <Globe size={16} className="lp-nav-mobile-link-icon" />
+          <span>Brokers</span>
+        </a>
+
+        {/* Separator and premium CTAs */}
         <div className="lp-nav-mobile-sep" />
-        <a href="/login" onClick={closeAllMenus}>Log in</a>
-        <a href="/login?signup=true" className="lp-nav-mobile-cta" onClick={closeAllMenus}>Create account</a>
+        <div className="lp-nav-mobile-footer">
+          <a href="/login" className="lp-nav-mobile-login" onClick={closeAllMenus}>Log in</a>
+          <a href="/login?signup=true" className="lp-nav-mobile-signup" onClick={closeAllMenus}>Create account</a>
+        </div>
       </div>
     </>
   );
