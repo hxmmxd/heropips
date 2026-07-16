@@ -159,7 +159,7 @@ async function main() {
     const dcslug = process.argv[3];
     const planid = process.argv[4];
     const image = process.argv[5] || 'ubuntu-22.04-x86_64';
-    const hostname = process.argv[6] || 'tradegpt-prod';
+    const hostname = process.argv[6] || 'xyrotrade-prod';
 
     if (!dcslug || !planid) {
       console.log("❌ Error: Missing parameters.");
@@ -167,22 +167,37 @@ async function main() {
       process.exit(1);
     }
 
-    console.log(`🚀 Initiating deployment of '${hostname}' on Utho hourly billing...`);
+    console.log(`📡 Checking for SSH Keys in your Utho account...`);
     try {
+      const keysRes = await uthoRequest('/key').catch(() => ({ key: [] }));
+      const keysList = keysRes.key || [];
+      let sshkeys = '';
+      if (keysList.length > 0) {
+        sshkeys = keysList[0].id.toString();
+        console.log(`🔑 Found SSH Key: '${keysList[0].name}' (ID: ${sshkeys}). Attaching to instance...`);
+      } else {
+        console.warn(`⚠️ Warning: No SSH Keys found in Utho. Proceeding without attaching a key.`);
+      }
+
+      console.log(`🚀 Initiating deployment of '${hostname}' on Utho hourly billing...`);
       const payload = {
         dcslug,
         image,
         planid: parseInt(planid, 10),
-        hostname,
-        billingcycle: 'hourly'
+        billingcycle: 'hourly',
+        cloud: [{ hostname }]
       };
+
+      if (sshkeys) {
+        payload.sshkeys = sshkeys;
+      }
 
       const result = await uthoRequest('/cloud/deploy/', {
         method: 'POST',
         body: JSON.stringify(payload)
       });
 
-      console.log("\n✅ VM Deployment Initiated Successfully!");
+      console.log("\n✅ VM Deployment Response:");
       console.log("---------------------------------------");
       console.log(JSON.stringify(result, null, 2));
     } catch (e) {
