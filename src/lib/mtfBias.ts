@@ -5,7 +5,7 @@
  * Stack:
  *   Weekly → Macro trend (strongest weight)
  *   Daily  → Intermediate trend
- *   4H     → Entry timeframe bias (already in market.ts as htfBias)
+ *   1H     → Entry timeframe bias (already in market.ts as htfBias)
  *
  * A trade with all 3 timeframes aligned = institutional-grade setup.
  */
@@ -15,7 +15,7 @@ import { fetchYahooCandles } from './yahooFinance';
 export interface MTFBias {
   weekly: 'bullish' | 'bearish' | 'neutral';
   daily: 'bullish' | 'bearish' | 'neutral';
-  h4: 'bullish' | 'bearish' | 'neutral';
+  h1: 'bullish' | 'bearish' | 'neutral';
   alignment: number;       // 0–3 how many TFs agree with direction
   dominant: 'bullish' | 'bearish' | 'neutral';
   signal: 'bullish' | 'bearish' | 'neutral';
@@ -89,7 +89,7 @@ const MTF_TTL = 30 * 60 * 1000; // 30 min cache (weekly/daily don't change often
 
 export async function getMTFBias(
   symbol: string,
-  h4Bias: 'bullish' | 'bearish' | 'neutral',
+  h1Bias: 'bullish' | 'bearish' | 'neutral',
   preFetchedWeekly?: any[],
   preFetchedDaily?: any[]
 ): Promise<MTFBias> {
@@ -103,9 +103,9 @@ export async function getMTFBias(
 
     const weekly = biasFromCandles(weeklyCandles.slice(-52), 'weekly');
     const daily = biasFromCandles(dailyCandles.slice(-60), 'daily');
-    const h4 = h4Bias;
+    const h1 = h1Bias;
 
-    const biases = [weekly, daily, h4];
+    const biases = [weekly, daily, h1];
     const bullCount = biases.filter(b => b === 'bullish').length;
     const bearCount = biases.filter(b => b === 'bearish').length;
 
@@ -131,15 +131,15 @@ export async function getMTFBias(
 
     let detail: string;
     if (alignment === 3) {
-      detail = `All 3 TFs ${dominant} — Weekly ${weekly} · Daily ${daily} · 4H ${h4} — PERFECT alignment`;
+      detail = `All 3 TFs ${dominant} — Weekly ${weekly} · Daily ${daily} · 1H ${h1} — PERFECT alignment`;
     } else if (alignment === 2) {
-      detail = `2/3 TFs ${dominant} — Weekly ${weekly} · Daily ${daily} · 4H ${h4}`;
+      detail = `2/3 TFs ${dominant} — Weekly ${weekly} · Daily ${daily} · 1H ${h1}`;
     } else {
-      detail = `TF conflict — Weekly ${weekly} · Daily ${daily} · 4H ${h4} — no clear trend`;
+      detail = `TF conflict — Weekly ${weekly} · Daily ${daily} · 1H ${h1} — no clear trend`;
     }
 
     const result: MTFBias = {
-      weekly, daily, h4, alignment, dominant, signal, detail, aligned, weight: 20,
+      weekly, daily, h1, alignment, dominant, signal, detail, aligned, weight: 20,
     };
 
     MTF_CACHE.set(cacheKey, { result, expiresAt: Date.now() + MTF_TTL });
@@ -148,9 +148,9 @@ export async function getMTFBias(
   } catch (err) {
     console.error('[MTF Bias] Error:', err);
     const fallback: MTFBias = {
-      weekly: 'neutral', daily: 'neutral', h4: h4Bias,
+      weekly: 'neutral', daily: 'neutral', h1: h1Bias,
       alignment: 0, dominant: 'neutral', signal: 'neutral',
-      detail: 'MTF data unavailable — using 4H only',
+      detail: 'MTF data unavailable — using 1H only',
       aligned: false, weight: 20,
     };
     return fallback;

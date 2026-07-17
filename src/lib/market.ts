@@ -195,16 +195,16 @@ export function detectSymbol(userMessage: string, allowedSymbols?: string[]): st
 // dollarPerPoint: how much $1 price movement is worth per 1.0 standard lot
 // minSL: minimum realistic stop loss distance in price terms
 const CONTRACT_SPECS: Record<string, { dollarPerPoint: number; minSL: number }> = {
-  'XAU/USD': { dollarPerPoint: 100, minSL: 8 },
-  'EUR/USD': { dollarPerPoint: 100000, minSL: 0.0020 },
-  'GBP/USD': { dollarPerPoint: 100000, minSL: 0.0025 },
-  'USD/JPY': { dollarPerPoint: 1000, minSL: 0.30 },
-  'BTC/USD': { dollarPerPoint: 1, minSL: 500 },
-  'ETH/USD': { dollarPerPoint: 1, minSL: 40 },
-  'QQQ':     { dollarPerPoint: 100, minSL: 3 },       // ETF: ~$100/share, 100 shares/lot
-  'DIA':     { dollarPerPoint: 100, minSL: 3 },
-  'SPY':     { dollarPerPoint: 100, minSL: 3 },
-  'USO':     { dollarPerPoint: 100, minSL: 1 },
+  'XAU/USD': { dollarPerPoint: 100, minSL: 3.0 },
+  'EUR/USD': { dollarPerPoint: 100000, minSL: 0.0008 },
+  'GBP/USD': { dollarPerPoint: 100000, minSL: 0.0010 },
+  'USD/JPY': { dollarPerPoint: 1000, minSL: 0.08 },
+  'BTC/USD': { dollarPerPoint: 1, minSL: 200 },
+  'ETH/USD': { dollarPerPoint: 1, minSL: 12 },
+  'QQQ':     { dollarPerPoint: 100, minSL: 1.0 },       // ETF: ~$100/share, 100 shares/lot
+  'DIA':     { dollarPerPoint: 100, minSL: 1.0 },
+  'SPY':     { dollarPerPoint: 100, minSL: 1.0 },
+  'USO':     { dollarPerPoint: 100, minSL: 0.3 },
 };
 
 // ── Position Sizing ────────────────────────────────────────
@@ -220,11 +220,11 @@ export function calculateRiskParams(
   let spec = CONTRACT_SPECS[symbol];
   if (!spec) {
     if (isStockSymbol(symbol)) {
-      spec = { dollarPerPoint: 100, minSL: 1.0 };
+      spec = { dollarPerPoint: 100, minSL: 0.5 };
     } else if (isForexSymbol(symbol)) {
       spec = symbol.toUpperCase().includes('JPY')
-        ? { dollarPerPoint: 1000, minSL: 0.30 }
-        : { dollarPerPoint: 100000, minSL: 0.0020 };
+        ? { dollarPerPoint: 1000, minSL: 0.08 }
+        : { dollarPerPoint: 100000, minSL: 0.0008 };
     } else {
       spec = CONTRACT_SPECS['XAU/USD'];
     }
@@ -362,12 +362,12 @@ async function fetchPrice(symbol: string): Promise<number | null> {
   return data?.price ? parseFloat(data.price) : null;
 }
 
-async function fetchRSI(symbol: string, interval: string = '1h'): Promise<number | null> {
+async function fetchRSI(symbol: string, interval: string = '15m'): Promise<number | null> {
   const data = await fetchJSON('/rsi', { symbol, interval, time_period: '14' });
   return data?.values?.[0]?.rsi ? parseFloat(data.values[0].rsi) : null;
 }
 
-async function fetchMACD(symbol: string, interval: string = '1h') {
+async function fetchMACD(symbol: string, interval: string = '15m') {
   const data = await fetchJSON('/macd', { symbol, interval });
   if (!data?.values?.[0]) return null;
   const v = data.values[0];
@@ -378,12 +378,12 @@ async function fetchMACD(symbol: string, interval: string = '1h') {
   };
 }
 
-async function fetchEMA(symbol: string, period: string, interval: string = '1h'): Promise<number | null> {
+async function fetchEMA(symbol: string, period: string, interval: string = '15m'): Promise<number | null> {
   const data = await fetchJSON('/ema', { symbol, interval, time_period: period });
   return data?.values?.[0]?.ema ? parseFloat(data.values[0].ema) : null;
 }
 
-async function fetchBBands(symbol: string, interval: string = '1h') {
+async function fetchBBands(symbol: string, interval: string = '15m') {
   const data = await fetchJSON('/bbands', { symbol, interval, time_period: '20' });
   if (!data?.values?.[0]) return null;
   const v = data.values[0];
@@ -394,12 +394,12 @@ async function fetchBBands(symbol: string, interval: string = '1h') {
   };
 }
 
-async function fetchATR(symbol: string, interval: string = '1h'): Promise<number | null> {
+async function fetchATR(symbol: string, interval: string = '15m'): Promise<number | null> {
   const data = await fetchJSON('/atr', { symbol, interval, time_period: '14' });
   return data?.values?.[0]?.atr ? parseFloat(data.values[0].atr) : null;
 }
 
-async function fetchStoch(symbol: string, interval: string = '1h') {
+async function fetchStoch(symbol: string, interval: string = '15m') {
   const data = await fetchJSON('/stoch', { symbol, interval });
   if (!data?.values?.[0]) return null;
   const v = data.values[0];
@@ -412,11 +412,11 @@ async function fetchStoch(symbol: string, interval: string = '1h') {
 // ── Higher Timeframe Bias ──────────────────────────────────
 
 async function fetchHTFBias(symbol: string): Promise<'bullish' | 'bearish' | 'neutral'> {
-  // Check 4H RSI for higher timeframe directional bias
-  const rsi4h = await fetchRSI(symbol, '4h');
-  if (rsi4h === null) return 'neutral';
-  if (rsi4h < 45) return 'bearish';
-  if (rsi4h > 55) return 'bullish';
+  // Check 1H RSI for higher timeframe directional bias
+  const rsi1h = await fetchRSI(symbol, '1h');
+  if (rsi1h === null) return 'neutral';
+  if (rsi1h < 45) return 'bearish';
+  if (rsi1h > 55) return 'bullish';
   return 'neutral';
 }
 
@@ -600,9 +600,9 @@ function scoreIndicators(
 
   // 6. Multi-Timeframe Alignment (15% — reduced since MTF has its own gate now)
   if (htfBias !== 'neutral') {
-    signals.push({ name: '4H Timeframe Bias', weight: 15, direction: htfBias, detail: `4H RSI confirms ${htfBias} bias` });
+    signals.push({ name: '1H Timeframe Bias', weight: 15, direction: htfBias, detail: `1H RSI confirms ${htfBias} bias` });
   } else {
-    signals.push({ name: '4H Timeframe Bias', weight: 15, direction: 'neutral', detail: '4H timeframe shows no directional conviction' });
+    signals.push({ name: '1H Timeframe Bias', weight: 15, direction: 'neutral', detail: '1H timeframe shows no directional conviction' });
   }
 
   // 7. VWAP (C1 — 15%)
@@ -743,7 +743,7 @@ function checkVolatility(candles: { high: number; low: number; close: number }[]
 // ── Signal Cooldown ────────────────────────────────────────
 
 const COOLDOWN_MAP = new Map<string, number>();
-const COOLDOWN_MS = 4 * 60 * 60 * 1000; // 4 hours
+const COOLDOWN_MS = 1 * 60 * 60 * 1000; // 1 hour
 
 function checkCooldown(symbol: string): { ok: boolean; detail: string } {
   const lastSignal = COOLDOWN_MAP.get(symbol);
@@ -775,7 +775,7 @@ export async function getMarketSnapshot(symbol: string, astroMode?: boolean): Pr
     console.log(`[Market Engine] Fetching parallel snapshot components for ${symbol}...`);
 
     // ── Prepare all concurrent network requests ──
-    const candlesPromise = fetchCandles(symbol, '1h', 200);
+    const candlesPromise = fetchCandles(symbol, '15m', 200);
     const htfBiasPromise = fetchHTFBias(symbol);
     const sentimentPromise = getNewsSentiment(symbol);
     const calendarPromise = checkEconomicCalendar(symbol);
@@ -865,7 +865,7 @@ export async function getMarketSnapshot(symbol: string, astroMode?: boolean): Pr
     console.log(`[Market Engine] Signals: ${indicatorSignals.map(s => `${s.name}:${s.direction}`).join(', ')}`);
 
     // ── A2: Wire SMC Scanner into Pipeline ────────────────
-    const scanReport: ScanReport = fullScan(symbol, '1h', candles);
+    const scanReport: ScanReport = fullScan(symbol, '15m', candles);
     const smcPatterns: string[] = [];
     let smcConfirmations = 0;
 
@@ -906,7 +906,7 @@ export async function getMarketSnapshot(symbol: string, astroMode?: boolean): Pr
 
     // Gate 3: HTF Alignment
     const htfAligned = htfBias === 'neutral' || (direction === 'BUY' && htfBias === 'bullish') || (direction === 'SELL' && htfBias === 'bearish');
-    gates.push({ name: 'Timeframe Alignment', passed: htfAligned, detail: `4H bias: ${htfBias}, Signal: ${direction}` });
+    gates.push({ name: 'Timeframe Alignment', passed: htfAligned, detail: `1H bias: ${htfBias}, Signal: ${direction}` });
 
     // Gate 4: Session Filter
     const sessionCheck = isOptimalSession(symbol);

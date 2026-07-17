@@ -240,7 +240,7 @@ const ROW_1 = [
 ];
 
 const ROW_2 = [
-  { icon: '📶', label: 'MTF STACK', statusText: 'W1/D1/4H Aligned' },
+  { icon: '📶', label: 'MTF STACK', statusText: 'W1/D1/1H Aligned' },
   { icon: '🔗', label: 'CORRELATION', statusText: 'DXY Bearish Bias' },
   { icon: '🎯', label: 'VOL PROFILE', statusText: 'Inside POC Node' },
   { icon: '💸', label: 'FUNDING RATE', statusText: 'Prem <0.02%' },
@@ -276,7 +276,7 @@ const PROCESSOR_GATES = [
   { num: '02', name: 'Order Flow Imbalance', desc: 'L2 Bid-Ask depth check', log: 'L2 Depth: Bids outpacing asks (+14.2%).' },
   { num: '03', name: 'Liquidity Sweeps', desc: 'Stop-run cluster scan', log: 'Sweeps: Buy-side liquidity pool swept.' },
   { num: '04', name: 'Macro Sentiment Bias', desc: 'Financial NLP headlines', log: 'NLP: Sentiment indices tracking bullish (0.76).' },
-  { num: '05', name: 'Multi-Timeframe Align', desc: 'M15/H1/H4 market stack', log: 'Timeframes: H1 & H4 trends fully stacked.' },
+  { num: '05', name: 'Multi-Timeframe Align', desc: 'M15/H1/Daily market stack', log: 'Timeframes: M15 & H1 trends fully stacked.' },
   { num: '06', name: 'Correlation Matrix', desc: 'Index correlation index', log: 'Matrix: Asset beta dispersion normalized.' },
   { num: '07', name: 'Volume Profile Node', desc: 'POC value support', log: 'POC: Dynamic support node holding block.' },
   { num: '08', name: 'Funding Rate Check', desc: 'Leverage liquidation guard', log: 'Funding: Liquidation threat matrix: safe.' },

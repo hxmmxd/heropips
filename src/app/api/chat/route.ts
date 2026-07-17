@@ -239,7 +239,7 @@ ${newsBlock}
         `* **Price:** $${snapshot.price.toFixed(2)}\n` +
         `* **Technical:** RSI ${snapshot.indicators.rsi?.toFixed(1) ?? 'N/A'} | MACD ${snapshot.indicators.macd ? (snapshot.indicators.macd.histogram > 0 ? 'Bullish' : 'Bearish') : 'N/A'} | EMA50 ${snapshot.indicators.ema50 ? (snapshot.price > snapshot.indicators.ema50 ? 'Above' : 'Below') : 'N/A'}\n` +
         `* **Confluence:** ${snapshot.confluenceScore}% ${snapshot.confluenceDirection} (${snapshot.confidenceGrade})\n` +
-        `* **4H Bias:** ${snapshot.htfBias}${smcBlock}`;
+        `* **1H Bias:** ${snapshot.htfBias}${smcBlock}`;
 
       if (astroGate && !astroGate.allowed) {
         analysisText = `**${astroGate.statusLine}**\n\n${astroGate.blockReason}\n\nI can still provide market analysis, but no trade ticket will be issued due to celestial blocks.`;

@@ -1018,7 +1018,7 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
                                   <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                                     <path d={msg.marketData.confluenceDirection === 'SELL' ? "M12 5v14M19 12l-7 7-7-7" : "M12 19V5M5 12l7-7 7 7"} strokeLinecap="round" strokeLinejoin="round"/>
                                   </svg>
-                                  4H {msg.marketData.confluenceDirection === 'BUY' ? 'Bullish' : msg.marketData.confluenceDirection === 'SELL' ? 'Bearish' : 'Neutral'}
+                                  1H {msg.marketData.confluenceDirection === 'BUY' ? 'Bullish' : msg.marketData.confluenceDirection === 'SELL' ? 'Bearish' : 'Neutral'}
                                 </div>
                               )}
                               <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1.5 rounded-lg border ${

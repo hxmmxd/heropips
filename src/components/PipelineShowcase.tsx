@@ -32,14 +32,14 @@ const MODES: Record<Mode, Cfg> = {
     macd: '+4.17', macdTag: 'BULLISH', macdColor: '#10b981',
     ema: '$2,345', emaTag: 'ABOVE', emaColor: '#10b981',
     atr: '19.23', atrTag: 'VOLATILITY', atrColor: '#64748b',
-    trend1: '↓ 4H BEARISH', trend1Color: '#fef2f2',
+    trend1: '↓ 1H BEARISH', trend1Color: '#fef2f2',
     trend2: '📊 NEUTRAL', trend2Color: '#f1f5f9',
     smc: ['BOS bullish', '6 active FVG(s)', '5 Order Block(s)', 'Liquidity Sweep detected'],
     rows: [
       [
         { num:'01', name:'Confluence',     val:'Score 68% ≥ 45%'   },
         { num:'02', name:'SMC Confirm',    val:'Bullish BOS & OB'  },
-        { num:'03', name:'TF Alignment',   val:'4H Trend Bullish'  },
+        { num:'03', name:'TF Alignment',   val:'1H Trend Bullish'  },
         { num:'04', name:'Session Filter', val:'NY Overlap Active' },
       ],
       [
@@ -50,7 +50,7 @@ const MODES: Record<Mode, Cfg> = {
       ],
       [
         { num:'09', name:'Correlation',    val:'DXY Bearish Align' },
-        { num:'10', name:'MTF Stack',      val:'W1/D1/4H EMA ✓'   },
+        { num:'10', name:'MTF Stack',      val:'W1/D1/1H EMA ✓'   },
         { num:'11', name:'VWAP',           val:'Inside Deviation'  },
         { num:'12', name:'Candle Pattern', val:'H1 Hammer'         },
       ],
@@ -65,7 +65,7 @@ const MODES: Record<Mode, Cfg> = {
     macd: '-12.4', macdTag: 'BEARISH', macdColor: '#ef4444',
     ema: '$66,800', emaTag: 'ABOVE', emaColor: '#10b981',
     atr: '420.5', atrTag: 'HIGH VOL', atrColor: '#f97316',
-    trend1: '↓ 4H BEARISH', trend1Color: '#fef2f2',
+    trend1: '↓ 1H BEARISH', trend1Color: '#fef2f2',
     trend2: '🪐 RETROGRADE', trend2Color: '#fffbeb',
     smc: ['HTF Moon Align', 'Outer Transit Conf.', 'Mercury Rx Block', 'Lunar Tide High'],
     rows: [
@@ -88,7 +88,7 @@ const MODES: Record<Mode, Cfg> = {
       [
         { num:'13', name:'SMC BOS',       val:'Bullish Breakout'  },
         { num:'14', name:'OB/FVG Mit.',   val:'OB Entry Cleared'  },
-        { num:'15', name:'MTF EMA',       val:'1H/4H Bull Trend'  },
+        { num:'15', name:'MTF EMA',       val:'15M/1H Bull Trend'  },
         { num:'16', name:'VWAP Dev.',     val:'Inside 1.5 Deviation'},
         { num:'17', name:'Seasonal Qtr',  val:'Q4 Trend Concur'   },
       ],
@@ -103,14 +103,14 @@ const MODES: Record<Mode, Cfg> = {
     macd: '+0.00015', macdTag: 'BULLISH', macdColor: '#10b981',
     ema: '$1.0838', emaTag: 'ABOVE', emaColor: '#10b981',
     atr: '0.0042', atrTag: 'STABLE', atrColor: '#10b981',
-    trend1: '↑ 4H BULLISH', trend1Color: '#f0fdf4',
+    trend1: '↑ 1H BULLISH', trend1Color: '#f0fdf4',
     trend2: '📊 STABLE', trend2Color: '#f1f5f9',
     smc: ['Payload Validated', 'BOS confirmed', 'Broker Account Synced', 'Execution Ready'],
     rows: [
       [
         { num:'01', name:'Confluence',     val:'API Score 62%'  },
         { num:'02', name:'SMC Confirm',    val:'BOS Detected'   },
-        { num:'03', name:'TF Alignment',   val:'1H/4H Aligned'  },
+        { num:'03', name:'TF Alignment',   val:'15M/1H Aligned'  },
         { num:'04', name:'Session Filter', val:'London Open'    },
       ],
       [

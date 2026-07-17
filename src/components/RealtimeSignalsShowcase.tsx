@@ -27,8 +27,8 @@ interface OutputCard {
 const INPUT_CARDS: Omit<InputCard, 'id'>[] = [
   { gate: 'Confluence',       value: 'Score 87%',           status: 'pass',     icon: '⚡' },
   { gate: 'SMC Confirmation', value: 'BOS + OB Detected',   status: 'pass',     icon: '🔷' },
-  { gate: 'MTF Stack',        value: 'W1/D1/4H Aligned',    status: 'pass',     icon: '📊' },
-  { gate: 'TF Alignment',     value: '4H Trend Bullish',    status: 'pass',     icon: '🕐' },
+  { gate: 'MTF Stack',        value: 'W1/D1/1H Aligned',    status: 'pass',     icon: '📊' },
+  { gate: 'TF Alignment',     value: '1H Trend Bullish',    status: 'pass',     icon: '🕐' },
   { gate: 'VWAP',             value: 'Inside ±1.5σ',        status: 'pass',     icon: '📈' },
   { gate: 'Session Filter',   value: 'NY Overlap Active',   status: 'pass',     icon: '🌐' },
   { gate: 'News Filter',      value: 'FOMC Clear',          status: 'pass',     icon: '📰' },
