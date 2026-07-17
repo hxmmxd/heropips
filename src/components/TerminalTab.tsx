@@ -1364,9 +1364,8 @@ export default function TerminalTab({ messages, onSendMessage, onGenerateSignal,
         )}
       </div>
 
-      {/* Chat Input Footer */}
       <footer className="chat-input-wrapper shrink-0">
-        <div className="max-w-4xl mx-auto px-4 py-3 relative">
+        <div className="max-w-4xl mx-auto px-4 pt-3 pb-0 relative">
 
           {/* Floating Command Autocomplete Menu */}
           {showCommandMenu && (

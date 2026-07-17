@@ -87,6 +87,25 @@ body {
   scrollbar-width: none;  /* Firefox */
 }
 
+/* iOS PWA Safe Area Padding Helpers */
+.pwa-top-padding {
+  padding-top: calc(env(safe-area-inset-top) + 6px);
+}
+@media (min-width: 1024px) {
+  .pwa-top-padding {
+    padding-top: 8px;
+  }
+}
+
+.pwa-sidebar-top-padding {
+  padding-top: calc(env(safe-area-inset-top) + 12px);
+}
+@media (min-width: 1024px) {
+  .pwa-sidebar-top-padding {
+    padding-top: 16px;
+  }
+}
+
 /* ── Premium SVG Polygon Loader ── */
 .tgpt-loader {
   --color-one: #D4A843;
@@ -1028,7 +1047,7 @@ body {
 
 .chat-input-wrapper {
   background: var(--bg);
-  padding-bottom: env(safe-area-inset-bottom, 16px);
+  padding-bottom: max(env(safe-area-inset-bottom), 12px);
   border-top: 1px solid var(--border);
 }
 
