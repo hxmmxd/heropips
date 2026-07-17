@@ -2,7 +2,7 @@
   "name": "TradeGPT Institutional AI",
   "short_name": "TradeGPT",
   "description": "Institutional-grade AI trading terminal with 12-gate confluence signals and one-click MT5 execution.",
-  "start_url": "/login",
+  "start_url": "/?pwa=true",
   "display": "standalone",
   "background_color": "#0A0A0F",
   "theme_color": "#0A0A0F",
@@ -26,7 +26,7 @@
     {
       "name": "AI Terminal",
       "short_name": "Terminal",
-      "url": "/login",
+      "url": "/?pwa=true",
       "description": "Open the AI trading terminal"
     },
     {

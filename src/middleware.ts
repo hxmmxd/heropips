@@ -36,10 +36,15 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  // If no user and trying to access root page, rewrite to landing page
+  // If no user and trying to access root page, rewrite based on PWA query param
   if (!user && request.nextUrl.pathname === '/') {
     const url = request.nextUrl.clone();
-    url.pathname = '/landing';
+    const isPwa = request.nextUrl.searchParams.get('pwa') === 'true';
+    if (isPwa) {
+      url.pathname = '/login';
+    } else {
+      url.pathname = '/landing';
+    }
     return NextResponse.rewrite(url);
   }
 
