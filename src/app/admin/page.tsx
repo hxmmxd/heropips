@@ -119,6 +119,7 @@ export default function AdminPage() {
   const farmIntervalRef = useRef<any>(null);
   const [farmTesting, setFarmTesting]           = useState(false);
   const [farmTestResult, setFarmTestResult]     = useState<any>(null);
+  const [farmOrchestratorUrl, setFarmOrchestratorUrl] = useState('4.224.249.231:8080');
 
   const runFarmConnectionTest = async () => {
     setFarmTesting(true);
@@ -144,7 +145,14 @@ export default function AdminPage() {
         fetch('/api/admin/mt5-farm?action=keys'),
         fetch('/api/admin/mt5-farm?action=stats'),
       ]);
-      if (ovRes.ok)    { const d = await ovRes.json();    setFarmHealth(d.health);    setFarmAccounts(d.accounts || []); }
+      if (ovRes.ok)    {
+        const d = await ovRes.json();
+        setFarmHealth(d.health);
+        setFarmAccounts(d.accounts || []);
+        if (d.orchestratorUrl) {
+          setFarmOrchestratorUrl(d.orchestratorUrl.replace('http://', '').replace('https://', ''));
+        }
+      }
       if (keysRes.ok)  { const d = await keysRes.json();  setFarmKeys(d.keys || []); }
       if (statsRes.ok) { const d = await statsRes.json(); setFarmStats(d); }
       setFarmLastRefresh(new Date());
@@ -2030,7 +2038,7 @@ export default function AdminPage() {
                   <div>
                     <h2 style={{ fontSize:20, fontWeight:800, letterSpacing:-0.5, margin:0 }}>MT5 Farm Monitor</h2>
                     <p style={{ fontSize:12, color:'var(--subtext)', margin:0 }}>
-                      4.224.249.231:8080 · {farmLastRefresh ? `Updated ${farmLastRefresh.toLocaleTimeString()}` : 'Not loaded'}
+                      {farmOrchestratorUrl} · {farmLastRefresh ? `Updated ${farmLastRefresh.toLocaleTimeString()}` : 'Not loaded'}
                     </p>
                   </div>
                 </div>
@@ -2346,10 +2354,10 @@ export default function AdminPage() {
 
               {/* Footer */}
               <div style={{ marginTop:32, paddingTop:16, borderTop:'1px solid rgba(255,255,255,.05)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                <span style={{ fontSize:11, color:'rgba(255,255,255,.2)' }}>MT5 Farm v4.0 · <a href="http://4.224.249.231:8080/docs" target="_blank" rel="noreferrer" style={{ color:'#6366f1', textDecoration:'none' }}>Swagger Docs ↗</a></span>
+                <span style={{ fontSize:11, color:'rgba(255,255,255,.2)' }}>MT5 Farm v4.0 · <a href={`http://${farmOrchestratorUrl}/docs`} target="_blank" rel="noreferrer" style={{ color:'#6366f1', textDecoration:'none' }}>Swagger Docs ↗</a></span>
                 <div style={{ display:'flex', alignItems:'center', gap:6, fontSize:11 }}>
                   <div style={{ width:6, height:6, borderRadius:'50%', background:'#22c55e' }} />
-                  <span style={{ color:'var(--subtext)' }}>Orchestrator 4.224.249.231:8080</span>
+                  <span style={{ color:'var(--subtext)' }}>Orchestrator {farmOrchestratorUrl}</span>
                 </div>
               </div>
             </>

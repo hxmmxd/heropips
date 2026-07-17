@@ -62,15 +62,14 @@ export async function computeKellySizing(
     // Fetch last 100 closed trades for this symbol
     const { data, error } = await supabase
       .from('trade_log')
-      .select('pnl, status')
+      .select('profit, deal_type')
       .eq('symbol', symbol)
-      .eq('status', 'closed')
-      .not('pnl', 'is', null)
-      .order('created_at', { ascending: false })
+      .not('profit', 'is', null)
+      .order('closed_at', { ascending: false })
       .limit(100);
 
     if (!error && data && data.length >= 10) {
-      const trades = data.map((t: { pnl: number }) => t.pnl);
+      const trades = data.map((t: { profit: any }) => Number(t.profit));
       tradeCount = trades.length;
 
       const wins = trades.filter((p: number) => p > 0);

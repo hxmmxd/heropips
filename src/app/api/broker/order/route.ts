@@ -99,7 +99,7 @@ export async function POST(request: Request) {
     switch (action) {
       case 'place': {
         const { symbol, direction, volume, price, stopLoss, takeProfit } = body;
-        const normalizedSymbol = getNormalizedSymbolForBroker(symbol, accountId);
+        const normalizedSymbol = await getNormalizedSymbolForBroker(symbol, accountId);
         let actionType = direction === 'BUY' ? 'ORDER_TYPE_BUY' : 'ORDER_TYPE_SELL';
         const payload: Record<string, any> = {
           actionType,

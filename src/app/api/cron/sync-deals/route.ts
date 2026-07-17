@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { FARM_HEADERS, sidecarUrl, resolveAccountId } from '@/lib/mt5farm';
+import { FARM_HEADERS, sidecarUrl, resolveAccountId, syncFarmConfig } from '@/lib/mt5farm';
 import {
   getRiskState,
   saveRiskState,
@@ -28,23 +28,33 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  await syncFarmConfig();
+
+
+
   const admin = getAdmin();
   const results: any[] = [];
 
   try {
-    // Get all brokers from the local DB
+    // Get all brokers from the Supabase database
     let brokers: any[] = [];
     try {
-      const fs   = await import('fs');
-      const path = await import('path');
-      const os   = await import('os');
-      const DB_FILE = process.env.VERCEL || process.env.NODE_ENV === 'production'
-        ? path.join(os.tmpdir(), 'brokers_db.json')
-        : path.join(process.cwd(), 'src/lib/brokers_db.json');
-      if (fs.existsSync(DB_FILE)) {
-        brokers = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+      const { data } = await admin
+        .from('broker_accounts')
+        .select('id, user_id, mt5_login, metaapi_id, server, status, broker_name');
+      if (data) {
+        brokers = data.map((b: any) => ({
+          id:     b.id,
+          userId: b.user_id,
+          login:  b.mt5_login || b.metaapi_id,
+          server: b.server,
+          status: b.status,
+          name:   b.broker_name,
+        }));
       }
-    } catch {}
+    } catch (err: any) {
+      console.error('[Sync Deals Cron] Failed to fetch brokers from Supabase:', err.message);
+    }
 
     if (brokers.length === 0) {
       return NextResponse.json({ message: 'No brokers found', results: [] });

@@ -275,14 +275,15 @@ export async function GET(request: Request) {
           continue;
         }
 
-        // Credit user profile balance
+        // Credit user profile balance atomically to prevent race conditions & loop overwrites
         const { error: balErr } = await supabaseAdmin
-          .from('profiles')
-          .update({ wallet_balance: currentBalance + finalRebateAmount })
-          .eq('id', account.user_id);
+          .rpc('increment_wallet_balance', {
+            p_user_id: account.user_id,
+            p_amount: finalRebateAmount
+          });
 
         if (balErr) {
-          console.error(`[Rebate Sync] Failed to update balance:`, balErr.message);
+          console.error(`[Rebate Sync] Failed to update balance atomically:`, balErr.message);
         } else {
           processedDealsCount++;
           totalRebatesCredited += finalRebateAmount;

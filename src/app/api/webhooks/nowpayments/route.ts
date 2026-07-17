@@ -119,22 +119,16 @@ export async function POST(request: Request) {
       })
       .eq('id', record.id);
 
-    // If payout failed or rejected, refund user's balance to profile
+    // If payout failed or rejected, refund user's balance atomically
     if (internalStatus === 'failed' || internalStatus === 'rejected') {
-      const { data: profile } = await supabaseAdmin
-        .from('profiles')
-        .select('wallet_balance')
-        .eq('id', record.user_id)
-        .single();
+      const { error: rpcErr } = await supabaseAdmin
+        .rpc('increment_wallet_balance', {
+          p_user_id: record.user_id,
+          p_amount: record.amount_usd
+        });
 
-      if (profile) {
-        await supabaseAdmin
-          .from('profiles')
-          .update({
-            wallet_balance: (profile.wallet_balance || 0) + record.amount_usd,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', record.user_id);
+      if (rpcErr) {
+        console.error('[NOWPayments Webhook] Failed to refund wallet balance atomically:', rpcErr.message);
       }
 
       // Update wallet transaction status to failed/declined
@@ -277,22 +271,16 @@ export async function POST(request: Request) {
     })
     .eq('id', record.id);
 
-  // Refund balance on failure to profile
+  // Refund balance on failure atomically
   if (internalStatus === 'failed' || internalStatus === 'expired') {
-    const { data: profile } = await supabaseAdmin
-      .from('profiles')
-      .select('wallet_balance')
-      .eq('id', record.user_id)
-      .single();
+    const { error: rpcErr } = await supabaseAdmin
+      .rpc('increment_wallet_balance', {
+        p_user_id: record.user_id,
+        p_amount: record.amount_usd
+      });
 
-    if (profile) {
-      await supabaseAdmin
-        .from('profiles')
-        .update({
-          wallet_balance: (profile.wallet_balance || 0) + record.amount_usd,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', record.user_id);
+    if (rpcErr) {
+      console.error('[NOWPayments Webhook] Failed to refund wallet balance atomically:', rpcErr.message);
     }
 
     // Update wallet transaction status to failed/declined

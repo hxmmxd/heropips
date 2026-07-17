@@ -4,23 +4,26 @@ import { FARM_HEADERS, sidecarUrl, resolveAccountId as resolveFarmAccountId } fr
 
 export const dynamic = 'force-dynamic';
 
-/** Resolve the MT5 account ID (login number) for a given brokerId */
-async function resolveAccountId(brokerId: string): Promise<string> {
+async function resolveAccountId(brokerId: string, supabase: any): Promise<string> {
+  const cleanId = brokerId.replace(/^mt5_/, '');
   try {
-    const fs   = await import('fs');
-    const path = await import('path');
-    const os   = await import('os');
-    const DB_FILE = process.env.VERCEL || process.env.NODE_ENV === 'production'
-      ? path.join(os.tmpdir(), 'brokers_db.json')
-      : path.join(process.cwd(), 'src/lib/brokers_db.json');
-
-    if (fs.existsSync(DB_FILE)) {
-      const data  = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
-      const match = data.find((b: any) => b.id === brokerId || b.login === brokerId);
-      if (match) return match.login || match.id || brokerId;
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanId);
+    let query = supabase
+      .from('broker_accounts')
+      .select('mt5_login, metaapi_id');
+      
+    if (isUuid) {
+      query = query.eq('id', cleanId);
+    } else {
+      query = query.or(`mt5_login.eq.${cleanId},metaapi_id.eq.${cleanId},mt5_login.eq.${brokerId},metaapi_id.eq.${brokerId}`);
     }
-  } catch {}
-  return brokerId;
+    const { data } = await query.maybeSingle();
+    if (data?.mt5_login) return String(data.mt5_login);
+    if (data?.metaapi_id) return String(data.metaapi_id);
+  } catch (err: any) {
+    console.warn('[Positions API] resolveAccountId fallback:', err.message);
+  }
+  return cleanId;
 }
 
 export async function GET(request: Request) {
@@ -46,7 +49,7 @@ export async function GET(request: Request) {
       });
     }
 
-    const rawAccountId = await resolveAccountId(brokerId);
+    const rawAccountId = await resolveAccountId(brokerId, supabase);
     const accountId = await resolveFarmAccountId(rawAccountId);
 
     // Fetch positions, account info, and pending orders in parallel

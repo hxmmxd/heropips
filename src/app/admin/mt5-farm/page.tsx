@@ -136,6 +136,7 @@ export default function MT5FarmDashboard() {
   const [keys,     setKeys]     = useState<ApiKey[]>([]);
   const [stats,    setStats]    = useState<FarmStats | null>(null);
   const [loading,  setLoading]  = useState(true);
+  const [orchestratorUrl, setOrchestratorUrl] = useState('4.224.249.231:8080');
   const [error,    setError]    = useState('');
   const [activeTab, setActiveTab]   = useState<'overview' | 'accounts' | 'keys' | 'logs'>('overview');
   const [refreshing, setRefreshing] = useState(false);
@@ -163,6 +164,9 @@ export default function MT5FarmDashboard() {
         const d = await overviewRes.json();
         setHealth(d.health);
         setAccounts(d.accounts || []);
+        if (d.orchestratorUrl) {
+          setOrchestratorUrl(d.orchestratorUrl.replace('http://', '').replace('https://', ''));
+        }
       }
       if (keysRes.ok) {
         const d = await keysRes.json();
@@ -285,7 +289,7 @@ export default function MT5FarmDashboard() {
               MT5 Farm Monitor
             </h1>
             <p style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
-              4.224.249.231:8080 · {lastRefresh ? `Updated ${lastRefresh.toLocaleTimeString()}` : 'Loading…'}
+              {orchestratorUrl} · {lastRefresh ? `Updated ${lastRefresh.toLocaleTimeString()}` : 'Loading…'}
             </p>
           </div>
         </div>
@@ -795,13 +799,13 @@ export default function MT5FarmDashboard() {
       <div style={{ marginTop: 40, paddingTop: 20, borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ fontSize: 12, color: '#334155' }}>
           MT5 Farm v4.0 · TradeGPT Infrastructure ·{' '}
-          <a href="http://4.224.249.231:8080/docs" target="_blank" rel="noreferrer" style={{ color: '#6366f1', textDecoration: 'none' }}>
+          <a href={`http://${orchestratorUrl}/docs`} target="_blank" rel="noreferrer" style={{ color: '#6366f1', textDecoration: 'none' }}>
             Swagger Docs ↗
           </a>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
           <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', animation: 'pulse 2s infinite' }} />
-          <span style={{ color: '#64748b' }}>Orchestrator 4.224.249.231:8080</span>
+          <span style={{ color: '#64748b' }}>Orchestrator {orchestratorUrl}</span>
         </div>
       </div>
     </div>

@@ -224,7 +224,7 @@ function HomeContent() {
       try {
         const res = await fetch('/api/broker');
         const data = await res.json();
-        if (data.brokers?.length > 0) {
+        if (Array.isArray(data.brokers)) {
           const mapped = data.brokers.map(mapBroker);
           setBrokers(mapped);
           // Keep polling if any broker is still 'connecting' or has $0 balance.
@@ -252,7 +252,7 @@ function HomeContent() {
       try {
         const res = await fetch('/api/broker');
         const data = await res.json();
-        if (data.brokers?.length > 0) {
+        if (Array.isArray(data.brokers)) {
           const mapped = data.brokers.map(mapBroker);
           setBrokers(mapped);
           // Auto-poll if any broker is still connecting or has $0 (sidecar warming up)
@@ -294,7 +294,7 @@ function HomeContent() {
       try {
         const res = await fetch('/api/broker');
         const data = await res.json();
-        if (data.brokers?.length > 0) {
+        if (Array.isArray(data.brokers)) {
           const mapped = data.brokers.map(mapBroker);
           setBrokers(mapped);
         }
@@ -390,7 +390,7 @@ function HomeContent() {
     try {
       const res = await fetch('/api/broker');
       const data = await res.json();
-      if (data.brokers?.length > 0) {
+      if (Array.isArray(data.brokers)) {
         const mapped = data.brokers.map(mapBroker);
         setBrokers(mapped);
         if (mapped.some((b: Broker) => b.balance === '0.00')) {

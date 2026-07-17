@@ -158,8 +158,8 @@ export async function GET(request: Request) {
   // ── Risk Governor Data ──
   let sentinelStatus = null;
   try {
-    const { getSentinelStatus } = await import('@/lib/sentinel');
-    sentinelStatus = getSentinelStatus();
+    const rawVal = config['sentinel_worker_status'];
+    sentinelStatus = rawVal ? (typeof rawVal === 'string' ? JSON.parse(rawVal) : rawVal) : { running: false, statusMessage: 'Worker offline' };
   } catch {}
 
   // Fetch risk config from platform_config

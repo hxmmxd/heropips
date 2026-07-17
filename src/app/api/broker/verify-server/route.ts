@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
-import { FARM_BASE, FARM_HEADERS, verifyServerLocally } from '@/lib/mt5farm';
+import { FARM_BASE, FARM_HEADERS, verifyServerLocally, syncFarmConfig } from '@/lib/mt5farm';
 import dns from 'dns';
 
 export async function POST(req: Request) {
+  await syncFarmConfig();
   try {
     const { server } = await req.json();
     if (!server || typeof server !== 'string') {

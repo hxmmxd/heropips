@@ -6,7 +6,7 @@ import { fullScan, type ScanReport } from './scanner';
 import { getNewsSentiment, type SentimentResult } from './newsSentiment';
 import { checkEconomicCalendar } from './econCalendar';
 import { detectDivergence, type DivergenceResult } from './divergence';
-import { checkCorrelation, type CorrelationResult } from './correlation';
+import { checkCorrelation, CORRELATION_MAP, type CorrelationResult } from './correlation';
 // Phase C imports
 import { computeVWAP, type VWAPResult } from './vwap';
 import { getMTFBias, type MTFBias } from './mtfBias';
@@ -772,16 +772,60 @@ export async function getMarketSnapshot(symbol: string, astroMode?: boolean): Pr
   }
 
   try {
-    console.log(`[Market Engine] Fetching snapshot for ${symbol}...`);
+    console.log(`[Market Engine] Fetching parallel snapshot components for ${symbol}...`);
 
-    // ── A2+A5: Fetch 200 candles for scanner depth ────────
-    const candles = await fetchCandles(symbol, '1h', 200);
-    if (candles.length < 50) {
+    // ── Prepare all concurrent network requests ──
+    const candlesPromise = fetchCandles(symbol, '1h', 200);
+    const htfBiasPromise = fetchHTFBias(symbol);
+    const sentimentPromise = getNewsSentiment(symbol);
+    const calendarPromise = checkEconomicCalendar(symbol);
+    const mtfWeeklyPromise = fetchYahooCandles(symbol, '1wk').catch(() => []);
+    const mtfDailyPromise = fetchYahooCandles(symbol, '1d').catch(() => []);
+
+    // Get correlated tickers momentum candles
+    const upperSym = symbol.toUpperCase();
+    const correlationPairs = CORRELATION_MAP[symbol] || CORRELATION_MAP[upperSym] || [];
+    const correlationCandlesPromises = correlationPairs.map(async (pair) => {
+      let fetchSymbol = pair.symbol;
+      if (pair.symbol === 'DX-Y.NYB') fetchSymbol = 'DX-Y.NYB';
+      if (pair.symbol === 'ETH-USD') fetchSymbol = 'ETH/USD';
+      if (pair.symbol === 'BTC-USD') fetchSymbol = 'BTC/USD';
+      if (pair.symbol === 'EURUSD=X') fetchSymbol = 'EUR/USD';
+      if (pair.symbol === 'GBPUSD=X') fetchSymbol = 'GBP/USD';
+      const c = await fetchYahooCandles(fetchSymbol, '1h', 20).catch(() => []);
+      return { key: pair.symbol, candles: c };
+    });
+
+    // Resolve all HTTP fetches in a single parallel thread pool execution!
+    const [
+      candles,
+      htfBias,
+      sentimentResult,
+      calendarCheckResult,
+      weeklyCandles,
+      dailyCandles,
+      corrCandlesArray
+    ] = await Promise.all([
+      candlesPromise,
+      htfBiasPromise,
+      sentimentPromise,
+      calendarPromise,
+      mtfWeeklyPromise,
+      mtfDailyPromise,
+      Promise.all(correlationCandlesPromises)
+    ]);
+
+    if (!candles || candles.length < 50) {
       console.error('[Market Engine] Not enough candle data — aborting snapshot');
       return null;
     }
 
-    // ── Compute indicators (TypeScript engine — works on Vercel)
+    const corrCandlesMap: Record<string, any[]> = {};
+    for (const item of corrCandlesArray) {
+      corrCandlesMap[item.key] = item.candles;
+    }
+
+    // ── Compute indicators in-memory (instant) ──
     const results = computeIndicators(candles);
     if (!results || results.price === 0) {
       console.error('[Market Engine] Failed to compute indicators');
@@ -794,27 +838,21 @@ export async function getMarketSnapshot(symbol: string, astroMode?: boolean): Pr
     if (bbands) console.log(`[Market Engine] BBands — Upper: ${bbands.upper.toFixed(2)}, Lower: ${bbands.lower.toFixed(2)}, %B: ${(bbands.percentB*100).toFixed(0)}%, Width: ${(bbands.width*100).toFixed(1)}%`);
     if (stoch) console.log(`[Market Engine] Stochastic — %K: ${stoch.k.toFixed(1)}, %D: ${stoch.d.toFixed(1)}`);
 
-    // ── A5: Higher Timeframe Bias (4H RSI) ────────────────
-    const htfBias = await fetchHTFBias(symbol);
-
-    // ── B1: Real News Sentiment ───────────────────────────
-    const sentimentResult = await getNewsSentiment(symbol);
-
-    // ── C1: VWAP ─────────────────────────────────────────
+    // ── C1: VWAP (in-memory)
     const vwapResult = computeVWAP(candles, price);
     console.log(`[Market Engine] VWAP: ${vwapResult.vwap.toFixed(2)} | ${vwapResult.detail}`);
 
-    // ── C2: MTF Bias (Weekly + Daily + 4H stack) ─────────
-    const mtfResult = await getMTFBias(symbol, htfBias);
+    // ── C2: MTF Bias (in-memory) — resolves instantly using pre-fetched candles
+    const mtfResult = await getMTFBias(symbol, htfBias, weeklyCandles, dailyCandles);
     console.log(`[Market Engine] MTF: ${mtfResult.detail}`);
 
-    // ── C3: Candlestick Patterns ─────────────────────────
+    // ── C3: Candlestick Patterns
     const patternResult = detectCandlePatterns(candles.slice(-3));
     if (patternResult.patterns.length > 0) {
       console.log(`[Market Engine] Patterns: ${patternResult.detail}`);
     }
 
-    // ── C4: Kelly Criterion Lot Sizing ───────────────────
+    // ── C4: Kelly Sizer
     const kellyResult = await computeKellySizing(symbol, 10000, 0.02);
     console.log(`[Market Engine] Kelly: ${kellyResult.detail}`);
 
@@ -893,11 +931,11 @@ export async function getMarketSnapshot(symbol: string, astroMode?: boolean): Pr
     gates.push({ name: 'Cooldown', passed: cooldownCheck.ok, detail: cooldownCheck.detail });
 
     // Gate 8: Economic Calendar (B2) — block near high-impact events
-    const calendarCheck = await checkEconomicCalendar(symbol);
+    const calendarCheck = calendarCheckResult;
     gates.push({ name: 'News Event', passed: !calendarCheck.blocked, detail: calendarCheck.reason });
 
-    // Gate 9: Correlated Assets (B4) — check if related markets agree
-    const correlationCheck = await checkCorrelation(symbol, direction);
+    // Gate 9: Correlated Assets (B4) — check if related markets agree (in-memory)
+    const correlationCheck = await checkCorrelation(symbol, direction, corrCandlesMap);
     gates.push({ name: 'Correlation', passed: correlationCheck.confirmed, detail: correlationCheck.detail });
 
     // Gate 10: MTF Stack (C2) — at least 2/3 timeframes aligned

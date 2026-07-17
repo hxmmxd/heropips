@@ -28,7 +28,7 @@ export interface CorrelationPair {
 
 // ── Correlation Map ─────────────────────────────────────
 // Each asset maps to its correlated pairs with relationship type
-const CORRELATION_MAP: Record<string, { symbol: string; display: string; type: 'inverse' | 'positive' }[]> = {
+export const CORRELATION_MAP: Record<string, { symbol: string; display: string; type: 'inverse' | 'positive' }[]> = {
   'XAU/USD': [
     { symbol: 'DX-Y.NYB', display: 'DXY', type: 'inverse' },       // Yahoo symbol for Dollar Index
   ],
@@ -107,10 +107,10 @@ async function getMomentum(yahooSymbol: string): Promise<'bullish' | 'bearish' |
   }
 }
 
-// ── Main Public API ─────────────────────────────────────
 export async function checkCorrelation(
   symbol: string,
-  signalDirection: 'BUY' | 'SELL' | 'NEUTRAL'
+  signalDirection: 'BUY' | 'SELL' | 'NEUTRAL',
+  preFetchedCandles?: Record<string, any[]>
 ): Promise<CorrelationResult> {
   const correlatedPairs = CORRELATION_MAP[symbol];
 
@@ -129,7 +129,20 @@ export async function checkCorrelation(
 
   for (const pair of correlatedPairs) {
     try {
-      const momentum = await getMomentum(pair.symbol);
+      let momentum: 'bullish' | 'bearish' | 'neutral' = 'neutral';
+      
+      const pCandles = preFetchedCandles?.[pair.symbol];
+      if (pCandles && pCandles.length >= 5) {
+        const recent = pCandles.slice(-5);
+        const sma5 = recent.reduce((s: number, c: any) => s + c.close, 0) / recent.length;
+        const lastClose = pCandles[pCandles.length - 1].close;
+        const prevClose = pCandles[pCandles.length - 5].close;
+        const changePercent = ((lastClose - prevClose) / prevClose) * 100;
+        if (lastClose > sma5 && changePercent > 0.05) momentum = 'bullish';
+        else if (lastClose < sma5 && changePercent < -0.05) momentum = 'bearish';
+      } else {
+        momentum = await getMomentum(pair.symbol);
+      }
       totalChecked++;
 
       // Determine if the correlated asset agrees

@@ -40,21 +40,13 @@ export async function POST(request: Request) {
     let allowedSymbols: string[] = [];
     if (activeBrokerId && activeBrokerId !== 'none') {
       try {
-        const { getAllBrokers, getAllSimulatedBrokers, syncBrokerToSupabase } = await import('@/lib/broker');
+        const { getAllBrokers, syncBrokerToSupabase } = await import('@/lib/broker');
         const { farmGetSymbols, resolveAccountId } = await import('@/lib/mt5farm');
 
         const supabase = createServerClient();
         const { data: { user } } = await supabase.auth.getUser();
         let brokers = await getAllBrokers(user?.id);
         let activeBroker = brokers.find(b => b.id === activeBrokerId || b.login === activeBrokerId);
-
-        if (!activeBroker || !activeBroker.allowed_symbols || activeBroker.allowed_symbols.length === 0) {
-          const localBrokers = getAllSimulatedBrokers();
-          const localActive = localBrokers.find(b => b.id === activeBrokerId || b.login === activeBrokerId);
-          if (localActive) {
-            activeBroker = localActive;
-          }
-        }
 
         if (activeBroker) {
           allowedSymbols = activeBroker.allowed_symbols || [];

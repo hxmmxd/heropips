@@ -14,6 +14,7 @@ import {
   farmAdminGetStats,
   FARM_BASE,
   FARM_HEADERS,
+  syncFarmConfig,
 } from '@/lib/mt5farm';
 
 export const dynamic = 'force-dynamic';
@@ -53,6 +54,8 @@ export async function GET(request: Request) {
   const user = await requireAdmin(request);
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  await syncFarmConfig();
+
   const { searchParams } = new URL(request.url);
   const action = searchParams.get('action') || 'overview';
 
@@ -63,7 +66,7 @@ export async function GET(request: Request) {
           farmHealth().catch(() => null),
           farmGetAccounts().catch(() => []),
         ]);
-        return NextResponse.json({ health, accounts });
+        return NextResponse.json({ health, accounts, orchestratorUrl: FARM_BASE });
       }
 
       case 'account': {
@@ -168,6 +171,8 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const user = await requireAdmin(request);
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  await syncFarmConfig();
 
   try {
     const body = await request.json();

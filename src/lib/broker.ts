@@ -9,9 +9,6 @@
  * The 'metaapi_id' Supabase column is repurposed to store these login numbers.
  */
 
-import fs   from 'fs';
-import path from 'path';
-import os   from 'os';
 
 import {
   FARM_BASE,
@@ -30,6 +27,7 @@ import {
   farmSearchBrokers,
   type FarmAccount,
   type TradePayload,
+  STATIC_MAPPINGS,
 } from './mt5farm';
 import {
   getRiskState,
@@ -71,35 +69,7 @@ export interface BrokerNode {
   allowed_symbols?: string[];
 }
 
-// ── Local JSON DB (fast lookup cache) ───────────────────────────────────────
 
-const DB_FILE = process.env.VERCEL || process.env.NODE_ENV === 'production'
-  ? path.join(os.tmpdir(), 'brokers_db.json')
-  : path.join(process.cwd(), 'src/lib/brokers_db.json');
-
-function readDb(): BrokerNode[] {
-  try {
-    if (!fs.existsSync(DB_FILE)) {
-      const dir = path.dirname(DB_FILE);
-      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-      fs.writeFileSync(DB_FILE, JSON.stringify([], null, 2));
-      return [];
-    }
-    return JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
-  } catch {
-    return [];
-  }
-}
-
-function writeDb(brokers: BrokerNode[]) {
-  try {
-    const dir = path.dirname(DB_FILE);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(DB_FILE, JSON.stringify(brokers, null, 2));
-  } catch (err) {
-    console.error('[Broker Engine] Failed to write brokers DB:', err);
-  }
-}
 
 // ── Supabase Sync ────────────────────────────────────────────────────────────
 
@@ -154,19 +124,35 @@ export function normalizeMt5Symbol(symbol: string): string {
   return aliases[s] || s;
 }
 
-export function getNormalizedSymbolForBroker(symbol: string, brokerIdOrLogin: string): string {
+export async function getNormalizedSymbolForBroker(symbol: string, brokerIdOrLogin: string): Promise<string> {
   let mt5Symbol = normalizeMt5Symbol(symbol);
-  const localDb = readDb();
-  const broker = localDb.find(b => b.id === brokerIdOrLogin || b.login === brokerIdOrLogin);
-  if (broker?.allowed_symbols?.length) {
-    const exact = broker.allowed_symbols.find(
-      s => {
-        const cleanS = s.toUpperCase().replace(/[^A-Z0-9]/g, '');
-        const cleanRootS = s.toUpperCase().split('.')[0].replace(/[^A-Z0-9]/g, '');
-        return cleanS === mt5Symbol || cleanRootS === mt5Symbol;
-      }
+  try {
+    const { createClient } = await import('@supabase/supabase-js');
+    const sb = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
-    if (exact) mt5Symbol = exact;
+    const cleanBrokerId = brokerIdOrLogin.replace(/^mt5_/, '');
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanBrokerId);
+    let query = sb.from('broker_accounts').select('allowed_symbols');
+    if (isUuid) {
+      query = query.eq('id', cleanBrokerId);
+    } else {
+      query = query.or(`mt5_login.eq.${cleanBrokerId},metaapi_id.eq.${cleanBrokerId},mt5_login.eq.${brokerIdOrLogin},metaapi_id.eq.${brokerIdOrLogin}`);
+    }
+    const { data } = await query.maybeSingle();
+    if (data?.allowed_symbols?.length) {
+      const exact = data.allowed_symbols.find(
+        (s: string) => {
+          const cleanS = s.toUpperCase().replace(/[^A-Z0-9]/g, '');
+          const cleanRootS = s.toUpperCase().split('.')[0].replace(/[^A-Z0-9]/g, '');
+          return cleanS === mt5Symbol || cleanRootS === mt5Symbol;
+        }
+      );
+      if (exact) mt5Symbol = exact;
+    }
+  } catch (err: any) {
+    console.warn('[Broker Engine] Symbol normalization db fetch failed:', err.message);
   }
   return mt5Symbol;
 }
@@ -223,26 +209,7 @@ export async function connectBroker(
   const farmAccount = await farmConnectAccount(login, password || '', server || '', name);
   const accountId = farmAccount.accountId || String(login);
 
-  // ── IMPORTANT: Do NOT call farmGetAccountInfo immediately after farmConnectAccount.
-  // The sidecar is guaranteed to be in 'starting' state right after POST /accounts.
-  // Calling account-information will return HTTP 503 or 500 every time.
-  // The polling flow in page.tsx (startBalancePoll) will pick up the real balance
-  // once the sidecar finishes connecting to the broker (~15-90 seconds).
   console.log(`[Broker Engine] Sidecar created for ${login} — status: ${farmAccount.status}. Balance will populate via polling.`);
-
-  // Try to pre-fetch symbols in the background (non-blocking, often still unavailable)
-  let allowedSymbols: string[] = [];
-  farmGetSymbols(accountId).then(s => {
-    if (s.length > 0) {
-      allowedSymbols = s;
-      // Update DB if we got symbols
-      const list = readDb();
-      const existing = list.find(b => b.id === accountId);
-      if (existing) {
-        writeDb(list.map(b => b.id === accountId ? { ...b, allowed_symbols: s } : b));
-      }
-    }
-  }).catch(() => {});
 
   const node: BrokerNode = {
     id:     accountId,
@@ -259,12 +226,16 @@ export async function connectBroker(
     positions: [],
     timezone_offset:      0,
     broker_timezone_name: 'UTC',
-    allowed_symbols:      allowedSymbols,
+    allowed_symbols:      [],
   };
 
-  // Cache locally
-  const list = readDb();
-  writeDb(list.filter(b => b.id !== node.id).concat(node));
+  // Try to pre-fetch symbols in the background (non-blocking, often still unavailable)
+  farmGetSymbols(accountId).then(async (s) => {
+    if (s.length > 0 && userId) {
+      node.allowed_symbols = s;
+      await syncBrokerToSupabase(node, userId);
+    }
+  }).catch(() => {});
 
   // Sync to Supabase
   if (userId) await syncBrokerToSupabase(node, userId);
@@ -275,10 +246,29 @@ export async function connectBroker(
 // ── Get Broker Details ───────────────────────────────────────────────────────
 
 export async function getBrokerDetails(id: string): Promise<BrokerNode | null> {
-  const localDb = readDb();
-  const byId = localDb.find(b => b.id === id);
-  const byLogin = localDb.find(b => b.login === id);
-  const accountId = byId?.login || byLogin?.login || id;
+  // Find the broker in Supabase first
+  let localBroker: any = null;
+  try {
+    const { createClient } = await import('@supabase/supabase-js');
+    const sb = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+    const cleanId = id.replace(/^mt5_/, '');
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanId);
+    let query = sb.from('broker_accounts').select('*');
+    if (isUuid) {
+      query = query.eq('id', cleanId);
+    } else {
+      query = query.or(`mt5_login.eq.${cleanId},metaapi_id.eq.${cleanId},mt5_login.eq.${id},metaapi_id.eq.${id}`);
+    }
+    const { data } = await query.maybeSingle();
+    localBroker = data;
+  } catch (err: any) {
+    console.warn('[Broker Engine] Failed to fetch broker from Supabase for details:', err.message);
+  }
+
+  const accountId = localBroker?.mt5_login || localBroker?.metaapi_id || id;
 
   try {
     const [info, positions, symbols] = await Promise.all([
@@ -292,47 +282,63 @@ export async function getBrokerDetails(id: string): Promise<BrokerNode | null> {
       try {
         const farmAcct = await farmGetAccount(accountId);
         if (farmAcct && farmAcct.balance != null) {
-          const local = localDb.find(b => b.id === id || b.login === id);
           const node: BrokerNode = {
             id,
-            userId: local?.userId,
-            name:   farmAcct.name || local?.name || String(id),
-            login:  String(farmAcct.login || local?.login || id),
-            server: farmAcct.server || local?.server || '',
+            userId: localBroker?.user_id,
+            name:   farmAcct.name || localBroker?.broker_name || String(id),
+            login:  String(farmAcct.login || localBroker?.mt5_login || id),
+            server: farmAcct.server || localBroker?.server || '',
             platform: 'mt5',
             status: farmAcct.status === 'connected' ? 'connected' : 'connecting',
             balance: farmAcct.balance,
             equity:  farmAcct.balance,
             pnl:     0,
             positions: [],
-            timezone_offset:      local?.timezone_offset ?? 0,
-            broker_timezone_name: local?.broker_timezone_name ?? 'UTC',
-            allowed_symbols:      local?.allowed_symbols ?? [],
+            timezone_offset:      Number(localBroker?.timezone_offset) || 0,
+            broker_timezone_name: localBroker?.broker_timezone_name || 'UTC',
+            allowed_symbols:      Array.isArray(localBroker?.allowed_symbols) ? localBroker.allowed_symbols : [],
           };
-          // Sync it back to local DB cache
-          const list = readDb();
-          writeDb(list.filter(b => b.id !== id).concat(node));
+          // Sync it back to Supabase
+          if (localBroker?.user_id) {
+            await syncBrokerToSupabase(node, localBroker.user_id);
+          }
           return node;
         }
       } catch (err: any) {
         console.warn(`[Broker Engine] Failed to fetch fallback account from orchestrator: ${err.message}`);
       }
 
-      // Try local DB as ultimate fallback
-      return readDb().find(b => b.id === id) || null;
+      // Try db as ultimate fallback
+      if (localBroker) {
+        return {
+          id:     localBroker.mt5_login || localBroker.metaapi_id || localBroker.id,
+          userId: localBroker.user_id,
+          name:   localBroker.broker_name,
+          login:  localBroker.mt5_login || localBroker.metaapi_id,
+          server: localBroker.server,
+          platform: 'mt5',
+          status: localBroker.status,
+          balance: Number(localBroker.balance) || 0,
+          equity:  Number(localBroker.equity) || 0,
+          pnl:     Number(localBroker.pnl) || 0,
+          positions: [],
+          timezone_offset:      Number(localBroker.timezone_offset) || 0,
+          broker_timezone_name: localBroker.broker_timezone_name || 'UTC',
+          allowed_symbols:      Array.isArray(localBroker.allowed_symbols) ? localBroker.allowed_symbols : [],
+        };
+      }
+      return null;
     }
 
     const balance = info.balance ?? 0;
     const equity  = info.equity  ?? 0;
 
-    const local = readDb().find(b => b.id === id);
-
     return {
       id,
-      userId: local?.userId,
-      name:   info.name   || local?.name   || String(id),
-      login:  String(info.login || local?.login || id),
-      server: info.server || local?.server || '',
+      userId: localBroker?.user_id,
+      name:   info.name   || localBroker?.broker_name   || String(id),
+      login:  String(info.login || localBroker?.mt5_login || id),
+      server: info.server || localBroker?.server || '',
       platform: 'mt5',
       status: 'connected',
       balance,
@@ -347,13 +353,31 @@ export async function getBrokerDetails(id: string): Promise<BrokerNode | null> {
         currentPrice: p.currentPrice,
         profit:       p.profit,
       })),
-      timezone_offset:      local?.timezone_offset ?? 0,
-      broker_timezone_name: local?.broker_timezone_name ?? 'UTC',
-      allowed_symbols:      symbols.length > 0 ? symbols : (local?.allowed_symbols ?? []),
+      timezone_offset:      Number(localBroker?.timezone_offset) || 0,
+      broker_timezone_name: localBroker?.broker_timezone_name || 'UTC',
+      allowed_symbols:      symbols.length > 0 ? symbols : (Array.isArray(localBroker?.allowed_symbols) ? localBroker.allowed_symbols : []),
     };
   } catch (err: any) {
     console.error('[Broker Engine] getBrokerDetails error:', err.message);
-    return readDb().find(b => b.id === id) || null;
+    if (localBroker) {
+      return {
+        id:     localBroker.mt5_login || localBroker.metaapi_id || localBroker.id,
+        userId: localBroker.user_id,
+        name:   localBroker.broker_name,
+        login:  localBroker.mt5_login || localBroker.metaapi_id,
+        server: localBroker.server,
+        platform: 'mt5',
+        status: localBroker.status,
+        balance: Number(localBroker.balance) || 0,
+        equity:  Number(localBroker.equity) || 0,
+        pnl:     Number(localBroker.pnl) || 0,
+        positions: [],
+        timezone_offset:      Number(localBroker.timezone_offset) || 0,
+        broker_timezone_name: localBroker.broker_timezone_name || 'UTC',
+        allowed_symbols:      Array.isArray(localBroker.allowed_symbols) ? localBroker.allowed_symbols : [],
+      };
+    }
+    return null;
   }
 }
 
@@ -368,11 +392,28 @@ export async function executeBrokerOrder(
   stopLoss?: number | string,
   takeProfit?: number | string,
 ): Promise<any> {
-  // Resolve account ID: might be brokerId (UUID), login, or the id itself
-  const localDb  = readDb();
-  const byId     = localDb.find(b => b.id === id);
-  const byLogin  = localDb.find(b => b.login === id);
-  const accountId = byId?.login || byLogin?.login || id;
+  // Resolve account ID: might be brokerId (UUID), login, or the id itself from Supabase
+  let accountId = id;
+  try {
+    const { createClient } = await import('@supabase/supabase-js');
+    const sb = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+    const cleanId = id.replace(/^mt5_/, '');
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanId);
+    let query = sb.from('broker_accounts').select('mt5_login, metaapi_id');
+    if (isUuid) {
+      query = query.eq('id', cleanId);
+    } else {
+      query = query.or(`mt5_login.eq.${cleanId},metaapi_id.eq.${cleanId},mt5_login.eq.${id},metaapi_id.eq.${id}`);
+    }
+    const { data } = await query.maybeSingle();
+    if (data?.mt5_login) accountId = String(data.mt5_login);
+    else if (data?.metaapi_id) accountId = String(data.metaapi_id);
+  } catch (err: any) {
+    console.warn('[Broker Engine] Failed to resolve account ID for order placement:', err.message);
+  }
 
   // Pre-trade margin check
   let liveEquity = 0;
@@ -429,7 +470,7 @@ export async function executeBrokerOrder(
   }
 
   // Resolve symbol with allowed_symbols suffix matching
-  let mt5Symbol = getNormalizedSymbolForBroker(symbol, accountId);
+  let mt5Symbol = await getNormalizedSymbolForBroker(symbol, accountId);
 
   const vol = Math.max(Number(volume) || 0.01, 0.01);
   const sl  = stopLoss   != null ? Number(stopLoss)   : undefined;
@@ -510,6 +551,15 @@ export async function executeBrokerOrder(
 // ── Disconnect Broker ────────────────────────────────────────────────────────
 
 export async function disconnectBroker(brokerId: string, userId?: string): Promise<boolean> {
+  // Find if there is a reverse mapping in STATIC_MAPPINGS (e.g. 'stress_001' -> '5051904701')
+  let reverseLogin: string | null = null;
+  for (const [login, mappedId] of Object.entries(STATIC_MAPPINGS)) {
+    if (mappedId === brokerId) {
+      reverseLogin = login;
+      break;
+    }
+  }
+
   // Fully disconnect/delete from orchestrator to free VM port and container resources
   try {
     await farmDisconnect(brokerId);
@@ -518,14 +568,7 @@ export async function disconnectBroker(brokerId: string, userId?: string): Promi
     console.warn(`[Broker Engine] Disconnect ${brokerId} failed: ${err.message} — removing from DB only`);
   }
 
-  // Remove from local DB
-  const list = readDb();
-  const filtered = list.filter(b => {
-    if (b.id !== brokerId) return true;
-    if (userId && b.userId && b.userId !== userId) return true;
-    return false;
-  });
-
+  let dbDeleted = false;
   if (userId) {
     try {
       const { createClient } = await import('@supabase/supabase-js');
@@ -535,69 +578,87 @@ export async function disconnectBroker(brokerId: string, userId?: string): Promi
       );
       const cleanBrokerId = brokerId.replace(/^mt5_/, '');
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(brokerId);
+      
       let query = sb.from('broker_accounts').delete().eq('user_id', userId);
+      
+      const conditions = [
+        `id.eq.${brokerId}`,
+        `metaapi_id.eq.${brokerId}`,
+        `mt5_login.eq.${brokerId}`,
+        `metaapi_id.eq.${cleanBrokerId}`,
+        `mt5_login.eq.${cleanBrokerId}`
+      ];
+      
+      if (reverseLogin) {
+        conditions.push(
+          `metaapi_id.eq.${reverseLogin}`,
+          `mt5_login.eq.${reverseLogin}`
+        );
+      }
+      
       if (isUuid) {
         query = query.eq('id', brokerId);
       } else {
-        query = query.or(`metaapi_id.eq.${brokerId},mt5_login.eq.${brokerId},metaapi_id.eq.${cleanBrokerId},mt5_login.eq.${cleanBrokerId}`);
+        query = query.or(conditions.join(','));
       }
+      
       const { error } = await query;
-      if (error) console.error('[Broker Engine] Supabase delete error:', error.message);
+      if (error) {
+        console.error('[Broker Engine] Supabase delete error:', error.message);
+      } else {
+        dbDeleted = true;
+      }
     } catch (err: any) {
       console.error('[Broker Engine] Supabase delete failed:', err.message);
     }
   }
 
-  if (filtered.length === list.length) return false;
-  writeDb(filtered);
-  return true;
+  return dbDeleted;
 }
 
 // ── List Brokers ─────────────────────────────────────────────────────────────
 
-export function getAllSimulatedBrokers(): BrokerNode[] {
-  return readDb();
+export async function getAllSimulatedBrokers(): Promise<BrokerNode[]> {
+  return getAllBrokers();
 }
 
 export async function getAllBrokers(userId?: string): Promise<BrokerNode[]> {
-  if (userId) {
-    try {
-      const { createClient } = await import('@supabase/supabase-js');
-      const sb = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-      );
-      const { data, error } = await sb
-        .from('broker_accounts')
-        .select('*')
-        .eq('user_id', userId);
-
-      if (!error && data) {
-        return data.map((b: any) => ({
-          id:     b.mt5_login || b.metaapi_id || b.id,
-          userId: b.user_id,
-          name:   b.broker_name,
-          login:  b.mt5_login || b.metaapi_id,
-          server: b.server,
-          platform: 'mt5' as const,
-          status: b.status,
-          balance: Number(b.balance) || 0,
-          equity:  Number(b.equity)  || 0,
-          pnl:     Number(b.pnl)     || 0,
-          positions: [],
-          timezone_offset:      Number(b.timezone_offset) || 0,
-          broker_timezone_name: b.broker_timezone_name || 'UTC',
-          allowed_symbols:      Array.isArray(b.allowed_symbols) ? b.allowed_symbols : [],
-        }));
-      }
-    } catch (err: any) {
-      console.error('[Broker Engine] Failed to fetch brokers from Supabase:', err.message);
+  try {
+    const { createClient } = await import('@supabase/supabase-js');
+    const sb = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+    
+    let query = sb.from('broker_accounts').select('*');
+    if (userId) {
+      query = query.eq('user_id', userId);
     }
-  }
+    
+    const { data, error } = await query;
 
-  const all = readDb();
-  if (userId) return all.filter(b => b.userId === userId);
-  return all;
+    if (!error && data) {
+      return data.map((b: any) => ({
+        id:     b.mt5_login || b.metaapi_id || b.id,
+        userId: b.user_id,
+        name:   b.broker_name,
+        login:  b.mt5_login || b.metaapi_id,
+        server: b.server,
+        platform: 'mt5' as const,
+        status: b.status,
+        balance: Number(b.balance) || 0,
+        equity:  Number(b.equity)  || 0,
+        pnl:     Number(b.pnl)     || 0,
+        positions: [],
+        timezone_offset:      Number(b.timezone_offset) || 0,
+        broker_timezone_name: b.broker_timezone_name || 'UTC',
+        allowed_symbols:      Array.isArray(b.allowed_symbols) ? b.allowed_symbols : [],
+      }));
+    }
+  } catch (err: any) {
+    console.error('[Broker Engine] Failed to fetch brokers from Supabase:', err.message);
+  }
+  return [];
 }
 
 // ── Search Broker Servers ────────────────────────────────────────────────────

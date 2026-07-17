@@ -51,9 +51,19 @@ async function getRebateLevels(): Promise<RebateLevel[]> {
  * Returns: [{userId, level}] where level 1 = direct referrer, 2 = referrer's referrer, etc.
  */
 async function getUpline(userId: string, maxLevels: number): Promise<{ userId: string; level: number }[]> {
+  const { data, error } = await supabaseAdmin
+    .rpc('get_upline_hierarchy', { start_user_id: userId, max_levels: maxLevels });
+
+  if (!error && data) {
+    return (data as any[]).map((row: any) => ({
+      userId: row.user_id,
+      level: row.level
+    }));
+  }
+
+  // Fallback to sequential query if RPC is not deployed yet or fails
   const upline: { userId: string; level: number }[] = [];
   let currentId = userId;
-
   for (let level = 1; level <= maxLevels; level++) {
     const { data: profile } = await supabaseAdmin
       .from('profiles')
@@ -62,11 +72,9 @@ async function getUpline(userId: string, maxLevels: number): Promise<{ userId: s
       .maybeSingle();
 
     if (!profile?.referred_by) break;
-
     upline.push({ userId: profile.referred_by, level });
     currentId = profile.referred_by;
   }
-
   return upline;
 }
 
@@ -135,18 +143,17 @@ export async function distributeRebate(
       continue;
     }
 
-    // Credit the ancestor's wallet balance
-    const { data: profile } = await supabaseAdmin
-      .from('profiles')
-      .select('wallet_balance')
-      .eq('id', ancestor.userId)
-      .maybeSingle();
+    // Credit the ancestor's wallet balance atomically
+    const { error: rpcErr } = await supabaseAdmin
+      .rpc('increment_wallet_balance', {
+        p_user_id: ancestor.userId,
+        p_amount: earnedAmount,
+      });
 
-    const currentBalance = Number(profile?.wallet_balance || 0);
-    await supabaseAdmin
-      .from('profiles')
-      .update({ wallet_balance: currentBalance + earnedAmount })
-      .eq('id', ancestor.userId);
+    if (rpcErr) {
+      console.error(`[Rebate Distribution] L${ancestor.level} balance credit to ${ancestor.userId} failed:`, rpcErr.message);
+      continue;
+    }
 
     distributions++;
     console.log(`[Rebate Distribution] L${ancestor.level} → ${ancestor.userId}: +$${earnedAmount} (${levelConfig.percentage}% of $${grossRebate})`);
@@ -203,28 +210,30 @@ export async function checkMilestone(
 
   const legs = directRefs || [];
 
-  const breakdown: LegBreakdown[] = [];
-  let totalRawLots = 0;
-  let totalCountedLots = 0;
-
-  for (const leg of legs) {
-    // Get total volume for this leg + everyone under them
+  // Run leg volume calculations in parallel
+  const legVolumePromises = legs.map(async (leg) => {
     const { data: legVolumeResult } = await supabaseAdmin
       .rpc('get_leg_volume', { leg_user_id: leg.id });
 
     const rawLots = Number(legVolumeResult || 0);
     const cappedLots = Math.min(rawLots, legCap);
 
-    totalRawLots += rawLots;
-    totalCountedLots += cappedLots;
-
-    breakdown.push({
+    return {
       legUserId: leg.id,
       legName: leg.full_name || leg.email || 'Unknown',
       rawLots,
       cappedLots,
       capped: rawLots > legCap,
-    });
+    };
+  });
+
+  const breakdown = await Promise.all(legVolumePromises);
+  let totalRawLots = 0;
+  let totalCountedLots = 0;
+
+  for (const item of breakdown) {
+    totalRawLots += item.rawLots;
+    totalCountedLots += item.cappedLots;
   }
 
   // Sort by raw volume descending
@@ -266,10 +275,8 @@ export async function checkAllMilestones(userId: string): Promise<MilestoneResul
     .eq('active', true)
     .order('sort_order');
 
-  const results: MilestoneResult[] = [];
-  for (const m of (milestones || [])) {
-    const result = await checkMilestone(userId, m.id);
-    results.push(result);
-  }
-  return results;
+  if (!milestones) return [];
+
+  const promises = milestones.map(m => checkMilestone(userId, m.id));
+  return Promise.all(promises);
 }

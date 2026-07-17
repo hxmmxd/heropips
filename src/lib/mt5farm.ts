@@ -8,12 +8,61 @@
  * This is the ONLY file that knows the farm URL and API key.
  */
 
-export const FARM_BASE = process.env.MT5_FARM_ORCHESTRATOR_URL || 'http://4.224.249.231:8080';
-export const FARM_KEY  = process.env.MT5_FARM_API_KEY || '99E23B08-3BBBFA50-7EE7609F-5C0AA0C2';
-export const FARM_HEADERS: Record<string, string> = {
+import { getPlatformConfig } from './platformConfig';
+
+export let FARM_BASE = process.env.MT5_FARM_ORCHESTRATOR_URL || 'http://4.224.249.231:8080';
+export let FARM_KEY  = process.env.MT5_FARM_API_KEY || '99E23B08-3BBBFA50-7EE7609F-5C0AA0C2';
+export let FARM_HEADERS: Record<string, string> = {
   'Content-Type': 'application/json',
   'X-API-Key':    FARM_KEY,
 };
+
+let _lastConfigSync = 0;
+export async function syncFarmConfig() {
+  if (Date.now() - _lastConfigSync < 5000) return; // limit to once every 5 seconds
+  _lastConfigSync = Date.now();
+  try {
+    const dbUrl = await getPlatformConfig('mt5_farm_url', 'MT5_FARM_ORCHESTRATOR_URL');
+    if (dbUrl && dbUrl.trim() !== '' && dbUrl.trim() !== FARM_BASE) {
+      console.log(`[MT5 Farm] Dynamically updating FARM_BASE to: ${dbUrl.trim()}`);
+      FARM_BASE = dbUrl.trim();
+    }
+    const dbKey = await getPlatformConfig('mt5_farm_api_key', 'MT5_FARM_API_KEY');
+    if (dbKey && dbKey.trim() !== '' && dbKey.trim() !== FARM_KEY) {
+      console.log('[MT5 Farm] Dynamically updating FARM_KEY');
+      FARM_KEY = dbKey.trim();
+      FARM_HEADERS['X-API-Key'] = FARM_KEY;
+    }
+  } catch (err) {
+    console.error('[MT5 Farm] Failed to sync config from DB:', err);
+  }
+}
+
+// Intercept global fetch inside this module to automatically resolve dynamic credentials
+async function farmFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  await syncFarmConfig();
+
+  let target = input;
+  if (typeof input === 'string') {
+    if (input.includes('4.224.249.231:8080')) {
+      target = input.replace('http://4.224.249.231:8080', FARM_BASE)
+                    .replace('https://4.224.249.231:8080', FARM_BASE);
+    }
+  }
+
+  // Ensure headers are up to date
+  let finalInit = init || {};
+  const origHeaders = (finalInit.headers || {}) as Record<string, string>;
+  finalInit.headers = {
+    ...origHeaders,
+    'X-API-Key': FARM_KEY,
+  };
+
+  return globalThis.fetch(target, finalInit);
+}
+
+// Shadow the global fetch inside this file's scope
+const fetch = farmFetch;
 
 // ── Types ────────────────────────────────────────────────────────────────────
 

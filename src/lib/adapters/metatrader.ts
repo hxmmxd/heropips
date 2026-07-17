@@ -84,7 +84,7 @@ export class MetaTraderAdapter implements TradingAdapter {
 
   async executeOrder(accountId: string, order: OrderRequest, _credentials: ConnectionCredentials): Promise<OrderResult> {
     const cleanSymbol = order.symbol.replace('/', '');
-    const normalizedSymbol = getNormalizedSymbolForBroker(cleanSymbol, accountId);
+    const normalizedSymbol = await getNormalizedSymbolForBroker(cleanSymbol, accountId);
     const result = await farmExecuteTrade(accountId, {
       actionType: order.side === 'BUY' ? 'ORDER_TYPE_BUY' : 'ORDER_TYPE_SELL',
       symbol:     normalizedSymbol,

@@ -93,19 +93,41 @@ async function fetchYahooFallback(
 const BINANCE_POLL_MS = 2_000;   // crypto — Binance, free, unlimited
 const TD_POLL_MS = 8_000;        // 7 symbols × 7.5 calls/min = 52.5 credits/min (Grow plan: 55/min ✓)
 
-export async function GET() {
+export async function GET(request: Request) {
   const encoder = new TextEncoder();
+  const { signal } = request;
 
   const stream = new ReadableStream({
     async start(controller) {
+      let binanceTimer: any = null;
+      let tdTimer: any = null;
+      let closeTimeout: any = null;
       let closed = false;
+
+      const cleanup = () => {
+        if (closed) return;
+        closed = true;
+        if (binanceTimer) clearInterval(binanceTimer);
+        if (tdTimer) clearInterval(tdTimer);
+        if (closeTimeout) clearTimeout(closeTimeout);
+        try { controller.close(); } catch { }
+        console.log('[Price Stream] SSE stream cleaned up via AbortSignal');
+      };
+
+      if (signal.aborted) {
+        closed = true;
+        try { controller.close(); } catch { }
+        return;
+      }
+
+      signal.addEventListener('abort', cleanup);
 
       const send = (payload: Record<string, number>) => {
         if (closed || Object.keys(payload).length === 0) return;
         try {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
         } catch {
-          closed = true;
+          cleanup();
         }
       };
 
@@ -130,23 +152,20 @@ export async function GET() {
       send({ ...tdInit, ...binanceInit });
 
       // ── Crypto: fast polling via Binance ──
-      const binanceTimer = setInterval(async () => {
-        if (closed) { clearInterval(binanceTimer); return; }
+      binanceTimer = setInterval(async () => {
+        if (closed) return;
         send(await fetchBinance());
       }, BINANCE_POLL_MS);
 
       // ── Forex/Metals/ETFs: Twelve Data + Yahoo fallback ──
-      const tdTimer = setInterval(async () => {
-        if (closed) { clearInterval(tdTimer); return; }
+      tdTimer = setInterval(async () => {
+        if (closed) return;
         send(await fetchTdWithFallback());
       }, TD_POLL_MS);
 
       // Auto-close before Vercel's 4.5-min function limit
-      setTimeout(() => {
-        closed = true;
-        clearInterval(binanceTimer);
-        clearInterval(tdTimer);
-        try { controller.close(); } catch { }
+      closeTimeout = setTimeout(() => {
+        cleanup();
       }, 270_000);
     },
   });

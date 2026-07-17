@@ -130,11 +130,15 @@ export async function GET() {
     }
   }
 
-  // Also fetch sentinel status
+  // Fetch sentinel status from database
   let sentinelStatus = null;
   try {
-    const { getSentinelStatus } = await import('@/lib/sentinel');
-    sentinelStatus = getSentinelStatus();
+    const { data } = await admin
+      .from('platform_config')
+      .select('value')
+      .eq('key', 'sentinel_worker_status')
+      .maybeSingle();
+    sentinelStatus = data?.value || { running: false, statusMessage: 'Worker offline' };
   } catch {}
 
   // Fetch latest risk state for each active account
@@ -204,19 +208,24 @@ export async function PATCH(request: Request) {
     });
   }
 
-  // Handle sentinel control actions
+  // Handle sentinel control actions via desired state DB flag
   if (body._sentinel_action) {
     try {
-      const { startSentinel, stopSentinel } = await import('@/lib/sentinel');
-      if (body._sentinel_action === 'stop') {
-        stopSentinel();
-        updatedKeys.push('sentinel_stopped');
-      } else if (body._sentinel_action === 'start' && body._sentinel_account_id) {
-        startSentinel(body._sentinel_account_id, user.id);
-        updatedKeys.push('sentinel_started');
-      }
+      const running = body._sentinel_action === 'start';
+      await admin
+        .from('platform_config')
+        .upsert({
+          key: 'sentinel_active_state',
+          value: {
+            running,
+            accountId: body._sentinel_account_id || '',
+            userId: user.id,
+            updatedAt: new Date().toISOString(),
+          }
+        });
+      updatedKeys.push(running ? 'sentinel_started' : 'sentinel_stopped');
     } catch (err: any) {
-      console.error('[RiskConfig] Sentinel action error:', err.message);
+      console.error('[RiskConfig] Sentinel DB action error:', err.message);
     }
   }
 

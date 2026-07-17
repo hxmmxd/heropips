@@ -1,12 +1,16 @@
 import { NextResponse } from 'next/server';
 import { connectBroker, disconnectBroker, getAllBrokers, getBrokerDetails, searchBrokerServers, syncBrokerToSupabase } from '@/lib/broker';
 import { createClient } from '@/lib/supabase/server';
-import { farmGetAccount, farmGetAccountInfo, farmGetSymbols, resolveAccountId, FARM_BASE, FARM_HEADERS, sidecarUrl } from '@/lib/mt5farm';
-import { startSentinel, stopSentinel, isSentinelRunning } from '@/lib/sentinel';
+import { farmGetAccount, farmGetAccountInfo, farmGetSymbols, resolveAccountId, FARM_BASE, FARM_HEADERS, sidecarUrl, syncFarmConfig } from '@/lib/mt5farm';
+
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
+  await syncFarmConfig();
+
+
+
   try {
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('q');
@@ -33,15 +37,15 @@ export async function GET(request: Request) {
         const accountId = await resolveAccountId(loginOrId);
         try {
           // Fetch orchestrator status + sidecar account info in parallel.
-          // 4s timeout on both — sidecar may be slow waking up.
+          // 1.5s timeout on both — sidecar may be slow waking up.
           const [farmAcctResult, farmInfoResult] = await Promise.allSettled([
             Promise.race([
               farmGetAccount(accountId),
-              new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 4000)),
+              new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 1500)),
             ]),
             Promise.race([
               farmGetAccountInfo(accountId),
-              new Promise<null>((resolve) => setTimeout(() => resolve(null), 4000)),
+              new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500)),
             ]),
           ]);
 
@@ -114,10 +118,7 @@ export async function GET(request: Request) {
             // Fire-and-forget sync; don't block the response
             syncBrokerToSupabase(node, user.id).catch(() => {});
 
-            // Auto-start sentinel if not already running
-            if (!isSentinelRunning()) {
-              startSentinel(accountId, user.id);
-            }
+
 
             return node;
           }
@@ -173,6 +174,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  await syncFarmConfig();
   try {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -212,10 +214,18 @@ export async function DELETE(request: Request) {
 
     const success = await disconnectBroker(brokerId, user.id);
     if (success) {
-      // Stop sentinel if it was monitoring this account
-      if (isSentinelRunning()) {
-        stopSentinel();
-      }
+      // Deactivate sentinel in database
+      const { createClient: createAdminClient } = await import('@supabase/supabase-js');
+      const admin = createAdminClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      );
+      await admin
+        .from('platform_config')
+        .upsert({
+          key: 'sentinel_active_state',
+          value: { running: false, accountId: brokerId, userId: user.id }
+        });
       return NextResponse.json({ success: true });
     } else {
       return NextResponse.json({ error: 'Broker not found' }, { status: 404 });

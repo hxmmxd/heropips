@@ -21,8 +21,38 @@ import {
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+async function verifyRequest(request: Request): Promise<{ allowed: boolean; user?: any; error?: string }> {
+  // 1. Bearer Token/Query param auth (for crons/workers)
+  const { searchParams } = new URL(request.url);
+  const secretParam = searchParams.get('secret');
+  const authHeader = request.headers.get('authorization')?.replace('Bearer ', '');
+  const secret = secretParam || authHeader;
+
+  const CRON_SECRET = process.env.CRON_SECRET || '';
+  if (CRON_SECRET && secret === CRON_SECRET) {
+    return { allowed: true };
+  }
+
+  // 2. User session cookie auth (for web client)
   try {
+    const { createClient } = await import('@/lib/supabase/server');
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) return { allowed: true, user };
+  } catch (err) {
+    console.warn('[Sentinel API] Supabase session check bypassed:', err);
+  }
+
+  return { allowed: false, error: 'Unauthorized: Missing or invalid credentials' };
+}
+
+export async function GET(request: Request) {
+  try {
+    const { allowed, error } = await verifyRequest(request);
+    if (!allowed) {
+      return NextResponse.json({ error }, { status: 401 });
+    }
+
     const status = getSentinelStatus();
 
     // If running and has an accountId, also fetch live risk gate evaluations
@@ -72,6 +102,11 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const { allowed, error, user } = await verifyRequest(request);
+    if (!allowed) {
+      return NextResponse.json({ error }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const action = searchParams.get('action');
 
@@ -95,12 +130,12 @@ export async function POST(request: Request) {
 
       // Get accountId from body or auto-detect
       let accountId: string | null = null;
-      let userId: string | null = null;
+      let userId: string | null = user?.id || null;
 
       try {
         const body = await request.json();
         accountId = body.accountId || null;
-        userId = body.userId || null;
+        userId = body.userId || userId || null;
       } catch {
         // No body — auto-detect
       }

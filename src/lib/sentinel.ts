@@ -26,7 +26,6 @@ import {
   createInitialRiskState,
   updateRiskMetrics,
   evaluateAllRiskGates,
-  updateTradeResult,
   updateEquityCurve,
   generateDailyReport,
   type RiskState,
@@ -113,20 +112,15 @@ export function startSentinel(accountId: string, userId: string): boolean {
   state.previousPositions = new Map();
   state.beMigratedPositions = new Set();
 
-  console.log(`[Sentinel] 🟢 Starting heartbeat for account ${accountId} (every ${HEARTBEAT_MS / 1000}s)`);
+  console.log(`[Sentinel] 🟢 Initializing watchdog state for account ${accountId}`);
+
+  // Persist Sentinel config to database for auto-waking on boot/server restart
+  persistSentinelConfig(accountId, userId, true).catch(() => {});
 
   // Seed EMA/SMA from historical data (fire-and-forget)
   seedEquityCurve(accountId).catch(err =>
     console.warn('[Sentinel] Seed equity curve failed (non-fatal):', err.message)
   );
-
-  // Run first tick immediately
-  heartbeat().catch(err => console.error('[Sentinel] Initial tick error:', err.message));
-
-  // Schedule recurring ticks
-  state.intervalId = setInterval(() => {
-    heartbeat().catch(err => console.error('[Sentinel] Tick error:', err.message));
-  }, HEARTBEAT_MS);
 
   return true;
 }
@@ -203,11 +197,14 @@ async function seedEquityCurve(accountId: string): Promise<void> {
 }
 
 export function stopSentinel(): void {
-  if (state.intervalId) {
-    clearInterval(state.intervalId);
-    state.intervalId = null;
-  }
   state.running = false;
+
+  const acct = state.accountId;
+  const user = state.userId;
+  if (acct) {
+    persistSentinelConfig(acct, user || 'system', false).catch(() => {});
+  }
+
   console.log(`[Sentinel] 🔴 Stopped (ran ${state.tickCount} ticks)`);
 }
 
@@ -247,7 +244,7 @@ export function isSentinelRunning(): boolean {
 
 // ── Heartbeat (main tick) ────────────────────────────────────
 
-async function heartbeat(): Promise<void> {
+export async function heartbeat(): Promise<void> {
   if (!state.accountId || !state.running) return;
   state.tickCount++;
 
@@ -270,20 +267,23 @@ async function heartbeat(): Promise<void> {
     state.lastBalance = info.balance;
 
     // ── 2. Load or create risk state ──
+    const liveEquity = info.equity ?? info.balance ?? 0;
+    const liveBalance = info.balance ?? 0;
+
     let riskState = await getRiskState(state.accountId);
     if (!riskState) {
       riskState = createInitialRiskState(
         state.accountId,
         state.userId || 'system',
-        info.equity,
-        info.balance
+        liveEquity,
+        liveBalance
       );
       await saveRiskState(riskState);
-      console.log(`[Sentinel] Created initial risk state — equity $${info.equity.toFixed(2)}`);
+      console.log(`[Sentinel] Created initial risk state — equity $${liveEquity.toFixed(2)}`);
     }
 
     // ── 3. Update risk metrics with live data ──
-    const updated = updateRiskMetrics(riskState, info.equity, info.balance);
+    const updated = updateRiskMetrics(riskState, liveEquity, liveBalance);
 
     // ── 4. Detect zone transitions ──
     if (updated.drawdownZone !== state.lastZone) {
@@ -291,7 +291,7 @@ async function heartbeat(): Promise<void> {
       alertZoneTransition(
         state.accountId, 'Gate 15 Drawdown',
         state.lastZone, updated.drawdownZone,
-        info.equity, updated.drawdownPct
+        liveEquity, updated.drawdownPct
       );
       state.lastZone = updated.drawdownZone;
     }
@@ -300,22 +300,22 @@ async function heartbeat(): Promise<void> {
       alertZoneTransition(
         state.accountId, 'Gate 14 Daily Loss',
         state.lastDailyTier, updated.dailyTier,
-        info.equity, updated.dailyLossPct
+        liveEquity, updated.dailyLossPct
       );
       state.lastDailyTier = updated.dailyTier;
     }
 
     // ── Flash equity drop detection (>2% in 60 seconds) ──
     const now = Date.now();
-    state.equityRingBuffer.push({ time: now, equity: info.equity });
+    state.equityRingBuffer.push({ time: now, equity: liveEquity });
     // Remove entries older than 60 seconds
     state.equityRingBuffer = state.equityRingBuffer.filter(e => now - e.time <= 60_000);
     if (state.equityRingBuffer.length >= 2) {
       const oldest = state.equityRingBuffer[0];
       if (oldest.equity > 0) {
-        const dropPct = ((oldest.equity - info.equity) / oldest.equity) * 100;
+        const dropPct = ((oldest.equity - liveEquity) / oldest.equity) * 100;
         if (dropPct >= 2.0) {
-          alertFlashDrop(state.accountId, dropPct, info.equity);
+          alertFlashDrop(state.accountId, dropPct, liveEquity);
         }
       }
     }
@@ -327,7 +327,7 @@ async function heartbeat(): Promise<void> {
     if (multipliers.shouldLiquidate) {
       console.error(`[Sentinel] 🚨🚨🚨 KILL SWITCH ACTIVATED — ${multipliers.riskSummary}`);
       console.error(`[Sentinel] Closing ALL positions for account ${state.accountId}`);
-      alertKillSwitch(state.accountId, multipliers.riskSummary, info.equity);
+      alertKillSwitch(state.accountId, multipliers.riskSummary, liveEquity);
       try {
         const result = await farmCloseAllPositions(state.accountId);
         console.error(`[Sentinel] Kill switch result:`, result);
@@ -364,7 +364,7 @@ async function heartbeat(): Promise<void> {
     if (state.tickCount % 6 === 0) {
       console.log(
         `[Sentinel] ♥ Tick #${state.tickCount} | ` +
-        `Equity: $${info.equity.toFixed(2)} | ` +
+        `Equity: $${liveEquity.toFixed(2)} | ` +
         `Daily: ${updated.dailyLossPct.toFixed(2)}% (${updated.dailyTier}) | ` +
         `DD: ${updated.drawdownPct.toFixed(2)}% (${updated.drawdownZone}) | ` +
         `Positions: ${positions.length} | ` +
@@ -402,25 +402,17 @@ async function detectClosedPositions(
 
   console.log(`[Sentinel] 📊 Detected ${closedIds.length} closed position(s): ${closedIds.join(', ')}`);
 
-  // For each closed position, determine if it was a win or loss
+  // For each closed position, log the event (streaks/curves are updated via sync-deals cron)
   for (const closedId of closedIds) {
     const prevPos = state.previousPositions.get(closedId);
     if (!prevPos) continue;
 
-    // The position's `profit` field at last check tells us the direction
     const isWin = prevPos.profit > 0;
-    const updatedState = updateTradeResult(riskState, isWin);
-    await saveRiskState(updatedState);
-
     const emoji = isWin ? '✅' : '❌';
     console.log(
-      `[Sentinel] ${emoji} Trade closed: ${prevPos.symbol} ${prevPos.type === 'POSITION_TYPE_BUY' ? 'BUY' : 'SELL'} ` +
-      `P&L: $${prevPos.profit.toFixed(2)} | ` +
-      `Streak: ${isWin ? `W${updatedState.consecutiveWins}` : `L${updatedState.consecutiveLosses}`}`
+      `[Sentinel] ${emoji} Position closed: ${prevPos.symbol} ${prevPos.type === 'POSITION_TYPE_BUY' ? 'BUY' : 'SELL'} ` +
+      `Est. P&L: $${prevPos.profit.toFixed(2)} (Streak/Risk curves will be updated via sync-deals cron)`
     );
-
-    // Update riskState for next iteration
-    riskState = updatedState;
   }
 }
 
@@ -476,3 +468,54 @@ async function breakEvenMigration(
     }
   }
 }
+
+/**
+ * Persist active Sentinel status to platform_config so it can auto-wake after server recycles.
+ */
+async function persistSentinelConfig(accountId: string, userId: string, running: boolean) {
+  try {
+    const { createClient } = await import('@supabase/supabase-js');
+    const sb = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+    await sb
+      .from('platform_config')
+      .upsert({
+        key: 'sentinel_active_state',
+        value: { running, accountId, userId, updatedAt: new Date().toISOString() }
+      });
+  } catch (err: any) {
+    console.error('[Sentinel] Failed to persist Sentinel config:', err.message);
+  }
+}
+
+/**
+ * Auto-wake Sentinel watchdog if registered as active in platform_config database.
+ */
+export async function autoWakeSentinel() {
+  if (isSentinelRunning()) return;
+
+  try {
+    const { createClient } = await import('@supabase/supabase-js');
+    const sb = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    const { data } = await sb
+      .from('platform_config')
+      .select('value')
+      .eq('key', 'sentinel_active_state')
+      .maybeSingle();
+
+    if (data && data.value && (data.value as any).running) {
+      const { accountId, userId } = data.value as any;
+      console.log(`[Sentinel Boot] 🔄 Auto-waking Sentinel watchdog for account ${accountId}...`);
+      startSentinel(accountId, userId || 'system');
+    }
+  } catch (err: any) {
+    console.error('[Sentinel Boot] Auto-wake failed:', err.message);
+  }
+}
+

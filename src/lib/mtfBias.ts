@@ -87,17 +87,19 @@ const YAHOO_INTERVALS: Record<string, { interval: string; period: string }> = {
 const MTF_CACHE = new Map<string, { result: MTFBias; expiresAt: number }>();
 const MTF_TTL = 30 * 60 * 1000; // 30 min cache (weekly/daily don't change often)
 
-export async function getMTFBias(symbol: string, h4Bias: 'bullish' | 'bearish' | 'neutral'): Promise<MTFBias> {
+export async function getMTFBias(
+  symbol: string,
+  h4Bias: 'bullish' | 'bearish' | 'neutral',
+  preFetchedWeekly?: any[],
+  preFetchedDaily?: any[]
+): Promise<MTFBias> {
   const cacheKey = symbol;
   const cached = MTF_CACHE.get(cacheKey);
   if (cached && Date.now() < cached.expiresAt) return cached.result;
 
   try {
-    // Fetch weekly and daily candles in parallel
-    const [weeklyCandles, dailyCandles] = await Promise.all([
-      fetchYahooCandles(symbol, '1wk').catch(() => []),
-      fetchYahooCandles(symbol, '1d').catch(() => []),
-    ]);
+    const weeklyCandles = preFetchedWeekly || await fetchYahooCandles(symbol, '1wk').catch(() => []);
+    const dailyCandles = preFetchedDaily || await fetchYahooCandles(symbol, '1d').catch(() => []);
 
     const weekly = biasFromCandles(weeklyCandles.slice(-52), 'weekly');
     const daily = biasFromCandles(dailyCandles.slice(-60), 'daily');
