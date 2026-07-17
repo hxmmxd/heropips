@@ -1047,7 +1047,7 @@ body {
 
 .chat-input-wrapper {
   background: var(--bg);
-  padding-bottom: max(env(safe-area-inset-bottom), 12px);
+  padding-bottom: max(calc(env(safe-area-inset-bottom) - 14px), 12px);
   border-top: 1px solid var(--border);
 }
 
