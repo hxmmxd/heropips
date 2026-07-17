@@ -155,8 +155,16 @@ function HomeContent() {
   useEffect(() => {
     const handleResize = () => {
       const vv = window.visualViewport;
-      const height = vv ? vv.height : window.innerHeight;
-      document.documentElement.style.setProperty('--app-height', `${height}px`);
+      
+      // On iOS, if the keyboard is open, the visual viewport height becomes significantly
+      // smaller than window.innerHeight (e.g. > 120px difference).
+      const isKeyboardOpen = vv ? (window.innerHeight - vv.height > 120) : false;
+      
+      if (isKeyboardOpen && vv) {
+        document.documentElement.style.setProperty('--app-height', `${vv.height}px`);
+      } else {
+        document.documentElement.style.setProperty('--app-height', '100%');
+      }
     };
 
     window.addEventListener('resize', handleResize);
