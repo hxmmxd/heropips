@@ -41,7 +41,8 @@
     "eslint-config-next": "^14.2.35",
     "tailwindcss": "^4",
     "tsx": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.10"
   },
   "overrides": {
     "glob": "^13.0.6"

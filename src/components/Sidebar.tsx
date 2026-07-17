@@ -75,7 +75,7 @@ export default function Sidebar({ currentTab, switchTab, isOpen, onToggle, theme
         <div className="flex flex-col h-full">
           
           {/* ── Workspace / User selector ── */}
-          <div className="px-3 pt-4 pb-1 relative">
+          <div className="px-3 pb-1 relative pwa-sidebar-top-padding">
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setProfileMenuOpen(!profileMenuOpen)}

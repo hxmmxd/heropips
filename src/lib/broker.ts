@@ -582,7 +582,6 @@ export async function disconnectBroker(brokerId: string, userId?: string): Promi
       let query = sb.from('broker_accounts').delete().eq('user_id', userId);
       
       const conditions = [
-        `id.eq.${brokerId}`,
         `metaapi_id.eq.${brokerId}`,
         `mt5_login.eq.${brokerId}`,
         `metaapi_id.eq.${cleanBrokerId}`,

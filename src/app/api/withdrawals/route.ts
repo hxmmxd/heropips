@@ -83,28 +83,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: `Unsupported currency: ${currency}` }, { status: 400 });
     }
 
-    // Check wallet balance from profiles
-    const { data: profile } = await supabaseAdmin
-      .from('profiles')
-      .select('wallet_balance')
-      .eq('id', user.id)
-      .single();
+    // 1. Atomically check and deduct balance immediately (held until approved/rejected) using row-level locking
+    const { data: success, error: rpcErr } = await supabaseAdmin
+      .rpc('deduct_wallet_balance', {
+        p_user_id: user.id,
+        p_amount: amount
+      });
 
-    const available = profile?.wallet_balance ?? 0;
-    if (available < amount) {
-      return NextResponse.json({ error: 'Insufficient balance' }, { status: 400 });
+    if (rpcErr || !success) {
+      return NextResponse.json({ error: 'Insufficient balance or concurrent update' }, { status: 400 });
     }
 
-    // Deduct balance immediately (held until approved/rejected)
-    await supabaseAdmin
-      .from('profiles')
-      .update({
-        wallet_balance: available - amount,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', user.id);
-
-    // Create withdrawal request — just a DB record, NO NOWPayments call
+    // 2. Create withdrawal request — just a DB record, NO NOWPayments call
     const { data: record, error: insertErr } = await supabaseAdmin
       .from('referral_withdrawals')
       .insert({
@@ -120,11 +110,11 @@ export async function POST(request: Request) {
       .single();
 
     if (insertErr) {
-      // Refund on insert failure
-      await supabaseAdmin
-        .from('profiles')
-        .update({ wallet_balance: available, updated_at: new Date().toISOString() })
-        .eq('id', user.id);
+      // 3. Atomically refund on insert failure to prevent overriding concurrent updates
+      await supabaseAdmin.rpc('increment_wallet_balance', {
+        p_user_id: user.id,
+        p_amount: amount
+      });
       return NextResponse.json({ error: insertErr.message }, { status: 500 });
     }
 
@@ -262,22 +252,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: `Cannot reject — current status is "${record.status}"` }, { status: 400 });
     }
 
-    // Refund balance to profile
-    const { data: profile } = await supabaseAdmin
-      .from('profiles')
-      .select('wallet_balance')
-      .eq('id', record.user_id)
-      .single();
-
-    if (profile) {
-      await supabaseAdmin
-        .from('profiles')
-        .update({
-          wallet_balance: (profile.wallet_balance || 0) + record.amount_usd,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', record.user_id);
-    }
+    // Refund balance to profile atomically using the increment_wallet_balance RPC
+    await supabaseAdmin.rpc('increment_wallet_balance', {
+      p_user_id: record.user_id,
+      p_amount: record.amount_usd
+    });
 
     // Update wallet transaction status to failed/declined
     await supabaseAdmin

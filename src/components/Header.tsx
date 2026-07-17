@@ -85,7 +85,7 @@ export default function Header({
   const isPositivePnl = activeBroker.pnl.startsWith('+');
 
   return (
-    <header className="flex flex-col z-40 bg-[var(--bg)] shrink-0 pt-[env(safe-area-inset-top)]">
+    <header className="flex flex-col z-40 bg-[var(--bg)] shrink-0 pwa-top-padding">
 
       {/* ── Top Navbar ── */}
       <div className="flex items-center justify-between px-4 py-2">

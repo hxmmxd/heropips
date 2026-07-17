@@ -59,38 +59,25 @@ export async function POST(request: Request) {
 
   // ── WALLET PAYMENT ──
   if (method === 'wallet') {
-    // 1. Check balance
+    // 1. Call stored procedure to atomically check and deduct balance using row-level locking
+    const { data: success, error: rpcErr } = await supabaseAdmin
+      .rpc('deduct_wallet_balance', {
+        p_user_id: user.id,
+        p_amount: price
+      });
+
+    if (rpcErr || !success) {
+      return NextResponse.json({ error: 'Insufficient balance or concurrent update' }, { status: 400 });
+    }
+
+    // 2. Fetch updated balance
     const { data: profile } = await supabaseAdmin
       .from('profiles')
       .select('wallet_balance')
       .eq('id', user.id)
       .single();
 
-    const balance = Number(profile?.wallet_balance || 0);
-    if (balance < price) {
-      return NextResponse.json({
-        error: 'Insufficient wallet balance',
-        balance,
-        required: price,
-      }, { status: 400 });
-    }
-
-    // 2. Guarded deduction — only succeeds if balance still sufficient
-    const { data: rows, error: guardErr } = await supabaseAdmin
-      .from('profiles')
-      .update({
-        wallet_balance: balance - price,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', user.id)
-      .gte('wallet_balance', price)
-      .select('wallet_balance');
-
-    if (guardErr || !rows || rows.length === 0) {
-      return NextResponse.json({ error: 'Insufficient balance or concurrent update' }, { status: 400 });
-    }
-
-    const newBalance = Number(rows[0].wallet_balance);
+    const newBalance = Number(profile?.wallet_balance || 0);
 
     // 3. Record wallet transaction (with auto-fix for CHECK constraint)
     let txInsertResult = await supabaseAdmin.from('wallet_transactions').insert({
