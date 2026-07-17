@@ -218,10 +218,6 @@ export function Navbar() {
 
             </NavigationMenu.List>
 
-            {/* Viewport for smooth width/height animations */}
-            <div className="lp-nav-viewport-wrapper">
-              <NavigationMenu.Viewport className="lp-nav-dropdown-viewport" />
-            </div>
           </NavigationMenu.Root>
 
           {/* Right actions */}
