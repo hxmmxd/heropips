@@ -60,7 +60,7 @@ body.lp-scrollable {
 
 .lp-nav {
   position: fixed;
-  top: 12px;
+  top: calc(env(safe-area-inset-top) + 12px);
   left: 0;
   right: 0;
   z-index: 200;
@@ -683,7 +683,7 @@ body.lp-scrollable {
   flex-direction: column;
   /* Fixed so it floats above the hero */
   position: fixed;
-  top: 76px;          /* nav top(12) + nav height(52) + gap(12) */
+  top: calc(env(safe-area-inset-top) + 76px);          /* nav top(12) + nav height(52) + gap(12) + safe area */
   left: 12px;
   right: 12px;
   z-index: 199;
