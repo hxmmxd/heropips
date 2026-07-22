@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Play, X, Lock, Wallet, Bitcoin, LayoutGrid, Zap, BarChart3 } from 'lucide-react';
+import { Search, Play, X, Lock, Wallet, Bitcoin } from 'lucide-react';
 
 interface Course {
   id: string;
@@ -158,54 +158,6 @@ export default function CoursesTab() {
         @keyframes pulse-glow {
           0%, 100% { box-shadow: 0 0 8px rgba(180,145,108,0.3); }
           50% { box-shadow: 0 0 20px rgba(180,145,108,0.5); }
-        }
-        .courses-floating-dock {
-          position: fixed;
-          bottom: 28px;
-          left: 50%;
-          transform: translateX(-50%);
-          z-index: 50;
-          display: flex;
-          align-items: center;
-          gap: 2px;
-          padding: 6px 8px;
-          border-radius: 999px;
-          background: var(--sidebar-bg);
-          border: 1px solid var(--border);
-          box-shadow: 0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
-          backdrop-filter: blur(16px);
-          animation: dock-slide-up 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
-        }
-        @keyframes dock-slide-up {
-          from { opacity: 0; transform: translateX(-50%) translateY(20px); }
-          to { opacity: 1; transform: translateX(-50%) translateY(0); }
-        }
-        .dock-item {
-          width: 44px;
-          height: 44px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          color: var(--subtext);
-          position: relative;
-        }
-        .dock-item:hover {
-          color: var(--text);
-          background: var(--input-bg);
-        }
-        .dock-item.active {
-          background: var(--accent);
-          color: #fff;
-          box-shadow: 0 2px 12px rgba(180,145,108,0.35);
-        }
-        .dock-divider {
-          width: 1px;
-          height: 24px;
-          background: var(--border);
-          margin: 0 4px;
         }
       `}</style>
 
@@ -503,45 +455,6 @@ export default function CoursesTab() {
         </div>
       )}
 
-      {/* Floating Dock */}
-      {!playingVideo && !purchaseModal && courses.length > 0 && (
-        <div className="courses-floating-dock">
-          <button
-            className={`dock-item ${activeCategory === 'all' ? 'active' : ''}`}
-            onClick={() => setActiveCategory('all')}
-            title="All Courses"
-          >
-            <LayoutGrid className="w-5 h-5" />
-          </button>
-          <div className="dock-divider" />
-          {categories.filter(c => c !== 'all').slice(0, 3).map((cat) => (
-            <button
-              key={cat}
-              className={`dock-item ${activeCategory === cat ? 'active' : ''}`}
-              onClick={() => setActiveCategory(cat)}
-              title={cat}
-            >
-              <Zap className="w-5 h-5" />
-            </button>
-          ))}
-          {categories.filter(c => c !== 'all').length > 3 && (
-            <>
-              <div className="dock-divider" />
-              <button
-                className="dock-item"
-                onClick={() => {
-                  const cats = categories.filter(c => c !== 'all');
-                  const nextIdx = cats.indexOf(activeCategory);
-                  setActiveCategory(cats[(nextIdx + 1) % cats.length]);
-                }}
-                title="More Categories"
-              >
-                <BarChart3 className="w-5 h-5" />
-              </button>
-            </>
-          )}
-        </div>
-      )}
     </>
   );
 }

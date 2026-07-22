@@ -42,7 +42,7 @@ export function generateReportHTML(
   deals: ClosedDeal[],
   brokerName: string = 'TradeGPT Account'
 ): string {
-  const periodLabel = period === '7d' ? 'Last 7 Days' : period === '30d' ? 'Last 30 Days' : 'All Time';
+  const periodLabel = period === '3d' ? 'Last 3 Days' : period === '7d' ? 'Last 7 Days' : period === '30d' ? 'Last 30 Days' : 'All Time';
   const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
   // Group deals by symbol for bar chart

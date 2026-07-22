@@ -33,7 +33,7 @@ export async function GET(request: Request) {
         });
       }
 
-      const { multipliers, gates } = evaluateAllRiskGates(state);
+      const { multipliers, gates } = await evaluateAllRiskGates(state);
 
       return NextResponse.json({
         status: 'ok',

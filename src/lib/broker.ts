@@ -142,14 +142,19 @@ export async function getNormalizedSymbolForBroker(symbol: string, brokerIdOrLog
     }
     const { data } = await query.maybeSingle();
     if (data?.allowed_symbols?.length) {
-      const exact = data.allowed_symbols.find(
-        (s: string) => {
-          const cleanS = s.toUpperCase().replace(/[^A-Z0-9]/g, '');
-          const cleanRootS = s.toUpperCase().split('.')[0].replace(/[^A-Z0-9]/g, '');
-          return cleanS === mt5Symbol || cleanRootS === mt5Symbol;
-        }
+      // First pass: try to find an exact match (ignoring only non-alphanumeric chars)
+      let matchedSymbol = data.allowed_symbols.find(
+        (s: string) => s.toUpperCase().replace(/[^A-Z0-9]/g, '') === mt5Symbol
       );
-      if (exact) mt5Symbol = exact;
+      
+      // Second pass: if no exact match, fallback to root prefix matching (e.g., EURUSD.raw -> EURUSD)
+      if (!matchedSymbol) {
+        matchedSymbol = data.allowed_symbols.find(
+          (s: string) => s.toUpperCase().split('.')[0].replace(/[^A-Z0-9]/g, '') === mt5Symbol
+        );
+      }
+      
+      if (matchedSymbol) mt5Symbol = matchedSymbol;
     }
   } catch (err: any) {
     console.warn('[Broker Engine] Symbol normalization db fetch failed:', err.message);
@@ -439,7 +444,7 @@ export async function executeBrokerOrder(
     if (riskState) {
       // Update risk metrics with live equity
       const updated = updateRiskMetrics(riskState, liveEquity || riskState.currentEquity, liveBalance || riskState.dailyStartBalance);
-      const { multipliers } = evaluateAllRiskGates(updated);
+      const { multipliers } = await evaluateAllRiskGates(updated);
 
       if (multipliers.shouldLiquidate) {
         console.error(`[Risk Governor] 🚨 TERMINAL EVENT — blocking trade and saving state`);
@@ -482,7 +487,7 @@ export async function executeBrokerOrder(
     actionType: action === 'BUY' ? 'ORDER_TYPE_BUY' : 'ORDER_TYPE_SELL',
     symbol:     mt5Symbol,
     volume:     vol,
-    comment:    'TradeGPT AI signal',
+    comment:    'Xyro Trade Ai Signal',
   };
   if (sl) payload.stopLoss   = sl;
   if (tp) payload.takeProfit = tp;

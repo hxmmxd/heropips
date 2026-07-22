@@ -24,8 +24,8 @@ export async function GET(request: Request) {
   // Verify cron secret
   const { searchParams } = new URL(request.url);
   const secret = searchParams.get('secret') || request.headers.get('authorization')?.replace('Bearer ', '');
-  if (CRON_SECRET && secret !== CRON_SECRET) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!CRON_SECRET || secret !== CRON_SECRET) {
+    return NextResponse.json({ error: 'Unauthorized: Cron secret is not configured or mismatch' }, { status: 401 });
   }
 
   await syncFarmConfig();

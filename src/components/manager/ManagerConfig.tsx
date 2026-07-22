@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
+import { Zap, Shield, Eye, Send } from 'lucide-react';
 
 // ── Config Sections ──
 
@@ -240,11 +241,11 @@ export default function ManagerConfig({ config, onChange }: ManagerConfigProps) 
     setTelegramTesting(false);
   };
 
-  const tabs: { key: TabKey; label: string; icon: string }[] = [
-    { key: 'trading', label: 'Trading', icon: '⚡' },
-    { key: 'risk', label: 'Risk Gates', icon: '🛡️' },
-    { key: 'sentinel', label: 'Sentinel', icon: '👁️' },
-    { key: 'telegram', label: 'Alerts', icon: '📢' },
+  const tabs: { key: TabKey; label: string; icon: React.ReactNode }[] = [
+    { key: 'trading', label: 'Trading', icon: <Zap className="w-3.5 h-3.5" /> },
+    { key: 'risk', label: 'Risk Gates', icon: <Shield className="w-3.5 h-3.5" /> },
+    { key: 'sentinel', label: 'Sentinel', icon: <Eye className="w-3.5 h-3.5" /> },
+    { key: 'telegram', label: 'Alerts', icon: <Send className="w-3.5 h-3.5" /> },
   ];
 
   return (
@@ -264,9 +265,14 @@ export default function ManagerConfig({ config, onChange }: ManagerConfigProps) 
               color: activeTab === t.key ? '#10a37f' : 'var(--subtext)',
               fontSize: '11px', fontWeight: 600, cursor: 'pointer',
               transition: 'all 0.2s',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '4px'
             }}
           >
-            {t.icon} {t.label}
+            {t.icon}
+            <span>{t.label}</span>
           </button>
         ))}
       </div>

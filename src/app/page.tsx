@@ -5,6 +5,9 @@ import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
 import ModalNode from '@/components/ModalNode';
 import TerminalTab from '@/components/TerminalTab';
+import AstroDisclaimerModal from '@/components/AstroDisclaimerModal';
+import BrokerLimitModal from '@/components/BrokerLimitModal';
+import { createClient } from '@/lib/supabase/client';
 import { Broker, ChatMessage, Partner, TradeLog } from '@/types';
 
 // Lazy-loaded tabs — only fetched when the user navigates to them
@@ -14,6 +17,7 @@ const HistoryTab         = lazy(() => import('@/components/HistoryTab'));
 const ReferralTab        = lazy(() => import('@/components/ReferralTab'));
 const ProfileTab         = lazy(() => import('@/components/ProfileTab'));
 const SubscriptionTab    = lazy(() => import('@/components/SubscriptionTab'));
+const BillingTab         = lazy(() => import('@/components/BillingTab'));
 const CoursesTab         = lazy(() => import('@/components/CoursesTab'));
 const AstroPerformanceTab = lazy(() => import('@/components/AstroPerformanceTab'));
 
@@ -34,9 +38,12 @@ function HomeContent() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [modalOpen, setModalOpen] = useState(false);
+  const [brokerLimitModalOpen, setBrokerLimitModalOpen] = useState(false);
   const [astroMode, setAstroMode] = useState(false);
   const [showAstroDisclaimer, setShowAstroDisclaimer] = useState(false);
-  const [disclaimerChecked, setDisclaimerChecked] = useState(false);
+
+  const [isFree, setIsFree] = useState(true);
+  const [dailySignalsUsed, setDailySignalsUsed] = useState(0);
 
   // Initial Brokers Data — starts empty (SSR safe), cache loaded in useEffect
   const [brokers, setBrokersRaw] = useState<Broker[]>([]);
@@ -254,6 +261,25 @@ function HomeContent() {
     pollTimerRef.current = setTimeout(poll, 4000);
   }, []);
 
+  const fetchPlan = React.useCallback(async () => {
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data, error } = await supabase.from('profiles').select('plan, daily_signals_used').eq('id', user.id).maybeSingle();
+        console.log('CLIENT FETCH PLAN DATA:', data, 'ERROR:', error);
+        if (data) {
+          if (data.plan) {
+            setIsFree(data.plan === 'free' || data.plan === 'starter');
+          }
+          setDailySignalsUsed(data.daily_signals_used ?? 0);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load user plan:', err);
+    }
+  }, []);
+
   // Load connected brokers and trade logs from server on mount
   useEffect(() => {
     const fetchBrokers = async () => {
@@ -287,6 +313,7 @@ function HomeContent() {
 
     fetchBrokers();
     fetchTrades();
+    fetchPlan();
 
     // Track session info (IP, geo, device) — fire-and-forget
     fetch('/api/session-track', { method: 'POST' }).catch(() => {});
@@ -295,6 +322,19 @@ function HomeContent() {
       if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
     };
   }, []);
+
+  // Listen to auth state changes to load plan metrics as soon as user session is restored
+  useEffect(() => {
+    const supabase = createClient();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        fetchPlan();
+      }
+    });
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [fetchPlan]);
 
   // Real-time balance polling: fetch broker status & balance every 3 seconds
   useEffect(() => {
@@ -359,7 +399,6 @@ function HomeContent() {
         throw new Error(data.error || 'Failed to connect broker');
       }
     } catch (err: any) {
-      console.error(err);
       // Remove the placeholder and let the error surface in the UI
       setBrokers((prev) => prev.filter((item) => item.acc !== loginId));
       // Re-throw so ModalNode can display the error message in its own UI
@@ -509,6 +548,8 @@ function HomeContent() {
         prev.filter((m) => m.id !== typingId).concat(botReply)
       );
 
+      fetchPlan();
+
     } catch (error) {
       // Remove typing indicator and show error
       const errorReply: ChatMessage = {
@@ -541,6 +582,9 @@ function HomeContent() {
         theme={theme}
         onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
         astroMode={astroMode}
+        userPlan={isFree ? 'free' : 'pro'}
+        dailySignalsUsed={dailySignalsUsed}
+        connectedBrokersCount={brokers.length}
       />
 
       {/* Main viewport */}
@@ -554,6 +598,7 @@ function HomeContent() {
           isRefreshing={isRefreshing}
           astroMode={astroMode}
           onToggleAstroMode={handleToggleAstroMode}
+          currentTab={currentTab}
         />
 
         {/* Tab display contents */}
@@ -567,6 +612,7 @@ function HomeContent() {
               allowedSymbols={activeBroker.allowed_symbols}
               onOpenManager={() => setCurrentTab('manager')}
               astroMode={astroMode}
+              onSwitchTab={setCurrentTab}
               onTradeExecuted={(result) => {
                 const t = result.ticket;
                 // Prepend the new trade locally matching DB schema
@@ -633,6 +679,7 @@ function HomeContent() {
                     return b;
                   }));
                 }}
+                isFree={isFree}
               />
             </Suspense>
           )}
@@ -641,7 +688,14 @@ function HomeContent() {
             <Suspense fallback={<TabSkeleton />}>
               <BrokersTab
                 brokers={brokers}
-                onOpenModal={() => setModalOpen(true)}
+                onOpenModal={() => {
+                  const maxAllowed = isFree ? 1 : 5;
+                  if (brokers.length >= maxAllowed) {
+                    setBrokerLimitModalOpen(true);
+                  } else {
+                    setModalOpen(true);
+                  }
+                }}
                 onDisconnect={handleDisconnectBroker}
                 onRefresh={handleRefreshBalances}
                 isRefreshing={isRefreshing}
@@ -679,6 +733,12 @@ function HomeContent() {
             </Suspense>
           )}
 
+          {currentTab === 'billing' && (
+            <Suspense fallback={<TabSkeleton />}>
+              <BillingTab switchTab={setCurrentTab} />
+            </Suspense>
+          )}
+
           {currentTab === 'astro-performance' && (
             <Suspense fallback={<TabSkeleton />}>
               <AstroPerformanceTab />
@@ -695,62 +755,24 @@ function HomeContent() {
       />
 
       {/* Astro Mode First-Activation Disclaimer Modal */}
-      {showAstroDisclaimer && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md px-4">
-          <div className="max-w-md w-full bg-slate-950/90 border border-amber-500/30 rounded-3xl p-6 text-white shadow-[0_0_30px_rgba(245,158,11,0.15)] animate-in zoom-in-95 duration-200">
-            <h3 className="text-xl font-black text-amber-400 uppercase tracking-wider mb-2 flex items-center gap-2">
-              🪐 Astro Mode Activation
-            </h3>
-            <p className="text-xs text-slate-300 leading-relaxed mb-4">
-              Astro Mode integrates experimental celestial telemetry overlays—including geocentric planetary velocities, lunar aspects, and seasonal solar alignments—into TradeGPT's risk management architecture.
-            </p>
-            <div className="bg-amber-950/20 border border-amber-500/20 rounded-xl p-3.5 space-y-2 mb-4">
-              <h4 className="text-[10px] font-bold text-amber-300 uppercase tracking-widest">System Protocols:</h4>
-              <ul className="text-[10px] text-amber-100/80 space-y-1.5 list-disc pl-4">
-                <li>Mercury Retrograde enforces a strict <strong>hard-block</strong> on trade tickets.</li>
-                <li>Position sizing is scaled dynamically by lunar cycles and elements.</li>
-                <li>These parameters are computational overlays and are <strong>not financial advice</strong>.</li>
-              </ul>
-            </div>
-            <label className="flex items-start gap-2.5 cursor-pointer mb-6 select-none">
-              <input
-                type="checkbox"
-                id="disclaimer-checkbox"
-                checked={disclaimerChecked}
-                onChange={(e) => setDisclaimerChecked(e.target.checked)}
-                className="mt-0.5 rounded border-slate-700 bg-slate-900 text-amber-500 focus:ring-amber-500/50"
-              />
-              <span className="text-[10px] text-slate-400 font-medium leading-tight">
-                I understand that celestial gating is analytical telemetry. I accept all risks associated with executing orders.
-              </span>
-            </label>
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setShowAstroDisclaimer(false);
-                  setDisclaimerChecked(false);
-                }}
-                className="flex-1 py-3 rounded-xl border border-slate-800 text-[10px] font-bold uppercase tracking-wider hover:bg-white/5 transition"
-              >
-                Decline
-              </button>
-              <button
-                id="accept-astro-btn"
-                disabled={!disclaimerChecked}
-                onClick={() => {
-                  localStorage.setItem('astroDisclaimerAccepted', 'true');
-                  setShowAstroDisclaimer(false);
-                  setDisclaimerChecked(false);
-                  toggleAstroModeActive(true);
-                }}
-                className="flex-1 py-3 rounded-xl bg-amber-500 text-slate-950 text-[10px] font-black uppercase tracking-wider hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed transition"
-              >
-                Accept & Enable
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AstroDisclaimerModal
+        isOpen={showAstroDisclaimer}
+        onClose={() => setShowAstroDisclaimer(false)}
+        onAccept={() => {
+          localStorage.setItem('astroDisclaimerAccepted', 'true');
+          setShowAstroDisclaimer(false);
+          toggleAstroModeActive(true);
+        }}
+      />
+
+      {/* Broker limit reached modal */}
+      <BrokerLimitModal
+        isOpen={brokerLimitModalOpen}
+        onClose={() => setBrokerLimitModalOpen(false)}
+        onUpgrade={() => setCurrentTab('subscription')}
+        isFree={isFree}
+        brokersCount={brokers.length}
+      />
     </div>
   );
 }

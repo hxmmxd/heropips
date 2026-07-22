@@ -1,6 +1,9 @@
 import type { Metadata, Viewport } from 'next';
-import { IBM_Plex_Sans } from 'next/font/google';
+import { Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
+import '../components/ReferralHub.css';
+import '../components/terminal/TerminalTab.css';
+import '../components/manager/Manager.css';
 import { SignalProvider } from '@/contexts/SignalContext';
 
 // Client wrapper for providers (layout.tsx is a server component)
@@ -8,7 +11,7 @@ function SignalProviderWrapper({ children }: { children: React.ReactNode }) {
   return <SignalProvider>{children}</SignalProvider>;
 }
 
-const ibmPlexSans = IBM_Plex_Sans({
+const plusJakartaSans = Plus_Jakarta_Sans({
   variable: '--font-inter',
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
@@ -51,7 +54,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${ibmPlexSans.variable} h-full antialiased`}
+      className={`${plusJakartaSans.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col" suppressHydrationWarning><SignalProviderWrapper>{children}</SignalProviderWrapper></body>

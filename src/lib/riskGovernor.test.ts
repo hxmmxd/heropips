@@ -192,7 +192,7 @@ describe('Risk Governor (Gates 13–15)', () => {
   });
 
   describe('Master Risk Evaluator (evaluateAllRiskGates)', () => {
-    test('calculates correct combined multiplier', () => {
+    test('calculates correct combined multiplier', async () => {
       const state = createTestState({
         currentEquity: 9800,
         peakEquity: 10000,
@@ -204,7 +204,7 @@ describe('Risk Governor (Gates 13–15)', () => {
       // ECP -> GREEN (1.0x), Daily -> NORMAL (1.0x), DD -> GREEN (1.0x)
       // Streak -> 4 (0.75x)
       // Combined: 1.0 * 1.0 * 1.0 * 0.75 * 1.0 = 0.75x
-      const result = evaluateAllRiskGates(state, 10);
+      const result = await evaluateAllRiskGates(state, 10);
       expect(result.multipliers.combinedMultiplier).toBe(0.75);
       expect(result.multipliers.shouldHalt).toBe(false);
       expect(result.multipliers.shouldLiquidate).toBe(false);

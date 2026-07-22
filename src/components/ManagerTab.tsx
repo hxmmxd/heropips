@@ -14,6 +14,7 @@ interface ManagerTabProps {
   allowedSymbols?: string[];
   onNavigateToTerminal?: () => void;
   onAccountUpdate?: (info: { balance: number; equity: number; pnl: number }) => void;
+  isFree?: boolean;
 }
 
 const defaultAccountInfo: AccountInfo = {
@@ -22,7 +23,7 @@ const defaultAccountInfo: AccountInfo = {
   positionCount: 0, leverage: 0, currency: 'USD',
 };
 
-export default function ManagerTab({ activeBrokerId, allowedSymbols, onNavigateToTerminal, onAccountUpdate }: ManagerTabProps) {
+export default function ManagerTab({ activeBrokerId, allowedSymbols, onNavigateToTerminal, onAccountUpdate, isFree }: ManagerTabProps) {
   const [activeSubTab, setActiveSubTab] = useState<'insights' | 'positions' | 'config' | 'risk' | 'reports'>('insights');
   const [positions, setPositions] = useState<Position[]>([]);
   const [pendingOrders, setPendingOrders] = useState<PendingOrder[]>([]);
@@ -314,6 +315,7 @@ export default function ManagerTab({ activeBrokerId, allowedSymbols, onNavigateT
                 accountInfo={liveAccountInfo}
                 positions={livePositions}
                 activeBrokerId={activeBrokerId}
+                isFree={isFree}
               />
             )}
           </>

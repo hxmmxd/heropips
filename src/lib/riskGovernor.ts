@@ -19,6 +19,41 @@
  */
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { getConfigCache } from './platformConfig';
+
+function parseNum(val: any, fallback: number): number {
+  if (val === undefined || val === null || val === '') return fallback;
+  const parsed = Number(val);
+  return isNaN(parsed) ? fallback : parsed;
+}
+
+function parseBool(val: any, fallback: boolean): boolean {
+  if (val === undefined || val === null || val === '') return fallback;
+  return val === 'true' || val === true;
+}
+
+async function getRiskGatingConfig() {
+  try {
+    const cache = await getConfigCache();
+    return {
+      gate_ecp_bootstrap_trades: parseNum(cache.gate_ecp_bootstrap_trades, 20),
+      gate_ecp_enabled: parseBool(cache.gate_ecp_enabled, true),
+      gate_daily_loss_max_pct: parseNum(cache.gate_daily_loss_max_pct, 6.0),
+      gate_daily_loss_enabled: parseBool(cache.gate_daily_loss_enabled, true),
+      gate_drawdown_max_pct: parseNum(cache.gate_drawdown_max_pct, 25.0),
+      gate_drawdown_enabled: parseBool(cache.gate_drawdown_enabled, true),
+    };
+  } catch (err: any) {
+    return {
+      gate_ecp_bootstrap_trades: 20,
+      gate_ecp_enabled: true,
+      gate_daily_loss_max_pct: 6.0,
+      gate_daily_loss_enabled: true,
+      gate_drawdown_max_pct: 25.0,
+      gate_drawdown_enabled: true,
+    };
+  }
+}
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -111,13 +146,25 @@ const STREAK_HALT_THRESHOLD = 7; // 7+ consecutive losses → stop for 4 hours
 
 // ── Gate 13: Equity Curve Protection ─────────────────────────
 
-export function evaluateGate13(state: RiskState, tradeCount: number): RiskGateResult {
-  // Bootstrap: not enough trades for SMA₅₀
-  if (tradeCount < 20) {
+export function evaluateGate13(state: RiskState, tradeCount: number, config?: any): RiskGateResult {
+  const enabled = config ? config.gate_ecp_enabled : true;
+  const bootstrap = config ? config.gate_ecp_bootstrap_trades : 20;
+
+  if (!enabled) {
     return {
       gate: 'Gate 13: Equity Curve',
       passed: true,
-      detail: `Bootstrap mode (${tradeCount} trades) — auto GREEN`,
+      detail: 'Bypassed (Gate disabled in settings)',
+      multiplier: 1.0,
+    };
+  }
+
+  // Bootstrap: not enough trades for SMA₅₀
+  if (tradeCount < bootstrap) {
+    return {
+      gate: 'Gate 13: Equity Curve',
+      passed: true,
+      detail: `Bootstrap mode (${tradeCount}/${bootstrap} trades) — auto GREEN`,
       multiplier: 1.0,
     };
   }
@@ -126,8 +173,10 @@ export function evaluateGate13(state: RiskState, tradeCount: number): RiskGateRe
   const ema20 = state.equityEma20;
   const sma50 = state.equitySma50;
 
-  // Trades 20–49: use EMA₂₀ only (no SMA₅₀ yet)
-  if (tradeCount < 50 || sma50 === null) {
+  const fullProtectionThreshold = bootstrap * 2.5;
+
+  // Trades bootstrap to full protection: use EMA₂₀ only (no SMA₅₀ yet)
+  if (tradeCount < fullProtectionThreshold || sma50 === null) {
     if (ema20 === null) {
       return { gate: 'Gate 13: Equity Curve', passed: true, detail: 'EMA₂₀ not computed yet — GREEN', multiplier: 1.0 };
     }
@@ -140,7 +189,7 @@ export function evaluateGate13(state: RiskState, tradeCount: number): RiskGateRe
     };
   }
 
-  // Full protection: 50+ trades
+  // Full protection
   let status: ECPStatus;
   if (equity > ema20! && equity > sma50) {
     status = 'GREEN';
@@ -162,26 +211,42 @@ export function evaluateGate13(state: RiskState, tradeCount: number): RiskGateRe
 
 // ── Gate 14: Daily Loss Circuit Breaker ──────────────────────
 
-export function evaluateGate14(state: RiskState): RiskGateResult {
+export function evaluateGate14(state: RiskState, config?: any): RiskGateResult {
+  const enabled = config ? config.gate_daily_loss_enabled : true;
+  const maxPct = config ? config.gate_daily_loss_max_pct : 6.0;
+
+  if (!enabled) {
+    return {
+      gate: 'Gate 14: Daily Loss',
+      passed: true,
+      detail: 'Bypassed (Gate disabled in settings)',
+      multiplier: 1.0,
+    };
+  }
+
   const baseline = Math.max(state.dailyStartEquity, state.dailyStartBalance);
   const dailyLoss = baseline > 0
     ? ((baseline - state.currentEquity) / baseline) * 100
     : 0;
   const pct = Math.max(0, dailyLoss); // Can't be negative (that's profit)
 
+  const cautionPct = maxPct * 0.5;
+  const warningPct = maxPct * 0.75;
+  const terminalPct = maxPct;
+
   let tier: DailyTier;
   let multiplier: number;
   let emoji: string;
 
-  if (pct >= DAILY_TERMINAL_PCT) {
+  if (pct >= terminalPct) {
     tier = 'TERMINAL';
     multiplier = -1.0; // Signal to liquidate
     emoji = '🔴';
-  } else if (pct >= DAILY_WARNING_PCT) {
+  } else if (pct >= warningPct) {
     tier = 'WARNING';
     multiplier = 0.0; // No new trades
     emoji = '🔶';
-  } else if (pct >= DAILY_CAUTION_PCT) {
+  } else if (pct >= cautionPct) {
     tier = 'CAUTION';
     multiplier = 0.5;
     emoji = '⚠️';
@@ -194,18 +259,35 @@ export function evaluateGate14(state: RiskState): RiskGateResult {
   return {
     gate: 'Gate 14: Daily Loss',
     passed: tier === 'NORMAL' || tier === 'CAUTION',
-    detail: `${emoji} Daily loss: ${pct.toFixed(2)}% / ${DAILY_TERMINAL_PCT}% max → ${tier}${tier === 'TERMINAL' ? ' — KILL SWITCH' : ''}`,
+    detail: `${emoji} Daily loss: ${pct.toFixed(2)}% / ${terminalPct.toFixed(2)}% max → ${tier}${tier === 'TERMINAL' ? ' — KILL SWITCH' : ''}`,
     multiplier: tier === 'TERMINAL' ? 0.0 : multiplier, // For combined calc, use 0 not -1
   };
 }
 
 // ── Gate 15: Maximum Drawdown Governor ───────────────────────
 
-export function evaluateGate15(state: RiskState): RiskGateResult {
+export function evaluateGate15(state: RiskState, config?: any): RiskGateResult {
+  const enabled = config ? config.gate_drawdown_enabled : true;
+  const maxPct = config ? config.gate_drawdown_max_pct : 25.0;
+
+  if (!enabled) {
+    return {
+      gate: 'Gate 15: Drawdown',
+      passed: true,
+      detail: 'Bypassed (Gate disabled in settings)',
+      multiplier: 1.0,
+    };
+  }
+
   const dd = state.peakEquity > 0
     ? ((state.peakEquity - state.currentEquity) / state.peakEquity) * 100
     : 0;
   const pct = Math.max(0, dd);
+
+  const yellowPct = maxPct * 0.32;
+  const orangePct = maxPct * 0.60;
+  const redPct = maxPct * 0.80;
+  const blackPct = maxPct;
 
   let zone: DrawdownZone;
   let multiplier: number;
@@ -213,13 +295,13 @@ export function evaluateGate15(state: RiskState): RiskGateResult {
   let minGrade: string;
   let emoji: string;
 
-  if (pct >= DD_BLACK_PCT) {
+  if (pct >= blackPct) {
     zone = 'BLACK'; multiplier = 0.0; maxTrades = 0; minGrade = 'TERMINAL'; emoji = '🚨';
-  } else if (pct >= DD_RED_PCT) {
+  } else if (pct >= redPct) {
     zone = 'RED'; multiplier = 0.10; maxTrades = 1; minGrade = 'MANUAL'; emoji = '🔴';
-  } else if (pct >= DD_ORANGE_PCT) {
+  } else if (pct >= orangePct) {
     zone = 'ORANGE'; multiplier = 0.25; maxTrades = 1; minGrade = 'AAA+APPROVAL'; emoji = '🟠';
-  } else if (pct >= DD_YELLOW_PCT) {
+  } else if (pct >= yellowPct) {
     zone = 'YELLOW'; multiplier = 0.50; maxTrades = 3; minGrade = 'AAA'; emoji = '🟡';
   } else {
     zone = 'GREEN'; multiplier = 1.0; maxTrades = 99; minGrade = 'A+'; emoji = '🟢';
@@ -235,7 +317,7 @@ export function evaluateGate15(state: RiskState): RiskGateResult {
   return {
     gate: 'Gate 15: Drawdown',
     passed: zone !== 'BLACK' && zone !== 'RED',
-    detail: `${emoji} DD: ${pct.toFixed(2)}% / ${DD_BLACK_PCT}% max → Zone ${zone} | Peak $${state.peakEquity.toFixed(0)} | Current $${state.currentEquity.toFixed(0)}${recoveryMult < 1 ? ` | Recovery ${(recoveryMult * 100).toFixed(0)}%` : ''}`,
+    detail: `${emoji} DD: ${pct.toFixed(2)}% / ${blackPct.toFixed(2)}% max → Zone ${zone} | Peak $${state.peakEquity.toFixed(0)} | Current $${state.currentEquity.toFixed(0)}${recoveryMult < 1 ? ` | Recovery ${(recoveryMult * 100).toFixed(0)}%` : ''}`,
     multiplier,
   };
 }
@@ -279,31 +361,44 @@ export function evaluatePortfolioHeat(
 
 // ── Master Risk Evaluator ────────────────────────────────────
 
-export function evaluateAllRiskGates(
+export async function evaluateAllRiskGates(
   state: RiskState,
   tradeCount: number = 0,
-): { multipliers: RiskMultipliers; gates: RiskGateResult[] } {
+): Promise<{ multipliers: RiskMultipliers; gates: RiskGateResult[] }> {
+  const config = await getRiskGatingConfig();
 
-  const gate13 = evaluateGate13(state, tradeCount);
-  const gate14 = evaluateGate14(state);
-  const gate15 = evaluateGate15(state);
+  const gate13 = evaluateGate13(state, tradeCount, config);
+  const gate14 = evaluateGate14(state, config);
+  const gate15 = evaluateGate15(state, config);
   const streak = evaluateStreakMultiplier(state.consecutiveLosses);
   const heat = evaluatePortfolioHeat(state.portfolioHeatPct);
 
   // Compute daily loss for tier detection
+  const maxDailyPct = config.gate_daily_loss_enabled ? config.gate_daily_loss_max_pct : 6.0;
+  const maxDdPct = config.gate_drawdown_enabled ? config.gate_drawdown_max_pct : 25.0;
+
   const baseline = Math.max(state.dailyStartEquity, state.dailyStartBalance);
   const dailyLoss = baseline > 0 ? Math.max(0, ((baseline - state.currentEquity) / baseline) * 100) : 0;
-  const isTerminal = dailyLoss >= DAILY_TERMINAL_PCT;
+  const isTerminal = config.gate_daily_loss_enabled && dailyLoss >= maxDailyPct;
   const dd = state.peakEquity > 0 ? Math.max(0, ((state.peakEquity - state.currentEquity) / state.peakEquity) * 100) : 0;
-  const isBlackZone = dd >= DD_BLACK_PCT;
+  const isBlackZone = config.gate_drawdown_enabled && dd >= maxDdPct;
 
   // Determine drawdown zone for trade limits
   let maxTrades = 99;
   let minGrade = 'A+';
-  if (dd >= DD_BLACK_PCT) { maxTrades = 0; minGrade = 'TERMINAL'; }
-  else if (dd >= DD_RED_PCT) { maxTrades = 1; minGrade = 'MANUAL'; }
-  else if (dd >= DD_ORANGE_PCT) { maxTrades = 1; minGrade = 'AAA+APPROVAL'; }
-  else if (dd >= DD_YELLOW_PCT) { maxTrades = 3; minGrade = 'AAA'; }
+  if (dd >= maxDdPct) {
+    maxTrades = 0;
+    minGrade = 'TERMINAL';
+  } else if (dd >= maxDdPct * 0.80) {
+    maxTrades = 1;
+    minGrade = 'MANUAL';
+  } else if (dd >= maxDdPct * 0.60) {
+    maxTrades = 1;
+    minGrade = 'AAA+APPROVAL';
+  } else if (dd >= maxDdPct * 0.32) {
+    maxTrades = 3;
+    minGrade = 'AAA';
+  }
 
   // Combined multiplier (all ≥ 0 factors)
   const ecpMult = gate13.multiplier;

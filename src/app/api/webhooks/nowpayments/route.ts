@@ -68,12 +68,14 @@ export async function POST(request: Request) {
   // Verify signature per docs: sort keys → JSON.stringify → HMAC-SHA512
   const nowConfig = await getActiveConfig();
   const ipnSecret = nowConfig.ipn_secret || process.env.NOWPAYMENTS_IPN_SECRET;
-  if (ipnSecret) {
-    const sig = request.headers.get('x-nowpayments-sig') || '';
-    if (!verifyIpnSignature(payload, sig, ipnSecret)) {
-      console.warn('NOWPayments IPN: signature mismatch');
-      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
-    }
+  if (!ipnSecret) {
+    console.error('NOWPayments Webhook: IPN secret is not configured.');
+    return NextResponse.json({ error: 'Webhook signature validation is not configured' }, { status: 500 });
+  }
+  const sig = request.headers.get('x-nowpayments-sig') || '';
+  if (!verifyIpnSignature(payload, sig, ipnSecret)) {
+    console.warn('NOWPayments IPN: signature mismatch');
+    return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
   }
 
   // ── Detect IPN type: Payout or Payment ──────────────────

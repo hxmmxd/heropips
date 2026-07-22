@@ -25,37 +25,43 @@ export async function GET() {
 
     if (error || !data) {
       return NextResponse.json({
-        starter: {
-          price: 20,
+        free: {
+          price: 0,
+          description: 'For exploring what’s possible',
           features: [
-            '5 AI trade signals per day',
+            '3 AI trade signals per day',
+            '250 tokens/response (2,500/day limit)',
             '1 broker connection',
             'Basic market analysis',
-            'Email support',
-            'Trade history (30 days)',
             'Standard execution speed',
+            'Direct Execute only',
+            '3-day trade history reports',
+            'Standard community support',
           ],
           limits: [
-            'No advanced indicators',
-            'No priority execution',
+            'Referral withdrawals locked',
+            'No manager signal execution',
           ]
         },
         pro: {
-          price: 50,
+          price: 10,
+          description: 'For professional traders & scaling portfolios',
           features: [
             'Unlimited AI trade signals',
+            '500 tokens/response (Institutional grade)',
+            'Unlimited daily chat tokens',
             '5 broker connections',
-            'Advanced technical analysis',
-            'Priority support (24/7)',
-            'Full trade history',
+            'Both Direct & Manager Execution',
+            'Unlimited referral withdrawals',
+            'Full trade history reports',
             'Priority execution speed',
-            'Risk management tools',
-            'Custom trading strategies',
+            'Dedicated account manager',
           ],
           limits: []
         },
         enterprise: {
           price: 100,
+          description: 'For hedge funds & institutions',
           features: [
             'Everything in Pro',
             'Unlimited broker connections',
@@ -72,41 +78,48 @@ export async function GET() {
       });
     }
 
-    // Adapt legacy configuration format: {"starter": 20, "pro": 50, "enterprise": 100}
+    // Adapt legacy configuration format: {"free": 0, "pro": 50, "enterprise": 100}
     const val = data.value;
-    if (typeof val.starter === 'number' || typeof val.starter === 'string') {
+    if (typeof val.free === 'number' || typeof val.free === 'string' || typeof val.starter === 'number') {
+      const freePrice = 0;
       return NextResponse.json({
-        starter: {
-          price: Number(val.starter),
+        free: {
+          price: freePrice,
+          description: 'For exploring what’s possible',
           features: [
-            '5 AI trade signals per day',
+            '3 AI trade signals per day',
+            '250 tokens/response (2,500/day limit)',
             '1 broker connection',
             'Basic market analysis',
-            'Email support',
-            'Trade history (30 days)',
             'Standard execution speed',
+            'Direct Execute only',
+            '3-day trade history reports',
+            'Standard community support',
           ],
           limits: [
-            'No advanced indicators',
-            'No priority execution',
+            'Referral withdrawals locked',
+            'No manager signal execution',
           ]
         },
         pro: {
-          price: Number(val.pro),
+          price: 10,
+          description: 'For professional traders & scaling portfolios',
           features: [
             'Unlimited AI trade signals',
+            '500 tokens/response (Institutional grade)',
+            'Unlimited daily chat tokens',
             '5 broker connections',
-            'Advanced technical analysis',
-            'Priority support (24/7)',
-            'Full trade history',
+            'Both Direct & Manager Execution',
+            'Unlimited referral withdrawals',
+            'Full trade history reports',
             'Priority execution speed',
-            'Risk management tools',
-            'Custom trading strategies',
+            'Dedicated account manager',
           ],
           limits: []
         },
         enterprise: {
           price: Number(val.enterprise),
+          description: 'For hedge funds & institutions',
           features: [
             'Everything in Pro',
             'Unlimited broker connections',

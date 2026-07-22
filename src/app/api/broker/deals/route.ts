@@ -300,9 +300,23 @@ export async function GET(request: Request) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+    const admin = getAdmin();
+    const { data: profile } = await admin
+      .from('profiles')
+      .select('plan')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    const userPlan = profile?.plan || 'free';
+    const isFree = userPlan === 'free' || userPlan === 'starter';
+
     const { searchParams } = new URL(request.url);
     const brokerId = searchParams.get('brokerId');
-    const period = searchParams.get('period') || '7d';
+    let period = searchParams.get('period') || '7d';
+
+    if (isFree) {
+      period = '3d';
+    }
 
     if (!brokerId) {
       return NextResponse.json({ deals: [], equityCurve: [], stats: computeStats([]), liveRisk: null });

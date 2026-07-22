@@ -321,7 +321,7 @@ export async function heartbeat(): Promise<void> {
     }
 
     // ── 5. Evaluate risk gates ──
-    const { multipliers } = evaluateAllRiskGates(updated);
+    const { multipliers } = await evaluateAllRiskGates(updated);
 
     // ── 6. KILL SWITCH — Terminal events ──
     if (multipliers.shouldLiquidate) {

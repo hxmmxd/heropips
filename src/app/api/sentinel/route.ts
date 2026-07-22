@@ -38,7 +38,22 @@ async function verifyRequest(request: Request): Promise<{ allowed: boolean; user
     const { createClient } = await import('@/lib/supabase/server');
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (user) return { allowed: true, user };
+    if (user) {
+      const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
+      const sbAdmin = createSupabaseClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      );
+      const { data: profile } = await sbAdmin
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', user.id)
+        .single();
+      
+      if (profile?.is_admin) {
+        return { allowed: true, user };
+      }
+    }
   } catch (err) {
     console.warn('[Sentinel API] Supabase session check bypassed:', err);
   }
@@ -48,19 +63,70 @@ async function verifyRequest(request: Request): Promise<{ allowed: boolean; user
 
 export async function GET(request: Request) {
   try {
-    const { allowed, error } = await verifyRequest(request);
-    if (!allowed) {
-      return NextResponse.json({ error }, { status: 401 });
+    const { createClient } = await import('@/lib/supabase/server');
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    // Check secret token (for crons/workers)
+    const { searchParams } = new URL(request.url);
+    const secretParam = searchParams.get('secret');
+    const authHeader = request.headers.get('authorization')?.replace('Bearer ', '');
+    const secret = secretParam || authHeader;
+    const CRON_SECRET = process.env.CRON_SECRET || '';
+
+    const isWorkerOrCron = CRON_SECRET && secret === CRON_SECRET;
+
+    if (!user && !isWorkerOrCron) {
+      return NextResponse.json({ error: 'Unauthorized: Session missing' }, { status: 401 });
     }
 
-    const status = getSentinelStatus();
+    // Default to in-memory sentinel status (if running in same process)
+    let status = getSentinelStatus();
+
+    // Query DB for background worker status to support multi-process environments
+    try {
+      const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
+      const sbAdmin = createSupabaseClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      );
+      const { data: configData } = await sbAdmin
+        .from('platform_config')
+        .select('value')
+        .eq('key', 'sentinel_worker_status')
+        .maybeSingle();
+
+      if (configData?.value) {
+        const val = configData.value as any;
+        const lastChecked = new Date(val.lastCheckedAt).getTime();
+        // If worker checked in within the last 45 seconds, use its live state
+        if (Date.now() - lastChecked < 45_000) {
+          status = {
+            running: val.running,
+            accountId: val.accountId || null,
+            lastHeartbeat: val.lastHeartbeat || null,
+            lastEquity: val.lastEquity || 0,
+            lastBalance: val.lastBalance || 0,
+            tickCount: val.tickCount || 0,
+            consecutiveFailures: val.consecutiveFailures || 0,
+            lastZone: val.lastZone || 'GREEN',
+            lastDailyTier: val.lastDailyTier || 'NORMAL',
+            startedAt: val.startedAt || null,
+            openPositions: val.openPositions || 0,
+            beMigrated: val.beMigrated || 0,
+          };
+        }
+      }
+    } catch (dbErr) {
+      console.warn('[Sentinel API] Failed to fetch worker status from DB:', dbErr);
+    }
 
     // If running and has an accountId, also fetch live risk gate evaluations
     let gateStatus = null;
     if (status.running && status.accountId) {
       const riskState = await getRiskState(status.accountId);
       if (riskState) {
-        const { multipliers, gates } = evaluateAllRiskGates(riskState);
+        const { multipliers, gates } = await evaluateAllRiskGates(riskState);
         gateStatus = {
           gates: gates.map(g => ({
             name: g.gate,

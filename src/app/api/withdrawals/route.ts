@@ -67,6 +67,21 @@ export async function POST(request: Request) {
   //  1. USER: Raise a withdrawal request (pending review)
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   if (action === 'withdraw' || !action) {
+    // Fetch profile plan to verify withdrawal permissions
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('plan')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    const userPlan = profile?.plan || 'free';
+    if (userPlan === 'free' || userPlan === 'starter') {
+      return NextResponse.json(
+        { error: 'Withdrawals are locked for Free accounts. Please upgrade to a Premium/Pro plan to unlock and withdraw your referral earnings.' },
+        { status: 403 }
+      );
+    }
+
     const { amount, currency, address } = body;
 
     if (!amount || !currency || !address) {

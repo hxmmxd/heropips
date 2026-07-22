@@ -8,6 +8,7 @@ interface ManagerReportsProps {
   accountInfo: AccountInfo;
   positions: Position[];
   activeBrokerId: string;
+  isFree?: boolean;
 }
 
 interface BrokerAccount {
@@ -33,10 +34,10 @@ function fmt(v: number): string {
   return v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-export default function ManagerReports({ accountInfo, positions, activeBrokerId }: ManagerReportsProps) {
+export default function ManagerReports({ accountInfo, positions, activeBrokerId, isFree }: ManagerReportsProps) {
   const [accounts, setAccounts] = useState<BrokerAccount[]>([]);
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
-  const [period, setPeriod] = useState<'7d' | '30d' | 'all'>('30d');
+  const [period, setPeriod] = useState<'3d' | '7d' | '30d' | 'all'>(isFree ? '3d' : '30d');
   const [stats, setStats] = useState<RiskStats>(emptyStats);
   const [deals, setDeals] = useState<ClosedDeal[]>([]);
   const [previewReady, setPreviewReady] = useState(false);
@@ -70,6 +71,12 @@ export default function ManagerReports({ accountInfo, positions, activeBrokerId 
       setSelectedAccounts([activeBrokerId]);
     }
   }, [activeBrokerId]);
+
+  useEffect(() => {
+    if (isFree) {
+      setPeriod('3d');
+    }
+  }, [isFree]);
 
   const toggleAccount = (id: string) => {
     setSelectedAccounts([id]);
@@ -160,15 +167,24 @@ export default function ManagerReports({ accountInfo, positions, activeBrokerId 
       <div className="rpt-period-row">
         <span className="rpt-period-label">Report Period</span>
         <div className="rpt-period-pills">
-          {(['7d', '30d', 'all'] as const).map(p => (
-            <button
-              key={p}
-              onClick={() => { setPeriod(p); setPreviewReady(false); }}
-              className={`rpt-period-pill ${period === p ? 'rpt-period-pill-active' : ''}`}
-            >
-              {p === '7d' ? '7 Days' : p === '30d' ? '30 Days' : 'All Time'}
-            </button>
-          ))}
+          {(isFree ? (['3d', '7d', '30d', 'all'] as const) : (['7d', '30d', 'all'] as const)).map(p => {
+            const isLocked = isFree && p !== '3d';
+            return (
+              <button
+                key={p}
+                disabled={isLocked}
+                onClick={() => {
+                  if (isLocked) return;
+                  setPeriod(p);
+                  setPreviewReady(false);
+                }}
+                className={`rpt-period-pill ${period === p ? 'rpt-period-pill-active' : ''} ${isLocked ? 'opacity-45 cursor-not-allowed' : ''}`}
+                title={isLocked ? 'Pro Plan Required' : undefined}
+              >
+                {p === '3d' ? '3 Days' : p === '7d' ? '7 Days 🔒' : p === '30d' ? '30 Days 🔒' : 'All Time 🔒'}
+              </button>
+            );
+          })}
         </div>
       </div>
 

@@ -4,7 +4,7 @@
  * Auto-blocks signals within a configurable window around high-impact events.
  */
 
-import { getPlatformConfig } from './platformConfig';
+import { getPlatformConfig, getConfigCache } from './platformConfig';
 
 // ── Types ───────────────────────────────────────────────
 export interface EconEvent {
@@ -183,6 +183,20 @@ export async function checkEconomicCalendar(symbol: string): Promise<CalendarChe
     CALENDAR_CACHE.expiresAt = now + CALENDAR_TTL;
   }
 
+  // Load dynamic news buffer minutes, default to 30 mins before / 15 mins after
+  let blockBeforeMins = 30;
+  let blockAfterMins = 15;
+  try {
+    const cache = await getConfigCache();
+    if (cache.gate_news_buffer_minutes) {
+      blockBeforeMins = Number(cache.gate_news_buffer_minutes) || 30;
+      blockAfterMins = Math.ceil(blockBeforeMins / 2);
+    }
+  } catch {}
+
+  const blockBeforeMs = blockBeforeMins * 60 * 1000;
+  const blockAfterMs = blockAfterMins * 60 * 1000;
+
   // Filter events relevant to this symbol's currencies
   const relevantCountries = SYMBOL_CURRENCIES[symbol] || ['US'];
   const relevantEvents = CALENDAR_CACHE.events.filter(e =>
@@ -193,7 +207,7 @@ export async function checkEconomicCalendar(symbol: string): Promise<CalendarChe
   const highImpact = relevantEvents.filter(e => e.impact === 'high');
   const blocking = highImpact.filter(e => {
     const diff = e.time.getTime() - now;
-    return diff > -BLOCK_AFTER_MS && diff < BLOCK_BEFORE_MS;
+    return diff > -blockAfterMs && diff < blockBeforeMs;
   });
 
   // Find next upcoming high-impact event
@@ -210,7 +224,7 @@ export async function checkEconomicCalendar(symbol: string): Promise<CalendarChe
     const names = blocking.map(e => e.event).join(', ');
     return {
       blocked: true,
-      reason: `⚠️ ${names} — within ${BLOCK_BEFORE_MS / 60000}min window`,
+      reason: `⚠️ ${names} — within ${blockBeforeMins}min window`,
       upcomingEvents: upcoming.slice(0, 5),
       nextHighImpact,
       minutesUntilNext,

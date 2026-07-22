@@ -182,6 +182,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('plan')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    const userPlan = profile?.plan || 'free';
+    const isFree = userPlan === 'free' || userPlan === 'starter';
+
+    const existingBrokers = await getAllBrokers(user.id);
+    const maxAllowed = isFree ? 1 : 5;
+    if (existingBrokers.length >= maxAllowed) {
+      return NextResponse.json({
+        error: `Plan limit reached. ${isFree ? 'Free' : 'Premium'} tier accounts are limited to a maximum of ${maxAllowed} connected broker account${maxAllowed > 1 ? 's' : ''}. Please upgrade to a Premium plan to connect more.`
+      }, { status: 403 });
+    }
+
     const body = await request.json();
     const { login, password, server } = body;
 

@@ -1,50 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Lightbulb } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-
-// Programmatic synthesizer for physical switch toggle sounds using Web Audio API
-const playSwitchSound = (isLight: boolean) => {
-  try {
-    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioContext) return;
-    const ctx = new AudioContext();
-    const bufferSize = ctx.sampleRate * 0.04;
-    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-    const noise = ctx.createBufferSource();
-    noise.buffer = buffer;
-    const filter = ctx.createBiquadFilter();
-    filter.type = 'highpass';
-    filter.frequency.value = 1800;
-    const noiseGain = ctx.createGain();
-    noiseGain.gain.setValueAtTime(0.06, ctx.currentTime);
-    noiseGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.035);
-    noise.connect(filter);
-    filter.connect(noiseGain);
-    noiseGain.connect(ctx.destination);
-    const osc = ctx.createOscillator();
-    const oscGain = ctx.createGain();
-    osc.type = 'sine';
-    if (isLight) {
-      osc.frequency.setValueAtTime(800, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(1300, ctx.currentTime + 0.05);
-    } else {
-      osc.frequency.setValueAtTime(500, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(250, ctx.currentTime + 0.05);
-    }
-    oscGain.gain.setValueAtTime(0.04, ctx.currentTime);
-    oscGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
-    osc.connect(oscGain);
-    oscGain.connect(ctx.destination);
-    noise.start();
-    osc.start();
-    noise.stop(ctx.currentTime + 0.04);
-    osc.stop(ctx.currentTime + 0.12);
-  } catch (e) {}
-};
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -58,6 +15,12 @@ export default function LoginPage() {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
 
   useEffect(() => {
+    // Detect system preference on mount
+    const systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    setTheme(systemPrefersDark ? 'dark' : 'light');
+  }, []);
+
+  useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
   }, [theme]);
 
@@ -69,11 +32,6 @@ export default function LoginPage() {
       }
     }
   }, []);
-
-  const handleToggleTheme = () => {
-    playSwitchSound(theme === 'dark');
-    setTheme(theme === 'dark' ? 'light' : 'dark');
-  };
 
   const supabase = createClient();
 
@@ -129,12 +87,6 @@ export default function LoginPage() {
 
   return (
     <div className={`auth-page ${theme === 'light' ? 'auth-light' : ''}`}>
-      {/* Theme toggle */}
-      <button className="auth-theme-toggle" onClick={handleToggleTheme} aria-label="Toggle Theme">
-        <Lightbulb
-          className={`auth-bulb ${theme === 'dark' ? 'auth-bulb-on' : ''}`}
-        />
-      </button>
 
       <div className="auth-card">
         {/* Logo */}

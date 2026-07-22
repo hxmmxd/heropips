@@ -23,7 +23,7 @@ let _configCache: Record<string, string> | null = null;
 let _configCachedAt = 0;
 const CONFIG_CACHE_TTL = 60_000; // 60 s
 
-async function getConfigCache(): Promise<Record<string, string>> {
+export async function getConfigCache(): Promise<Record<string, string>> {
   if (_configCache && Date.now() - _configCachedAt < CONFIG_CACHE_TTL) {
     return _configCache;
   }

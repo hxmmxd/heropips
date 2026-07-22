@@ -46,8 +46,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true });
     }
 
-    // Security: only respond to authorized users
-    if (AUTHORIZED_IDS.length > 0 && !AUTHORIZED_IDS.includes(userId)) {
+    // Security: only respond to authorized users (fail-secure if not configured)
+    if (AUTHORIZED_IDS.length === 0 || !AUTHORIZED_IDS.includes(userId)) {
       await sendReply(botToken, chatId, '🔒 Unauthorized. This bot is private.');
       return NextResponse.json({ ok: true });
     }
@@ -76,7 +76,7 @@ export async function POST(request: Request) {
         statusText += `Ticks: ${sentinel.tickCount}\n\n`;
 
         if (riskState) {
-          const { multipliers } = evaluateAllRiskGates(riskState);
+          const { multipliers } = await evaluateAllRiskGates(riskState);
           statusText += `📊 <b>Risk State</b>\n`;
           statusText += `• Daily Loss: <code>${riskState.dailyLossPct.toFixed(2)}%</code> (${riskState.dailyTier})\n`;
           statusText += `• Drawdown: <code>${riskState.drawdownPct.toFixed(2)}%</code> (${riskState.drawdownZone})\n`;

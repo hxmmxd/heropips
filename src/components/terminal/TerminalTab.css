@@ -1,0 +1,176 @@
+  .chat-input-wrapper {
+    background: var(--bg);
+    padding-bottom: max(calc(env(safe-area-inset-bottom) - 14px), 12px);
+    border-top: 1px solid var(--border);
+  }
+
+  .chat-input-container {
+    background: var(--sidebar-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 8px 12px;
+    display: flex;
+    align-items: flex-end;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .chat-input-container:focus-within {
+    border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
+  }
+
+  /* Typing indicator — cipher decode animation */
+  .typing-loader {
+    width: fit-content;
+    font-weight: bold;
+    font-family: monospace;
+    white-space: pre;
+    font-size: 16px;
+    line-height: 1.2em;
+    height: 1.2em;
+    overflow: hidden;
+    color: var(--subtext);
+  }
+
+  .typing-loader::before {
+    content: "Thinking...\A⌰oading...\A⌰⍜ading...\A⌰⍜⏃ding...\A⌰⍜⏃⎅ing...\A⌰⍜⏃⎅⟟ng...\A⌰⍜⏃⎅⟟⋏g...\A⌰⍜⏃⎅⟟⋏☌...\A⌰⍜⏃⎅⟟⋏☌⟒..\A⌰⍜⏃⎅⟟⋏☌⟒⏁.\A⌰⍜⏃⎅⟟⋏☌⟒⏁⋔";
+    white-space: pre;
+    display: inline-block;
+    animation: typing-scroll 1s infinite steps(11) alternate;
+  }
+
+  @keyframes typing-scroll {
+    100% {
+      transform: translateY(-100%);
+    }
+  }
+
+  /* ── Astro Typing Indicator ────────────────────── */
+  .astro-typing-orbit-wrap {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+  }
+  .astro-typing-orbit-svg {
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0 0 4px rgba(245,158,11,0.4));
+  }
+
+  .astro-typing-loader {
+    width: fit-content;
+    font-weight: bold;
+    font-family: monospace;
+    white-space: pre;
+    font-size: 16px;
+    line-height: 1.2em;
+    height: 1.2em;
+    overflow: hidden;
+    color: #f59e0b;
+  }
+  .astro-typing-loader::before {
+    content: "Aligning..\A♈♉♊♋♌♍..\A☿ scanning..\A♎♏♐♑♒♓..\A🌙 syncing..\A✦ celestial..\A♃♄ transit..\A⚹ mapping..\A☽ phasing..\A✧ reading..\A♈♉♊♋♌♍♎♏";
+    white-space: pre;
+    display: inline-block;
+    animation: typing-scroll 1.2s infinite steps(11) alternate;
+  }
+
+  /* ── Manager Chat Button (animated bars) ────────── */
+  .mgr-chat-btn {
+    width: 40px; height: 40px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%; border: none; cursor: pointer;
+    background: none;
+    color: var(--subtext);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    flex-shrink: 0;
+  }
+  .mgr-chat-btn::before {
+    content: '';
+    position: absolute; inset: 2px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(139,105,20,0.08) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .mgr-chat-btn:hover {
+    color: #B8860B;
+    transform: scale(1.08);
+  }
+  .mgr-chat-btn:hover::before { opacity: 1; }
+  .mgr-chat-btn:active { transform: scale(0.92); }
+
+  .mgr-chat-icon { position: relative; z-index: 1; }
+
+  /* Staggered pulse animation on each bar */
+  .mgr-bar {
+    transform-origin: bottom center;
+    animation: mgrBarPulse 2.4s ease-in-out infinite;
+  }
+  .mgr-bar-1 { animation-delay: 0s; }
+  .mgr-bar-2 { animation-delay: 0.3s; }
+  .mgr-bar-3 { animation-delay: 0.6s; }
+
+  @keyframes mgrBarPulse {
+    0%, 100% { transform: scaleY(1); opacity: 0.55; }
+    25%      { transform: scaleY(0.6); opacity: 0.35; }
+    50%      { transform: scaleY(1.1); opacity: 1; }
+    75%      { transform: scaleY(0.85); opacity: 0.7; }
+  }
+
+  /* Glow ring on hover */
+  .mgr-chat-btn:hover .mgr-bar {
+    animation-duration: 1.2s;
+    opacity: 1;
+  }
+  .mgr-chat-btn:hover .mgr-bar-1 { fill: #D4A843; }
+  .mgr-chat-btn:hover .mgr-bar-2 { fill: #B8860B; }
+  .mgr-chat-btn:hover .mgr-bar-3 { fill: #8B6914; }
+
+  .dark .mgr-chat-btn:hover .mgr-bar-1 { fill: #F0C75E; }
+  .dark .mgr-chat-btn:hover .mgr-bar-2 { fill: #D4A843; }
+  .dark .mgr-chat-btn:hover .mgr-bar-3 { fill: #B8860B; }
+
+  /* Custom Bot Typing Heartbeat Loader */
+  .bot-typing-heartbeat-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 32px;
+    flex-shrink: 0;
+  }
+  .bot-typing-heartbeat-svg {
+    width: 40px;
+    height: 30px;
+  }
+  .bot-typing-heartbeat-svg polyline {
+    fill: none;
+    stroke-width: 4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .bot-typing-heartbeat-svg polyline#back,
+  .bot-typing-heartbeat-svg .bot-hb-back {
+    fill: none;
+    stroke: var(--border);
+    opacity: 0.5;
+  }
+  .bot-typing-heartbeat-svg polyline#front,
+  .bot-typing-heartbeat-svg .bot-hb-front {
+    fill: none;
+    stroke: #ef4444;
+    stroke-dasharray: 48, 144;
+    stroke-dashoffset: 192;
+    animation: botDash 1.4s linear infinite;
+  }
+
+  @keyframes botDash {
+    72.5% {
+      opacity: 0;
+    }
+    to {
+      stroke-dashoffset: 0;
+    }
+  }

@@ -17,6 +17,7 @@ import ApiIntegrationsTab from './admin/ApiIntegrationsTab';
 import RebatesTab from './admin/RebatesTab';
 import CronJobsTab from './admin/CronJobsTab';
 import TelegramConfigTab from './admin/TelegramConfigTab';
+import GatesConfigTab from './admin/GatesConfigTab';
 
 interface AdminSettingsProps {
   initialConfig: Record<string, any>;
@@ -31,7 +32,7 @@ export default function AdminSettings({
   onRefresh,
   apiStats = [],
 }: AdminSettingsProps) {
-  const [settingsSubPage, setSettingsSubPage] = useState<'main' | 'referral' | 'pricing' | 'announcements' | 'payments' | 'smtp' | 'invoice' | 'integrations' | 'rebates' | 'cron' | 'courses' | 'apis' | 'telegram'>('main');
+  const [settingsSubPage, setSettingsSubPage] = useState<'main' | 'gates' | 'referral' | 'pricing' | 'announcements' | 'payments' | 'smtp' | 'invoice' | 'integrations' | 'rebates' | 'cron' | 'courses' | 'apis' | 'telegram'>('main');
 
   return (
     <div style={{ display: 'flex', gap: 24, width: '100%' }}>
@@ -39,6 +40,7 @@ export default function AdminSettings({
       <div className="adm-nav" style={{ border: '1px solid var(--border)', borderRadius: 14, height: 'fit-content' }}>
         {[
           { id: 'main', label: 'Platform Controls', icon: Settings },
+          { id: 'gates', label: 'Gating Controls', icon: Shield },
           { id: 'referral', label: 'Referral Program', icon: Crown },
           { id: 'pricing', label: 'Plan Pricing', icon: Zap },
           { id: 'announcements', label: 'Announcements', icon: Send },
@@ -71,6 +73,9 @@ export default function AdminSettings({
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 20 }}>
         {settingsSubPage === 'main' && (
           <PlatformTab initialConfig={initialConfig} />
+        )}
+        {settingsSubPage === 'gates' && (
+          <GatesConfigTab initialConfig={initialConfig} />
         )}
         {settingsSubPage === 'referral' && (
           <ReferralTab initialConfig={initialConfig} />

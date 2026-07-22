@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { createClient as createServerClient } from '@/lib/supabase/server';
+import { farmGetAccounts } from '@/lib/mt5farm';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,7 +50,7 @@ export async function GET(request: Request) {
   }
 
   // Fetch all data
-  const [usersRes, brokersRes, tradesRes, announcementsRes, configRes, auditRes, riskRes, providersRes, tradeCountsRes, rebateRulesRes, rebateRiskRes, rebatePromosRes, rebateTiersRes] = await Promise.all([
+  const [usersRes, brokersRes, tradesRes, announcementsRes, configRes, auditRes, riskRes, providersRes, tradeCountsRes, rebateRulesRes, rebateRiskRes, rebatePromosRes, rebateTiersRes, farmAccounts] = await Promise.all([
     supabaseAdmin.from('profiles').select('*').order('created_at', { ascending: false }),
     supabaseAdmin.from('broker_accounts').select('*').order('created_at', { ascending: false }),
     supabaseAdmin.from('trades').select('*').order('created_at', { ascending: false }).limit(200),
@@ -63,6 +64,7 @@ export async function GET(request: Request) {
     supabaseAdmin.from('rebate_risk_settings').select('*').limit(1).maybeSingle(),
     supabaseAdmin.from('rebate_promotions').select('*').order('created_at', { ascending: false }),
     supabaseAdmin.from('rebate_volume_tiers').select('*').order('min_monthly_lots', { ascending: true }),
+    farmGetAccounts().catch(() => []),
   ]);
 
   const users: any[] = usersRes.data || [];
@@ -76,10 +78,46 @@ export async function GET(request: Request) {
     }
   });
 
-  const brokers: any[] = (brokersRes.data || []).map((b: any) => ({
-    ...b,
-    trade_count: brokerTradeCounts[b.id] || 0,
-  }));
+  // Build a fast lookup map for live farm accounts data
+  const farmAcctMap: Record<string, any> = {};
+  (farmAccounts || []).forEach((fa: any) => {
+    if (fa.login) {
+      farmAcctMap[String(fa.login)] = fa;
+    }
+    if (fa.accountId) {
+      farmAcctMap[String(fa.accountId)] = fa;
+    }
+  });
+
+  const brokers: any[] = (brokersRes.data || []).map((b: any) => {
+    const match = farmAcctMap[String(b.mt5_login)] || farmAcctMap[String(b.metaapi_id)] || farmAcctMap[String(b.id)];
+    
+    let balance = Number(b.balance) || 0;
+    let equity = Number(b.equity) || 0;
+    let pnl = Number(b.pnl) || 0;
+    let status = b.status;
+
+    if (match) {
+      if (match.balance != null) balance = match.balance;
+      if (match.equity != null) {
+        equity = match.equity;
+        pnl = match.equity - (match.balance ?? balance);
+      } else if (match.balance != null) {
+        equity = match.balance;
+        pnl = 0;
+      }
+      status = match.status === 'connected' ? 'connected' : 'offline';
+    }
+
+    return {
+      ...b,
+      balance,
+      equity,
+      pnl,
+      status,
+      trade_count: brokerTradeCounts[b.id] || 0,
+    };
+  });
   const trades: any[] = tradesRes.data || [];
   const announcements: any[] = announcementsRes.data || [];
   const config: Record<string, any> = {};

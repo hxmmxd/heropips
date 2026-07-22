@@ -13,17 +13,51 @@ interface SidebarProps {
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
   astroMode?: boolean;
+  userPlan?: string;
+  dailySignalsUsed?: number;
+  connectedBrokersCount?: number;
 }
 
-export default function Sidebar({ currentTab, switchTab, isOpen, onToggle, theme, onToggleTheme, astroMode }: SidebarProps) {
+export default function Sidebar({
+  currentTab,
+  switchTab,
+  isOpen,
+  onToggle,
+  theme,
+  onToggleTheme,
+  astroMode,
+  userPlan,
+  dailySignalsUsed: propDailySignalsUsed,
+  connectedBrokersCount: propConnectedBrokersCount,
+}: SidebarProps) {
   const [user, setUser] = useState<any>(null);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [planState, setPlanState] = useState('free');
+  const [signalsState, setSignalsState] = useState(0);
+  const [brokersState, setBrokersState] = useState(0);
+
+  const plan = userPlan !== undefined ? userPlan : planState;
+  const dailySignalsUsed = propDailySignalsUsed !== undefined ? propDailySignalsUsed : signalsState;
+  const connectedBrokersCount = propConnectedBrokersCount !== undefined ? propConnectedBrokersCount : brokersState;
+
   const supabase = createClient();
 
   useEffect(() => {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
+      if (user) {
+        const { data } = await supabase.from('profiles').select('plan, daily_signals_used').eq('id', user.id).maybeSingle();
+        if (data) {
+          if (data.plan) setPlanState(data.plan);
+          setSignalsState(data.daily_signals_used ?? 0);
+        }
+        const { count } = await supabase
+          .from('broker_accounts')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id);
+        setBrokersState(count ?? 0);
+      }
     };
     getUser();
   }, []);
@@ -87,6 +121,13 @@ export default function Sidebar({ currentTab, switchTab, isOpen, onToggle, theme
                   className="w-6 h-6 rounded-full shrink-0 object-cover"
                 />
                 <span className="sb-workspace-name">{userName}</span>
+                <span className={`text-[8.5px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider shrink-0 ml-1.5 ${
+                  (plan === 'free' || plan === 'starter') 
+                    ? 'bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700' 
+                    : 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-sm'
+                }`}>
+                  {plan === 'free' || plan === 'starter' ? 'Free' : 'Pro'}
+                </span>
                 <ChevronDown className={`w-4 h-4 text-[var(--subtext)] shrink-0 transition-transform duration-200 ${profileMenuOpen ? 'rotate-180' : ''}`} />
               </button>
               {/* Mobile-only close button */}
@@ -217,45 +258,56 @@ export default function Sidebar({ currentTab, switchTab, isOpen, onToggle, theme
           </div>
 
           {/* ── Plan Footer ── */}
-          <div className="px-4 pb-4 pt-2 border-t border-[var(--border)]">
-            <p className="text-[12px] font-bold text-[var(--text)] mb-2.5">Your Free Plan</p>
+          <div className="px-4 pb-4 pt-2 border-t border-[var(--border)] shrink-0">
+            <p className="text-[12px] font-bold text-[var(--text)] mb-2.5">
+              {(plan === 'free' || plan === 'starter') ? 'Your Free Plan' : 'Your Paid Plan'}
+            </p>
             
-            {/* Usage bars */}
-            <div className="space-y-3 mb-4">
-              <div className="flex items-center gap-2.5">
-                <Star className="w-4 h-4 text-[var(--subtext)] shrink-0" strokeWidth={1.6} />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-[11px] text-[var(--text)] font-medium">AI signals</span>
-                    <span className="text-[11px] text-[var(--subtext)]">0% used</span>
+            {(plan === 'free' || plan === 'starter') ? (
+              <>
+                {/* Usage bars */}
+                <div className="space-y-3 mb-4">
+                  <div className="flex items-center gap-2.5">
+                    <Star className="w-4 h-4 text-[var(--subtext)] shrink-0" strokeWidth={1.6} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[11px] text-[var(--text)] font-medium">AI signals</span>
+                        <span className="text-[11px] text-[var(--subtext)]">{dailySignalsUsed}/3 ({Math.min(Math.round((dailySignalsUsed / 3) * 100), 100)}%)</span>
+                      </div>
+                      <div className="sb-progress-track">
+                        <div className="sb-progress-bar" style={{ width: `${Math.min(Math.round((dailySignalsUsed / 3) * 100), 100)}%` }} />
+                      </div>
+                    </div>
                   </div>
-                  <div className="sb-progress-track">
-                    <div className="sb-progress-bar" style={{ width: '0%' }} />
+                  <div className="flex items-center gap-2.5">
+                    <Server className="w-4 h-4 text-[var(--subtext)] shrink-0" strokeWidth={1.6} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[11px] text-[var(--text)] font-medium">Broker nodes</span>
+                        <span className="text-[11px] text-[var(--subtext)]">{connectedBrokersCount}/1 ({Math.min(Math.round((connectedBrokersCount / 1) * 100), 100)}%)</span>
+                      </div>
+                      <div className="sb-progress-track">
+                        <div className="sb-progress-bar" style={{ width: `${Math.min(Math.round((connectedBrokersCount / 1) * 100), 100)}%` }} />
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-2.5">
-                <Server className="w-4 h-4 text-[var(--subtext)] shrink-0" strokeWidth={1.6} />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-[11px] text-[var(--text)] font-medium">Broker nodes</span>
-                    <span className="text-[11px] text-[var(--subtext)]">0% used</span>
-                  </div>
-                  <div className="sb-progress-track">
-                    <div className="sb-progress-bar" style={{ width: '0%' }} />
-                  </div>
-                </div>
-              </div>
-            </div>
 
-            {/* Upgrade button */}
-            <button
-              onClick={() => { switchTab('subscription'); if (isOpen) onToggle(); }}
-              className="sb-upgrade-btn"
-            >
-              <Star className="w-4 h-4" strokeWidth={2} />
-              Upgrade
-            </button>
+                {/* Upgrade button */}
+                <button
+                  onClick={() => { switchTab('subscription'); if (isOpen) onToggle(); }}
+                  className="sb-upgrade-btn"
+                >
+                  <Star className="w-4 h-4" strokeWidth={2} />
+                  Upgrade
+                </button>
+              </>
+            ) : (
+              <div style={{ fontSize: '12px', color: 'var(--accent)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 0' }}>
+                <Star className="w-4 h-4 fill-[var(--accent)] shrink-0 text-[var(--accent)]" strokeWidth={1.6} />
+                <span>Unlimited Premium Access</span>
+              </div>
+            )}
           </div>
         </div>
       </aside>

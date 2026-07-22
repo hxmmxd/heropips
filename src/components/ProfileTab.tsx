@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Mail, Shield, CreditCard, LogOut, ChevronRight, Trash2, Moon, Bell, Camera } from 'lucide-react';
+import { User, Mail, Shield, CreditCard, LogOut, ChevronRight, Trash2, Moon, Bell, Camera, Coins } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { getUserAvatar } from '@/lib/avatar';
 
@@ -165,25 +165,41 @@ export default function ProfileTab({ theme, switchTab }: ProfileTabProps) {
           </div>
         </div>
 
-        {/* Plan */}
-        <div className="profile-section profile-section-clickable" onClick={() => switchTab?.('subscription')}>
+        {/* Plan Summary */}
+        <div className="profile-section">
           <h4 className="profile-section-title">Subscription</h4>
           <div className="profile-plan-card">
             <div className="profile-plan-info">
               <CreditCard className="profile-field-icon" />
               <div>
-                <p className="profile-plan-name">{plan === 'free' ? 'Free Plan' : plan === 'pro' ? 'Pro Plan' : 'Enterprise'}</p>
-                <p className="profile-plan-desc">{plan === 'free' ? 'Limited features • Upgrade for full access' : 'Full access to all features'}</p>
+                <p className="profile-plan-name">{(plan === 'free' || plan === 'starter') ? 'Free Plan' : 'Paid Plan'}</p>
+                <p className="profile-plan-desc">{(plan === 'free' || plan === 'starter') ? 'Limited features • Upgrade for full access' : 'Full access to all features'}</p>
               </div>
             </div>
             <button
-              className={plan === 'free' ? 'profile-upgrade-btn' : 'profile-manage-btn'}
+              className={(plan === 'free' || plan === 'starter') ? 'profile-upgrade-btn' : 'profile-manage-btn'}
               onClick={(e) => { e.stopPropagation(); switchTab?.('subscription'); }}
             >
-              {plan === 'free' ? 'Upgrade' : 'Manage'}
+              {(plan === 'free' || plan === 'starter') ? 'Upgrade' : 'Manage'}
             </button>
           </div>
         </div>
+
+        {/* Billing History Card */}
+        <div className="profile-section profile-section-clickable" onClick={() => switchTab?.('billing')}>
+          <h4 className="profile-section-title">Billing</h4>
+          <div className="profile-plan-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', cursor: 'pointer' }}>
+            <div className="profile-plan-info">
+              <Coins className="profile-field-icon" />
+              <div>
+                <p className="profile-plan-name">Billing History</p>
+                <p className="profile-plan-desc">View transaction logs and download PDF receipts</p>
+              </div>
+            </div>
+            <ChevronRight className="profile-field-icon" style={{ marginLeft: 'auto', color: 'var(--subtext)' }} />
+          </div>
+        </div>
+
 
         {/* Preferences */}
         <div className="profile-section">

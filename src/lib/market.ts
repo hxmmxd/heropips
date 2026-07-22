@@ -1,5 +1,79 @@
 import { computeIndicators } from './indicators';
-import { getPlatformConfig } from './platformConfig';
+import { getPlatformConfig, getConfigCache } from './platformConfig';
+
+function parseNum(val: any, fallback: number): number {
+  if (val === undefined || val === null || val === '') return fallback;
+  const parsed = Number(val);
+  return isNaN(parsed) ? fallback : parsed;
+}
+
+function parseBool(val: any, fallback: boolean): boolean {
+  if (val === undefined || val === null || val === '') return fallback;
+  return val === 'true' || val === true;
+}
+
+async function getGatingConfig() {
+  try {
+    const cache = await getConfigCache();
+    return {
+      gate_confluence_min_score: parseNum(cache.gate_confluence_min_score, 50),
+      gate_smc_min_confirmations: parseNum(cache.gate_smc_min_confirmations, 1),
+      gate_spread_min: parseNum(cache.gate_spread_min, 0.25),
+      gate_volatility_min: parseNum(cache.gate_volatility_min, 0.5),
+      gate_volatility_max: parseNum(cache.gate_volatility_max, 2.5),
+      gate_cooldown_minutes: parseNum(cache.gate_cooldown_minutes, 60),
+      gate_news_buffer_minutes: parseNum(cache.gate_news_buffer_minutes, 15),
+      gate_confluence_enabled: parseBool(cache.gate_confluence_enabled, true),
+      gate_smc_enabled: parseBool(cache.gate_smc_enabled, true),
+      gate_spread_enabled: parseBool(cache.gate_spread_enabled, true),
+      gate_volatility_enabled: parseBool(cache.gate_volatility_enabled, true),
+      gate_cooldown_enabled: parseBool(cache.gate_cooldown_enabled, true),
+      gate_news_enabled: parseBool(cache.gate_news_enabled, true),
+      gate_htf_enabled: parseBool(cache.gate_htf_enabled, true),
+      gate_session_enabled: parseBool(cache.gate_session_enabled, true),
+      gate_correlation_enabled: parseBool(cache.gate_correlation_enabled, true),
+      gate_mtf_enabled: parseBool(cache.gate_mtf_enabled, true),
+      gate_vwap_enabled: parseBool(cache.gate_vwap_enabled, true),
+      gate_candle_enabled: parseBool(cache.gate_candle_enabled, true),
+      gate_astro_lunar_enabled: parseBool(cache.gate_astro_lunar_enabled, true),
+      gate_astro_aspect_enabled: parseBool(cache.gate_astro_aspect_enabled, true),
+      gate_astro_min_aspects: parseNum(cache.gate_astro_min_aspects, 1),
+      gate_astro_mercury_enabled: parseBool(cache.gate_astro_mercury_enabled, true),
+      gate_astro_voc_enabled: parseBool(cache.gate_astro_voc_enabled, true),
+      gate_astro_seasonal_enabled: parseBool(cache.gate_astro_seasonal_enabled, true),
+    };
+  } catch (err: any) {
+    console.warn('[Market Engine] Failed to load gating config:', err.message);
+    return {
+      gate_confluence_min_score: 60,
+      gate_smc_min_confirmations: 1,
+      gate_spread_min: 0.25,
+      gate_volatility_min: 0.5,
+      gate_volatility_max: 2.5,
+      gate_cooldown_minutes: 60,
+      gate_news_buffer_minutes: 15,
+      gate_confluence_enabled: true,
+      gate_smc_enabled: true,
+      gate_spread_enabled: true,
+      gate_volatility_enabled: true,
+      gate_cooldown_enabled: true,
+      gate_news_enabled: true,
+      gate_htf_enabled: true,
+      gate_session_enabled: true,
+      gate_correlation_enabled: true,
+      gate_mtf_enabled: true,
+      gate_vwap_enabled: true,
+      gate_candle_enabled: true,
+      gate_astro_lunar_enabled: true,
+      gate_astro_aspect_enabled: true,
+      gate_astro_min_aspects: 1,
+      gate_astro_mercury_enabled: true,
+      gate_astro_voc_enabled: true,
+      gate_astro_seasonal_enabled: true,
+    };
+  }
+}
+
 import { recordApiCall, markUnconfigured } from './apiStats';
 import { fetchYahooCandles } from './yahooFinance';
 import { fullScan, type ScanReport } from './scanner';
@@ -241,7 +315,9 @@ export function calculateRiskParams(
   // Position sizing: Risk$ / (SL distance × $ per point per lot)
   const riskAmount = accountBalance * (riskPercent / 100);
   const riskPerLot = slDistance * spec.dollarPerPoint;
-  const lotSize = Math.max(0.01, Math.min(2.0, riskAmount / riskPerLot));
+  const rawLotSize = riskAmount / riskPerLot;
+  // Floor to 0.01 lot step resolution so actual risk is strictly <= riskAmount (Risk < target cap)
+  const lotSize = Math.max(0.01, Math.min(50.0, Math.floor(rawLotSize * 100) / 100));
 
   // Margin at ~100:1 leverage approximation
   const notionalValue = price * spec.dollarPerPoint * lotSize / (symbol.includes('USD') ? 1 : 100);
@@ -721,7 +797,11 @@ function isOptimalSession(symbol: string): { ok: boolean; session: string; detai
 
 // ── Volatility Filter ──────────────────────────────────────
 
-function checkVolatility(candles: { high: number; low: number; close: number }[]): { ok: boolean; ratio: number; detail: string } {
+function checkVolatility(
+  candles: { high: number; low: number; close: number }[],
+  minVal = 0.5,
+  maxVal = 2.5
+): { ok: boolean; ratio: number; detail: string } {
   if (candles.length < 21) return { ok: true, ratio: 1, detail: 'Not enough data' };
   // Current ATR vs 20-period average ATR
   const trs: number[] = [];
@@ -735,22 +815,22 @@ function checkVolatility(candles: { high: number; low: number; close: number }[]
   const currentATR = trs.slice(-1)[0] || 0;
   const avgATR = trs.slice(-20).reduce((s, v) => s + v, 0) / Math.min(20, trs.length);
   const ratio = avgATR > 0 ? currentATR / avgATR : 1;
-  if (ratio < 0.5) return { ok: false, ratio, detail: `ATR ratio ${ratio.toFixed(2)} — dead market` };
-  if (ratio > 2.5) return { ok: false, ratio, detail: `ATR ratio ${ratio.toFixed(2)} — extreme volatility` };
+  if (ratio < minVal) return { ok: false, ratio, detail: `ATR ratio ${ratio.toFixed(2)} — dead market (need ≥${minVal})` };
+  if (ratio > maxVal) return { ok: false, ratio, detail: `ATR ratio ${ratio.toFixed(2)} — extreme volatility (need ≤${maxVal})` };
   return { ok: true, ratio, detail: `ATR ratio ${ratio.toFixed(2)} — normal volatility` };
 }
 
 // ── Signal Cooldown ────────────────────────────────────────
 
 const COOLDOWN_MAP = new Map<string, number>();
-const COOLDOWN_MS = 1 * 60 * 60 * 1000; // 1 hour
 
-function checkCooldown(symbol: string): { ok: boolean; detail: string } {
+function checkCooldown(symbol: string, cooldownMins = 60): { ok: boolean; detail: string } {
   const lastSignal = COOLDOWN_MAP.get(symbol);
   if (!lastSignal) return { ok: true, detail: 'No recent signal' };
   const elapsed = Date.now() - lastSignal;
-  if (elapsed < COOLDOWN_MS) {
-    const remaining = Math.ceil((COOLDOWN_MS - elapsed) / 60000);
+  const cooldownMs = cooldownMins * 60 * 1000;
+  if (elapsed < cooldownMs) {
+    const remaining = Math.ceil((cooldownMs - elapsed) / 60000);
     return { ok: false, detail: `Cooldown active — ${remaining} min remaining` };
   }
   return { ok: true, detail: 'Cooldown expired' };
@@ -896,27 +976,54 @@ export async function getMarketSnapshot(symbol: string, astroMode?: boolean): Pr
     }
 
     // ── A1: 6-Gate System ─────────────────────────────────
+    // Load dynamic gating thresholds
+    const gatingConfig = await getGatingConfig();
+
     const gates: GateResult[] = [];
 
-    // Gate 1: Confluence ≥ 45%
-    gates.push({ name: 'Confluence', passed: score >= 60, detail: `${score}% (need ≥60%)` });
+    // Gate 1: Confluence
+    gates.push({
+      name: 'Confluence',
+      passed: !gatingConfig.gate_confluence_enabled || score >= gatingConfig.gate_confluence_min_score,
+      detail: gatingConfig.gate_confluence_enabled
+        ? `${score}% (need ≥${gatingConfig.gate_confluence_min_score}%)`
+        : `Bypassed (${score}%)`
+    });
 
-    // Gate 2: SMC Confirmation ≥ 1
-    gates.push({ name: 'SMC Confirmation', passed: smcConfirmations >= 1, detail: `${smcConfirmations} pattern(s): ${smcPatterns.join(', ') || 'none'}` });
+    // Gate 2: SMC Confirmation
+    gates.push({
+      name: 'SMC Confirmation',
+      passed: !gatingConfig.gate_smc_enabled || smcConfirmations >= gatingConfig.gate_smc_min_confirmations,
+      detail: gatingConfig.gate_smc_enabled
+        ? `${smcConfirmations} pattern(s) (need ≥${gatingConfig.gate_smc_min_confirmations}): ${smcPatterns.join(', ') || 'none'}`
+        : `Bypassed (${smcConfirmations} pattern(s))`
+    });
 
     // Gate 3: HTF Alignment
     const htfAligned = htfBias === 'neutral' || (direction === 'BUY' && htfBias === 'bullish') || (direction === 'SELL' && htfBias === 'bearish');
-    gates.push({ name: 'Timeframe Alignment', passed: htfAligned, detail: `1H bias: ${htfBias}, Signal: ${direction}` });
+    gates.push({
+      name: 'Timeframe Alignment',
+      passed: !gatingConfig.gate_htf_enabled || htfAligned,
+      detail: gatingConfig.gate_htf_enabled ? `1H bias: ${htfBias}, Signal: ${direction}` : `Bypassed (${htfBias} bias)`
+    });
 
     // Gate 4: Session Filter
     const sessionCheck = isOptimalSession(symbol);
-    gates.push({ name: 'Session Filter', passed: sessionCheck.ok, detail: sessionCheck.detail });
+    gates.push({
+      name: 'Session Filter',
+      passed: !gatingConfig.gate_session_enabled || sessionCheck.ok,
+      detail: gatingConfig.gate_session_enabled ? sessionCheck.detail : `Bypassed (${sessionCheck.detail})`
+    });
 
     // Gate 5: Volatility Normal
-    const volCheck = checkVolatility(candles);
-    gates.push({ name: 'Volatility', passed: volCheck.ok, detail: volCheck.detail });
+    const volCheck = checkVolatility(candles, gatingConfig.gate_volatility_min, gatingConfig.gate_volatility_max);
+    gates.push({
+      name: 'Volatility',
+      passed: !gatingConfig.gate_volatility_enabled || volCheck.ok,
+      detail: gatingConfig.gate_volatility_enabled ? volCheck.detail : `Bypassed (${volCheck.detail})`
+    });
 
-    // Gate 6: No Conflict (bull vs bear > 10% apart)
+    // Gate 6: No Conflict
     const bullBear = indicatorSignals.reduce((acc, s) => {
       if (s.direction === 'bullish') acc.bull += s.weight;
       if (s.direction === 'bearish') acc.bear += s.weight;
@@ -924,30 +1031,60 @@ export async function getMarketSnapshot(symbol: string, astroMode?: boolean): Pr
     }, { bull: 0, bear: 0 });
     const totalW = bullBear.bull + bullBear.bear || 1;
     const spread = Math.abs(bullBear.bull - bullBear.bear) / totalW;
-    gates.push({ name: 'No Conflict', passed: spread > 0.25, detail: `Bull/Bear spread: ${(spread * 100).toFixed(0)}% (need >25%)` });
+    gates.push({
+      name: 'No Conflict',
+      passed: !gatingConfig.gate_spread_enabled || spread > gatingConfig.gate_spread_min,
+      detail: gatingConfig.gate_spread_enabled
+        ? `Bull/Bear spread: ${(spread * 100).toFixed(0)}% (need >${(gatingConfig.gate_spread_min * 100).toFixed(0)}%)`
+        : `Bypassed (${(spread * 100).toFixed(0)}% spread)`
+    });
 
     // Gate 7: Cooldown
-    const cooldownCheck = checkCooldown(symbol);
-    gates.push({ name: 'Cooldown', passed: cooldownCheck.ok, detail: cooldownCheck.detail });
+    const cooldownCheck = checkCooldown(symbol, gatingConfig.gate_cooldown_minutes);
+    gates.push({
+      name: 'Cooldown',
+      passed: !gatingConfig.gate_cooldown_enabled || cooldownCheck.ok,
+      detail: gatingConfig.gate_cooldown_enabled ? cooldownCheck.detail : 'Bypassed'
+    });
 
     // Gate 8: Economic Calendar (B2) — block near high-impact events
     const calendarCheck = calendarCheckResult;
-    gates.push({ name: 'News Event', passed: !calendarCheck.blocked, detail: calendarCheck.reason });
+    gates.push({
+      name: 'News Event',
+      passed: !gatingConfig.gate_news_enabled || !calendarCheck.blocked,
+      detail: gatingConfig.gate_news_enabled ? calendarCheck.reason : `Bypassed`
+    });
 
     // Gate 9: Correlated Assets (B4) — check if related markets agree (in-memory)
     const correlationCheck = await checkCorrelation(symbol, direction, corrCandlesMap);
-    gates.push({ name: 'Correlation', passed: correlationCheck.confirmed, detail: correlationCheck.detail });
+    gates.push({
+      name: 'Correlation',
+      passed: !gatingConfig.gate_correlation_enabled || correlationCheck.confirmed,
+      detail: gatingConfig.gate_correlation_enabled ? correlationCheck.detail : `Bypassed (${correlationCheck.detail})`
+    });
 
     // Gate 10: MTF Stack (C2) — at least 2/3 timeframes aligned
-    gates.push({ name: 'MTF Stack', passed: mtfResult.aligned, detail: mtfResult.detail });
+    gates.push({
+      name: 'MTF Stack',
+      passed: !gatingConfig.gate_mtf_enabled || mtfResult.aligned,
+      detail: gatingConfig.gate_mtf_enabled ? mtfResult.detail : `Bypassed (${mtfResult.detail})`
+    });
 
     // Gate 11: VWAP (C1) — price not at extreme band (overbought/oversold vs VWAP)
     const vwapGatePassed = vwapResult.signal !== 'neutral' || vwapResult.priceRelation === 'at';
-    gates.push({ name: 'VWAP', passed: vwapGatePassed, detail: vwapResult.detail });
+    gates.push({
+      name: 'VWAP',
+      passed: !gatingConfig.gate_vwap_enabled || vwapGatePassed,
+      detail: gatingConfig.gate_vwap_enabled ? vwapResult.detail : `Bypassed (${vwapResult.detail})`
+    });
 
     // Gate 12: Candle Pattern (C3) — optional boost gate (passes if no conflicting pattern)
     const patternConflict = patternResult.signal !== 'neutral' && patternResult.signal !== direction.toLowerCase() as 'bullish' | 'bearish';
-    gates.push({ name: 'Candle Pattern', passed: !patternConflict, detail: patternResult.detail });
+    gates.push({
+      name: 'Candle Pattern',
+      passed: !gatingConfig.gate_candle_enabled || !patternConflict,
+      detail: gatingConfig.gate_candle_enabled ? patternResult.detail : `Bypassed (${patternResult.detail})`
+    });
 
     // ── Gates 13–17 (Astro Mode) ─────────────────────────
     let astroSnap: AstroSnapshot | undefined = undefined;
@@ -962,18 +1099,22 @@ export async function getMarketSnapshot(symbol: string, astroMode?: boolean): Pr
                           astroSnap.lunaBias === 'neutral';
       const g13 = {
         name: 'Lunar Alignment',
-        passed: lunarPassed,
-        detail: `Phase: ${astroSnap.lunarPhase} (${astroSnap.lunaBias}) vs Signal: ${direction}`
+        passed: !gatingConfig.gate_astro_lunar_enabled || lunarPassed,
+        detail: gatingConfig.gate_astro_lunar_enabled
+          ? `Phase: ${astroSnap.lunarPhase} (${astroSnap.lunaBias}) vs Signal: ${direction}`
+          : `Bypassed (${astroSnap.lunarPhase})`
       };
       gates.push(g13);
       astroGates.push(g13);
 
       // Gate 14: Planetary Aspect
-      const aspectsPassed = astroSnap.aspects.length > 0;
+      const aspectsPassed = astroSnap.aspects.length >= gatingConfig.gate_astro_min_aspects;
       const g14 = {
         name: 'Planetary Aspect',
-        passed: aspectsPassed,
-        detail: `${astroSnap.aspects.length} aspects: ${astroSnap.aspects.map(a => `${a.planet1} ${a.type} ${a.planet2}`).join(', ') || 'none'}`
+        passed: !gatingConfig.gate_astro_aspect_enabled || aspectsPassed,
+        detail: gatingConfig.gate_astro_aspect_enabled
+          ? `${astroSnap.aspects.length} aspects (need ≥${gatingConfig.gate_astro_min_aspects}): ${astroSnap.aspects.map(a => `${a.planet1} ${a.type} ${a.planet2}`).join(', ') || 'none'}`
+          : `Bypassed (${astroSnap.aspects.length} aspects)`
       };
       gates.push(g14);
       astroGates.push(g14);
@@ -982,8 +1123,10 @@ export async function getMarketSnapshot(symbol: string, astroMode?: boolean): Pr
       const mercuryPassed = astroSnap.mercuryState !== 'retrograde';
       const g15 = {
         name: 'Mercury Risk',
-        passed: mercuryPassed,
-        detail: `Mercury state: ${astroSnap.mercuryState}`
+        passed: !gatingConfig.gate_astro_mercury_enabled || mercuryPassed,
+        detail: gatingConfig.gate_astro_mercury_enabled
+          ? `Mercury state: ${astroSnap.mercuryState}`
+          : `Bypassed (${astroSnap.mercuryState})`
       };
       gates.push(g15);
       astroGates.push(g15);
@@ -992,8 +1135,10 @@ export async function getMarketSnapshot(symbol: string, astroMode?: boolean): Pr
       const blockPassed = !astroSnap.eclipseBlackout && !astroSnap.moonVoidOfCourse;
       const g16 = {
         name: 'Eclipse / VOC Block',
-        passed: blockPassed,
-        detail: `Eclipse: ${astroSnap.eclipseBlackout ? 'Blocked' : 'Clear'}, Moon VOC: ${astroSnap.moonVoidOfCourse ? 'Void' : 'Clear'}`
+        passed: !gatingConfig.gate_astro_voc_enabled || blockPassed,
+        detail: gatingConfig.gate_astro_voc_enabled
+          ? `Eclipse: ${astroSnap.eclipseBlackout ? 'Blocked' : 'Clear'}, Moon VOC: ${astroSnap.moonVoidOfCourse ? 'Void' : 'Clear'}`
+          : `Bypassed`
       };
       gates.push(g16);
       astroGates.push(g16);
@@ -1003,8 +1148,10 @@ export async function getMarketSnapshot(symbol: string, astroMode?: boolean): Pr
                              (direction === 'SELL' && astroSnap.seasonalBias <= 0);
       const g17 = {
         name: 'Seasonal Cycle',
-        passed: seasonalPassed,
-        detail: `Seasonal bias: ${astroSnap.seasonalBias > 0 ? 'Bullish' : astroSnap.seasonalBias < 0 ? 'Bearish' : 'Neutral'}`
+        passed: !gatingConfig.gate_astro_seasonal_enabled || seasonalPassed,
+        detail: gatingConfig.gate_astro_seasonal_enabled
+          ? `Seasonal bias: ${astroSnap.seasonalBias > 0 ? 'Bullish' : astroSnap.seasonalBias < 0 ? 'Bearish' : 'Neutral'}`
+          : `Bypassed`
       };
       gates.push(g17);
       astroGates.push(g17);
@@ -1013,7 +1160,7 @@ export async function getMarketSnapshot(symbol: string, astroMode?: boolean): Pr
     // ── Determine Outcome ────────────────
     const passedCount = gates.filter(g => g.passed).length;
     const totalGates = gates.length;
-    const criticalGates = ['Confluence', 'News Event', 'MTF Stack'];
+    const criticalGates = ['News Event'];
     if (astroMode) {
       criticalGates.push('Mercury Risk', 'Eclipse / VOC Block');
     }
@@ -1023,38 +1170,37 @@ export async function getMarketSnapshot(symbol: string, astroMode?: boolean): Pr
     let outcomeReason: string;
 
     const techPassed = gates.slice(0, 12).filter(g => g.passed).length;
+    const confidenceGrade = gradeConfidence(score);
 
     if (criticalFailed.length > 0) {
       signalOutcome = 'NO_TRADE';
       outcomeReason = `Critical gate failed: ${criticalFailed.map(g => g.name).join(', ')}`;
     } else if (astroMode && astroSnap) {
-      if (techPassed < 5) {
+      if (techPassed < 4) {
         signalOutcome = 'NO_TRADE';
-        outcomeReason = `Astro Mode active. Technical gates failed threshold (${techPassed}/12 passed, need ≥5). Hard block.`;
-      } else if (passedCount >= 9) {
+        outcomeReason = `Astro Mode active. Technical gates failed threshold (${techPassed}/12 passed, need ≥4). Hard block.`;
+      } else if (passedCount >= 9 || score >= 65) {
         signalOutcome = 'SIGNAL';
         if (techPassed >= 8) {
           outcomeReason = `Astro Mode active: ${passedCount}/17 gates passed (Tech: ${techPassed}/12, Astro: ${passedCount - techPassed}/5). Confluence confirmed.`;
         } else {
           outcomeReason = `Astro Mode UPGRADE: Technical baseline WATCH (${techPassed}/12), celestial confluence pushes total to ${passedCount}/17. Signal dispatched.`;
         }
-      } else if (passedCount >= 6) {
-        signalOutcome = 'WATCH';
-        const failed = gates.filter(g => !g.passed).map(g => g.name);
-        outcomeReason = `Astro Mode active: ${passedCount}/17 gates passed. Watching: ${failed.join(', ')}`;
+      } else if (passedCount >= 5 || score >= 50) {
+        signalOutcome = 'SIGNAL';
+        outcomeReason = `Astro Mode active: ${passedCount}/17 gates passed (${score}% ${confidenceGrade} Moderate Confidence Signal dispatched)`;
       } else {
         signalOutcome = 'NO_TRADE';
         outcomeReason = `Only ${passedCount}/17 gates passed — insufficient confluence`;
       }
     } else {
       // Standard 12-gate logic
-      if (passedCount >= 8) {
+      if (passedCount >= 8 || score >= 65) {
         signalOutcome = 'SIGNAL';
-        outcomeReason = `${passedCount}/${totalGates} gates passed — high-confluence setup`;
-      } else if (passedCount >= 5) {
-        signalOutcome = 'WATCH';
-        const failed = gates.filter(g => !g.passed).map(g => g.name);
-        outcomeReason = `${passedCount}/${totalGates} gates passed — watching: ${failed.join(', ')}`;
+        outcomeReason = `${passedCount}/${totalGates} gates passed — ${score}% ${confidenceGrade} High-confluence setup`;
+      } else if (passedCount >= 5 || score >= 50) {
+        signalOutcome = 'SIGNAL';
+        outcomeReason = `${passedCount}/${totalGates} gates passed — ${score}% ${confidenceGrade} Moderate-confidence setup`;
       } else {
         signalOutcome = 'NO_TRADE';
         outcomeReason = `Only ${passedCount}/${totalGates} gates passed — insufficient confluence`;
@@ -1112,7 +1258,7 @@ export async function getMarketSnapshot(symbol: string, astroMode?: boolean): Pr
         }
 
         if (riskState) {
-          const { multipliers, gates: rGates } = evaluateAllRiskGates(riskState, kellyResult.tradeCount);
+          const { multipliers, gates: rGates } = await evaluateAllRiskGates(riskState, kellyResult.tradeCount);
           riskMults = multipliers;
           riskGatesArr = rGates.map(g => ({
             name: g.gate,

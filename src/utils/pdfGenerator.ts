@@ -62,7 +62,7 @@ export async function downloadPDF(
   accountInfo:AccountInfo, period:string, stats:RiskStats, deals:ClosedDeal[], brokerName:string
 ) {
   const doc = new jsPDF({unit:'mm',format:'a4',orientation:'portrait'});
-  const pLabel = period==='7d'?'Last 7 Days':period==='30d'?'Last 30 Days':'All Time';
+  const pLabel = period==='3d'?'Last 3 Days':period==='7d'?'Last 7 Days':period==='30d'?'Last 30 Days':'All Time';
   const date = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
 
   // ═══ PAGE 1 ═══════════════════════════════════════════════════════════════

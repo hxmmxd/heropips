@@ -11,8 +11,20 @@ import {
 import { callLLM } from '@/lib/llmRouter';
 import { getAstroGate } from '@/lib/astro';
 import { createClient as createServerClient } from '@/lib/supabase/server';
+import { createClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
+
+let _supabaseAdmin: any = null;
+function getSupabaseAdmin() {
+  if (!_supabaseAdmin) {
+    _supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+  }
+  return _supabaseAdmin;
+}
 
 // Keywords that indicate user explicitly wants a trade signal
 const SIGNAL_KEYWORDS = [
@@ -27,9 +39,88 @@ function wantsSignal(message: string): boolean {
 
 export async function POST(request: Request) {
   try {
+    const supabase = createServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const supabaseAdmin = getSupabaseAdmin();
+
+    // ── Self-healing database check (runs once per dev server startup) ──
+    if (!(global as any).limitsMigrated) {
+      try {
+        await supabaseAdmin.rpc('exec_sql_raw', {
+          sql_text: `
+            ALTER TABLE public.profiles 
+            ADD COLUMN IF NOT EXISTS daily_tokens_used INTEGER DEFAULT 0 NOT NULL,
+            ADD COLUMN IF NOT EXISTS daily_signals_used INTEGER DEFAULT 0 NOT NULL,
+            ADD COLUMN IF NOT EXISTS last_limit_reset_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL;
+          `
+        });
+      } catch (err: any) {
+        console.error('[Migration] Failed to add limit columns:', err);
+      }
+      (global as any).limitsMigrated = true;
+    }
+
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('plan, daily_tokens_used, daily_signals_used, last_limit_reset_at')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    const userPlan = profile?.plan || 'free';
+    const isFree = userPlan === 'free' || userPlan === 'starter';
+
+    let dailyTokensUsed = profile?.daily_tokens_used ?? 0;
+    let dailySignalsUsed = profile?.daily_signals_used ?? 0;
+    let lastReset = new Date(profile?.last_limit_reset_at || new Date());
+    const now = new Date();
+
+    // Reset counters if crossed UTC day boundary
+    if (
+      now.getUTCDate() !== lastReset.getUTCDate() ||
+      now.getUTCMonth() !== lastReset.getUTCMonth() ||
+      now.getUTCFullYear() !== lastReset.getUTCFullYear()
+    ) {
+      dailyTokensUsed = 0;
+      dailySignalsUsed = 0;
+      await supabaseAdmin
+        .from('profiles')
+        .update({
+          daily_tokens_used: 0,
+          daily_signals_used: 0,
+          last_limit_reset_at: now.toISOString(),
+          updated_at: now.toISOString(),
+        })
+        .eq('id', user.id);
+    }
+
+    const saveUsage = async (tokens: number, signals: number) => {
+      if (isFree) {
+        await supabaseAdmin
+          .from('profiles')
+          .update({
+            daily_tokens_used: tokens,
+            daily_signals_used: signals,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', user.id);
+      }
+    };
+
     const body = await request.json();
     const userMessages = body.messages || [];
     const lastUserMessage = userMessages[userMessages.length - 1]?.content || '';
+
+    // ── Code Generation Abuse Interceptor (Blocks LLM token abuse) ──
+    const CODE_REGEX = /(?:write|generate|create|develop|code|program)\s+(?:some\s+|a\s+|an\s+)?(?:code|script|program|function|class|component|algorithm|api|bot|macro|plugin|extension|module|wrapper|scaffold)|(?:python|javascript|typescript|pinescript|pine\s+script|html|css|solidity|rust|java|c\+\+|golang|ruby|php|bash|powershell|vba)\s+(?:code|script|program|function|class|component|library|package|snippet)/i;
+    if (CODE_REGEX.test(lastUserMessage)) {
+      return NextResponse.json({
+        text: "I am your financial trading assistant, specialized in market analysis, technical indicator evaluation, and trade signal executions. I do not write or generate programming code.",
+        ticket: null,
+      });
+    }
+
     const accountBalance = body.accountBalance ? parseFloat(body.accountBalance.replace(/,/g, '')) : 10000;
     const forceSignal = body.forceSignal === true;
     const astroMode = body.astroMode === true;
@@ -75,6 +166,24 @@ export async function POST(request: Request) {
     // 1. Detect asset from user message
     const symbol = detectSymbol(lastUserMessage, allowedSymbols);
     const explicitSignal = forceSignal || wantsSignal(lastUserMessage);
+
+    // Enforce Free Tier token and signal limits
+    if (isFree) {
+      if (dailyTokensUsed >= 2500) {
+        return NextResponse.json({
+          text: "🔒 **Daily Chat Limit Reached**\n\nYou have reached your daily limit of 2,500 AI response tokens on the Free plan. Please upgrade to the Premium (Pro) plan to unlock unlimited chat analysis!",
+          ticket: null,
+          limitReached: true,
+        });
+      }
+      if (explicitSignal && dailySignalsUsed >= 3) {
+        return NextResponse.json({
+          text: "🔒 **Daily Signal Limit Reached**\n\nYou have reached your daily limit of 3 trade signals on the Free plan. Please upgrade to the Premium (Pro) plan to generate unlimited trade signals!",
+          ticket: null,
+          limitReached: true,
+        });
+      }
+    }
 
     // ── Astro Gate (Phase 5) ─────────────────────────────────────
     const astroGate = astroMode && symbol ? getAstroGate(symbol) : null;
@@ -147,23 +256,36 @@ export async function POST(request: Request) {
       const chatSystemPrompt = `You are TradeGPT, an elite institutional AI trading terminal built for professional traders. You have deep expertise in forex, commodities, crypto, indices, technical analysis, macro economics, and trading psychology.
 
 RESPONSE RULES:
-1. Answer every question thoroughly and professionally with structured markdown.
-2. Use ## for section headers, **bold** for key terms, and bullet points (- ) for lists.
-3. When comparing data, use markdown tables with | column | headers |.
-4. Include specific numbers, ranges, and real financial data whenever possible.
-5. End with a brief actionable insight or suggestion to analyze a specific asset.
-6. Keep the tone authoritative yet approachable — like a senior analyst briefing a trader.
-7. If the question is about a specific asset, include price context, key levels, and what to watch.
-8. For educational questions (e.g. "what is RSI"), give a concise masterclass with practical examples.
+1. STRICT DOMAIN LOCK RULE: You MUST ONLY answer questions related to financial markets, trading, technical/fundamental analysis, macro economics, risk management, cryptocurrencies, stocks, forex, gold, oil, commodities, or trading psychology. If a question is NOT strictly about these topics (e.g. writing school/work leave applications, essays, recipes, letters, writing code, general non-financial Q&A), you MUST refuse politely: "I am TradeGPT, an AI trading terminal specialized strictly in financial markets, technical analysis, and signal execution. I cannot assist with non-financial or general inquiries."
+2. Answer every question thoroughly and professionally with structured markdown.
+3. Use ## for section headers, **bold** for key terms, and bullet points (- ) for lists.
+4. When comparing data, use markdown tables with | column | headers |.
+5. Include specific numbers, ranges, and real financial data whenever possible.
+6. End with a brief actionable insight or suggestion to analyze a specific asset.
+7. Keep the tone authoritative yet approachable — like a senior analyst briefing a trader.
+8. If the question is about a specific asset, include price context, key levels, and what to watch.
+9. For educational questions (e.g. "what is RSI"), give a concise masterclass with practical examples.
+10. STRICT CODE BLOCKING RULE: You are a pure financial trading terminal and market assistant. You MUST NEVER output coding blocks, programming scripts, HTML, CSS, React, Pine Script, Python, or software code in your responses. If a user asks you to write code, program a script, or build a codebase, you must refuse politely: 'I am your financial trading assistant, specialized in market analysis, technical indicator evaluation, and trade signal executions. I do not write or generate programming code.'
 
 FORMAT: Respond ONLY as JSON (no code fences): {"text":"your full markdown response here"}
 Use \\n for newlines inside the JSON string.${astroContext}`;
 
+      let activeSystemPrompt = chatSystemPrompt;
+      const responseMaxTokens = isFree ? 250 : 500;
+      if (isFree) {
+        activeSystemPrompt += `\n\nBREVITY RULE: Keep response extremely short, concise, and direct (maximum 2 short paragraphs under 120 words total). Refuse detailed descriptions or extended guidelines.`;
+      } else {
+        activeSystemPrompt += `\n\nINSTITUTIONAL ANALYSIS RULE: Provide detailed, highly thorough institutional-grade financial analysis.`;
+      }
+
       // Chat path — LLM Router handles failover (Groq → NVIDIA → fallback)
-      const chatResult = await callLLM(userMessages, chatSystemPrompt, 800);
+      const chatResult = await callLLM(userMessages, activeSystemPrompt, responseMaxTokens);
       let parsedText = '';
 
       if (chatResult) {
+        const totalUsed = chatResult.raw?.usage?.total_tokens ?? 
+                          (Math.round((chatResult.text.length + activeSystemPrompt.length) / 4) + 50);
+        dailyTokensUsed += totalUsed;
         let rawContent = chatResult.text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
 
         // Try 1: Standard JSON.parse
@@ -199,6 +321,7 @@ Use \\n for newlines inside the JSON string.${astroContext}`;
           : "I am TradeGPT, designed to run multi-agent analysis on live markets. I can analyze charts and dispatch automated order signals for: Gold, EURUSD, GBPUSD, USDJPY, BTC, ETH, and Nasdaq. Just ask me to analyze an asset!";
       }
 
+      await saveUsage(dailyTokensUsed, dailySignalsUsed);
       return NextResponse.json({ text: parsedText, ticket: null });
     }
 
@@ -253,6 +376,7 @@ ${newsBlock}
         confidenceGrade: snapshot.confidenceGrade, newsSentiment: snapshot.newsSentiment.sentiment,
       };
 
+      await saveUsage(dailyTokensUsed, dailySignalsUsed);
       return NextResponse.json({
         text: analysisText, ticket: null, signalSymbol: symbol, marketData,
         gating: {
@@ -278,9 +402,13 @@ ${marketContextBlock}${astroContext}
 Respond ONLY with JSON (no code fences):
 {"text":"### 🤖 Multi-Agent Consensus\\n* **Technical Analysis**: [data]\\n* **Macro News**: [sentiment]\\n* **Master Synthesis**: [action target]","newsSentiment":"BULLISH or BEARISH or NEUTRAL"}`;
 
-    const signalResult = await callLLM(userMessages, signalSystemPrompt, 150);
+    const signalMaxTokens = isFree ? 100 : 200;
+    const signalResult = await callLLM(userMessages, signalSystemPrompt, signalMaxTokens);
     if (signalResult) {
       parsed = flexibleJsonParse(signalResult.text);
+      const totalUsed = signalResult.raw?.usage?.total_tokens ?? 
+                        (Math.round((signalResult.text.length + signalSystemPrompt.length) / 4) + 50);
+      dailyTokensUsed += totalUsed;
     }
 
     // 6. Engine-generated fallback report (used when LLM is unavailable or returned no text)
@@ -401,6 +529,12 @@ Respond ONLY with JSON (no code fences):
         console.error('[Astro Telemetry] Failed to log signal to database:', dbErr);
       }
     }
+
+    if (shouldSendTicket) {
+      dailySignalsUsed += 1;
+    }
+
+    await saveUsage(dailyTokensUsed, dailySignalsUsed);
 
     return NextResponse.json({
       text: parsed.text || 'Analysis complete.',
