@@ -498,6 +498,23 @@ export async function executeBrokerOrder(
 
   let result = await farmExecuteTrade(accountId, payload);
 
+  // Auto-wake retry loop if MT5 Farm account is waking up from hibernation
+  const resAny = result as any;
+  if (!result.success && (resAny?.status === 'waking' || resAny?.error?.message?.includes('waking') || JSON.stringify(result).includes('waking'))) {
+    console.log(`[Broker Engine] MT5 Account #${accountId} is waking up from hibernation... Auto-waking and waiting 6s...`);
+    try {
+      await farmWake(accountId);
+    } catch (_) {}
+    await new Promise(r => setTimeout(r, 6000));
+    console.log(`[Broker Engine] Retrying order execution for account #${accountId}...`);
+    result = await farmExecuteTrade(accountId, payload);
+    const retryAny = result as any;
+    if (!result.success && (retryAny?.status === 'waking' || retryAny?.error?.message?.includes('waking') || JSON.stringify(result).includes('waking'))) {
+      await new Promise(r => setTimeout(r, 6000));
+      result = await farmExecuteTrade(accountId, payload);
+    }
+  }
+
   if (!result.success) {
     const err = result.error;
     const rawError = (err as any).detail || err;

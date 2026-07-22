@@ -32,88 +32,32 @@ async function main() {
 
   while (true) {
     try {
-      // Query desired state from Supabase platform_config
-      const { data, error } = await sb
-        .from('platform_config')
-        .select('value')
-        .eq('key', 'sentinel_active_state')
-        .maybeSingle();
-
-      if (error) {
-        console.error('[Sentinel Worker] Database query error:', error.message);
-        await new Promise(resolve => setTimeout(resolve, 5000));
-        continue;
-      }
-
-      const desired = data?.value as { running: boolean; accountId: string; userId: string } | null;
-
-      if (desired && desired.running) {
-        const status = getSentinelStatus();
-
-        // If not running in-memory or account has changed, restart in-memory
-        if (!status.running || status.accountId !== desired.accountId) {
-          console.log(`[Sentinel Worker] 🔄 Activating sentinel: account ${desired.accountId}`);
-          if (status.running) {
-            stopSentinel();
-          }
-          startSentinel(desired.accountId, desired.userId);
-        }
-
-        // Run a single heartbeat tick cycle
-        await heartbeat();
-
-        // Update database with actual worker status and stats
-        const updatedStatus = getSentinelStatus();
-        await sb
-          .from('platform_config')
-          .upsert({
-            key: 'sentinel_worker_status',
-            value: {
-              ...updatedStatus,
-              lastCheckedAt: new Date().toISOString(),
-              workerPid: process.pid,
-              statusMessage: 'Worker is running normally'
-            }
-          });
-
-      } else {
-        // Desired state is inactive / stopped
-        const status = getSentinelStatus();
-        if (status.running) {
-          console.log('[Sentinel Worker] 🔴 Stopping sentinel (deactivation requested by configuration)');
-          stopSentinel();
-        }
-
-        // Update database with stopped status
-        const updatedStatus = getSentinelStatus();
-        await sb
-          .from('platform_config')
-          .upsert({
-            key: 'sentinel_worker_status',
-            value: {
-              ...updatedStatus,
-              lastCheckedAt: new Date().toISOString(),
-              workerPid: process.pid,
-              statusMessage: 'Worker is idle'
-            }
-          });
-      }
-
       // ── 24/7 Background Multi-Bot Matrix Execution Loop ──
       const lastBotRun = (global as any)._lastAutoTradeRunTime || 0;
       const nowMs = Date.now();
       // Run auto-trade check every 60 seconds autonomously on backend
-      if (nowMs - lastBotRun >= 60000) {
+      if (nowMs - lastBotRun >= 55000) {
         (global as any)._lastAutoTradeRunTime = nowMs;
         try {
-          const res = await fetch('http://localhost:3000/api/admin/auto-trade', {
+          let res = await fetch('http://127.0.0.1:3000/api/admin/auto-trade', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'trigger_all', daemon: true })
-          });
-          if (res.ok) {
+          }).catch(() => null);
+
+          if (!res || !res.ok) {
+            res = await fetch('http://localhost:3000/api/admin/auto-trade', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'trigger_all', daemon: true })
+            }).catch(() => null);
+          }
+
+          if (res && res.ok) {
             const data = await res.json();
-            console.log('[Sentinel Worker] 🤖 Auto-Trader background cycle executed:', data.executedCount ?? 0, 'bots evaluated.');
+            console.log('[Sentinel Worker] 🤖 Auto-Trader background cycle executed:', data.results?.length ?? 0, 'bots evaluated.');
+          } else {
+            console.warn('[Sentinel Worker] Auto-trader cycle returned status:', res?.status ?? 'No response');
           }
         } catch (botErr: any) {
           console.warn('[Sentinel Worker] Auto-trader cycle call error:', botErr.message);
