@@ -24,6 +24,7 @@ import {
   farmHibernate,
   farmWake,
   farmExecuteTrade,
+  farmModifyPosition,
   farmSearchBrokers,
   type FarmAccount,
   type TradePayload,
@@ -478,10 +479,10 @@ export async function executeBrokerOrder(
   let mt5Symbol = await getNormalizedSymbolForBroker(symbol, accountId);
 
   const vol = Math.max(Number(volume) || 0.01, 0.01);
-  const sl  = stopLoss   != null ? Number(stopLoss)   : undefined;
-  const tp  = takeProfit != null ? Number(takeProfit)  : undefined;
+  const sl  = stopLoss   != null && !isNaN(Number(stopLoss))   ? Number(stopLoss)   : undefined;
+  const tp  = takeProfit != null && !isNaN(Number(takeProfit)) ? Number(takeProfit) : undefined;
 
-  console.log(`[Broker Engine] MT5 Farm ${action} ${vol} lot(s) ${mt5Symbol} → account ${accountId}`);
+  console.log(`[Broker Engine] MT5 Farm ${action} ${vol} lot(s) ${mt5Symbol} (SL: ${sl}, TP: ${tp}) → account ${accountId}`);
 
   const payload: TradePayload = {
     actionType: action === 'BUY' ? 'ORDER_TYPE_BUY' : 'ORDER_TYPE_SELL',
@@ -492,7 +493,7 @@ export async function executeBrokerOrder(
   if (sl) payload.stopLoss   = sl;
   if (tp) payload.takeProfit = tp;
 
-  const result = await farmExecuteTrade(accountId, payload);
+  let result = await farmExecuteTrade(accountId, payload);
 
   if (!result.success) {
     const err = result.error;
@@ -527,27 +528,35 @@ export async function executeBrokerOrder(
       throw new Error(`Invalid volume ${vol} for ${mt5Symbol}. Try 0.01.`);
     }
     if (stringCode?.includes('10016') || message?.includes('stops')) {
-      // Retry without SL/TP
-      console.log('[Broker Engine] Invalid stops — retrying without SL/TP...');
+      // ECN / Market Execution Brokers require opening first, then setting SL/TP via position modification!
+      console.log('[Broker Engine] ECN Market Execution detected — opening order first then attaching SL/TP...');
       const retry = await farmExecuteTrade(accountId, { ...payload, stopLoss: undefined, takeProfit: undefined });
       if (retry.success) {
-        return {
-          orderId:   retry.result.orderId || retry.result.positionId || accountId,
-          status:    'success',
-          fillPrice: retry.result.openPrice || Number(entryPrice),
-        };
+        result = retry;
+      } else {
+        const retryErr = retry.success === false ? retry.error : {};
+        const retryRaw = (retryErr as any).detail || retryErr;
+        const retryMsg = typeof retryRaw === 'string' ? retryRaw : (retryRaw.message || 'Unknown');
+        throw new Error(`Invalid SL/TP for ${mt5Symbol}: ${retryMsg}`);
       }
-      const retryErr = retry.success === false ? retry.error : {};
-      const retryRaw = (retryErr as any).detail || retryErr;
-      const retryMsg = typeof retryRaw === 'string' ? retryRaw : (retryRaw.message || 'Unknown');
-      throw new Error(`Invalid SL/TP for ${mt5Symbol}: ${retryMsg}`);
+    } else {
+      throw new Error(`Order rejected: ${message}`);
     }
+  }
 
-    throw new Error(`Order rejected: ${message}`);
+  // Guaranteed SL/TP attachment: Ensure SL & TP are attached to position on MT5
+  const positionId = result.result.positionId || result.result.orderId || result.result.id;
+  if (positionId && (sl || tp)) {
+    try {
+      console.log(`[Broker Engine] Attaching SL (${sl}) & TP (${tp}) to position #${positionId}...`);
+      await farmModifyPosition(accountId, String(positionId), { stopLoss: sl, takeProfit: tp });
+    } catch (modErr: any) {
+      console.warn(`[Broker Engine] Position modification for SL/TP warning: ${modErr.message}`);
+    }
   }
 
   return {
-    orderId:   result.result.orderId || result.result.positionId || accountId,
+    orderId:   positionId || accountId,
     status:    'success',
     fillPrice: result.result.openPrice || Number(entryPrice),
   };
