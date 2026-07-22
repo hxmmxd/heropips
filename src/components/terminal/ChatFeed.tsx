@@ -562,18 +562,23 @@ export default function ChatFeed({
 
                     {/* Footer / Generate Signal */}
                     <div className="px-5 py-3.5 border-t border-[var(--border)]">
-                      <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                          <div className="relative w-20 h-2.5 rounded-full bg-[var(--input-bg)] overflow-hidden shrink-0 border border-[var(--border)]/40 shadow-inner">
-                            <div className={`h-full rounded-full transition-all ${
-                              msg.marketData.confluenceScore >= 80 ? 'bg-gradient-to-r from-emerald-500 to-emerald-400'
-                              : msg.marketData.confluenceScore >= 65 ? 'bg-gradient-to-r from-blue-500 to-blue-400'
-                              : msg.marketData.confluenceScore >= 50 ? 'bg-gradient-to-r from-amber-500 to-amber-400'
-                              : 'bg-gradient-to-r from-red-500 to-red-400'
-                            }`} style={{ width: `${msg.marketData.confluenceScore}%` }} />
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex flex-col gap-1 min-w-0 flex-1 justify-center">
+                          <div className="flex items-center gap-1.5">
+                            <div className="relative w-16 h-1.5 rounded-full bg-[var(--input-bg)] overflow-hidden border border-[var(--border)]/40 shadow-inner shrink-0">
+                              <div className={`h-full rounded-full transition-all ${
+                                msg.marketData.confluenceScore >= 80 ? 'bg-gradient-to-r from-emerald-500 to-emerald-400'
+                                : msg.marketData.confluenceScore >= 65 ? 'bg-gradient-to-r from-blue-500 to-blue-400'
+                                : msg.marketData.confluenceScore >= 50 ? 'bg-gradient-to-r from-amber-500 to-amber-400'
+                                : 'bg-gradient-to-r from-red-500 to-red-400'
+                              }`} style={{ width: `${msg.marketData.confluenceScore}%` }} />
+                            </div>
+                            <span className="text-[10px] font-black font-mono text-[var(--text)]">
+                              {msg.marketData.confluenceScore}%
+                            </span>
                           </div>
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className={`text-[10px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider shrink-0 ${
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className={`text-[8.5px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider shrink-0 ${
                               msg.marketData.confidenceGrade === 'AAA' ? 'bg-emerald-500/12 text-emerald-500 border border-emerald-500/20'
                               : msg.marketData.confidenceGrade === 'AA' ? 'bg-blue-500/12 text-blue-500 border border-blue-500/20'
                               : msg.marketData.confidenceGrade === 'A' ? 'bg-blue-500/12 text-blue-400 border border-blue-500/20'
@@ -581,8 +586,8 @@ export default function ChatFeed({
                             }`}>
                               {msg.marketData.confidenceGrade}
                             </span>
-                            <span className="text-[11px] font-bold text-[var(--subtext)] font-mono whitespace-nowrap">
-                              {msg.marketData.confluenceScore}% {msg.marketData.confidenceGrade} {msg.marketData.confluenceScore < 65 ? 'Moderate Confidence' : 'Confidence'}
+                            <span className="text-[9.5px] font-semibold text-[var(--subtext)] font-sans tracking-tight whitespace-nowrap">
+                              {msg.marketData.confluenceScore < 65 ? 'Moderate Confidence' : 'Confidence'}
                             </span>
                           </div>
                         </div>
@@ -591,20 +596,20 @@ export default function ChatFeed({
                             (msg.gating?.outcome === 'SIGNAL' || msg.gating?.outcome === 'WATCH' || msg.marketData.confluenceScore >= 50) ? (
                               <button
                                 onClick={() => onGenerateSignal?.(msg.signalSymbol!)}
-                                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-[11px] font-black uppercase tracking-wider shadow-md hover:shadow-lg active:scale-95 transition-all whitespace-nowrap cursor-pointer ${
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white text-[10px] font-bold uppercase tracking-wider shadow-sm hover:shadow-md active:scale-95 transition-all whitespace-nowrap cursor-pointer ${
                                   msg.marketData.confluenceScore < 65
                                     ? 'bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 shadow-amber-950/20 border border-amber-400/30'
                                     : ''
                                 }`}
-                                style={msg.marketData.confluenceScore >= 65 ? { background: 'var(--accent)', boxShadow: '0 4px 14px rgba(180,145,108,0.3)' } : {}}
+                                style={msg.marketData.confluenceScore >= 65 ? { background: 'var(--accent)', boxShadow: '0 3px 10px rgba(180,145,108,0.3)' } : {}}
                               >
-                                <Zap className="w-3.5 h-3.5 fill-current" />
+                                <Zap className="w-3 h-3 fill-current" />
                                 Generate Signal
                               </button>
                             ) : (
                               <button
                                 disabled
-                                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-slate-400 bg-slate-800/80 text-[11px] font-black uppercase tracking-wider cursor-not-allowed whitespace-nowrap border border-slate-700/50"
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-slate-400 bg-slate-800/80 text-[10px] font-bold uppercase tracking-wider cursor-not-allowed whitespace-nowrap border border-slate-700/50"
                               >
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3 h-3">
                                   <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
