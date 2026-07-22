@@ -581,8 +581,8 @@ export default function ChatFeed({
                             }`}>
                               {msg.marketData.confidenceGrade}
                             </span>
-                            <span className="text-[11px] font-bold text-[var(--subtext)] font-mono whitespace-nowrap truncate">
-                              {msg.marketData.confluenceScore}% {msg.marketData.confluenceScore < 65 ? 'Moderate Confidence' : 'Confidence'}
+                            <span className="text-[11px] font-bold text-[var(--subtext)] font-mono whitespace-nowrap">
+                              {msg.marketData.confluenceScore}% {msg.marketData.confidenceGrade} {msg.marketData.confluenceScore < 65 ? 'Moderate Confidence' : 'Confidence'}
                             </span>
                           </div>
                         </div>
