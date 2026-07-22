@@ -600,7 +600,7 @@ export default function ChatFeed({
                                 style={msg.marketData.confluenceScore >= 65 ? { background: 'var(--accent)', boxShadow: '0 4px 12px rgba(180,145,108,0.3)' } : {}}
                               >
                                 <Zap className="w-3 h-3" />
-                                {msg.marketData.confluenceScore < 65 ? `Generate Signal (${msg.marketData.confluenceScore}% ${msg.marketData.confidenceGrade})` : 'Generate Signal'}
+                                Generate Signal
                               </button>
                             ) : (
                               <button
