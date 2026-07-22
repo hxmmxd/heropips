@@ -458,18 +458,19 @@ export default function AdminPage() {
 
     if (hasEnabledBots) {
       const activeInterval = enabledBots.length > 0
-        ? Math.min(...enabledBots.map(b => b.intervalMinutes || 15))
-        : (autoTradeConfig.interval || 15);
+        ? Math.min(...enabledBots.map(b => Number(b.intervalMinutes) || 15))
+        : (Number(autoTradeConfig.interval) || 15);
 
-      setCountdownSeconds(prev => (prev === null ? activeInterval * 60 : prev));
+      const maxSecs = activeInterval * 60;
+      setCountdownSeconds(prev => (prev === null || prev > maxSecs ? maxSecs : prev));
 
       autoTradeTimerRef.current = setInterval(() => {
         setCountdownSeconds(prev => {
           if (prev === null || prev <= 1) {
             runMultiBotCycle();
-            return activeInterval * 60;
+            return maxSecs;
           }
-          return prev - 1;
+          return Math.min(prev - 1, maxSecs);
         });
       }, 1000);
     } else {
@@ -3671,13 +3672,17 @@ export default function AdminPage() {
                                   {bot.isEnabled ? (isRunningJob ? '⚡ SCANNING...' : '🟢 LIVE SCANNING') : '⏸️ PAUSED'}
                                 </span>
                               </div>
-                              {bot.isEnabled && (
-                                <span style={{ color: 'var(--subtext)', fontFamily: 'monospace', fontSize: 10 }}>
-                                  {countdownSeconds !== null 
-                                    ? `Next: ${Math.floor(countdownSeconds / 60).toString().padStart(2, '0')}:${(countdownSeconds % 60).toString().padStart(2, '0')}`
-                                    : `Interval: ${bot.intervalMinutes || 15}m`}
-                                </span>
-                              )}
+                              {bot.isEnabled && (() => {
+                                const botIntervalSecs = (Number(bot.intervalMinutes) || 15) * 60;
+                                const displaySecs = countdownSeconds !== null ? Math.min(countdownSeconds, botIntervalSecs) : null;
+                                return (
+                                  <span style={{ color: 'var(--subtext)', fontFamily: 'monospace', fontSize: 10 }}>
+                                    {displaySecs !== null 
+                                      ? `Next: ${Math.floor(displaySecs / 60).toString().padStart(2, '0')}:${(displaySecs % 60).toString().padStart(2, '0')}`
+                                      : `Interval: ${bot.intervalMinutes || 15}m`}
+                                  </span>
+                                );
+                              })()}
                             </div>
 
                             {/* Preset & Sizing Badges */}

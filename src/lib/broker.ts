@@ -397,6 +397,7 @@ export async function executeBrokerOrder(
   entryPrice: number | string,
   stopLoss?: number | string,
   takeProfit?: number | string,
+  bypassRiskGovernor: boolean = true
 ): Promise<any> {
   // Resolve account ID: might be brokerId (UUID), login, or the id itself from Supabase
   let accountId = id;
@@ -439,40 +440,42 @@ export async function executeBrokerOrder(
     console.warn(`[Broker Engine] Pre-trade margin check bypassed: ${marginErr.message}`);
   }
 
-  // ── Risk Governor: Last Line of Defense ──────────────────────────
-  try {
-    const riskState = await getRiskState(accountId);
-    if (riskState) {
-      // Update risk metrics with live equity
-      const updated = updateRiskMetrics(riskState, liveEquity || riskState.currentEquity, liveBalance || riskState.dailyStartBalance);
-      const { multipliers } = await evaluateAllRiskGates(updated);
+  // ── Risk Governor: Last Line of Defense (Bypassed in Testing Mode) ──────────
+  if (!bypassRiskGovernor) {
+    try {
+      const riskState = await getRiskState(accountId);
+      if (riskState) {
+        // Update risk metrics with live equity
+        const updated = updateRiskMetrics(riskState, liveEquity || riskState.currentEquity, liveBalance || riskState.dailyStartBalance);
+        const { multipliers } = await evaluateAllRiskGates(updated);
 
-      if (multipliers.shouldLiquidate) {
-        console.error(`[Risk Governor] 🚨 TERMINAL EVENT — blocking trade and saving state`);
-        await saveRiskState({ ...updated, isTradingEnabled: false, shutdownTime: new Date().toISOString() });
-        throw new Error(`🚨 Risk Governor: Trading halted — ${multipliers.riskSummary}`);
-      }
+        if (multipliers.shouldLiquidate) {
+          console.error(`[Risk Governor] 🚨 TERMINAL EVENT — blocking trade and saving state`);
+          await saveRiskState({ ...updated, isTradingEnabled: false, shutdownTime: new Date().toISOString() });
+          throw new Error(`🚨 Risk Governor: Trading halted — ${multipliers.riskSummary}`);
+        }
 
-      if (!updated.isTradingEnabled || multipliers.shouldHalt) {
-        console.warn(`[Risk Governor] ⛔ Trade blocked: ${multipliers.riskSummary}`);
+        if (!updated.isTradingEnabled || multipliers.shouldHalt) {
+          console.warn(`[Risk Governor] ⛔ Trade blocked: ${multipliers.riskSummary}`);
+          await saveRiskState(updated);
+          throw new Error(`⛔ Risk Governor: ${multipliers.riskSummary}`);
+        }
+
+        // Apply risk multiplier to volume
+        if (multipliers.combinedMultiplier < 1.0 && multipliers.combinedMultiplier > 0) {
+          const adjVol = Math.max(0.01, parseFloat((Number(volume) * multipliers.combinedMultiplier).toFixed(2)));
+          console.log(`[Risk Governor] Volume adjusted: ${volume} → ${adjVol} (x${multipliers.combinedMultiplier.toFixed(2)})`);
+          volume = adjVol;
+        }
+
+        // Persist updated state
         await saveRiskState(updated);
-        throw new Error(`⛔ Risk Governor: ${multipliers.riskSummary}`);
       }
-
-      // Apply risk multiplier to volume
-      if (multipliers.combinedMultiplier < 1.0 && multipliers.combinedMultiplier > 0) {
-        const adjVol = Math.max(0.01, parseFloat((Number(volume) * multipliers.combinedMultiplier).toFixed(2)));
-        console.log(`[Risk Governor] Volume adjusted: ${volume} → ${adjVol} (x${multipliers.combinedMultiplier.toFixed(2)})`);
-        volume = adjVol;
-      }
-
-      // Persist updated state
-      await saveRiskState(updated);
+    } catch (riskErr: any) {
+      // Re-throw risk blocks
+      if (riskErr.message.includes('Risk Governor')) throw riskErr;
+      console.warn(`[Risk Governor] Pre-trade check skipped: ${riskErr.message}`);
     }
-  } catch (riskErr: any) {
-    // Re-throw risk blocks
-    if (riskErr.message.includes('Risk Governor')) throw riskErr;
-    console.warn(`[Risk Governor] Pre-trade check skipped: ${riskErr.message}`);
   }
 
   // Resolve symbol with allowed_symbols suffix matching

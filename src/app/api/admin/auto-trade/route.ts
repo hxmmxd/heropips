@@ -327,15 +327,33 @@ export async function POST(request: Request) {
       if (shouldSkipGating) {
         executionError = evalResult.reason;
       } else {
-        // Dynamic balance lookup for bot's MT5 account
+        // Dynamic balance lookup for bot's MT5 account & reset any halted risk state
         try {
+          const { createClient } = await import('@supabase/supabase-js');
+          const sb = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+          );
+          await sb
+            .from('portfolio_risk_states')
+            .update({
+              is_trading_enabled: true,
+              is_daily_halted: false,
+              daily_tier: 'NORMAL',
+              drawdown_zone: 'GREEN',
+              shutdown_time: null,
+              daily_halt_time: null,
+              last_updated: new Date().toISOString()
+            })
+            .eq('account_id', accountId);
+
           const { farmGetAccountInfo } = await import('@/lib/mt5farm');
           const info = await farmGetAccountInfo(accountId);
           if (info && (info.balance || info.equity)) {
             liveBalance = info.balance || info.equity;
           }
         } catch (err: any) {
-          console.warn(`[Auto-Trader] Balance lookup bypassed for ${accountId}, using $${liveBalance}:`, err.message);
+          console.warn(`[Auto-Trader] Balance lookup / risk reset bypassed for ${accountId}, using $${liveBalance}:`, err.message);
         }
 
         const sizingMode = bot.sizingMode || 'risk_percent';
