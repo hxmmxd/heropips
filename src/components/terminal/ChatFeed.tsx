@@ -562,9 +562,9 @@ export default function ChatFeed({
 
                     {/* Footer / Generate Signal */}
                     <div className="px-5 py-3.5 border-t border-[var(--border)]">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="relative w-24 h-2 rounded-full bg-[var(--input-bg)] overflow-hidden">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <div className="relative w-20 h-2.5 rounded-full bg-[var(--input-bg)] overflow-hidden shrink-0 border border-[var(--border)]/40 shadow-inner">
                             <div className={`h-full rounded-full transition-all ${
                               msg.marketData.confluenceScore >= 80 ? 'bg-gradient-to-r from-emerald-500 to-emerald-400'
                               : msg.marketData.confluenceScore >= 65 ? 'bg-gradient-to-r from-blue-500 to-blue-400'
@@ -572,40 +572,39 @@ export default function ChatFeed({
                               : 'bg-gradient-to-r from-red-500 to-red-400'
                             }`} style={{ width: `${msg.marketData.confluenceScore}%` }} />
                           </div>
-                          <div className="flex flex-col">
-                            <span className={`text-[11px] font-black leading-none ${
-                              msg.marketData.confidenceGrade === 'AAA' ? 'text-emerald-500'
-                              : msg.marketData.confidenceGrade === 'AA' ? 'text-blue-500'
-                              : msg.marketData.confidenceGrade === 'A' ? 'text-blue-400'
-                              : msg.marketData.confidenceGrade === 'BBB' ? 'text-amber-500'
-                              : 'text-[var(--subtext)]'
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className={`text-[10px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider shrink-0 ${
+                              msg.marketData.confidenceGrade === 'AAA' ? 'bg-emerald-500/12 text-emerald-500 border border-emerald-500/20'
+                              : msg.marketData.confidenceGrade === 'AA' ? 'bg-blue-500/12 text-blue-500 border border-blue-500/20'
+                              : msg.marketData.confidenceGrade === 'A' ? 'bg-blue-500/12 text-blue-400 border border-blue-500/20'
+                              : 'bg-amber-500/12 text-amber-500 border border-amber-500/20'
                             }`}>
                               {msg.marketData.confidenceGrade}
                             </span>
-                            <span className="text-[9px] text-[var(--subtext)] font-mono">
-                              {msg.marketData.confluenceScore}% {msg.marketData.confidenceGrade} {msg.marketData.confluenceScore < 65 ? 'Moderate Confidence' : 'Confidence'}
+                            <span className="text-[11px] font-bold text-[var(--subtext)] font-mono whitespace-nowrap truncate">
+                              {msg.marketData.confluenceScore}% {msg.marketData.confluenceScore < 65 ? 'Moderate Confidence' : 'Confidence'}
                             </span>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 shrink-0">
                           {msg.signalSymbol && !msg.ticket && (
                             (msg.gating?.outcome === 'SIGNAL' || msg.gating?.outcome === 'WATCH' || msg.marketData.confluenceScore >= 50) ? (
                               <button
                                 onClick={() => onGenerateSignal?.(msg.signalSymbol!)}
-                                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-white text-[10px] font-bold uppercase tracking-wider hover:shadow-lg active:scale-95 transition-all whitespace-nowrap shrink-0 ${
+                                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-[11px] font-black uppercase tracking-wider shadow-md hover:shadow-lg active:scale-95 transition-all whitespace-nowrap cursor-pointer ${
                                   msg.marketData.confluenceScore < 65
-                                    ? 'bg-amber-600 hover:bg-amber-500 shadow-amber-900/30'
+                                    ? 'bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 shadow-amber-950/20 border border-amber-400/30'
                                     : ''
                                 }`}
-                                style={msg.marketData.confluenceScore >= 65 ? { background: 'var(--accent)', boxShadow: '0 4px 12px rgba(180,145,108,0.3)' } : {}}
+                                style={msg.marketData.confluenceScore >= 65 ? { background: 'var(--accent)', boxShadow: '0 4px 14px rgba(180,145,108,0.3)' } : {}}
                               >
-                                <Zap className="w-3 h-3" />
+                                <Zap className="w-3.5 h-3.5 fill-current" />
                                 Generate Signal
                               </button>
                             ) : (
                               <button
                                 disabled
-                                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-slate-400 bg-slate-800/80 text-[10px] font-bold uppercase tracking-wider cursor-not-allowed whitespace-nowrap shrink-0 border border-slate-700/50"
+                                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-slate-400 bg-slate-800/80 text-[11px] font-black uppercase tracking-wider cursor-not-allowed whitespace-nowrap border border-slate-700/50"
                               >
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3 h-3">
                                   <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
