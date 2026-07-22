@@ -352,7 +352,9 @@ export async function POST(request: Request) {
               finalDirection,
               liveBalance,
               calcRiskPercent,
-              querySymbol
+              querySymbol,
+              bot.tpMode || 'quick_scalp',
+              bot.customTpDistance
             );
             stopLossVal = parseFloat(riskParams.stopLoss);
             takeProfitVal = parseFloat(riskParams.takeProfit);

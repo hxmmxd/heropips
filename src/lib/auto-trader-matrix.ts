@@ -12,6 +12,8 @@ export interface BotInstance {
   accountName?: string;
   strategyPreset: StrategyPreset;
   minConfluenceThreshold?: number;
+  tpMode?: 'quick_scalp' | 'dynamic_atr';
+  customTpDistance?: number;
   intervalMinutes: number;
   sizingMode: 'risk_percent' | 'fixed_dollar' | 'kelly_adaptive' | 'fixed_lots';
   sizingValue: number;

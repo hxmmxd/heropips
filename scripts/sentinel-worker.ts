@@ -99,6 +99,27 @@ async function main() {
           });
       }
 
+      // ── 24/7 Background Multi-Bot Matrix Execution Loop ──
+      const lastBotRun = (global as any)._lastAutoTradeRunTime || 0;
+      const nowMs = Date.now();
+      // Run auto-trade check every 60 seconds autonomously on backend
+      if (nowMs - lastBotRun >= 60000) {
+        (global as any)._lastAutoTradeRunTime = nowMs;
+        try {
+          const res = await fetch('http://localhost:3000/api/admin/auto-trade', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'trigger_all', daemon: true })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            console.log('[Sentinel Worker] 🤖 Auto-Trader background cycle executed:', data.executedCount ?? 0, 'bots evaluated.');
+          }
+        } catch (botErr: any) {
+          console.warn('[Sentinel Worker] Auto-trader cycle call error:', botErr.message);
+        }
+      }
+
     } catch (err: any) {
       console.error('[Sentinel Worker] Loop execution error:', err.message);
     }

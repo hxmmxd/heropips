@@ -151,6 +151,8 @@ export default function AdminPage() {
     accountId: string;
     strategyPreset: StrategyPreset;
     minConfluenceThreshold: number;
+    tpMode: 'quick_scalp' | 'dynamic_atr';
+    customTpDistance?: number;
     intervalMinutes: number;
     sizingMode: 'risk_percent' | 'fixed_dollar' | 'kelly_adaptive' | 'fixed_lots';
     sizingValue: number;
@@ -161,6 +163,8 @@ export default function AdminPage() {
     accountId: '',
     strategyPreset: 'full_17_gates',
     minConfluenceThreshold: 50,
+    tpMode: 'quick_scalp',
+    customTpDistance: undefined,
     intervalMinutes: 15,
     sizingMode: 'risk_percent',
     sizingValue: 0.5,
@@ -276,6 +280,8 @@ export default function AdminPage() {
       accountId: brokers.length > 0 ? (brokers[0].mt5_login || brokers[0].id) : '',
       strategyPreset: 'full_17_gates',
       minConfluenceThreshold: 50,
+      tpMode: 'quick_scalp',
+      customTpDistance: undefined,
       intervalMinutes: 15,
       sizingMode: 'risk_percent',
       sizingValue: 0.5,
@@ -292,6 +298,8 @@ export default function AdminPage() {
       accountId: bot.accountId,
       strategyPreset: bot.strategyPreset,
       minConfluenceThreshold: bot.minConfluenceThreshold ?? 50,
+      tpMode: bot.tpMode || 'quick_scalp',
+      customTpDistance: bot.customTpDistance,
       intervalMinutes: bot.intervalMinutes || 15,
       sizingMode: bot.sizingMode || 'risk_percent',
       sizingValue: bot.sizingValue ?? 0.5,
@@ -313,6 +321,8 @@ export default function AdminPage() {
         accountId: botForm.accountId,
         strategyPreset: botForm.strategyPreset,
         minConfluenceThreshold: botForm.minConfluenceThreshold,
+        tpMode: botForm.tpMode,
+        customTpDistance: botForm.customTpDistance,
         intervalMinutes: botForm.intervalMinutes,
         sizingMode: botForm.sizingMode,
         sizingValue: botForm.sizingValue,
@@ -326,6 +336,8 @@ export default function AdminPage() {
         accountId: botForm.accountId,
         strategyPreset: botForm.strategyPreset,
         minConfluenceThreshold: botForm.minConfluenceThreshold,
+        tpMode: botForm.tpMode,
+        customTpDistance: botForm.customTpDistance,
         intervalMinutes: botForm.intervalMinutes,
         sizingMode: botForm.sizingMode,
         sizingValue: botForm.sizingValue,
@@ -3673,6 +3685,9 @@ export default function AdminPage() {
                               <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 6, background: 'rgba(245,158,11,0.12)', color: 'var(--adm-accent)', border: '1px solid rgba(245,158,11,0.25)' }}>
                                 {presetInfo.name} ({bot.minConfluenceThreshold || 50}%+)
                               </span>
+                              <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: 'rgba(34,197,94,0.12)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.25)' }}>
+                                {bot.tpMode === 'dynamic_atr' ? '🎯 Dynamic ATR (1:2.5 TP)' : `⚡ Quick Scalp (${bot.customTpDistance ? `$${bot.customTpDistance}` : '$10'} TP)`}
+                              </span>
                               <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: 'var(--bg)', color: 'var(--subtext)', border: '1px solid var(--border)' }}>
                                 ⏱️ {bot.intervalMinutes || 15}m cycle
                               </span>
@@ -3885,6 +3900,35 @@ export default function AdminPage() {
                             <option value={75}>75% (Grade AA — High Confluence)</option>
                             <option value={80}>80% (Grade A+ — Ultra Selective)</option>
                           </select>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                          <div>
+                            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--subtext)', display: 'block', marginBottom: 4 }}>
+                              Take Profit Target Strategy
+                            </label>
+                            <select
+                              value={botForm.tpMode || 'quick_scalp'}
+                              onChange={e => setBotForm(prev => ({ ...prev, tpMode: e.target.value as any }))}
+                              style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
+                            >
+                              <option value="quick_scalp">⚡ Quick Scalp ($10 Gold TP / Fast Hits)</option>
+                              <option value="dynamic_atr">🎯 Dynamic Trend (1:2.5 ATR Catch)</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--subtext)', display: 'block', marginBottom: 4 }}>
+                              Custom TP Move ($ / Pips)
+                            </label>
+                            <input
+                              type="number"
+                              step="0.5"
+                              placeholder="Default ($10.00 Gold)"
+                              value={botForm.customTpDistance || ''}
+                              onChange={e => setBotForm(prev => ({ ...prev, customTpDistance: e.target.value ? Number(e.target.value) : undefined }))}
+                              style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
+                            />
+                          </div>
                         </div>
 
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>

@@ -289,7 +289,9 @@ export function calculateRiskParams(
   direction: 'BUY' | 'SELL',
   accountBalance: number = 10000,
   riskPercent: number = 1.5,
-  symbol: string = 'XAU/USD'
+  symbol: string = 'XAU/USD',
+  tpMode: 'quick_scalp' | 'dynamic_atr' = 'quick_scalp',
+  customTpDist?: number
 ) {
   let spec = CONTRACT_SPECS[symbol];
   if (!spec) {
@@ -307,7 +309,27 @@ export function calculateRiskParams(
   // Use ATR for SL distance, but enforce a minimum realistic distance
   const atrBasedSL = (atr || price * 0.005) * 1.5;
   const slDistance = Math.max(atrBasedSL, spec.minSL);
-  const tpDistance = slDistance * 2.5; // 1:2.5 R:R
+
+  // Compute TP Distance: quick_scalp mode uses tight intraday targets ($10 on Gold) for fast execution
+  let tpDistance: number;
+  if (customTpDist && customTpDist > 0) {
+    tpDistance = customTpDist;
+  } else if (tpMode === 'quick_scalp') {
+    const s = symbol.toUpperCase();
+    if (s.includes('XAU') || s.includes('GOLD')) {
+      tpDistance = 10.0; // Strict $10 TP move on Gold for fast intraday capture!
+    } else if (s.includes('EUR') || s.includes('GBP')) {
+      tpDistance = 0.0015; // 15 pips quick scalp on Forex
+    } else if (s.includes('JPY')) {
+      tpDistance = 0.25; // 25 pips on JPY pairs
+    } else if (s.includes('BTC')) {
+      tpDistance = 400.0; // $400 move on Bitcoin
+    } else {
+      tpDistance = Math.min(slDistance * 1.2, 10.0);
+    }
+  } else {
+    tpDistance = slDistance * 2.5; // Dynamic 1:2.5 ATR trend mode
+  }
 
   const sl = direction === 'BUY' ? (price - slDistance) : (price + slDistance);
   const tp = direction === 'BUY' ? (price + tpDistance) : (price - tpDistance);
