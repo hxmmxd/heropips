@@ -42,6 +42,8 @@ export default function AdminCoursesTab() {
   const [formUrl, setFormUrl] = useState('');
   const [formThumb, setFormThumb] = useState('');
   const [formCategory, setFormCategory] = useState('Platform Tutorial');
+  const [customCategory, setCustomCategory] = useState('');
+  const [isCustomCategory, setIsCustomCategory] = useState(false);
   const [formDuration, setFormDuration] = useState('');
   const [formPublished, setFormPublished] = useState(true);
 
@@ -103,13 +105,15 @@ export default function AdminCoursesTab() {
 
   const resetForm = () => {
     setFormTitle(''); setFormDesc(''); setFormUrl(''); setFormThumb('');
-    setFormCategory('Platform Tutorial'); setFormDuration(''); setFormPublished(true);
+    setFormCategory('Platform Tutorial'); setCustomCategory(''); setIsCustomCategory(false);
+    setFormDuration(''); setFormPublished(true);
     setEditingId(null); setShowForm(false);
   };
 
   const handleSave = async () => {
     if (!formTitle.trim() || !formUrl.trim()) return;
     if (!previewId) return;
+    const finalCategory = isCustomCategory ? (customCategory.trim() || 'Platform Tutorial') : formCategory;
     setSaving(true);
     try {
       if (editingId) {
@@ -119,7 +123,7 @@ export default function AdminCoursesTab() {
           body: JSON.stringify({
             id: editingId, title: formTitle, description: formDesc,
             youtube_url: formUrl, thumbnail_url: formThumb || undefined,
-            category: formCategory, duration: formDuration, is_published: formPublished,
+            category: finalCategory, duration: formDuration, is_published: formPublished,
           }),
         });
       } else {
@@ -128,7 +132,7 @@ export default function AdminCoursesTab() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             title: formTitle, description: formDesc, youtube_url: formUrl,
-            thumbnail_url: formThumb || undefined, category: formCategory,
+            thumbnail_url: formThumb || undefined, category: finalCategory,
             duration: formDuration, is_published: formPublished,
           }),
         });
@@ -145,6 +149,7 @@ export default function AdminCoursesTab() {
   const handleEdit = (c: Course) => {
     setFormTitle(c.title); setFormDesc(c.description); setFormUrl(c.youtube_url);
     setFormThumb(c.thumbnail_url); setFormCategory(c.category);
+    setCustomCategory(''); setIsCustomCategory(false);
     setFormDuration(c.duration); setFormPublished(c.is_published);
     setEditingId(c.id); setShowForm(true);
   };
@@ -291,12 +296,46 @@ export default function AdminCoursesTab() {
               </div>
               <div>
                 <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--subtext)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4, display: 'block' }}>Category</label>
-                <select value={formCategory} onChange={e => setFormCategory(e.target.value)}
+                <select
+                  value={isCustomCategory ? '__new' : formCategory}
+                  onChange={e => {
+                    if (e.target.value === '__new') {
+                      setIsCustomCategory(true);
+                      setCustomCategory('');
+                    } else {
+                      setIsCustomCategory(false);
+                      setFormCategory(e.target.value);
+                    }
+                  }}
                   style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: 13, outline: 'none' }}
                 >
                   {categories.map(c => <option key={c} value={c}>{c}</option>)}
                   <option value="__new">+ New Category</option>
                 </select>
+                {isCustomCategory && (
+                  <div style={{ marginTop: 6, display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <input
+                      value={customCategory}
+                      onChange={e => setCustomCategory(e.target.value)}
+                      placeholder="Type new category name..."
+                      autoFocus
+                      style={{
+                        flex: 1, padding: '8px 12px', borderRadius: 8, border: '1.5px solid #6366f1',
+                        background: 'var(--input-bg)', color: 'var(--text)', fontSize: 13, outline: 'none',
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => { setIsCustomCategory(false); setFormCategory(categories[0] || 'Platform Tutorial'); }}
+                      style={{
+                        padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)',
+                        background: 'var(--input-bg)', color: 'var(--subtext)', fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 

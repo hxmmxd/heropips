@@ -323,16 +323,23 @@ export function calculateRiskParams(
   const notionalValue = price * spec.dollarPerPoint * lotSize / (symbol.includes('USD') ? 1 : 100);
   const margin = notionalValue * 0.01;
 
-  const projectedRisk = lotSize * slDistance * spec.dollarPerPoint;
-  const projectedProfit = lotSize * tpDistance * spec.dollarPerPoint;
-  const rrRatio = `1 : ${(tpDistance / slDistance).toFixed(1)}`;
-
   // Dynamic precision for formatting SL / TP
   const precision = price < 10 ? 5 : (symbol.toUpperCase().includes('JPY') ? 3 : 2);
 
+  const slStr = sl.toFixed(precision);
+  const tpStr = tp.toFixed(precision);
+
+  // Use actual rounded distance between entry price and rounded SL/TP so displayed risk/profit math matches 100%
+  const actualSlDist = Math.abs(price - parseFloat(slStr));
+  const actualTpDist = Math.abs(parseFloat(tpStr) - price);
+
+  const projectedRisk = lotSize * actualSlDist * spec.dollarPerPoint;
+  const projectedProfit = lotSize * actualTpDist * spec.dollarPerPoint;
+  const rrRatio = `1 : ${(actualTpDist / (actualSlDist || 1)).toFixed(1)}`;
+
   return {
-    stopLoss: sl.toFixed(precision),
-    takeProfit: tp.toFixed(precision),
+    stopLoss: slStr,
+    takeProfit: tpStr,
     lotVolume: `${lotSize.toFixed(2)} Lots`,
     margin: margin.toFixed(2),
     risk: projectedRisk.toFixed(2),

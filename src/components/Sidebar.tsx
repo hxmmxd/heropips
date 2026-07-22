@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Terminal, Server, Receipt, Network, X, LogOut, Settings, ChevronDown, BarChart3, GraduationCap, Star, Telescope } from 'lucide-react';
+import { Terminal, Server, Receipt, Network, X, LogOut, Settings, ChevronDown, BarChart3, GraduationCap, Star, Telescope, Sparkles } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { getUserAvatar } from '@/lib/avatar';
 
@@ -258,13 +258,13 @@ export default function Sidebar({
           </div>
 
           {/* ── Plan Footer ── */}
-          <div className="px-4 pb-4 pt-2 border-t border-[var(--border)] shrink-0">
-            <p className="text-[12px] font-bold text-[var(--text)] mb-2.5">
-              {(plan === 'free' || plan === 'starter') ? 'Your Free Plan' : 'Your Paid Plan'}
-            </p>
-            
+          <div className="px-3 pb-3 pt-2 border-t border-[var(--border)] shrink-0">
             {(plan === 'free' || plan === 'starter') ? (
               <>
+                <p className="text-[12px] font-bold text-[var(--text)] mb-2.5 px-1">
+                  Your Free Plan
+                </p>
+                
                 {/* Usage bars */}
                 <div className="space-y-3 mb-4">
                   <div className="flex items-center gap-2.5">
@@ -303,9 +303,33 @@ export default function Sidebar({
                 </button>
               </>
             ) : (
-              <div style={{ fontSize: '12px', color: 'var(--accent)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 0' }}>
-                <Star className="w-4 h-4 fill-[var(--accent)] shrink-0 text-[var(--accent)]" strokeWidth={1.6} />
-                <span>Unlimited Premium Access</span>
+              <div className="relative overflow-hidden rounded-xl p-3.5 bg-slate-950 border border-amber-500/35 shadow-xl transition-all">
+                {/* Ambient glowing background spotlight */}
+                <div className="absolute -top-10 -right-10 w-28 h-28 bg-gradient-to-br from-amber-500/20 to-amber-600/5 rounded-full blur-2xl pointer-events-none" />
+                
+                {/* Top Row: Sparkles Icon + PRO ACCESS Label + Glowing ACTIVE Badge */}
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400 fill-amber-400/30" />
+                    <span className="text-[10px] font-black uppercase tracking-widest bg-gradient-to-r from-amber-200 via-amber-400 to-amber-300 bg-clip-text text-transparent">
+                      PRO VIP PLAN
+                    </span>
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 text-[9px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-full bg-emerald-950/90 text-emerald-400 border border-emerald-500/40 shadow-[0_0_10px_rgba(16,185,129,0.15)]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#10b981] animate-pulse" />
+                    ACTIVE
+                  </span>
+                </div>
+
+                {/* Main Plan Title & VIP Tag */}
+                <div className="flex items-center justify-between pt-0.5">
+                  <p className="text-[12px] font-black tracking-tight text-white">
+                    Unlimited Premium Access
+                  </p>
+                  <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-gradient-to-r from-amber-500/20 to-amber-400/10 text-amber-300 border border-amber-500/40 tracking-wider font-mono shadow-sm">
+                    VIP
+                  </span>
+                </div>
               </div>
             )}
           </div>
