@@ -11,6 +11,7 @@ export interface BotInstance {
   accountId: string; // MT5 Login ID or UUID
   accountName?: string;
   strategyPreset: StrategyPreset;
+  minConfluenceThreshold?: number;
   intervalMinutes: number;
   sizingMode: 'risk_percent' | 'fixed_dollar' | 'kelly_adaptive' | 'fixed_lots';
   sizingValue: number;
@@ -48,14 +49,14 @@ export const STRATEGY_PRESETS: Record<StrategyPreset, {
     badgeColor: 'bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30',
   },
   tech_only: {
-    name: '12 Technical Gates Only',
-    desc: 'Evaluates RSI, MACD, EMA Stack, BBands, Stoch, VWAP, Pattern (ignores Astro).',
-    icon: '📈',
+    name: '12 Technical Gates S/R Breakdown',
+    desc: 'Focuses strictly on Price Action, RSI/MACD, Trendlines, and Support/Resistance.',
+    icon: '📊',
     badgeColor: 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30',
   },
   high_confluence_80: {
-    name: 'High Confluence (80%+ Grade A+)',
-    desc: 'Strictly requires Confluence Score >= 80% and Grade A+ setup.',
+    name: 'High Confluence Selective',
+    desc: 'Only trades high probability setups matching minimum confluence threshold.',
     icon: '🎯',
     badgeColor: 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border-indigo-500/30',
   },
@@ -66,7 +67,8 @@ export const STRATEGY_PRESETS: Record<StrategyPreset, {
  */
 export function evaluateStrategyPreset(
   preset: StrategyPreset,
-  snapshot: any
+  snapshot: any,
+  minConfluenceThreshold?: number
 ): { shouldTrade: boolean; reason: string } {
   if (!snapshot) {
     return { shouldTrade: false, reason: 'No market snapshot computed' };
@@ -79,12 +81,13 @@ export function evaluateStrategyPreset(
 
   switch (preset) {
     case 'full_17_gates': {
-      const passed = signalOutcome === 'SIGNAL' || signalOutcome === 'SHADOW';
+      const minScore = minConfluenceThreshold ?? 50;
+      const passed = (signalOutcome === 'SIGNAL' || signalOutcome === 'SHADOW') && confluenceScore >= minScore;
       return {
         shouldTrade: passed,
         reason: passed
           ? `17-Gate Consensus Passed (${confluenceScore}% ${signalOutcome})`
-          : `Gating Blocked: Outcome state is ${signalOutcome} (${confluenceScore}%)`,
+          : `Gating Blocked: Outcome state is ${signalOutcome} (${confluenceScore}% vs ${minScore}% min)`,
       };
     }
 
@@ -111,22 +114,24 @@ export function evaluateStrategyPreset(
 
     case 'tech_only': {
       const techPassedGates = snapshot.gateResults?.filter((g: any) => g.passed)?.length || 0;
-      const passed = techPassedGates >= 5 || confluenceScore >= 50;
+      const minScore = minConfluenceThreshold ?? 50;
+      const passed = techPassedGates >= 5 || confluenceScore >= minScore;
       return {
         shouldTrade: passed,
         reason: passed
           ? `12 Tech Gates Passed (${techPassedGates} gates passed, ${confluenceScore}% ${confidenceGrade} Confidence)`
-          : `Tech Blocked: Only ${techPassedGates} gates passed (requires 5+)`,
+          : `Tech Blocked: Only ${techPassedGates} gates passed (requires ${minScore}%+ threshold)`,
       };
     }
 
     case 'high_confluence_80': {
-      const passed = confluenceScore >= 80 && (confidenceGrade === 'A+' || confidenceGrade === 'A');
+      const minScore = minConfluenceThreshold ?? 50;
+      const passed = confluenceScore >= minScore;
       return {
         shouldTrade: passed,
         reason: passed
           ? `High Confluence Confirmed (${confluenceScore}% Grade ${confidenceGrade})`
-          : `High Confluence Blocked: ${confluenceScore}% Grade ${confidenceGrade} (requires 80%+ Grade A/A+)`,
+          : `High Confluence Blocked: ${confluenceScore}% Grade ${confidenceGrade} (requires ${minScore}%+ threshold)`,
       };
     }
 

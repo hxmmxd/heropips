@@ -150,6 +150,7 @@ export default function AdminPage() {
     name: string;
     accountId: string;
     strategyPreset: StrategyPreset;
+    minConfluenceThreshold: number;
     intervalMinutes: number;
     sizingMode: 'risk_percent' | 'fixed_dollar' | 'kelly_adaptive' | 'fixed_lots';
     sizingValue: number;
@@ -159,6 +160,7 @@ export default function AdminPage() {
     name: '',
     accountId: '',
     strategyPreset: 'full_17_gates',
+    minConfluenceThreshold: 50,
     intervalMinutes: 15,
     sizingMode: 'risk_percent',
     sizingValue: 0.5,
@@ -273,6 +275,7 @@ export default function AdminPage() {
       name: `Strategy Bot #${bots.length + 1}`,
       accountId: brokers.length > 0 ? (brokers[0].mt5_login || brokers[0].id) : '',
       strategyPreset: 'full_17_gates',
+      minConfluenceThreshold: 50,
       intervalMinutes: 15,
       sizingMode: 'risk_percent',
       sizingValue: 0.5,
@@ -288,6 +291,7 @@ export default function AdminPage() {
       name: bot.name,
       accountId: bot.accountId,
       strategyPreset: bot.strategyPreset,
+      minConfluenceThreshold: bot.minConfluenceThreshold ?? 50,
       intervalMinutes: bot.intervalMinutes || 15,
       sizingMode: bot.sizingMode || 'risk_percent',
       sizingValue: bot.sizingValue ?? 0.5,
@@ -308,6 +312,7 @@ export default function AdminPage() {
         name: botForm.name.trim(),
         accountId: botForm.accountId,
         strategyPreset: botForm.strategyPreset,
+        minConfluenceThreshold: botForm.minConfluenceThreshold,
         intervalMinutes: botForm.intervalMinutes,
         sizingMode: botForm.sizingMode,
         sizingValue: botForm.sizingValue,
@@ -320,6 +325,7 @@ export default function AdminPage() {
         name: botForm.name.trim(),
         accountId: botForm.accountId,
         strategyPreset: botForm.strategyPreset,
+        minConfluenceThreshold: botForm.minConfluenceThreshold,
         intervalMinutes: botForm.intervalMinutes,
         sizingMode: botForm.sizingMode,
         sizingValue: botForm.sizingValue,
@@ -3665,7 +3671,7 @@ export default function AdminPage() {
                             {/* Preset & Sizing Badges */}
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                               <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 6, background: 'rgba(245,158,11,0.12)', color: 'var(--adm-accent)', border: '1px solid rgba(245,158,11,0.25)' }}>
-                                {presetInfo.name}
+                                {presetInfo.name} ({bot.minConfluenceThreshold || 50}%+)
                               </span>
                               <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: 'var(--bg)', color: 'var(--subtext)', border: '1px solid var(--border)' }}>
                                 ⏱️ {bot.intervalMinutes || 15}m cycle
@@ -3859,7 +3865,25 @@ export default function AdminPage() {
                             <option value="smc_only">⚡ Pure Smart Money Concepts (SMC Order Block / FVG)</option>
                             <option value="astro_only">🪐 Astro Celestial Overlay (Lunar & Aspect Alignments)</option>
                             <option value="tech_only">📈 12 Technical Gates Only (Ignores Astro Gating)</option>
-                            <option value="high_confluence_80">🎯 High Confluence 80%+ (Grade A+ Signals Only)</option>
+                            <option value="high_confluence_80">🎯 High Confluence Selective (Custom Threshold)</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--subtext)', display: 'block', marginBottom: 4 }}>
+                            Min Confluence Threshold (%)
+                          </label>
+                          <select
+                            value={botForm.minConfluenceThreshold}
+                            onChange={e => setBotForm(prev => ({ ...prev, minConfluenceThreshold: Number(e.target.value) }))}
+                            style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
+                          >
+                            <option value={50}>50% (Grade BBB+ — Moderate Confluence)</option>
+                            <option value={55}>55% (Grade BBB+ — Medium Confluence)</option>
+                            <option value={60}>60% (Grade BBB+ — Standard Threshold)</option>
+                            <option value={65}>65% (Grade A — Solid Confluence)</option>
+                            <option value={75}>75% (Grade AA — High Confluence)</option>
+                            <option value={80}>80% (Grade A+ — Ultra Selective)</option>
                           </select>
                         </div>
 

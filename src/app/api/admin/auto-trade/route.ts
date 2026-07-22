@@ -290,7 +290,7 @@ export async function POST(request: Request) {
         rawSnapshot = await getMarketSnapshot(querySymbol, true);
         if (rawSnapshot) {
           currentPrice = rawSnapshot.price || 0;
-          evalResult = evaluateStrategyPreset(bot.strategyPreset, rawSnapshot);
+          evalResult = evaluateStrategyPreset(bot.strategyPreset, rawSnapshot, bot.minConfluenceThreshold);
         }
       } catch (err: any) {
         evalResult = { shouldTrade: false, reason: `Snapshot error: ${err.message}` };
