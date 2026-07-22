@@ -482,19 +482,34 @@ export async function executeBrokerOrder(
   let mt5Symbol = await getNormalizedSymbolForBroker(symbol, accountId);
 
   const vol = Math.max(Number(volume) || 0.01, 0.01);
-  const sl  = stopLoss   != null && !isNaN(Number(stopLoss))   ? Number(stopLoss)   : undefined;
-  const tp  = takeProfit != null && !isNaN(Number(takeProfit)) ? Number(takeProfit) : undefined;
+
+  let precision = 2;
+  const upperSym = mt5Symbol.toUpperCase();
+  if (upperSym.includes('JPY')) precision = 3;
+  else if (upperSym.includes('EUR') || upperSym.includes('GBP') || upperSym.includes('AUD') || upperSym.includes('CAD') || upperSym.includes('CHF')) precision = 5;
+  else precision = 2;
+
+  const sl  = stopLoss   != null && !isNaN(Number(stopLoss))   ? Number(Number(stopLoss).toFixed(precision))   : undefined;
+  const tp  = takeProfit != null && !isNaN(Number(takeProfit)) ? Number(Number(takeProfit).toFixed(precision)) : undefined;
 
   console.log(`[Broker Engine] MT5 Farm ${action} ${vol} lot(s) ${mt5Symbol} (SL: ${sl}, TP: ${tp}) → account ${accountId}`);
 
-  const payload: TradePayload = {
+  const payload: any = {
     actionType: action === 'BUY' ? 'ORDER_TYPE_BUY' : 'ORDER_TYPE_SELL',
     symbol:     mt5Symbol,
     volume:     vol,
     comment:    'Xyro Trade Ai Signal',
   };
-  if (sl) payload.stopLoss   = sl;
-  if (tp) payload.takeProfit = tp;
+  if (sl) {
+    payload.stopLoss = sl;
+    payload.stop_loss = sl;
+    payload.sl = sl;
+  }
+  if (tp) {
+    payload.takeProfit = tp;
+    payload.take_profit = tp;
+    payload.tp = tp;
+  }
 
   let result = await farmExecuteTrade(accountId, payload);
 

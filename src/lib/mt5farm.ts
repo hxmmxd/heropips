@@ -646,10 +646,37 @@ export async function farmCloseAllPositions(accountId: string, symbol?: string):
  */
 export async function farmModifyPosition(accountId: string, positionId: string, opts: { stopLoss?: number; takeProfit?: number }): Promise<any> {
   const resolvedId = await resolveAccountId(accountId);
-  const res = await fetch(sidecarUrl(resolvedId, `positions/${positionId}`), {
+  const sl = opts.stopLoss;
+  const tp = opts.takeProfit;
+  const bodyPayload: Record<string, any> = {};
+  if (sl !== undefined) {
+    bodyPayload.stopLoss = sl;
+    bodyPayload.stop_loss = sl;
+    bodyPayload.sl = sl;
+  }
+  if (tp !== undefined) {
+    bodyPayload.takeProfit = tp;
+    bodyPayload.take_profit = tp;
+    bodyPayload.tp = tp;
+  }
+
+  const qParams = new URLSearchParams();
+  if (sl !== undefined) {
+    qParams.append('stopLoss', String(sl));
+    qParams.append('stop_loss', String(sl));
+    qParams.append('sl', String(sl));
+  }
+  if (tp !== undefined) {
+    qParams.append('takeProfit', String(tp));
+    qParams.append('take_profit', String(tp));
+    qParams.append('tp', String(tp));
+  }
+  const qs = qParams.toString() ? `?${qParams.toString()}` : '';
+
+  const res = await fetch(sidecarUrl(resolvedId, `positions/${positionId}${qs}`), {
     method: 'PUT',
     headers: FARM_HEADERS,
-    body: JSON.stringify(opts),
+    body: JSON.stringify(bodyPayload),
     signal: AbortSignal.timeout(10000),
   });
   return res.json().catch(() => ({
