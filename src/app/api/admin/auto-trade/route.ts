@@ -260,41 +260,79 @@ export async function POST(request: Request) {
 
     const cycleResults: any[] = [];
 
-    for (const bot of targetBots) {
+    // Parallel Matrix Execution: evaluate target bots concurrently via Promise.all
+    await Promise.all(targetBots.map(async (bot) => {
       const accountId = bot.accountId;
       if (!accountId) {
         cycleResults.push({ botId: bot.id, botName: bot.name, success: false, error: 'No MT5 account configured for this bot.' });
-        continue;
+        return;
       }
 
-      // Determine next symbol in bot's symbol cycle
+      // Multi-Pair Scan Fallback:
+      // If manual symbol specified, test only that symbol.
+      // Otherwise, iterate over all bot symbols starting from next Symbol.
+      // Pick the first symbol that meets the gating threshold!
       const symbolsList = bot.symbols?.length > 0 ? bot.symbols : ['BTCUSD', 'XAUUSD', 'EURUSD'];
-      let nextSymbol = body.symbol || null;
-      if (!nextSymbol) {
+      let candidateSymbols: string[] = [];
+
+      if (body.symbol) {
+        candidateSymbols = [body.symbol];
+      } else {
         const lastIdx = symbolsList.indexOf(bot.lastSymbol || '');
-        const nextIdx = (lastIdx + 1) % symbolsList.length;
-        nextSymbol = symbolsList[nextIdx] || 'XAUUSD';
-      }
-
-      let querySymbol = nextSymbol;
-      if (nextSymbol === 'XAUUSD' || nextSymbol === 'GOLD') querySymbol = 'XAU/USD';
-      else if (nextSymbol === 'EURUSD') querySymbol = 'EUR/USD';
-      else if (nextSymbol === 'BTCUSD') querySymbol = 'BTC/USD';
-
-      // Fetch Market Snapshot & Evaluate Strategy Preset
-      let currentPrice = 0;
-      let rawSnapshot: any = null;
-      let evalResult = { shouldTrade: false, reason: 'Snapshot not computed' };
-
-      try {
-        rawSnapshot = await getMarketSnapshot(querySymbol, true);
-        if (rawSnapshot) {
-          currentPrice = rawSnapshot.price || 0;
-          evalResult = evaluateStrategyPreset(bot.strategyPreset, rawSnapshot, bot.minConfluenceThreshold);
+        for (let i = 0; i < symbolsList.length; i++) {
+          const idx = (lastIdx + 1 + i) % symbolsList.length;
+          candidateSymbols.push(symbolsList[idx]);
         }
-      } catch (err: any) {
-        evalResult = { shouldTrade: false, reason: `Snapshot error: ${err.message}` };
       }
+
+      let selectedSymbol = candidateSymbols[0] || 'XAUUSD';
+      let selectedQuerySymbol = 'XAU/USD';
+      let selectedPrice = 0;
+      let selectedSnapshot: any = null;
+      let selectedEvalResult: any = { shouldTrade: false, reason: 'Snapshot not computed' };
+      let bestScore = -1;
+
+      for (const sym of candidateSymbols) {
+        let qSym = sym;
+        if (sym === 'XAUUSD' || sym === 'GOLD') qSym = 'XAU/USD';
+        else if (sym === 'EURUSD') qSym = 'EUR/USD';
+        else if (sym === 'BTCUSD') qSym = 'BTC/USD';
+
+        try {
+          const snap = await getMarketSnapshot(qSym, true);
+          if (snap) {
+            const ev = evaluateStrategyPreset(bot.strategyPreset, snap, bot.minConfluenceThreshold);
+            const score = snap.confluenceScore || 0;
+
+            if (ev.shouldTrade) {
+              // Found a pair that meets the gating threshold! Lock it in immediately.
+              selectedSymbol = sym;
+              selectedQuerySymbol = qSym;
+              selectedPrice = snap.price || 0;
+              selectedSnapshot = snap;
+              selectedEvalResult = ev;
+              break;
+            }
+
+            if (score > bestScore) {
+              bestScore = score;
+              selectedSymbol = sym;
+              selectedQuerySymbol = qSym;
+              selectedPrice = snap.price || 0;
+              selectedSnapshot = snap;
+              selectedEvalResult = ev;
+            }
+          }
+        } catch (symErr: any) {
+          console.warn(`[Auto-Trader] Snapshot candidate scan error for ${sym}:`, symErr.message);
+        }
+      }
+
+      const nextSymbol = selectedSymbol;
+      const querySymbol = selectedQuerySymbol;
+      let currentPrice = selectedPrice;
+      const rawSnapshot = selectedSnapshot;
+      const evalResult = selectedEvalResult;
 
       // Fallback price if provider throttles
       if (!currentPrice) {
@@ -327,13 +365,14 @@ export async function POST(request: Request) {
       if (shouldSkipGating) {
         executionError = evalResult.reason;
       } else {
-        // Dynamic balance lookup for bot's MT5 account & reset any halted risk state
+        // Dynamic balance lookup for bot's MT5 account & comprehensive risk state purge
         try {
           const { createClient } = await import('@supabase/supabase-js');
           const sb = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
             process.env.SUPABASE_SERVICE_ROLE_KEY!
           );
+          const cleanAcct = accountId.replace(/^mt5_/, '');
           await sb
             .from('portfolio_risk_states')
             .update({
@@ -345,7 +384,7 @@ export async function POST(request: Request) {
               daily_halt_time: null,
               last_updated: new Date().toISOString()
             })
-            .eq('account_id', accountId);
+            .or(`account_id.eq.${accountId},account_id.eq.mt5_${cleanAcct},account_id.eq.${cleanAcct}`);
 
           const { farmGetAccountInfo } = await import('@/lib/mt5farm');
           const info = await farmGetAccountInfo(accountId);
@@ -463,7 +502,7 @@ export async function POST(request: Request) {
       bot.lastError = executionError || undefined;
 
       cycleResults.push(logDetails);
-    }
+    }));
 
     // Persist updated bot run metadata to platform_config
     if (bots.length > 0) {
