@@ -20,8 +20,8 @@ npm ci --production=false
 echo "🏗️ Building Next.js application..."
 npm run build
 
-# 4. Zero-downtime process reload using PM2
-echo "🔄 Reloading Node.js process under PM2..."
+# 4. Zero-downtime process reload using PM2 (Web Application)
+echo "🔄 Reloading Node.js web application under PM2..."
 if pm2 show tradegpt > /dev/null 2>&1; then
     pm2 reload tradegpt
     echo "✅ PM2 process 'tradegpt' successfully reloaded."
@@ -30,7 +30,17 @@ else
     echo "✅ PM2 process 'tradegpt' successfully started."
 fi
 
-# 5. Save PM2 list state
+# 5. Zero-downtime process reload using PM2 (24/7 Sentinel Worker Daemon)
+echo "🔄 Reloading Sentinel Worker daemon under PM2..."
+if pm2 show tradegpt-worker > /dev/null 2>&1; then
+    pm2 reload tradegpt-worker
+    echo "✅ PM2 process 'tradegpt-worker' successfully reloaded."
+else
+    pm2 start npm --name "tradegpt-worker" -- run worker
+    echo "✅ PM2 process 'tradegpt-worker' successfully started."
+fi
+
+# 6. Save PM2 list state
 pm2 save
 
 echo "=========================================="

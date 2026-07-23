@@ -39,16 +39,25 @@ async function main() {
       if (nowMs - lastBotRun >= 55000) {
         (global as any)._lastAutoTradeRunTime = nowMs;
         try {
-          let res = await fetch('http://127.0.0.1:3000/api/admin/auto-trade', {
+          const port = process.env.PORT || 3000;
+          const cronSecret = process.env.CRON_SECRET || '';
+          const headers: Record<string, string> = {
+            'Content-Type': 'application/json'
+          };
+          if (cronSecret) {
+            headers['Authorization'] = `Bearer ${cronSecret}`;
+          }
+
+          let res = await fetch(`http://127.0.0.1:${port}/api/admin/auto-trade`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers,
             body: JSON.stringify({ action: 'trigger_all', daemon: true })
           }).catch(() => null);
 
           if (!res || !res.ok) {
-            res = await fetch('http://localhost:3000/api/admin/auto-trade', {
+            res = await fetch(`http://localhost:${port}/api/admin/auto-trade`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers,
               body: JSON.stringify({ action: 'trigger_all', daemon: true })
             }).catch(() => null);
           }

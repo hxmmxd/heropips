@@ -18,24 +18,40 @@ function getSupabaseAdmin() {
   return _supabaseAdmin;
 }
 
-async function requireAdmin() {
-  const supabase = await createServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
+async function requireAdmin(request?: Request) {
+  if (request) {
+    const { searchParams } = new URL(request.url);
+    const secretParam = searchParams.get('secret');
+    const authHeader = request.headers.get('authorization')?.replace('Bearer ', '');
+    const secret = secretParam || authHeader;
+    const CRON_SECRET = process.env.CRON_SECRET || '';
 
-  const supabaseAdmin = getSupabaseAdmin();
-  const { data: profile } = await supabaseAdmin
-    .from('profiles')
-    .select('is_admin')
-    .eq('id', user.id)
-    .single();
+    if (CRON_SECRET && secret === CRON_SECRET) {
+      return { id: 'system_daemon', email: 'daemon@system.local', isDaemon: true };
+    }
+  }
 
-  if (!(profile as any)?.is_admin) return null;
-  return user;
+  try {
+    const supabase = await createServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    const supabaseAdmin = getSupabaseAdmin();
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('is_admin')
+      .eq('id', user.id)
+      .single();
+
+    if (!(profile as any)?.is_admin) return null;
+    return user;
+  } catch {
+    return null;
+  }
 }
 
-export async function GET() {
-  const user = await requireAdmin();
+export async function GET(request: Request) {
+  const user = await requireAdmin(request);
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const supabaseAdmin = getSupabaseAdmin();
@@ -122,7 +138,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const user = await requireAdmin();
+  const user = await requireAdmin(request);
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const supabaseAdmin = getSupabaseAdmin();
@@ -139,12 +155,12 @@ export async function POST(request: Request) {
     await supabaseAdmin.from('platform_config').upsert({
       key: 'auto_trader_bots',
       value: JSON.stringify(bots),
-      updated_by: user.id,
+      updated_by: (user as any).isDaemon ? null : user.id,
       updated_at: new Date().toISOString()
     });
 
     await supabaseAdmin.from('audit_log').insert({
-      admin_id: user.id,
+      admin_id: (user as any).isDaemon ? null : user.id,
       action: 'auto_test_save_bots',
       target_type: 'config',
       details: { botCount: bots.length, botIds: bots.map(b => b.id) }
@@ -487,7 +503,7 @@ export async function POST(request: Request) {
 
       // Write audit log
       await supabaseAdmin.from('audit_log').insert({
-        admin_id: user.id,
+        admin_id: (user as any).isDaemon ? null : user.id,
         action: 'auto_test_trade',
         target_type: 'broker_account',
         target_id: accountId,
@@ -509,7 +525,7 @@ export async function POST(request: Request) {
       await supabaseAdmin.from('platform_config').upsert({
         key: 'auto_trader_bots',
         value: JSON.stringify(bots),
-        updated_by: user.id,
+        updated_by: (user as any).isDaemon ? null : user.id,
         updated_at: new Date().toISOString()
       });
     }
