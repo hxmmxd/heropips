@@ -51,14 +51,14 @@ async function main() {
           let res = await fetch(`http://127.0.0.1:${port}/api/admin/auto-trade`, {
             method: 'POST',
             headers,
-            body: JSON.stringify({ action: 'trigger_all', daemon: true })
+            body: JSON.stringify({ action: 'run_cycle', daemon: true })
           }).catch(() => null);
 
           if (!res || !res.ok) {
             res = await fetch(`http://localhost:${port}/api/admin/auto-trade`, {
               method: 'POST',
               headers,
-              body: JSON.stringify({ action: 'trigger_all', daemon: true })
+              body: JSON.stringify({ action: 'run_cycle', daemon: true })
             }).catch(() => null);
           }
 

@@ -204,7 +204,7 @@ export async function POST(request: Request) {
   }
 
   // ── Action: Run Specific Bot Instance or Multi-Bot Cycle ──
-  if (action === 'trigger_bot' || action === 'run_cycle' || action === 'trigger') {
+  if (action === 'trigger_bot' || action === 'run_cycle' || action === 'trigger' || action === 'trigger_all') {
     // Fetch saved bots & legacy config
     const { data: configRows } = await supabaseAdmin
       .from('platform_config')
