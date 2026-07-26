@@ -21,9 +21,39 @@ export default function SocialShareModal({ isOpen, onClose, referralLink }: Soci
 
   const text = encodeURIComponent("Join me on TradeGPT, the best-in-class AI-powered trading platform! Sign up using my referral link:");
   const url = encodeURIComponent(referralLink);
-  const telegramUrl = `https://t.me/share/url?url=${url}&text=${text}`;
-  const whatsappUrl = `https://api.whatsapp.com/send?text=${text}%20${url}`;
-  const twitterUrl = `https://twitter.com/intent/tweet?url=${url}&text=${text}`;
+
+  const shareItems = [
+    {
+      name: 'Telegram',
+      domain: 'telegram.org',
+      shareUrl: `https://t.me/share/url?url=${url}&text=${text}`,
+    },
+    {
+      name: 'WhatsApp',
+      domain: 'whatsapp.com',
+      shareUrl: `https://api.whatsapp.com/send?text=${text}%20${url}`,
+    },
+    {
+      name: 'X (Twitter)',
+      domain: 'x.com',
+      shareUrl: `https://twitter.com/intent/tweet?url=${url}&text=${text}`,
+    },
+    {
+      name: 'LinkedIn',
+      domain: 'linkedin.com',
+      shareUrl: `https://www.linkedin.com/sharing/share-offsite/?url=${url}`,
+    },
+    {
+      name: 'Facebook',
+      domain: 'facebook.com',
+      shareUrl: `https://www.facebook.com/sharer/sharer.php?u=${url}`,
+    },
+    {
+      name: 'Reddit',
+      domain: 'reddit.com',
+      shareUrl: `https://www.reddit.com/submit?url=${url}&title=${text}`,
+    },
+  ];
 
   return (
     <div className="rh-modal-overlay" onClick={onClose}>
@@ -31,7 +61,7 @@ export default function SocialShareModal({ isOpen, onClose, referralLink }: Soci
         <div className="rh-modal-header">
           <div>
             <span className="rh-modal-title">Share Invite Link</span>
-            <span className="rh-modal-sub">Earn up to 5 tiers deep</span>
+            <span className="rh-modal-sub">Earn up to 5 tiers deep on team volume</span>
           </div>
           <button className="rh-modal-close" onClick={onClose}>
             ✕
@@ -39,35 +69,25 @@ export default function SocialShareModal({ isOpen, onClose, referralLink }: Soci
         </div>
 
         <div className="rh-share-grid">
-          <a 
-            href={telegramUrl} 
-            target="_blank" 
-            rel="noreferrer" 
-            className="rh-share-btn"
-          >
-            <span className="rh-share-icon">✈️</span>
-            <span className="rh-share-label">Telegram</span>
-          </a>
-
-          <a 
-            href={whatsappUrl} 
-            target="_blank" 
-            rel="noreferrer" 
-            className="rh-share-btn"
-          >
-            <span className="rh-share-icon">💬</span>
-            <span className="rh-share-label">WhatsApp</span>
-          </a>
-
-          <a 
-            href={twitterUrl} 
-            target="_blank" 
-            rel="noreferrer" 
-            className="rh-share-btn"
-          >
-            <span className="rh-share-icon">🐦</span>
-            <span className="rh-share-label">Twitter</span>
-          </a>
+          {shareItems.map((item) => (
+            <a
+              key={item.name}
+              href={item.shareUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="rh-share-btn"
+            >
+              <div className="rh-share-icon-wrapper">
+                <img
+                  src={`https://www.google.com/s2/favicons?domain=${item.domain}&sz=128`}
+                  alt={item.name}
+                  className="rh-share-favicon"
+                  loading="lazy"
+                />
+              </div>
+              <span className="rh-share-label">{item.name}</span>
+            </a>
+          ))}
         </div>
 
         <div className="rh-share-url">

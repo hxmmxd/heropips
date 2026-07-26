@@ -276,12 +276,20 @@ export async function POST(request: Request) {
 
     const cycleResults: any[] = [];
 
-    // Parallel Matrix Execution: evaluate target bots concurrently via Promise.all
-    await Promise.all(targetBots.map(async (bot) => {
+    // Staggered Matrix Execution: Run bots sequentially with a 5-second time offset between each bot
+    for (let bIdx = 0; bIdx < targetBots.length; bIdx++) {
+      const bot = targetBots[bIdx];
+
+      // Stagger delay between bots (5 seconds apart) so they execute at distinct timestamps
+      if (bIdx > 0 && !isManual) {
+        console.log(`[Multi-Bot Matrix] ⏳ Staggering Bot "${bot.name}" by +${bIdx * 5}s...`);
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+      }
+
       const accountId = bot.accountId;
       if (!accountId) {
         cycleResults.push({ botId: bot.id, botName: bot.name, success: false, error: 'No MT5 account configured for this bot.' });
-        return;
+        continue;
       }
 
       // Multi-Pair Scan Fallback:
@@ -414,48 +422,39 @@ export async function POST(request: Request) {
         const sizingMode = bot.sizingMode || 'risk_percent';
         const sizingVal = Number(bot.sizingValue) ?? (sizingMode === 'fixed_dollar' ? 500 : 0.5);
 
-        // Compute dynamic SL & TP using ATR
-        let riskParams: any = null;
-        if (rawSnapshot) {
-          try {
-            const calcRiskPercent = sizingMode === 'fixed_dollar' ? (sizingVal / liveBalance) * 100 : (sizingMode === 'risk_percent' ? sizingVal : 0.5);
-            riskParams = calculateRiskParams(
-              currentPrice,
-              rawSnapshot.indicators?.atr || null,
-              finalDirection,
-              liveBalance,
-              calcRiskPercent,
-              querySymbol,
-              bot.tpMode || 'quick_scalp',
-              bot.customTpDistance
-            );
-            stopLossVal = parseFloat(riskParams.stopLoss);
-            takeProfitVal = parseFloat(riskParams.takeProfit);
-          } catch (err: any) {
-            console.warn('[Auto-Trader] Failed to calculate SL/TP params:', err.message);
-          }
+        // ── GUARANTEED CALCULATED SL/TP GENERATION ────────────────────────────
+        try {
+          const calcRiskPercent = sizingMode === 'fixed_dollar' ? (sizingVal / liveBalance) * 100 : (sizingMode === 'risk_percent' ? sizingVal : 0.5);
+          const riskParams = calculateRiskParams(
+            currentPrice,
+            rawSnapshot?.indicators?.atr || null,
+            finalDirection,
+            liveBalance,
+            calcRiskPercent,
+            querySymbol,
+            bot.tpMode || 'quick_scalp',
+            bot.customTpDistance
+          );
+          stopLossVal = parseFloat(riskParams.stopLoss);
+          takeProfitVal = parseFloat(riskParams.takeProfit);
+        } catch (err: any) {
+          console.warn('[Auto-Trader] Dynamic SL/TP fallback calculation:', err.message);
         }
 
         // Sizing Engine mode calculation (with floored lots for Risk < Target Cap)
         if (sizingMode === 'fixed_lots') {
           usedLots = Math.max(0.01, sizingVal);
         } else if (sizingMode === 'risk_percent' || sizingMode === 'fixed_dollar') {
-          if (riskParams?.lotVolume) {
-            usedLots = parseFloat(riskParams.lotVolume);
-          } else {
-            usedLots = 0.01;
-          }
+          usedLots = Math.max(0.01, Math.floor((liveBalance * (sizingVal / 100)) / (currentPrice * 0.015 * 100) * 100) / 100);
         } else if (sizingMode === 'kelly_adaptive') {
           if (rawSnapshot?.kellySizing?.recommendedLots) {
             usedLots = Math.max(0.01, Math.floor(rawSnapshot.kellySizing.recommendedLots * sizingVal * 100) / 100);
-          } else if (riskParams?.lotVolume) {
-            usedLots = parseFloat(riskParams.lotVolume);
           } else {
             usedLots = 0.01;
           }
         }
 
-        console.log(`[Multi-Bot Matrix] Bot "${bot.name}" (${bot.strategyPreset}) → ${usedLots} Lots on ${nextSymbol} at MT5 #${accountId} (Balance: $${liveBalance})`);
+        console.log(`[Multi-Bot Matrix] Bot "${bot.name}" (${bot.strategyPreset}) → ${usedLots} Lots on ${nextSymbol} at MT5 #${accountId} (SL: ${stopLossVal}, TP: ${takeProfitVal})`);
 
         // Execute trade order on designated MT5 account
         try {
@@ -468,6 +467,8 @@ export async function POST(request: Request) {
             stopLossVal,
             takeProfitVal
           );
+          if (tradeResult?.stopLoss) stopLossVal = tradeResult.stopLoss;
+          if (tradeResult?.takeProfit) takeProfitVal = tradeResult.takeProfit;
         } catch (err: any) {
           executionError = err.message || 'Broker order execution rejected';
         }
@@ -518,7 +519,7 @@ export async function POST(request: Request) {
       bot.lastError = executionError || undefined;
 
       cycleResults.push(logDetails);
-    }));
+    }
 
     // Persist updated bot run metadata to platform_config
     if (bots.length > 0) {
@@ -533,23 +534,80 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, results: cycleResults, bots });
   }
 
-  // ── Action: Diagnostic Scan ──
-  if (action === 'diagnostic') {
-    const { symbol } = body;
-    let querySymbol = symbol || 'XAUUSD';
-    if (querySymbol === 'XAUUSD' || querySymbol === 'GOLD') querySymbol = 'XAU/USD';
-    else if (querySymbol === 'EURUSD') querySymbol = 'EUR/USD';
-    else if (querySymbol === 'BTCUSD') querySymbol = 'BTC/USD';
+  // ── Action: Retroactively Attach SL & TP to All Open Positions Without SL/TP ──
+  if (action === 'retrofit_sltp') {
+    const { data: brokerAccounts } = await supabaseAdmin
+      .from('broker_accounts')
+      .select('id, mt5_login, metaapi_id, broker_name');
 
-    try {
-      const snap = await getMarketSnapshot(querySymbol, true);
-      if (!snap) {
-        return NextResponse.json({ success: false, error: `Could not fetch snapshot for ${symbol}` }, { status: 400 });
+    const { farmGetPositions, farmModifyPosition } = await import('@/lib/mt5farm');
+    const updatedPositions: any[] = [];
+    const errors: any[] = [];
+
+    for (const bAccount of (brokerAccounts || [])) {
+      const accountId = String(bAccount.mt5_login || bAccount.metaapi_id || bAccount.id);
+      try {
+        const positions = await farmGetPositions(accountId);
+        for (const pos of positions) {
+          const hasSL = pos.stopLoss && Number(pos.stopLoss) > 0;
+          const hasTP = pos.takeProfit && Number(pos.takeProfit) > 0;
+
+          if (!hasSL || !hasTP) {
+            const sym = (pos.symbol || 'XAUUSD').toUpperCase();
+            const openPrice = Number(pos.openPrice || pos.currentPrice || 1.0);
+            const isBuy = pos.type === 'POSITION_TYPE_BUY' || String(pos.type).includes('BUY') || pos.type === 0;
+
+            let precision = 2;
+            if (sym.includes('JPY')) precision = 3;
+            else if (sym.includes('EUR') || sym.includes('GBP') || sym.includes('AUD') || sym.includes('CAD')) precision = 5;
+
+            let slDist = openPrice * 0.015;
+            let tpDist = openPrice * 0.030;
+
+            if (sym.includes('XAU') || sym.includes('GOLD')) {
+              slDist = 5.0;  // $5 SL
+              tpDist = 10.0; // $10 TP ($8-$12 capture range)
+            } else if (sym.includes('EUR') || sym.includes('GBP')) {
+              slDist = 0.0020; // 20 pips
+              tpDist = 0.0040; // 40 pips
+            } else if (sym.includes('JPY')) {
+              slDist = 0.30;
+              tpDist = 0.60;
+            } else if (sym.includes('BTC')) {
+              slDist = 300.0;
+              tpDist = 600.0;
+            }
+
+            const newSL = Number((isBuy ? openPrice - slDist : openPrice + slDist).toFixed(precision));
+            const newTP = Number((isBuy ? openPrice + tpDist : openPrice - tpDist).toFixed(precision));
+
+            try {
+              await farmModifyPosition(accountId, String(pos.id), { stopLoss: newSL, takeProfit: newTP });
+              updatedPositions.push({
+                accountId,
+                positionId: pos.id,
+                symbol: pos.symbol,
+                type: isBuy ? 'BUY' : 'SELL',
+                openPrice,
+                stopLoss: newSL,
+                takeProfit: newTP
+              });
+            } catch (modErr: any) {
+              errors.push({ accountId, positionId: pos.id, error: modErr.message });
+            }
+          }
+        }
+      } catch (acctErr: any) {
+        console.warn(`[Retrofit SL/TP] Failed to scan account ${accountId}:`, acctErr.message);
       }
-      return NextResponse.json({ success: true, snapshot: snap });
-    } catch (err: any) {
-      return NextResponse.json({ success: false, error: err.message }, { status: 500 });
     }
+
+    return NextResponse.json({
+      success: true,
+      updatedCount: updatedPositions.length,
+      updatedPositions,
+      errors
+    });
   }
 
   return NextResponse.json({ error: 'Invalid action' }, { status: 400 });

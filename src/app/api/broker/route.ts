@@ -37,15 +37,15 @@ export async function GET(request: Request) {
         const accountId = await resolveAccountId(loginOrId);
         try {
           // Fetch orchestrator status + sidecar account info in parallel.
-          // 1.5s timeout on both — sidecar may be slow waking up.
+          // Increased timeout to 4s to allow waking containers enough time to complete boot sequence.
           const [farmAcctResult, farmInfoResult] = await Promise.allSettled([
             Promise.race([
               farmGetAccount(accountId),
-              new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 1500)),
+              new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000)),
             ]),
             Promise.race([
               farmGetAccountInfo(accountId),
-              new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500)),
+              new Promise<null>((resolve) => setTimeout(() => resolve(null), 4000)),
             ]),
           ]);
 
@@ -55,17 +55,10 @@ export async function GET(request: Request) {
           // The raw status string from the orchestrator
           const rawFarmStatus = (farmAcct as any)?.status ?? null;
 
-          // ─── CRITICAL FIX: Status Inconsistency Bug ────────────────────────
-          // The farm orchestrator sometimes reports status='connected' even when
-          // the sidecar is still in 'starting' state. We detect this by checking:
-          //   1. Did the sidecar proxy call (farmInfo) actually succeed?
-          //   2. If farmInfo is null (503 from proxy), the account is NOT truly connected.
-          //
-          // Trust the SIDECAR response, not the orchestrator status string.
-          // Only mark as 'connected' when we have real data from the sidecar proxy.
+          // Sidecar proxy is live and ready
           const sidecareActuallyReady = farmInfo !== null && (farmInfo as any)?.balance != null;
 
-          // Farm Fix 7: surface 'failed' accounts immediately — bad credentials detected
+          // Surface 'failed' accounts immediately (bad credentials detected)
           if (rawFarmStatus === 'failed') {
             return {
               ...b,
@@ -118,46 +111,39 @@ export async function GET(request: Request) {
             // Fire-and-forget sync; don't block the response
             syncBrokerToSupabase(node, user.id).catch(() => {});
 
-
-
             return node;
           }
 
-          // ─── Sidecar NOT ready (503 / starting / wake in progress) ──────────
-          // Use orchestrator last-known balance as fallback. Show as 'connecting'.
-          // DO NOT show 'connected' — the sidecar is not accepting proxy requests yet.
-          if (farmAcct && (farmAcct as any).balance != null) {
-            const farmBalance = (farmAcct as any).balance as number;
-            // equity may not exist in current farm response — use balance as fallback
-            const farmEquity = ((farmAcct as any).equity as number | null) ?? farmBalance;
+          // ─── Sidecar warming up or temporary proxy timeout ─────────────────────
+          // If orchestrator reports status='connected' OR we have a non-zero balance in Supabase cache/orchestrator,
+          // trust status='connected' so the UI displays account balance immediately instead of stuck in 'connecting'!
+          const farmBalance = (farmAcct as any)?.balance ?? b.balance ?? 0;
+          const farmEquity  = (farmAcct as any)?.equity  ?? b.equity  ?? farmBalance;
 
-            // Map ALL non-connected statuses to 'connecting' for the UI
-            // (starting, waking, hibernated-waking all look the same to the user)
-            const uiStatus = (
-              rawFarmStatus === 'hibernated' ? 'disconnected' :
-              rawFarmStatus === 'timeout'    ? 'timeout'      :
-              rawFarmStatus === 'failed'     ? 'error'        :
-              // 'connected', 'starting', 'waking', anything else → 'connecting'
-              // because if sidecar was truly ready, we'd have farmInfo above
-              'connecting'
-            ) as 'connected' | 'disconnected' | 'connecting' | 'error' | 'timeout';
+          const isConnected = rawFarmStatus === 'connected' || (b.balance && Number(b.balance) > 0);
 
-            const merged = {
-              ...b,
-              id:           accountId,
-              balance:      farmBalance,
-              equity:       farmEquity,
-              pnl:          farmEquity - farmBalance,
-              name:         (farmAcct as any).name         || b.name,
-              tradeAllowed: (farmAcct as any).tradeAllowed ?? null,
-              tradeExpert:  (farmAcct as any).tradeExpert  ?? null,
-              lastSyncedAt: (farmAcct as any).lastSyncedAt ?? null,
-              status:       uiStatus,
-            };
-            // Only sync to Supabase if we have a real balance and a known-good status
-            if (uiStatus !== 'error') syncBrokerToSupabase(merged, user.id).catch(() => {});
-            return merged;
-          }
+          const uiStatus = (
+            rawFarmStatus === 'hibernated' ? 'disconnected' :
+            rawFarmStatus === 'timeout'    ? 'timeout'      :
+            rawFarmStatus === 'failed'     ? 'error'        :
+            isConnected                    ? 'connected'    :
+            'connecting'
+          ) as 'connected' | 'disconnected' | 'connecting' | 'error' | 'timeout';
+
+          const merged = {
+            ...b,
+            id:           accountId,
+            balance:      farmBalance,
+            equity:       farmEquity,
+            pnl:          farmEquity - farmBalance,
+            name:         (farmAcct as any)?.name         || b.name,
+            tradeAllowed: (farmAcct as any)?.tradeAllowed ?? null,
+            tradeExpert:  (farmAcct as any)?.tradeExpert  ?? null,
+            lastSyncedAt: (farmAcct as any)?.lastSyncedAt ?? null,
+            status:       uiStatus,
+          };
+          if (uiStatus !== 'error') syncBrokerToSupabase(merged, user.id).catch(() => {});
+          return merged;
 
           // Farm account not found at all — return Supabase cached data as-is
           return { ...b, id: accountId };

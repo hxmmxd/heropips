@@ -10,16 +10,17 @@
 
 import { getPlatformConfig } from './platformConfig';
 
-export let FARM_BASE = process.env.MT5_FARM_ORCHESTRATOR_URL || 'http://4.224.249.231:8080';
+export let FARM_BASE = process.env.MT5_FARM_ORCHESTRATOR_URL || 'http://103.209.146.169:8080';
 export let FARM_KEY  = process.env.MT5_FARM_API_KEY || '99E23B08-3BBBFA50-7EE7609F-5C0AA0C2';
 export let FARM_HEADERS: Record<string, string> = {
   'Content-Type': 'application/json',
   'X-API-Key':    FARM_KEY,
+  'Connection':   'keep-alive',
 };
 
 let _lastConfigSync = 0;
 export async function syncFarmConfig() {
-  if (Date.now() - _lastConfigSync < 5000) return; // limit to once every 5 seconds
+  if (Date.now() - _lastConfigSync < 60000) return; // limit to once every 60 seconds
   _lastConfigSync = Date.now();
   try {
     const dbUrl = await getPlatformConfig('mt5_farm_url', 'MT5_FARM_ORCHESTRATOR_URL');
@@ -56,6 +57,7 @@ async function farmFetch(input: RequestInfo | URL, init?: RequestInit): Promise<
   finalInit.headers = {
     ...origHeaders,
     'X-API-Key': FARM_KEY,
+    'Connection': 'keep-alive',
   };
 
   return globalThis.fetch(target, finalInit);
@@ -311,14 +313,19 @@ export async function resolveAccountId(loginOrId: string | number): Promise<stri
     }
   }
 
-  // 2. Check cache / static mappings
+  // 2. Direct fast-path: if loginStr is numeric (standard MT5 login), return immediately!
+  if (/^\d+$/.test(loginStr)) {
+    return loginStr;
+  }
+
+  // 3. Check cache / static mappings
   if (accountIdCache[loginStr]) {
     return accountIdCache[loginStr];
   }
 
-  // 3. Query orchestrator accounts to build mapping
+  // 4. Query orchestrator accounts to build mapping
   const now = Date.now();
-  if (now - lastCacheFetch > 10000) { // 10s TTL
+  if (now - lastCacheFetch > 300000) { // 5-minute TTL
     try {
       const accounts = await farmGetAccounts();
       // Reset cache with static mappings
@@ -1036,6 +1043,29 @@ export async function farmAdminRevokeKey(keyId: string): Promise<{ revoked: stri
   });
   if (!res.ok) throw new Error(`[MT5 Farm Admin] Revoke key failed: ${res.status}`);
   return res.json();
+}
+
+/** PATCH /admin/keys/{id} — update rate limit of an existing key */
+export async function farmAdminUpdateKeyLimit(keyId: string, rateLimit: number): Promise<any> {
+  try {
+    const res = await fetch(`${FARM_BASE}/admin/keys/${keyId}`, {
+      method: 'PATCH',
+      headers: FARM_HEADERS,
+      body: JSON.stringify({ rate_limit: rateLimit, rateLimit }),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (res.ok) return res.json();
+  } catch {}
+
+  // Fallback to PUT
+  const resPut = await fetch(`${FARM_BASE}/admin/keys/${keyId}`, {
+    method: 'PUT',
+    headers: FARM_HEADERS,
+    body: JSON.stringify({ rate_limit: rateLimit, rateLimit }),
+    signal: AbortSignal.timeout(8000),
+  });
+  if (!resPut.ok) throw new Error(`[MT5 Farm Admin] Update key limit failed: ${resPut.status}`);
+  return resPut.json();
 }
 
 /** GET /admin/stats — aggregate usage statistics across all keys */

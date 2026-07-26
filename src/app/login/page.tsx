@@ -33,6 +33,7 @@ export default function LoginPage() {
     }
   }, []);
 
+
   const supabase = createClient();
 
   const handleEmailAuth = async (e: React.FormEvent) => {
@@ -51,19 +52,46 @@ export default function LoginPage() {
         const data = await res.json();
         if (data.error) throw new Error(data.error);
 
-        // Auto login directly
-        const { error: loginError } = await supabase.auth.signInWithPassword({
+        const { data: authData, error: loginError } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
         if (loginError) throw loginError;
+
+        // Check phone verification status
+        if (authData.user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('phone_verified')
+            .eq('id', authData.user.id)
+            .single();
+
+          if (!profile?.phone_verified) {
+            window.location.href = '/verify-phone';
+            return;
+          }
+        }
         window.location.href = '/';
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data: authData, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
         if (error) throw error;
+
+        // Check phone verification status
+        if (authData.user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('phone_verified')
+            .eq('id', authData.user.id)
+            .single();
+
+          if (!profile?.phone_verified) {
+            window.location.href = '/verify-phone';
+            return;
+          }
+        }
         window.location.href = '/';
       }
     } catch (err: any) {
@@ -75,14 +103,21 @@ export default function LoginPage() {
 
   const handleGoogleAuth = async () => {
     setLoading(true);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-    if (error) setError(error.message);
-    setLoading(false);
+    setError('');
+    setMessage('');
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+      if (error) throw error;
+    } catch (err: any) {
+      console.error('Google Sign-In Error:', err);
+      setError(err.message || 'Failed to sign in with Google');
+      setLoading(false);
+    }
   };
 
   return (
@@ -145,7 +180,7 @@ export default function LoginPage() {
                 required
                 minLength={6}
               />
-              <button type="button" className="auth-eye" onClick={() => setShowPassword(!showPassword)}>
+              <button type="button" className="auth-eye" onClick={() => setShowPassword(!showPassword)} aria-label="Toggle password visibility">
                 {showPassword ? (
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
                 ) : (
@@ -172,7 +207,7 @@ export default function LoginPage() {
 
         {/* Social */}
         <div className="auth-social">
-          <button onClick={handleGoogleAuth} className="auth-btn auth-btn-social" disabled={loading}>
+          <button type="button" onClick={handleGoogleAuth} className="auth-btn auth-btn-social" disabled={loading}>
             <svg width="18" height="18" viewBox="0 0 24 24">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
               <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -182,7 +217,6 @@ export default function LoginPage() {
             Continue with Google
           </button>
         </div>
-
         <p className="auth-terms">
           By continuing, you agree to our <a href="#">Terms of Use</a> and <a href="#">Privacy Policy</a>.
         </p>

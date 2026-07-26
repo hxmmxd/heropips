@@ -273,6 +273,30 @@ export default function AdminPage() {
     }
   };
 
+  const [isFixingOpenTrades, setIsFixingOpenTrades] = useState(false);
+
+  const handleRetrofitSLTP = async () => {
+    if (!confirm('Attach tight Stop Loss ($5.0) and Take Profit ($10.0) to ALL currently open MT5 positions missing SL/TP?')) return;
+    setIsFixingOpenTrades(true);
+    try {
+      const res = await fetch('/api/admin/auto-trade', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'retrofit_sltp' })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(`✅ Retrofit Complete!\n\nSuccessfully attached SL & TP to ${data.updatedCount} open position(s).\n\n• Gold: -$5.00 SL / +$10.00 TP ($8–$12 capture window)\n• Forex: -20 pips SL / +40 pips TP`);
+      } else {
+        alert(`Failed to retrofit open positions: ${data.error}`);
+      }
+    } catch (err: any) {
+      alert(`Error fixing open positions: ${err.message}`);
+    } finally {
+      setIsFixingOpenTrades(false);
+    }
+  };
+
   const openAddBotModal = () => {
     setEditingBotId(null);
     setBotForm({
@@ -580,6 +604,18 @@ export default function AdminPage() {
     setFarmActionLoading(`revoke-${keyId}`);
     try {
       await fetch('/api/admin/mt5-farm', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'revokeKey', keyId }) });
+      await fetchFarmData(true);
+    } finally { setFarmActionLoading(null); }
+  };
+
+  const farmUpdateKeyLimit = async (keyId: string, limit: number) => {
+    setFarmActionLoading(`updateLimit-${keyId}`);
+    try {
+      await fetch('/api/admin/mt5-farm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'updateKeyLimit', keyId, rateLimit: limit })
+      });
       await fetchFarmData(true);
     } finally { setFarmActionLoading(null); }
   };
@@ -1629,12 +1665,55 @@ export default function AdminPage() {
                               <div className="adm-drawer-field"><span>Role</span><span>{drawerUser.is_admin ? 'Admin' : 'User'}</span></div>
                               <div className="adm-drawer-field"><span>Joined</span><span>{drawerUser.created_at ? new Date(drawerUser.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '—'}</span></div>
                             </div>
-                            <div className="adm-drawer-actions">
-                              <button onClick={() => setEditMode(true)} className="adm-drawer-btn"><Pencil /> Edit User Info</button>
-                              <button onClick={() => { handleUpdatePlan(drawerUser.id, 'pro'); setDrawerUser({...drawerUser, plan: 'pro'}); }} className="adm-drawer-btn"><Crown /> Upgrade to Pro</button>
-                              <button onClick={() => { handleToggleAdmin(drawerUser.id, drawerUser.is_admin); setDrawerUser({...drawerUser, is_admin: !drawerUser.is_admin}); }} className="adm-drawer-btn">{drawerUser.is_admin ? <><ShieldOff /> Remove Admin</> : <><Shield /> Make Admin</>}</button>
-                              <button className="adm-drawer-btn adm-drawer-btn-danger" onClick={() => { setSuspendDialog({ userId: drawerUser.id, name: drawerUser.full_name || drawerUser.email }); setDrawerUser(null); }}><Ban /> Suspend Account</button>
-                            </div>
+                             <div className="adm-drawer-actions">
+                               <button onClick={() => setEditMode(true)} className="adm-drawer-btn"><Pencil /> Edit User Info</button>
+                               <button onClick={() => { handleToggleAdmin(drawerUser.id, drawerUser.is_admin); setDrawerUser({...drawerUser, is_admin: !drawerUser.is_admin}); }} className="adm-drawer-btn">{drawerUser.is_admin ? <><ShieldOff /> Remove Admin Role</> : <><Shield /> Grant Admin Role</>}</button>
+                             </div>
+
+                             <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
+                               <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--subtext)', display: 'block', marginBottom: 8 }}>
+                                 Change Subscription Plan Status:
+                               </label>
+                               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                                 {[
+                                   { id: 'free', label: 'Free', icon: Zap },
+                                   { id: 'pro', label: 'Pro', icon: Crown },
+                                   { id: 'enterprise', label: 'Enterprise', icon: Rocket }
+                                 ].map(p => {
+                                   const Icon = p.icon;
+                                   const active = (drawerUser.plan || 'free') === p.id || (p.id === 'free' && drawerUser.plan === 'starter');
+                                   return (
+                                     <button
+                                       key={p.id}
+                                       onClick={() => {
+                                         handleUpdatePlan(drawerUser.id, p.id);
+                                         setDrawerUser({ ...drawerUser, plan: p.id });
+                                       }}
+                                       style={{
+                                         background: active ? 'var(--adm-accent, #3b82f6)' : 'var(--input-bg)',
+                                         color: active ? '#ffffff' : 'var(--text)',
+                                         border: `1px solid ${active ? 'var(--adm-accent, #3b82f6)' : 'var(--border)'}`,
+                                         borderRadius: 8,
+                                         padding: '8px 4px',
+                                         fontSize: 11,
+                                         fontWeight: 800,
+                                         cursor: 'pointer',
+                                         display: 'flex',
+                                         alignItems: 'center',
+                                         justifyContent: 'center',
+                                         gap: 4
+                                       }}
+                                     >
+                                       <Icon size={13} /> {p.label}
+                                     </button>
+                                   );
+                                 })}
+                               </div>
+                             </div>
+
+                             <div style={{ marginTop: 12 }}>
+                               <button className="adm-drawer-btn adm-drawer-btn-danger" style={{ width: '100%' }} onClick={() => { setSuspendDialog({ userId: drawerUser.id, name: drawerUser.full_name || drawerUser.email }); setDrawerUser(null); }}><Ban /> Suspend Account</button>
+                             </div>
                           </>
                         )}
 
@@ -3301,35 +3380,55 @@ export default function AdminPage() {
                                 <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>{k.label}</span>
                                 <span style={{
                                   fontSize: 10, padding: '2px 8px', borderRadius: 20,
-                                  background: k.is_active ? 'rgba(34,197,94,.1)' : 'rgba(239,68,68,.1)',
-                                  color: k.is_active ? '#22c55e' : '#ef4444',
-                                  fontWeight: 600
+                                  background: (k.rate_limit >= 5000 || k.rate_limit === 0) ? 'rgba(99,102,241,.15)' : k.is_active ? 'rgba(34,197,94,.1)' : 'rgba(239,68,68,.1)',
+                                  color: (k.rate_limit >= 5000 || k.rate_limit === 0) ? '#6366f1' : k.is_active ? '#22c55e' : '#ef4444',
+                                  fontWeight: 700
                                 }}>
-                                  {k.is_active ? 'Active' : 'Revoked'}
+                                  {k.is_active ? ((k.rate_limit >= 5000 || k.rate_limit === 0) ? '⚡ Unlimited Tier' : 'Active') : 'Revoked'}
                                 </span>
                               </div>
                               <div style={{ fontFamily: 'monospace', fontSize: 12, color: 'var(--subtext)', wordBreak: 'break-all', background: 'rgba(0,0,0,0.02)', padding: '4px 8px', borderRadius: 6, display: 'inline-block' }}>
-                                {k.key_preview}
+                                {k.key_preview || (k.key ? `${k.key.slice(0, 8)}-****-****-****` : 'Key Active')}
                               </div>
-                              <div style={{ fontSize: 11, color: 'var(--subtext)', marginTop: 8 }}>
-                                <span style={{ fontWeight: 600, color: 'var(--text)' }}>{k.requests}</span> requests · Limit <span style={{ fontWeight: 600, color: 'var(--text)' }}>{k.rate_limit}/min</span>
+                              <div style={{ fontSize: 11, color: 'var(--subtext)', marginTop: 8, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                                <span><span style={{ fontWeight: 600, color: 'var(--text)' }}>{(k.requests || 0).toLocaleString()}</span> requests</span>
+                                <span>·</span>
+                                <span>Limit <span style={{ fontWeight: 700, color: (k.rate_limit >= 5000 || k.rate_limit === 0) ? '#6366f1' : 'var(--text)' }}>{(k.rate_limit >= 5000 || k.rate_limit === 0) ? 'Unlimited (10,000/min)' : `${k.rate_limit}/min`}</span></span>
                                 {k.last_used ? ` · Last active ${new Date(k.last_used).toLocaleString()}` : ' · Never active'}
                               </div>
                             </div>
                             {k.is_active && (
-                              <button
-                                onClick={() => farmRevokeKey(k.id)}
-                                disabled={farmActionLoading === `revoke-${k.id}`}
-                                style={{
-                                  padding: '8px 16px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.25)',
-                                  background: 'transparent', color: '#ef4444', fontSize: 12, fontWeight: 700,
-                                  cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, transition: 'all 0.2s'
-                                }}
-                                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.05)'; }}
-                                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-                              >
-                                <Trash2 size={13} /> Revoke
-                              </button>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <button
+                                  onClick={() => farmUpdateKeyLimit(k.id, 10000)}
+                                  disabled={farmActionLoading === `updateLimit-${k.id}`}
+                                  title="Increase API Rate Limit to Unlimited (10,000 RPM)"
+                                  style={{
+                                    padding: '8px 14px', borderRadius: 8, border: '1px solid rgba(99,102,241,0.3)',
+                                    background: 'rgba(99,102,241,0.08)', color: '#6366f1', fontSize: 12, fontWeight: 700,
+                                    cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5, transition: 'all 0.2s'
+                                  }}
+                                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.15)'; }}
+                                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.08)'; }}
+                                >
+                                  <Zap size={13} />
+                                  {farmActionLoading === `updateLimit-${k.id}` ? 'Updating...' : 'Set Unlimited (10k RPM)'}
+                                </button>
+
+                                <button
+                                  onClick={() => farmRevokeKey(k.id)}
+                                  disabled={farmActionLoading === `revoke-${k.id}`}
+                                  style={{
+                                    padding: '8px 16px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.25)',
+                                    background: 'transparent', color: '#ef4444', fontSize: 12, fontWeight: 700,
+                                    cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, transition: 'all 0.2s'
+                                  }}
+                                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.05)'; }}
+                                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                                >
+                                  <Trash2 size={13} /> Revoke
+                                </button>
+                              </div>
                             )}
                           </div>
                         ))}
@@ -3552,6 +3651,28 @@ export default function AdminPage() {
                       )}
 
                       <button
+                        onClick={handleRetrofitSLTP}
+                        disabled={isFixingOpenTrades}
+                        style={{
+                          background: 'rgba(239, 68, 68, 0.12)',
+                          color: '#ef4444',
+                          border: '1px solid rgba(239, 68, 68, 0.3)',
+                          borderRadius: 8,
+                          padding: '8px 14px',
+                          fontSize: 11,
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          opacity: isFixingOpenTrades ? 0.5 : 1,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6
+                        }}
+                        title="Scan all connected MT5 accounts and attach tight SL/TP ($5 SL / $10 TP) to open positions missing SL/TP"
+                      >
+                        <ShieldAlert size={14} /> {isFixingOpenTrades ? 'Fixing Trades...' : 'Fix All Open Trades (Attach SL/TP)'}
+                      </button>
+
+                      <button
                         onClick={runMultiBotCycle}
                         disabled={isRunningJob || bots.length === 0}
                         style={{
@@ -3588,7 +3709,7 @@ export default function AdminPage() {
                     </div>
                   ) : (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 14 }}>
-                      {bots.map((bot) => {
+                      {bots.map((bot, idx) => {
                         const presetInfo = STRATEGY_PRESETS[bot.strategyPreset] || STRATEGY_PRESETS.full_17_gates;
                         const accountObj = brokers.find(b => (b.mt5_login || b.id) === bot.accountId);
 
@@ -3674,7 +3795,8 @@ export default function AdminPage() {
                               </div>
                               {bot.isEnabled && (() => {
                                 const botIntervalSecs = (Number(bot.intervalMinutes) || 15) * 60;
-                                const displaySecs = countdownSeconds !== null ? Math.min(countdownSeconds, botIntervalSecs) : null;
+                                const staggerOffset = idx * 5;
+                                const displaySecs = countdownSeconds !== null ? Math.max(0, Math.min(countdownSeconds + staggerOffset, botIntervalSecs)) : null;
                                 return (
                                   <span style={{ color: 'var(--subtext)', fontFamily: 'monospace', fontSize: 10 }}>
                                     {displaySecs !== null 

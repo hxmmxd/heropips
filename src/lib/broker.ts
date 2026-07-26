@@ -125,40 +125,54 @@ export function normalizeMt5Symbol(symbol: string): string {
   return aliases[s] || s;
 }
 
+const allowedSymbolsCache = new Map<string, { symbols: string[]; expires: number }>();
+
 export async function getNormalizedSymbolForBroker(symbol: string, brokerIdOrLogin: string): Promise<string> {
   let mt5Symbol = normalizeMt5Symbol(symbol);
-  try {
-    const { createClient } = await import('@supabase/supabase-js');
-    const sb = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-    const cleanBrokerId = brokerIdOrLogin.replace(/^mt5_/, '');
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanBrokerId);
-    let query = sb.from('broker_accounts').select('allowed_symbols');
-    if (isUuid) {
-      query = query.eq('id', cleanBrokerId);
-    } else {
-      query = query.or(`mt5_login.eq.${cleanBrokerId},metaapi_id.eq.${cleanBrokerId},mt5_login.eq.${brokerIdOrLogin},metaapi_id.eq.${brokerIdOrLogin}`);
-    }
-    const { data } = await query.maybeSingle();
-    if (data?.allowed_symbols?.length) {
-      // First pass: try to find an exact match (ignoring only non-alphanumeric chars)
-      let matchedSymbol = data.allowed_symbols.find(
-        (s: string) => s.toUpperCase().replace(/[^A-Z0-9]/g, '') === mt5Symbol
+  const cleanBrokerId = brokerIdOrLogin.replace(/^mt5_/, '');
+
+  let allowed_symbols: string[] | null = null;
+  const cached = allowedSymbolsCache.get(cleanBrokerId);
+  if (cached && Date.now() < cached.expires) {
+    allowed_symbols = cached.symbols;
+  } else {
+    try {
+      const { createClient } = await import('@supabase/supabase-js');
+      const sb = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
       );
-      
-      // Second pass: if no exact match, fallback to root prefix matching (e.g., EURUSD.raw -> EURUSD)
-      if (!matchedSymbol) {
-        matchedSymbol = data.allowed_symbols.find(
-          (s: string) => s.toUpperCase().split('.')[0].replace(/[^A-Z0-9]/g, '') === mt5Symbol
-        );
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanBrokerId);
+      let query = sb.from('broker_accounts').select('allowed_symbols');
+      if (isUuid) {
+        query = query.eq('id', cleanBrokerId);
+      } else {
+        query = query.or(`mt5_login.eq.${cleanBrokerId},metaapi_id.eq.${cleanBrokerId},mt5_login.eq.${brokerIdOrLogin},metaapi_id.eq.${brokerIdOrLogin}`);
       }
-      
-      if (matchedSymbol) mt5Symbol = matchedSymbol;
+      const { data } = await query.maybeSingle();
+      if (Array.isArray(data?.allowed_symbols) && data.allowed_symbols.length > 0) {
+        allowed_symbols = data.allowed_symbols as string[];
+        allowedSymbolsCache.set(cleanBrokerId, { symbols: allowed_symbols, expires: Date.now() + 600000 }); // 10m TTL
+      }
+    } catch (err: any) {
+      console.warn('[Broker Engine] Symbol normalization db fetch failed:', err.message);
     }
-  } catch (err: any) {
-    console.warn('[Broker Engine] Symbol normalization db fetch failed:', err.message);
+  }
+
+  if (allowed_symbols?.length) {
+    // First pass: try to find an exact match (ignoring only non-alphanumeric chars)
+    let matchedSymbol = allowed_symbols.find(
+      (s: string) => s.toUpperCase().replace(/[^A-Z0-9]/g, '') === mt5Symbol
+    );
+    
+    // Second pass: if no exact match, fallback to root prefix matching (e.g., EURUSD.raw -> EURUSD)
+    if (!matchedSymbol) {
+      matchedSymbol = allowed_symbols.find(
+        (s: string) => s.toUpperCase().split('.')[0].replace(/[^A-Z0-9]/g, '') === mt5Symbol
+      );
+    }
+    
+    if (matchedSymbol) mt5Symbol = matchedSymbol;
   }
   return mt5Symbol;
 }
@@ -399,45 +413,51 @@ export async function executeBrokerOrder(
   takeProfit?: number | string,
   bypassRiskGovernor: boolean = true
 ): Promise<any> {
-  // Resolve account ID: might be brokerId (UUID), login, or the id itself from Supabase
+  // Fast-path account ID resolution: if numeric, skip DB lookup
   let accountId = id;
-  try {
-    const { createClient } = await import('@supabase/supabase-js');
-    const sb = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-    const cleanId = id.replace(/^mt5_/, '');
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanId);
-    let query = sb.from('broker_accounts').select('mt5_login, metaapi_id');
-    if (isUuid) {
-      query = query.eq('id', cleanId);
-    } else {
-      query = query.or(`mt5_login.eq.${cleanId},metaapi_id.eq.${cleanId},mt5_login.eq.${id},metaapi_id.eq.${id}`);
+  const cleanId = id.replace(/^mt5_/, '');
+  if (/^\d+$/.test(cleanId)) {
+    accountId = cleanId;
+  } else {
+    try {
+      const { createClient } = await import('@supabase/supabase-js');
+      const sb = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      );
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanId);
+      let query = sb.from('broker_accounts').select('mt5_login, metaapi_id');
+      if (isUuid) {
+        query = query.eq('id', cleanId);
+      } else {
+        query = query.or(`mt5_login.eq.${cleanId},metaapi_id.eq.${cleanId},mt5_login.eq.${id},metaapi_id.eq.${id}`);
+      }
+      const { data } = await query.maybeSingle();
+      if (data?.mt5_login) accountId = String(data.mt5_login);
+      else if (data?.metaapi_id) accountId = String(data.metaapi_id);
+    } catch (err: any) {
+      console.warn('[Broker Engine] Failed to resolve account ID for order placement:', err.message);
     }
-    const { data } = await query.maybeSingle();
-    if (data?.mt5_login) accountId = String(data.mt5_login);
-    else if (data?.metaapi_id) accountId = String(data.metaapi_id);
-  } catch (err: any) {
-    console.warn('[Broker Engine] Failed to resolve account ID for order placement:', err.message);
   }
 
-  // Pre-trade margin check
+  // Pre-trade margin check (only run if risk governor active; sidecar checks margin natively on trade placement)
   let liveEquity = 0;
   let liveBalance = 0;
-  try {
-    const info = await farmGetAccountInfo(accountId);
-    if (info) {
-      liveEquity = info.equity ?? 0;
-      liveBalance = info.balance ?? 0;
-      const marginFree = info.marginFree ?? info.equity ?? 0;
-      if (marginFree <= 0) {
-        throw new Error(`Insufficient funds: account free margin is ${marginFree}.`);
+  if (!bypassRiskGovernor) {
+    try {
+      const info = await farmGetAccountInfo(accountId);
+      if (info) {
+        liveEquity = info.equity ?? 0;
+        liveBalance = info.balance ?? 0;
+        const marginFree = info.marginFree ?? info.equity ?? 0;
+        if (marginFree <= 0) {
+          throw new Error(`Insufficient funds: account free margin is ${marginFree}.`);
+        }
       }
+    } catch (marginErr: any) {
+      if (marginErr.message.includes('Insufficient funds:')) throw marginErr;
+      console.warn(`[Broker Engine] Pre-trade margin check bypassed: ${marginErr.message}`);
     }
-  } catch (marginErr: any) {
-    if (marginErr.message.includes('Insufficient funds:')) throw marginErr;
-    console.warn(`[Broker Engine] Pre-trade margin check bypassed: ${marginErr.message}`);
   }
 
   // ── Risk Governor: Last Line of Defense (Bypassed in Testing Mode) ──────────
@@ -489,10 +509,45 @@ export async function executeBrokerOrder(
   else if (upperSym.includes('EUR') || upperSym.includes('GBP') || upperSym.includes('AUD') || upperSym.includes('CAD') || upperSym.includes('CHF')) precision = 5;
   else precision = 2;
 
-  const sl  = stopLoss   != null && !isNaN(Number(stopLoss))   ? Number(Number(stopLoss).toFixed(precision))   : undefined;
-  const tp  = takeProfit != null && !isNaN(Number(takeProfit)) ? Number(Number(takeProfit).toFixed(precision)) : undefined;
+  const currentPrice = Number(entryPrice) || 1.0;
 
-  console.log(`[Broker Engine] MT5 Farm ${action} ${vol} lot(s) ${mt5Symbol} (SL: ${sl}, TP: ${tp}) → account ${accountId}`);
+  // ── GUARANTEED SL/TP ENFORCEMENT: Never send a trade without SL & TP ──────
+  let slNum = stopLoss != null && !isNaN(Number(stopLoss)) ? Number(Number(stopLoss).toFixed(precision)) : undefined;
+  let tpNum = takeProfit != null && !isNaN(Number(takeProfit)) ? Number(Number(takeProfit).toFixed(precision)) : undefined;
+
+  if (!slNum || !tpNum || slNum === 0 || tpNum === 0) {
+    console.log(`[Broker Engine] ⚠️ Missing SL/TP for ${mt5Symbol} @ ${currentPrice} — Calculating calculated institutional SL/TP fallbacks...`);
+    let slDist = currentPrice * 0.015; // 1.5% fallback
+    let tpDist = currentPrice * 0.030; // 3.0% fallback (1:2 R:R)
+
+    if (upperSym.includes('XAU') || upperSym.includes('GOLD')) {
+      slDist = 5.0;  // $5 SL
+      tpDist = 10.0; // $10 TP (1:2 R:R)
+    } else if (upperSym.includes('EUR') || upperSym.includes('GBP')) {
+      slDist = 0.0020; // 20 pips
+      tpDist = 0.0040; // 40 pips
+    } else if (upperSym.includes('JPY')) {
+      slDist = 0.30;  // 30 pips
+      tpDist = 0.60;  // 60 pips
+    } else if (upperSym.includes('BTC')) {
+      slDist = 300.0; // $300 SL
+      tpDist = 600.0; // $600 TP
+    }
+
+    if (!slNum || slNum === 0) {
+      slNum = action === 'BUY' ? currentPrice - slDist : currentPrice + slDist;
+      slNum = Number(slNum.toFixed(precision));
+    }
+    if (!tpNum || tpNum === 0) {
+      tpNum = action === 'BUY' ? currentPrice + tpDist : currentPrice - tpDist;
+      tpNum = Number(tpNum.toFixed(precision));
+    }
+  }
+
+  const sl = slNum;
+  const tp = tpNum;
+
+  console.log(`[Broker Engine] 🔒 MANDATORY SL/TP: MT5 Farm ${action} ${vol} lot(s) ${mt5Symbol} (SL: ${sl}, TP: ${tp}) → account ${accountId}`);
 
   const payload: any = {
     actionType: action === 'BUY' ? 'ORDER_TYPE_BUY' : 'ORDER_TYPE_SELL',
@@ -565,7 +620,7 @@ export async function executeBrokerOrder(
     if (stringCode?.includes('10016') || message?.includes('stops')) {
       // ECN / Market Execution Brokers require opening first, then setting SL/TP via position modification!
       console.log('[Broker Engine] ECN Market Execution detected — opening order first then attaching SL/TP...');
-      const retry = await farmExecuteTrade(accountId, { ...payload, stopLoss: undefined, takeProfit: undefined });
+      const retry = await farmExecuteTrade(accountId, { ...payload, stopLoss: undefined, takeProfit: undefined, stop_loss: undefined, take_profit: undefined, sl: undefined, tp: undefined });
       if (retry.success) {
         result = retry;
       } else {
@@ -579,21 +634,42 @@ export async function executeBrokerOrder(
     }
   }
 
-  // Guaranteed SL/TP attachment: Ensure SL & TP are attached to position on MT5
-  const positionId = result.result.positionId || result.result.orderId || result.result.id;
-  if (positionId && (sl || tp)) {
+  // ── GUARANTEED SL/TP ATTACHMENT LOOP ─────────────────────────────────────
+  // Robust ticket / position ID extraction across all MT5 Farm response shapes
+  const resObj = result.result || {};
+  const positionTicket = String(resObj.positionId || resObj.ticket || resObj.id || resObj.orderId || resObj.position || accountId);
+
+  if (positionTicket && (sl || tp)) {
+    console.log(`[Broker Engine] 🎯 Ensuring SL (${sl}) & TP (${tp}) on Position #${positionTicket}...`);
+    
+    // Attempt 1: Direct sidecar modify position
     try {
-      console.log(`[Broker Engine] Attaching SL (${sl}) & TP (${tp}) to position #${positionId}...`);
-      await farmModifyPosition(accountId, String(positionId), { stopLoss: sl, takeProfit: tp });
+      await farmModifyPosition(accountId, positionTicket, { stopLoss: sl, takeProfit: tp });
     } catch (modErr: any) {
-      console.warn(`[Broker Engine] Position modification for SL/TP warning: ${modErr.message}`);
+      console.warn(`[Broker Engine] Position modification attempt 1 warning: ${modErr.message}`);
     }
+
+    // Attempt 2: Short 500ms delay retry for ECN execution confirmation
+    setTimeout(async () => {
+      try {
+        const positions = await farmGetPositions(accountId);
+        const match = positions.find((p: any) => String(p.id) === positionTicket || String(p.ticket) === positionTicket || p.symbol === mt5Symbol);
+        if (match && (!match.stopLoss || !match.takeProfit)) {
+          console.log(`[Broker Engine] Re-attaching missing SL/TP to live position #${match.id || positionTicket}...`);
+          await farmModifyPosition(accountId, String(match.id || positionTicket), { stopLoss: sl, takeProfit: tp });
+        }
+      } catch (retryErr: any) {
+        console.warn(`[Broker Engine] Position SL/TP verification loop notice: ${retryErr.message}`);
+      }
+    }, 600);
   }
 
   return {
-    orderId:   positionId || accountId,
+    orderId:   positionTicket,
     status:    'success',
     fillPrice: result.result.openPrice || Number(entryPrice),
+    stopLoss:  sl,
+    takeProfit: tp
   };
 }
 

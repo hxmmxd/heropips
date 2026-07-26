@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Mail, Shield, CreditCard, LogOut, ChevronRight, Trash2, Moon, Bell, Camera, Coins } from 'lucide-react';
+import { User, Mail, Shield, CreditCard, LogOut, ChevronRight, Trash2, Moon, Bell, Camera, Coins, Phone, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { getUserAvatar } from '@/lib/avatar';
+import { PhoneVerificationModal } from '@/components/PhoneVerificationModal';
 
 interface ProfileTabProps {
   theme: 'light' | 'dark';
@@ -24,6 +25,7 @@ export default function ProfileTab({ theme, switchTab }: ProfileTabProps) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [passwordMsg, setPasswordMsg] = useState('');
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
 
@@ -163,6 +165,27 @@ export default function ProfileTab({ theme, switchTab }: ProfileTabProps) {
               <span>{userEmail}</span>
             </div>
           </div>
+          <div className="profile-field">
+            <label>Mobile Number</label>
+            <div className="profile-field-value" style={{ justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Phone className="profile-field-icon" />
+                <span>{profile?.phone_number || 'No number linked'}</span>
+              </div>
+              {profile?.phone_verified ? (
+                <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
+                  <CheckCircle2 size={12} /> Verified
+                </span>
+              ) : (
+                <button
+                  onClick={() => setShowPhoneModal(true)}
+                  className="flex items-center gap-1 text-[11px] font-bold text-white bg-[#ff3c00] hover:bg-[#e03500] px-3 py-1 rounded-lg transition-all shadow-sm cursor-pointer"
+                >
+                  <AlertTriangle size={12} /> Verify Number
+                </button>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Plan Summary */}
@@ -297,6 +320,19 @@ export default function ProfileTab({ theme, switchTab }: ProfileTabProps) {
           </button>
         </div>
       </div>
+
+      <PhoneVerificationModal
+        isOpen={showPhoneModal}
+        onSuccess={async () => {
+          setShowPhoneModal(false);
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+            setProfile(data);
+          }
+        }}
+        onCancel={() => setShowPhoneModal(false)}
+      />
     </div>
   );
 }

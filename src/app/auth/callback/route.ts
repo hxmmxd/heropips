@@ -27,8 +27,19 @@ export async function GET(request: Request) {
       }
     );
 
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) {
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    if (!error && data.user) {
+      // Check if user has completed phone verification
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('phone_verified')
+        .eq('id', data.user.id)
+        .single();
+
+      if (!profile?.phone_verified) {
+        return NextResponse.redirect(`${origin}/verify-phone`);
+      }
+
       return NextResponse.redirect(`${origin}${next}`);
     }
   }

@@ -11,6 +11,7 @@ import {
   farmAdminListKeys,
   farmAdminCreateKey,
   farmAdminRevokeKey,
+  farmAdminUpdateKeyLimit,
   farmAdminGetStats,
   FARM_BASE,
   FARM_HEADERS,
@@ -201,6 +202,11 @@ export async function POST(request: Request) {
 
       case 'revokeKey': {
         const result = await farmAdminRevokeKey(body.keyId);
+        return NextResponse.json(result);
+      }
+
+      case 'updateKeyLimit': {
+        const result = await farmAdminUpdateKeyLimit(body.keyId, Number(body.rateLimit));
         return NextResponse.json(result);
       }
 

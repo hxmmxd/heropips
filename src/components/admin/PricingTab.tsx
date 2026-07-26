@@ -14,23 +14,23 @@ export default function PricingTab({ initialConfig }: PricingTabProps) {
 
   const getNormalizedPricing = () => {
     const defaultData: Record<string, any> = {
-      starter: {
-        price: 20,
+      free: {
+        price: 0,
         features: [
-          '5 AI trade signals per day',
+          '3 AI trade signals per day',
           '1 broker connection',
           'Basic market analysis',
           'Email support',
-          'Trade history (30 days)',
+          '3-day trade history reports',
           'Standard execution speed',
         ],
         limits: [
-          'No advanced indicators',
-          'No priority execution',
+          'Referral withdrawals locked',
+          'No manager signal execution',
         ]
       },
       pro: {
-        price: 50,
+        price: 10,
         features: [
           'Unlimited AI trade signals',
           '5 broker connections',
@@ -63,8 +63,8 @@ export default function PricingTab({ initialConfig }: PricingTabProps) {
     const currentPricing = config.plan_pricing || {};
     const normalized: Record<string, any> = {};
 
-    ['starter', 'pro', 'enterprise'].forEach(k => {
-      const val = currentPricing[k];
+    ['free', 'pro', 'enterprise'].forEach(k => {
+      const val = currentPricing[k] ?? currentPricing[k === 'free' ? 'starter' : k];
       if (val === undefined) {
         normalized[k] = defaultData[k];
       } else if (typeof val === 'number' || typeof val === 'string') {
@@ -127,9 +127,9 @@ export default function PricingTab({ initialConfig }: PricingTabProps) {
       <div className="adm-card-body" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
           {[
-            { key: 'starter', label: 'Starter Plan', desc: 'Starter Tier subscription' },
-            { key: 'pro', label: 'Pro Plan', desc: 'Pro Tier subscription' },
-            { key: 'enterprise', label: 'Enterprise Plan', desc: 'Enterprise Tier subscription' },
+            { key: 'free', label: 'Free Tier', desc: 'Free Tier subscription' },
+            { key: 'pro', label: 'Pro Tier', desc: 'Pro Tier subscription' },
+            { key: 'enterprise', label: 'Enterprise Tier', desc: 'Enterprise Tier subscription' },
           ].map(tier => {
             const pData = pricingData[tier.key];
             return (

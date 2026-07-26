@@ -49,37 +49,37 @@ export async function POST(request: Request) {
       tp
     );
 
-    // Resolve database broker_accounts UUID if possible
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(brokerId);
-    let query = supabase.from('broker_accounts').select('id').eq('user_id', user.id);
-    if (isUuid) {
-      query = query.eq('id', brokerId);
-    } else {
-      query = query.or(`metaapi_id.eq.${brokerId},mt5_login.eq.${brokerId}`);
-    }
-    const { data: brokerAccount } = await query.maybeSingle();
+    // Fire-and-forget background logging: resolve broker UUID and record trade without delaying UI response
+    (async () => {
+      try {
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(brokerId);
+        let query = supabase.from('broker_accounts').select('id').eq('user_id', user.id);
+        if (isUuid) {
+          query = query.eq('id', brokerId);
+        } else {
+          query = query.or(`metaapi_id.eq.${brokerId},mt5_login.eq.${brokerId}`);
+        }
+        const { data: brokerAccount } = await query.maybeSingle();
 
-
-    // Log the trade in Supabase database
-    const { error: insertError } = await supabase
-      .from('trades')
-      .insert({
-        user_id: user.id,
-        broker_id: brokerAccount?.id || null,
-        symbol,
-        action,
-        volume: lotSize,
-        entry_price: result.fillPrice || entry,
-        stop_loss: sl || null,
-        take_profit: tp || null,
-        status: 'open',
-        order_id: String(result.orderId),
-        created_at: new Date().toISOString(),
-      });
-
-    if (insertError) {
-      console.error('[Execute API] Supabase trade logging error:', insertError.message);
-    }
+        await supabase
+          .from('trades')
+          .insert({
+            user_id: user.id,
+            broker_id: brokerAccount?.id || null,
+            symbol,
+            action,
+            volume: lotSize,
+            entry_price: result.fillPrice || entry,
+            stop_loss: result.stopLoss || sl || null,
+            take_profit: result.takeProfit || tp || null,
+            status: 'open',
+            order_id: String(result.orderId),
+            created_at: new Date().toISOString(),
+          });
+      } catch (logErr: any) {
+        console.error('[Execute API] Supabase trade logging error:', logErr.message);
+      }
+    })();
 
     return NextResponse.json({
       success: true,

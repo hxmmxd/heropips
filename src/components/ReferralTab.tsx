@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import { QRCodeSVG } from 'qrcode.react';
 import { getMemojiForName } from '@/lib/avatar';
 import { useReferralData } from '@/hooks/useReferralData';
 
@@ -77,70 +78,48 @@ export default function ReferralTab({ switchTab }: ReferralTabProps) {
 
   return (
     <div className="rh-root">
-      {/* ── HERO HEADER PANEL ── */}
-      <div className="rh-hero">
-        <div className="rh-hero-orb rh-hero-orb1" />
-        <div className="rh-hero-orb rh-hero-orb2" />
+      {/* ── WALLET BALANCE & WITHDRAW CARD ── */}
+      <div className="rh-wallet">
+        {/* Ambient background glow */}
+        <div className="rh-wallet-glow" />
 
-        <div className="rh-hero-inner">
-          <div className="rh-hero-badge">
-            <span className="rh-hero-badge-dot" />
-            Multilevel Partnership Network
+        <div className="rh-wallet-left">
+          <div className="rh-wallet-eyebrow-box">
+            <span className="rh-wallet-dot" />
+            <span className="rh-wallet-eyebrow">Referral Wallet</span>
           </div>
 
-          <h1 className="rh-hero-title">
-            Enterprise Referral Hub
-          </h1>
-          <p className="rh-hero-sub">
-            Build your professional trading team network. Earn high-fidelity multi-level rebates up to 5 tiers deep on all downline closed positions.
-          </p>
-
-          <div className="rh-hero-code-row">
-            <div className="rh-hero-code">
-              <span className="rh-hero-code-label">YOUR REFERRAL CODE</span>
-              <span className="rh-hero-code-val">{profileData?.referralCode || 'TGPT-ADMIN'}</span>
-            </div>
-            <button 
-              className="rh-hero-copy"
-              onClick={() => copyToClipboard(profileData?.referralCode || '', 'code')}
-            >
-              {copied === 'code' ? '✓ Copied' : 'Copy Code'}
-            </button>
+          <div className="rh-wallet-balance">
+            <span className="rh-wallet-currency">$</span>
+            <span className="rh-wallet-amount">
+              {loadingWallet ? '...' : (walletStats?.available?.toLocaleString('en-US', { minimumFractionDigits: 2 }) || '0.00')}
+            </span>
           </div>
 
-          <div className="rh-hero-link">
-            <span>Invite Link:</span>
-            <strong>{profileData?.referralLink || 'https://tradegpt.com/register?ref=TGPT-ADMIN'}</strong>
+          <div className="rh-wallet-pills">
+            <span className="rh-wallet-pill rh-wallet-pill-pending">
+              ⏳ ${loadingWallet ? '...' : (walletStats?.pending?.toFixed(2) || '0.00')} pending
+            </span>
+            <span className="rh-wallet-pill rh-wallet-pill-lifetime">
+              🏆 ${loadingWallet ? '...' : (walletStats?.lifetime?.toFixed(2) || '0.00')} lifetime
+            </span>
           </div>
+        </div>
 
-          <div className="rh-hero-actions">
-            <button 
-              className="rh-hero-btn rh-hero-btn-primary"
-              onClick={() => setShareOpen(true)}
-            >
-              Share Network Link
-            </button>
-            <button 
-              className="rh-hero-btn rh-hero-btn-secondary"
-              onClick={() => {
-                copyToClipboard(profileData?.referralLink || '', 'link');
-              }}
-            >
-              {copied === 'link' ? '✓ Link Copied' : 'Quick Copy Link'}
-            </button>
-          </div>
-
-          <div className="rh-hero-network">
-            {[1, 2, 3, 4, 5].map(lvl => (
-              <div key={lvl} className="rh-hero-lvl">
-                <span className="rh-hero-lvl-dot" style={{ background: getLevelColor(lvl) }} />
-                <span className="rh-hero-lvl-lbl">L{lvl}:</span>
-                <span className="rh-hero-lvl-cnt">
-                  {loadingNetwork ? '...' : (networkMembers.filter(m => m.level === lvl).length)}
-                </span>
-              </div>
-            ))}
-          </div>
+        <div className="rh-wallet-right">
+          <motion.button 
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            className="rh-withdraw-btn"
+            disabled={isFree || loadingWallet || !walletStats || walletStats.available < walletStats.minWithdrawal}
+            onClick={() => setWithdrawOpen(true)}
+            style={isFree ? { opacity: 0.65, cursor: 'not-allowed', background: '#334155', color: '#94a3b8', border: '1px solid #475569', boxShadow: 'none' } : {}}
+          >
+            {isFree ? 'Withdraw Locked 🔒' : 'Withdraw Now'}
+          </motion.button>
+          <span className="rh-wallet-min">
+            ⚡ Min withdrawal: ${loadingWallet ? '50' : (walletStats?.minWithdrawal || '50')}
+          </span>
         </div>
       </div>
 
@@ -183,39 +162,122 @@ export default function ReferralTab({ switchTab }: ReferralTabProps) {
         </div>
       </div>
 
-      {/* ── WALLET BALANCE & WITHDRAW CARD ── */}
-      <div className="flex flex-col gap-3">
-        <div className="rh-wallet">
-          <div className="rh-wallet-left">
-            <span className="rh-wallet-eyebrow">💼 Referral Wallet</span>
-            <div className="rh-wallet-balance">
-              <span className="rh-wallet-currency">$</span>
-              <span className="rh-wallet-amount">
-                {loadingWallet ? '...' : (walletStats?.available?.toLocaleString('en-US', { minimumFractionDigits: 2 }) || '0.00')}
-              </span>
+      {/* ── HERO HEADER PANEL — REDESIGNED ── */}
+      <div className="rh-hero">
+        <div className="rh-hero-orb rh-hero-orb1" />
+        <div className="rh-hero-orb rh-hero-orb2" />
+        <div className="rh-hero-orb rh-hero-orb3" />
+
+        <div className="rh-hero-inner">
+          {/* Badge */}
+          <div className="rh-hero-badge">
+            <span className="rh-hero-badge-dot" />
+            Multilevel Partnership Network
+          </div>
+
+          {/* Two-column layout */}
+          <div className="rh-hero-layout">
+            {/* LEFT: info + code + actions */}
+            <div className="rh-hero-left">
+              <h1 className="rh-hero-title">Enterprise Referral Hub</h1>
+              <p className="rh-hero-sub">
+                Earn up to <strong style={{ color: '#d4a843' }}>5-tier deep rebates</strong> on all downline closed positions across your trading network.
+              </p>
+
+              {/* Level dots */}
+              <div className="rh-hero-network">
+                {[1, 2, 3, 4, 5].map(lvl => (
+                  <div key={lvl} className="rh-hero-lvl">
+                    <span className="rh-hero-lvl-dot" style={{ background: getLevelColor(lvl) }} />
+                    <span className="rh-hero-lvl-lbl">L{lvl}:</span>
+                    <span className="rh-hero-lvl-cnt">
+                      {loadingNetwork ? '·' : networkMembers.filter(m => m.level === lvl).length}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="rh-wallet-pills">
-              <span className="rh-wallet-pill rh-wallet-pill-pending">
-                ⏳ ${loadingWallet ? '...' : (walletStats?.pending?.toFixed(2) || '0.00')} pending
-              </span>
-              <span className="rh-wallet-pill rh-wallet-pill-lifetime">
-                🏆 ${loadingWallet ? '...' : (walletStats?.lifetime?.toFixed(2) || '0.00')} lifetime
-              </span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── QR CODE CARD — High-End Glassmorphic Card ── */}
+      <div className="rh-qr-card">
+        {/* Decorative background glow orbs */}
+        <div className="rh-qr-card-glow-amber" />
+        <div className="rh-qr-card-glow-indigo" />
+
+        <div className="rh-qr-card-inner">
+          {/* QR Code Container */}
+          <div className="rh-qr-card-frame-wrapper">
+            <div className="rh-qr-card-frame">
+              <QRCodeSVG
+                value={profileData?.referralLink || 'https://tradegpt.ai/r/tgpt-admin'}
+                size={160}
+                bgColor="#ffffff"
+                fgColor="#0a0e17"
+                level="H"
+                style={{ display: 'block' }}
+              />
             </div>
           </div>
 
-          <div className="rh-wallet-right">
-            <button 
-              className="rh-withdraw-btn"
-              disabled={isFree || loadingWallet || !walletStats || walletStats.available < walletStats.minWithdrawal}
-              onClick={() => setWithdrawOpen(true)}
-              style={isFree ? { opacity: 0.65, cursor: 'not-allowed', background: '#334155', color: '#94a3b8', border: '1px solid #475569' } : {}}
-            >
-              {isFree ? 'Withdraw Locked 🔒' : 'Withdraw Now'}
-            </button>
-            <span className="rh-wallet-min">
-              Min withdrawal: ${loadingWallet ? '50' : (walletStats?.minWithdrawal || '50')}
+          {/* Badge */}
+          <div className="rh-qr-card-badge">
+            <span className="rh-qr-card-badge-dot" />
+            Instant Partner Onboarding
+          </div>
+
+          {/* Title */}
+          <h3 className="rh-qr-card-title">Scan to Join Network</h3>
+
+          {/* Subtitle */}
+          <p className="rh-qr-card-sub">
+            Share this QR code anywhere — social media, messages, or printed materials. Anyone who scans it will be linked directly to your referral network.
+          </p>
+
+          {/* Link Box */}
+          <div 
+            className="rh-qr-card-link-box"
+            onClick={() => copyToClipboard(profileData?.referralLink || '', 'link')}
+            title="Click to copy invite link"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            <span className="rh-qr-card-link-url">
+              tradegpt.ai/r/<strong className="rh-qr-card-link-bold">{(profileData?.referralCode || 'TGPT-ADMIN').toLowerCase()}</strong>
             </span>
+            <span className="rh-qr-card-link-copy-icon">
+              {copied === 'link' ? (
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+              ) : (
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              )}
+            </span>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="rh-qr-card-actions">
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className={`rh-qr-card-primary-btn ${copied === 'link' ? 'copied' : ''}`}
+              onClick={() => copyToClipboard(profileData?.referralLink || '', 'link')}
+            >
+              {copied === 'link' ? (
+                <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg> Link Copied!</>
+              ) : (
+                <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy Invite Link</>
+              )}
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="rh-qr-card-secondary-btn"
+              onClick={() => setShareOpen(true)}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+              Share Network
+            </motion.button>
           </div>
         </div>
       </div>
@@ -225,71 +287,88 @@ export default function ReferralTab({ switchTab }: ReferralTabProps) {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, ease: 'easeOut' }}
-        className="w-full bg-gradient-to-r from-[var(--sidebar-bg)] via-[var(--input-bg)]/20 to-[var(--sidebar-bg)] border border-[var(--border)] rounded-xl p-4 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4 relative overflow-hidden"
+        className="w-full bg-[var(--sidebar-bg)] border border-[var(--border)] rounded-2xl p-5 shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4 relative overflow-hidden"
       >
-        {/* Left gold border accent */}
-        <div className="absolute top-0 bottom-0 left-0 w-[3px] bg-[var(--accent)] opacity-85" />
+        {/* Left border accent */}
+        <div className={`absolute top-0 bottom-0 left-0 w-[4px] ${isFree ? 'bg-amber-500' : 'bg-emerald-500'} opacity-90`} />
 
         <div className="flex flex-col sm:flex-row sm:items-center gap-4 flex-1">
-          {/* Lock status icon */}
-          <div className="w-10 h-10 rounded-lg bg-[var(--input-bg)] border border-[var(--border)] flex items-center justify-center shrink-0 text-[var(--accent)] relative shadow-inner">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-            </svg>
-            {isFree && (
-              <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-              </span>
+          {/* Status icon container */}
+          <div className={`w-11 h-11 rounded-xl border flex items-center justify-center shrink-0 relative shadow-inner ${
+            isFree 
+              ? 'bg-amber-500/10 border-amber-500/30 text-amber-500' 
+              : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500'
+          }`}>
+            {isFree ? (
+              <>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+                <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+                </span>
+              </>
+            ) : (
+              <>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                  <path d="m9 12 2 2 4-4"/>
+                </svg>
+                <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                </span>
+              </>
             )}
           </div>
 
           {/* Telemetry info */}
-          <div className="space-y-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-bold text-[var(--text)] tracking-tight">
+          <div className="space-y-1.5">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span className="text-sm font-extrabold text-[var(--text)] tracking-tight">
                 {ratesData?.userPlan ? ratesData.userPlan.toUpperCase() : 'FREE'} PLAN &middot; {ratesData?.tierLabel || 'Standard'} Execution
               </span>
               {isFree ? (
-                <span className="px-2 py-0.5 rounded-full text-[9px] font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 uppercase tracking-wider flex items-center gap-1">
-                  <span className="w-1 h-1 rounded-full bg-amber-500" />
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold text-amber-500 bg-amber-500/10 border border-amber-500/25 uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
                   Wallet Locked
                 </span>
               ) : (
-                <span className="px-2 py-0.5 rounded-full text-[9px] font-bold text-green-500 bg-green-500/10 border border-green-500/20 uppercase tracking-wider flex items-center gap-1">
-                  <span className="w-1 h-1 rounded-full bg-green-500 animate-pulse" />
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold text-emerald-500 bg-emerald-500/10 border border-emerald-500/25 uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                   Withdrawals Active
                 </span>
               )}
             </div>
             
-            <div className="flex flex-wrap items-center gap-x-2.5 text-[11px] text-[var(--subtext)] font-mono">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--subtext)] font-mono">
               <span>Rate: <strong className="text-[var(--text)] font-bold">${ratesData?.effectiveRate || '1.20'}/lot</strong></span>
-              <span className="opacity-30">|</span>
+              <span className="opacity-30">&bull;</span>
               <span>Multiplier: <strong className="text-[var(--text)] font-bold">{ratesData?.planMultiplier || '0.60'}x</strong></span>
-              <span className="opacity-30">|</span>
+              <span className="opacity-30">&bull;</span>
               <span>Node Connection: <strong className="text-[var(--text)] font-bold">1 Max</strong></span>
               {isFree && (
                 <>
-                  <span className="opacity-30">|</span>
-                  <span className="text-amber-500/90 font-medium">Upgrade to Pro to unlock assets & payouts</span>
+                  <span className="opacity-30">&bull;</span>
+                  <span className="text-amber-500/90 font-semibold">Upgrade to Pro to unlock assets & payouts</span>
                 </>
               )}
             </div>
           </div>
         </div>
 
-        {/* Upgrade Button */}
-        {switchTab && ratesData?.userPlan !== 'enterprise' && (
+        {/* Upgrade Button — Only shown if user is on Free / Starter plan */}
+        {switchTab && isFree && (
           <div className="shrink-0 flex items-center gap-3">
             <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
               onClick={() => switchTab('subscription')}
-              className="px-4 py-2 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider transition-all duration-150 shadow-[0_2px_10px_rgba(245,158,11,0.15)] cursor-pointer"
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs uppercase tracking-wider transition-all duration-150 shadow-[0_4px_14px_rgba(245,158,11,0.25)] cursor-pointer"
             >
-              {isFree ? 'Activate Premium' : 'Upgrade Plan'}
+              Activate Premium
             </motion.button>
           </div>
         )}

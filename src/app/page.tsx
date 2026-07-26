@@ -1,12 +1,14 @@
 'use client';
 
 import React, { useState, useEffect, lazy, Suspense } from 'react';
+import { ShieldCheck, ArrowRight } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
 import ModalNode from '@/components/ModalNode';
 import TerminalTab from '@/components/TerminalTab';
 import AstroDisclaimerModal from '@/components/AstroDisclaimerModal';
 import BrokerLimitModal from '@/components/BrokerLimitModal';
+import { PhoneVerificationModal } from '@/components/PhoneVerificationModal';
 import { createClient } from '@/lib/supabase/client';
 import { Broker, ChatMessage, Partner, TradeLog } from '@/types';
 
@@ -44,6 +46,8 @@ function HomeContent() {
 
   const [isFree, setIsFree] = useState(true);
   const [dailySignalsUsed, setDailySignalsUsed] = useState(0);
+  const [phoneVerified, setPhoneVerified] = useState(true);
+  const [phoneModalOpen, setPhoneModalOpen] = useState(false);
 
   // Initial Brokers Data — starts empty (SSR safe), cache loaded in useEffect
   const [brokers, setBrokersRaw] = useState<Broker[]>([]);
@@ -266,13 +270,31 @@ function HomeContent() {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data, error } = await supabase.from('profiles').select('plan, daily_signals_used').eq('id', user.id).maybeSingle();
+        const { data, error } = await supabase.from('profiles').select('plan, daily_signals_used, phone_verified').eq('id', user.id).maybeSingle();
         console.log('CLIENT FETCH PLAN DATA:', data, 'ERROR:', error);
         if (data) {
           if (data.plan) {
             setIsFree(data.plan === 'free' || data.plan === 'starter');
           }
-          setDailySignalsUsed(data.daily_signals_used ?? 0);
+          const { data: configData } = await supabase
+            .from('platform_config')
+            .select('value')
+            .eq('key', 'phone_verification_required')
+            .maybeSingle();
+
+          const isRequired = configData?.value !== false && configData?.value !== 'false';
+
+          if (isRequired) {
+            const isCookieVerified = typeof window !== 'undefined' && (localStorage.getItem('tgpt_phone_verified') === 'true' || document.cookie.includes('phone_verified=true'));
+            const isVerified = Boolean(data?.phone_verified) || isCookieVerified;
+            setPhoneVerified(isVerified);
+            if (!isVerified) {
+              window.location.href = '/verify-phone';
+              return;
+            }
+          } else {
+            setPhoneVerified(true);
+          }
         }
       }
     } catch (err) {
@@ -601,6 +623,35 @@ function HomeContent() {
           currentTab={currentTab}
         />
 
+        {/* Unverified Mobile Floating Security Bar */}
+        {!phoneVerified && (
+          <div className="mx-4 my-2.5 p-3.5 px-5 rounded-2xl bg-[#0d0f17]/95 border border-amber-500/30 shadow-[0_4px_25px_rgba(0,0,0,0.6)] backdrop-blur-xl flex items-center justify-between gap-4 text-xs shrink-0 animate-fadeIn">
+            <div className="flex items-center gap-3.5">
+              <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+                <ShieldCheck size={20} />
+              </div>
+              <div>
+                <div className="font-bold text-white tracking-tight flex items-center gap-2">
+                  <span>Mobile Identity Verification Required</span>
+                  <span className="px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-[10px] font-mono font-bold text-amber-400">
+                    ACTION REQUIRED
+                  </span>
+                </div>
+                <p className="text-[11px] text-gray-400 mt-0.5 hidden sm:block">
+                  Authenticate your mobile phone number to enable SMS alerts and secure your trading terminal account.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setPhoneModalOpen(true)}
+              className="px-4 py-2 bg-gradient-to-r from-[#ff3c00] via-[#ff5500] to-[#e03500] hover:shadow-[0_0_20px_rgba(255,60,0,0.4)] text-white font-bold rounded-xl transition-all duration-300 text-xs shrink-0 cursor-pointer flex items-center gap-1.5"
+            >
+              <span>Verify Mobile</span>
+              <ArrowRight size={14} />
+            </button>
+          </div>
+        )}
+
         {/* Tab display contents */}
         <div id="scroll-area" className={`flex-1 no-scrollbar relative flex flex-col bg-[var(--bg)] ${currentTab === 'terminal' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
           {currentTab === 'terminal' && (
@@ -772,6 +823,16 @@ function HomeContent() {
         onUpgrade={() => setCurrentTab('subscription')}
         isFree={isFree}
         brokersCount={brokers.length}
+      />
+
+      {/* Phone Verification Modal */}
+      <PhoneVerificationModal
+        isOpen={phoneModalOpen}
+        onSuccess={() => {
+          setPhoneVerified(true);
+          setPhoneModalOpen(false);
+        }}
+        onCancel={() => setPhoneModalOpen(false)}
       />
     </div>
   );
