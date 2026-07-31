@@ -1,0 +1,649 @@
+/* Landing page styles — Volt on Ink. Consumed by app/page.tsx (server). */
+
+/* ---------------------------------------------------------------- HERO */
+/* Split hero: copy left, the live decision-console poster right (inline
+   SVG — zero network weight, zero CLS, theme-aware). Stacks <1024px.
+   The full-bleed demo video is gone: the console IS the demo. */
+.hp-hero {
+  position: relative;
+  width: 100%;
+  overflow-x: clip;
+  background: var(--grad-hero);
+  border-bottom: 1px solid var(--border-1);
+}
+.hp-hero-grid {
+  display: grid;
+  /* Art labels are authored in SVG user units, so the console's render width
+     sets their CSS size. At the old 1.05/0.95 split the column measured 496px
+     against a 640-unit viewBox — 0.775×, which shrank every label below its
+     authored size. Evening the split buys back ~40px of scale without
+     squeezing the h1 (its longest word, "intelligence.", needs ~461px at the
+     82px display step). */
+  grid-template-columns: minmax(0, 0.98fr) minmax(0, 1.02fr);
+  gap: clamp(40px, 5vw, 80px);
+  align-items: center;
+  padding-block: clamp(64px, 9vh, 112px);
+}
+/* copy is a grid sibling of .hp-hero-visual, whose ::before aura is a
+   positioned element — lift the copy into the same painting tier so the
+   blurred tint can never paint over the H1 (same pattern as brand.css
+   `.hp-bc > :not(.hp-bc-watermark)`). */
+.hp-hero-copy { min-width: 0; position: relative; z-index: 1; }
+.hp-hero-copy h1 {
+  margin: 18px 0 0;
+  max-width: 15ch;
+  text-wrap: balance;
+}
+.hp-hero-sub {
+  margin: 22px 0 0;
+  max-width: 54ch;
+  font-size: var(--text-lg);
+  line-height: var(--leading-body);
+  color: var(--text-mid);
+  text-wrap: pretty;
+}
+.hp-hero-disclaimer {
+  margin-top: 22px;
+  max-width: 520px;
+}
+.hp-seatline {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--text-mid);
+  letter-spacing: 0.02em;
+  margin-top: 20px;
+}
+.hp-seatline b {
+  color: var(--volt-400);
+  font-weight: var(--weight-semibold);
+}
+/* the console column */
+.hp-hero-visual {
+  position: relative;
+  min-width: 0;
+  justify-self: end;
+  width: min(100%, 640px);
+}
+/* volt/pulse aura behind the console — decoration only. It is pinned to the
+   bottom tier (z-index 0) with the console lifted above it, so painting order
+   never depends on the grid's column ratio. */
+.hp-hero-visual::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset: -10% -8%;
+  /* No `filter: blur()`. Two radial gradients are already soft, and blurring a
+     hero-sized layer is a real rasterisation cost on the critical path — the
+     mobile Lighthouse profile spends its LCP budget on main-thread rendering,
+     not on the network. The stops are widened instead, which is where the
+     softness actually comes from; visually indistinguishable, and free. */
+  background:
+    radial-gradient(65% 60% at 28% 18%, var(--pulse-tint), transparent 78%),
+    radial-gradient(60% 65% at 76% 82%, var(--volt-tint), transparent 78%);
+  pointer-events: none;
+}
+.hp-hero-console {
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 16px 40px color-mix(in srgb, var(--ink-950) 32%, transparent));
+}
+/* Stacks at 1279, not 1023. Between those widths the two-column split gave the
+   console a ~464px column against its 640-unit viewBox (0.72×), which pushed
+   every art label under the 12px floor; stacked, it renders at its 560px cap
+   (0.88×) and clears it. The hero CTA row also stops wrapping in that band. */
+@media (max-width: 1279px) {
+  .hp-hero-grid {
+    grid-template-columns: 1fr;
+    padding-block: clamp(56px, 8vh, 88px);
+  }
+  .hp-hero-visual {
+    justify-self: stretch;
+    width: 100%;
+    max-width: 560px;
+  }
+}
+
+/* ------------------------------------------------------------ PIPELINE */
+/* One ink poster (the brand social-card surface), not four loose boxes:
+   a volt rail carries the decision through four typographic stages —
+   DATA IN ○──01──02──03──04──▶ TRADE OUT. Nodes charge up along the way:
+   volt tint → pulse at the AI gate → solid volt at execution — and a
+   data-pulse travels the rail once the section is in view. Horizontal
+   ≥1240px, vertical timeline below. Poster-invariant like brand.css:
+   every color maps from bc-pinned vars or never-remapped primitives. */
+.hp-pipe-poster { margin-top: 44px; }
+.hp-pipe-flow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  row-gap: 18px;
+  padding-top: 4px;
+}
+
+/* ---- rail terminals ---- */
+.hp-pipe-end {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--track-caps);
+  text-transform: uppercase;
+  color: var(--bc-fg-low);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  transition: opacity 250ms var(--ease-out), transform 250ms var(--ease-out);
+}
+.hp-pipe-end--in { grid-row: 1; grid-column: 1; }
+.hp-pipe-end--out { grid-row: 1; grid-column: 2; justify-self: end; transition-delay: 320ms; }
+.hp-pipe-end--in::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: var(--r-full);
+  border: 2px solid color-mix(in srgb, var(--bc-volt) 70%, transparent);
+}
+.hp-pipe-end--out::after {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: var(--r-full);
+  background: var(--bc-volt);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--bc-volt) 60%, transparent);
+}
+
+/* ---- the rail ---- */
+.hp-pipe-rail {
+  grid-row: 2;
+  grid-column: 1 / -1;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 28px;
+}
+.hp-pipe-rail::before {
+  content: "";
+  position: absolute;
+  top: 19px;
+  left: 20px;
+  right: 2px;
+  height: 2px;
+  border-radius: var(--r-full);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--bc-volt) 55%, transparent) 0%,
+    var(--pulse-500) 52%,
+    var(--bc-volt) 100%
+  );
+  opacity: 0.6;
+  transform-origin: left center;
+  transition: transform 250ms var(--ease-out);
+}
+/* data-pulse traveling the rail (under the nodes) */
+.hp-pipe-rail::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  top: 16px;
+  left: 20px;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--r-full);
+  background: var(--bc-volt);
+  box-shadow: 0 0 12px 1px color-mix(in srgb, var(--bc-volt) 70%, transparent);
+  opacity: 0;
+  pointer-events: none;
+}
+.hp-pipe-flow.is-in .hp-pipe-rail::after {
+  animation: hp-pipe-packet-x 5.5s linear 600ms infinite;
+}
+@keyframes hp-pipe-packet-x {
+  0% { left: 20px; opacity: 0; }
+  6% { opacity: 1; }
+  92% { opacity: 1; }
+  100% { left: calc(100% - 10px); opacity: 0; }
+}
+/* arrowhead where the rail exits toward the broker */
+.hp-pipe-stage:last-child::after {
+  content: "";
+  position: absolute;
+  top: 16px;
+  right: 0;
+  width: 9px;
+  height: 9px;
+  border-top: 2px solid var(--bc-volt);
+  border-right: 2px solid var(--bc-volt);
+  transform: rotate(45deg);
+}
+
+/* ---- stages: typography on the poster, no sub-boxes ---- */
+.hp-pipe-stage {
+  position: relative;
+  min-width: 0;
+  transition: opacity 250ms var(--ease-out), transform 250ms var(--ease-out);
+}
+.hp-pipe-stage:nth-child(2) { transition-delay: 80ms; }
+.hp-pipe-stage:nth-child(3) { transition-delay: 160ms; }
+.hp-pipe-stage:nth-child(4) { transition-delay: 240ms; }
+.hp-pipe-node {
+  position: relative; /* above the rail line */
+  z-index: 1;
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--bc-volt) 13%, var(--bc-bg)); /* opaque: rail must not show through */
+  border: 1px solid color-mix(in srgb, var(--bc-volt) 32%, transparent);
+  color: var(--bc-volt);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  box-shadow: 0 0 0 6px var(--bc-bg); /* halo breaks the rail around the node */
+}
+.hp-pipe-stage.is-ai .hp-pipe-node {
+  background: color-mix(in srgb, var(--pulse-500) 17%, var(--bc-bg));
+  border-color: color-mix(in srgb, var(--pulse-500) 45%, transparent);
+  color: var(--pulse-400);
+  box-shadow: 0 0 0 6px var(--bc-bg), 0 0 26px -4px color-mix(in srgb, var(--pulse-500) 45%, transparent);
+}
+.hp-pipe-stage.is-out .hp-pipe-node {
+  background: var(--grad-volt);
+  border-color: transparent;
+  color: var(--on-volt);
+  box-shadow: 0 0 0 6px var(--bc-bg), 0 0 26px -4px color-mix(in srgb, var(--bc-volt) 45%, transparent);
+}
+.hp-pipe-tag {
+  display: block;
+  margin-top: 18px;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--bc-fg-low);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hp-pipe-stage.is-ai .hp-pipe-tag { color: var(--pulse-400); }
+.hp-pipe-stage h3 {
+  margin: 8px 0 0;
+  font-size: var(--text-xl);
+  letter-spacing: var(--track-tight);
+  color: var(--bc-fg);
+}
+.hp-pipe-stage p {
+  margin: 10px 0 0;
+  font-size: var(--text-sm);
+  line-height: var(--leading-body);
+  color: var(--bc-fg-mid);
+  max-width: 62ch;
+}
+
+/* ---- reveal (only once JS marks the flow animatable — no-JS stays visible) */
+.hp-pipe-flow[data-anim]:not(.is-in) .hp-pipe-rail::before { transform: scaleX(0); }
+.hp-pipe-flow[data-anim]:not(.is-in) .hp-pipe-stage,
+.hp-pipe-flow[data-anim]:not(.is-in) .hp-pipe-end {
+  opacity: 0;
+  transform: translateY(12px);
+}
+
+.hp-pipe-foot {
+  margin-top: 22px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ---- vertical timeline below 1240px ---- */
+@media (max-width: 1240px) {
+  .hp-pipe-flow { grid-template-columns: 1fr; }
+  .hp-pipe-rail { grid-row: 2; grid-column: 1; grid-template-columns: 1fr; gap: 30px; }
+  .hp-pipe-end--out {
+    grid-row: 3;
+    grid-column: 1;
+    justify-self: start;
+    padding-left: 56px;
+  }
+  .hp-pipe-rail::before {
+    top: 20px;
+    bottom: -36px; /* run past the last stage toward TRADE OUT */
+    left: 19px;
+    right: auto;
+    width: 2px;
+    height: auto;
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--bc-volt) 55%, transparent) 0%,
+      var(--pulse-500) 52%,
+      var(--bc-volt) 100%
+    );
+    transform-origin: top center;
+  }
+  .hp-pipe-flow[data-anim]:not(.is-in) .hp-pipe-rail::before { transform: scaleY(0); }
+  .hp-pipe-rail::after { top: 20px; left: 16px; }
+  .hp-pipe-flow.is-in .hp-pipe-rail::after { animation-name: hp-pipe-packet-y; }
+  .hp-pipe-stage {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr);
+    column-gap: 16px;
+  }
+  .hp-pipe-node { grid-column: 1; grid-row: 1 / span 3; align-self: start; }
+  .hp-pipe-tag { grid-column: 2; margin-top: 4px; white-space: normal; }
+  .hp-pipe-stage h3 { grid-column: 2; margin-top: 6px; }
+  .hp-pipe-stage p { grid-column: 2; margin-top: 8px; }
+  .hp-pipe-stage:last-child::after {
+    top: auto;
+    right: auto;
+    bottom: -32px;
+    left: 15px;
+    transform: rotate(135deg);
+  }
+  .hp-pipe-foot { justify-content: flex-start; }
+}
+@keyframes hp-pipe-packet-y {
+  0% { top: 20px; opacity: 0; }
+  6% { opacity: 1; }
+  92% { opacity: 1; }
+  100% { top: calc(100% + 24px); opacity: 0; }
+}
+
+/* ------------------------------------------------------------- BROKERS */
+.hp-broker-row {
+  margin-top: 36px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.hp-broker-tile {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: var(--ctl-lg);
+  padding: 0 22px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border-1);
+  background: var(--box-surface);
+  box-shadow: var(--shadow-1);
+  font-family: var(--font-mono);
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
+  color: var(--text-hi);
+  letter-spacing: 0.02em;
+  transition: border-color var(--dur-fast) var(--ease-out);
+}
+/* machined top hairline — same recipe as .hp-card, inset past the r-md corners */
+.hp-broker-tile::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: var(--r-md);
+  right: var(--r-md);
+  height: 1px;
+  border-radius: var(--r-full);
+  background: var(--box-hairline);
+  pointer-events: none;
+}
+.hp-broker-tile:hover { border-color: var(--border-2); }
+.hp-broker-tile em {
+  font-style: normal;
+  font-size: var(--text-2xs);
+  text-transform: uppercase;
+  letter-spacing: var(--track-caps);
+  color: var(--volt-400);
+}
+/* the "rolling out" tile stays visually secondary: no machined fill, dimmed edge */
+.hp-broker-tile.hp-broker-more {
+  color: var(--text-mid);
+  background: none;
+  box-shadow: none;
+}
+.hp-broker-tile.hp-broker-more::before { opacity: 0.45; }
+.hp-broker-line {
+  margin: 22px 0 0;
+  max-width: 560px;
+  font-size: var(--text-md);
+  line-height: var(--leading-body);
+  color: var(--text-mid);
+}
+
+/* ---------------------------------------------------------- LIVE PROOF */
+.hp-proof-grid {
+  margin-top: 36px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  gap: 18px;
+  align-items: stretch;
+}
+.hp-proof-big {
+  margin-top: 6px;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--weight-semibold);
+  font-size: clamp(var(--text-5xl), 8vw, var(--text-7xl));
+  letter-spacing: var(--track-tight);
+  line-height: 1;
+  color: var(--volt-400); /* inside .hp-bc--ink this pins to poster volt */
+}
+.hp-proof-sub {
+  margin-top: 12px;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-sm);
+  color: var(--text-mid);
+}
+.hp-proof-tiles {
+  display: grid;
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.hp-proof-tile {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 22px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--border-1);
+  background: var(--box-surface);
+  box-shadow: var(--shadow-1);
+}
+.hp-proof-tile::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: var(--r-lg);
+  right: var(--r-lg);
+  height: 1px;
+  border-radius: var(--r-full);
+  background: var(--box-hairline);
+  pointer-events: none;
+}
+.hp-proof-tile dt {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-medium);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-low);
+}
+.hp-proof-tile dd {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-2xl);
+  color: var(--text-hi);
+}
+.hp-proof-tile dd.is-loss { color: var(--loss-400); }
+.hp-proof-tile dd.is-volt { color: var(--volt-400); }
+.hp-proof-foot {
+  margin: 20px 0 0;
+  max-width: 720px;
+  font-size: var(--text-sm);
+  line-height: var(--leading-body);
+  color: var(--text-mid);
+}
+@media (max-width: 1240px) {
+  .hp-proof-grid { grid-template-columns: 1fr; }
+  .hp-proof-tiles { grid-template-rows: none; }
+}
+
+/* -------------------------------------------------------- EARLY ACCESS */
+.hp-access-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 32px;
+}
+@media (max-width: 760px) {
+  .hp-access-grid { grid-template-columns: 1fr; }
+}
+.hp-perks-muted li svg { color: var(--text-low); }
+
+/* ------------------------------------------------------- ACADEMY BAND */
+.hp-learn-grid {
+  margin-top: 36px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(24px, 4vw, 56px);
+}
+.hp-learn-col {
+  border-top: 2px solid var(--volt-600);
+  padding-top: 18px;
+}
+.hp-learn-col .hp-kicker { margin-bottom: 12px; }
+.hp-learn-col h3 {
+  margin: 0;
+  font-size: var(--text-xl);
+  letter-spacing: var(--track-display);
+}
+.hp-learn-col p {
+  margin: 10px 0 18px;
+  font-size: var(--text-md);
+  line-height: var(--leading-body);
+  color: var(--text-mid);
+}
+@media (max-width: 760px) {
+  .hp-learn-grid { grid-template-columns: 1fr; }
+}
+
+/* -------------------------------------------------------------- GUARDS */
+.hp-grid-guards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.hp-guard-chip {
+  transition: transform 0.22s var(--ease-out), border-color 0.22s;
+}
+.hp-guard-chip:hover {
+  transform: translateY(-3px);
+  border-color: var(--border-2);
+}
+/* chip header row: volt icon plate left, mono rule tag right */
+.hp-guard-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.hp-guard-ico {
+  flex: none;
+  width: 42px;
+  height: 42px;
+  border-radius: var(--r-md);
+  display: grid;
+  place-items: center;
+  background: var(--volt-tint);
+  color: var(--volt-400);
+}
+@media (max-width: 1240px) {
+  .hp-grid-guards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .hp-grid-guards { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hp-guard-chip:hover { transform: none; }
+}
+
+/* ------------------------------------------------------- FOUNDING BAND */
+.hp-founding-card {
+  animation: hp-volt-glow 4.5s ease-in-out infinite;
+  border-color: color-mix(in srgb, var(--volt-500) 28%, var(--border-1));
+}
+@keyframes hp-volt-glow {
+  0%, 100% { box-shadow: 0 0 28px -10px color-mix(in srgb, var(--volt-500) 30%, transparent); }
+  50%      { box-shadow: 0 0 52px -8px color-mix(in srgb, var(--volt-500) 50%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hp-founding-card { animation: none; box-shadow: var(--glow-volt); }
+}
+.hp-founding-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  gap: clamp(32px, 4vw, 56px);
+  align-items: center;
+}
+@media (max-width: 1240px) {
+  .hp-founding-grid { grid-template-columns: 1fr; }
+}
+.hp-perks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.hp-perks li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: var(--text-md);
+  color: var(--text-mid);
+  line-height: var(--leading-tight);
+}
+.hp-perks li svg { flex: none; margin-top: 2px; color: var(--volt-400); }
+
+/* ---------------------------------------------------------- FAQ TEASER */
+.hp-faq-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+@media (max-width: 1240px) {
+  .hp-faq-grid { grid-template-columns: 1fr; }
+}
+
+/* ----------------------------------------------------------- FINAL CTA */
+.hp-cta-row {
+  display: flex;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+/* When the row wraps, both CTAs take the full width so it reads as a deliberate
+   vertical stack rather than two ragged pills. `1 1 auto` also lets them share
+   the line evenly when they do fit. */
+.hp-cta-row > a { flex: 1 1 auto; text-align: center; justify-content: center; }
+/* At 320px the column is 288px but the longest label ("Or skip the line for
+   $499") is nowrap and intrinsically ~277px at the lg step, so the pair
+   overflows. Same squeeze the product hero CTAs use: one pill per line at the
+   reduced padding/step. */
+@media (max-width: 430px) {
+  .hp-cta-row > a {
+    flex: 1 1 100%;
+    min-width: 0;
+    padding: 0 var(--sp-4) !important;
+    font-size: var(--text-md) !important;
+  }
+}
+
+/* ----------------------------------------------------------- UTILITIES */
+.hp-mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+/* .hp-arrow-link is a cross-page utility — lives in app/globals.css */
+.hp-section-head { max-width: 640px; }
+.hp-section-head h2 { margin: 12px 0 0; }
+.hp-section-head p { margin: 14px 0 0; font-size: var(--text-lg); line-height: var(--leading-body); }

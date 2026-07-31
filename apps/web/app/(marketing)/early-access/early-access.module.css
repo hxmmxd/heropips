@@ -1,0 +1,773 @@
+/* Early access — hero, conversion card, and the supporting sections.
+ * Tokens only. Shared with /early-access/status (.next* ladder). */
+
+/* ============================================================ hero shell */
+.hero {
+  position: relative;
+  background: var(--grad-hero);
+  border-bottom: 1px solid var(--border-1);
+  overflow: clip;
+}
+
+.heroGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-10);
+  align-items: start;
+  padding-block: clamp(40px, 7vh, 88px) clamp(48px, 8vh, 96px);
+}
+
+@media (min-width: 1024px) {
+  .heroGrid {
+    grid-template-columns: 1.02fr 0.98fr;
+    gap: clamp(40px, 5vw, 72px);
+  }
+  /* The card follows on long pages — the CTA is never scrolled away. */
+  .heroCardCol {
+    position: sticky;
+    top: var(--sp-6);
+  }
+}
+
+.h1 {
+  margin: var(--sp-4) 0 0;
+  max-width: 15ch;
+  text-wrap: balance;
+}
+
+/** The open position, rendered as the headline's own number. */
+.h1Num {
+  color: var(--volt-400);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+}
+
+.lede {
+  margin: var(--sp-5) 0 0;
+  max-width: 52ch;
+  font-size: var(--text-lg);
+  line-height: var(--leading-body);
+  color: var(--text-mid);
+  text-wrap: pretty;
+}
+
+/* ---------------------------------------------- live counters under lede */
+.stats {
+  /* Counters tick live — inherited so the whole strip stays width-stable. */
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  margin: var(--sp-8) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stat {
+  flex: 1 1 150px;
+  min-width: 0;
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--border-1);
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--surface-2) 70%, transparent);
+}
+
+.statNum {
+  display: block;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-semibold);
+  line-height: 1.1;
+  color: var(--text-hi);
+  letter-spacing: -0.02em;
+}
+
+.stat[data-tone="volt"] .statNum {
+  color: var(--volt-400);
+}
+
+.statLabel {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--track-caps);
+  text-transform: uppercase;
+  color: var(--text-low);
+}
+
+.trustRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2) var(--sp-4);
+  margin: var(--sp-6) 0 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.04em;
+  color: var(--text-low);
+}
+
+.trustRow li {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.trustRow li::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: var(--r-full);
+  background: var(--volt-500);
+  flex: none;
+}
+
+/* ======================================================== the flow card */
+.flowCard {
+  padding: clamp(20px, 3.4vw, 34px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+}
+
+.flowHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.progress {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.progressSeg {
+  width: 18px;
+  height: 4px;
+  border-radius: var(--r-full);
+  background: var(--surface-3);
+  transition: background var(--dur-med) var(--ease-out);
+}
+
+.progressSeg[data-state="done"] {
+  background: var(--volt-400);
+}
+
+.progressSeg[data-state="active"] {
+  background: var(--volt-400);
+  opacity: 0.55;
+}
+
+.step {
+  animation: stepIn var(--dur-med) var(--ease-out);
+}
+
+@keyframes stepIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.stepMeta {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--track-caps);
+  text-transform: uppercase;
+  color: var(--text-low);
+}
+
+.stepTitle {
+  margin: var(--sp-2) 0 0;
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-semibold);
+  color: var(--text-hi);
+  letter-spacing: var(--track-tight);
+  line-height: var(--leading-heading);
+  outline: none;
+}
+
+.stepHint {
+  margin: var(--sp-2) 0 0;
+  font-size: var(--text-sm);
+  line-height: var(--leading-body);
+  color: var(--text-mid);
+}
+
+/* --------------------------------------------------------- answer chips */
+.chipGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-top: var(--sp-5);
+  border: 0;
+  padding: 0;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--ctl-md);
+  padding: 0 18px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--border-2);
+  background: var(--surface-2);
+  color: var(--text-hi);
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+  transition:
+    border-color var(--dur-fast),
+    background var(--dur-fast),
+    transform var(--dur-fast);
+}
+
+.chip:hover {
+  border-color: var(--border-3);
+  transform: translateY(-1px);
+}
+
+.chip:focus-visible {
+  outline: none;
+  box-shadow: var(--ring-volt);
+}
+
+.chip[aria-pressed="true"] {
+  background: var(--volt-tint);
+  border-color: var(--volt-400);
+}
+
+.chipTick {
+  display: none;
+  color: var(--volt-400);
+}
+
+.chip[aria-pressed="true"] .chipTick {
+  display: inline-flex;
+}
+
+/* ------------------------------------------------------- nav + controls */
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  margin-top: var(--sp-6);
+  flex-wrap: wrap;
+}
+
+.ghostBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--ctl-md);
+  padding: 0 10px;
+  border: 0;
+  background: none;
+  color: var(--text-low);
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+  border-radius: var(--r-sm);
+  transition: color var(--dur-fast);
+}
+
+.ghostBtn:hover:not(:disabled) {
+  color: var(--text-hi);
+}
+
+.ghostBtn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.ghostBtn:focus-visible {
+  outline: none;
+  box-shadow: var(--ring-volt);
+}
+
+.footNote {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--text-low);
+}
+
+/* --------------------------------------------------- profile edit chips */
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.summaryChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: var(--r-full);
+  background: var(--surface-3);
+  border: 1px solid var(--border-1);
+  color: var(--text-mid);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition:
+    border-color var(--dur-fast),
+    color var(--dur-fast);
+}
+
+.summaryChip:hover {
+  border-color: var(--volt-400);
+  color: var(--text-hi);
+}
+
+.summaryChip:focus-visible {
+  outline: none;
+  box-shadow: var(--ring-volt);
+}
+
+/* ===================================================== 6-digit code input */
+.codeRow {
+  display: flex;
+  gap: clamp(6px, 2vw, 10px);
+  margin-top: var(--sp-2);
+}
+
+.codeBox {
+  flex: 1 1 0;
+  min-width: 0;
+  width: 100%;
+  height: var(--ctl-lg);
+  padding: 0;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-semibold);
+  color: var(--text-hi);
+  background: var(--surface-2);
+  border: 1px solid var(--border-2);
+  border-radius: var(--r-md);
+  caret-color: var(--volt-400);
+  transition:
+    border-color var(--dur-fast),
+    background var(--dur-fast);
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.codeBox::-webkit-outer-spin-button,
+.codeBox::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.codeBox[data-filled="true"] {
+  border-color: var(--volt-400);
+  background: var(--volt-tint);
+}
+
+.codeBox:focus {
+  outline: none;
+  border-color: var(--volt-400);
+  box-shadow: var(--ring-volt);
+}
+
+.codeRow[data-invalid="true"] .codeBox {
+  border-color: var(--loss-500);
+}
+
+.codeRow[data-invalid="true"] .codeBox:focus {
+  box-shadow: var(--ring-loss);
+}
+
+.sentTo {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  font-size: var(--text-sm);
+  color: var(--text-mid);
+}
+
+.sentTo strong {
+  font-family: var(--font-mono);
+  font-weight: var(--weight-semibold);
+  color: var(--text-hi);
+}
+
+.devHint {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 10px 14px;
+  border: 1px dashed var(--warn-400);
+  border-radius: var(--r-sm);
+  background: var(--warn-tint);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-mid);
+}
+
+.devHint b {
+  color: var(--text-hi);
+  letter-spacing: 0.14em;
+}
+
+/* ================================================ success / claimed state */
+.claimNum {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(var(--text-5xl), 8vw, var(--text-7xl));
+  font-weight: var(--weight-semibold);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--volt-400);
+  margin-top: var(--sp-3);
+}
+
+.codeChip {
+  font-family: var(--font-mono);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-semibold);
+  color: var(--text-hi);
+  background: var(--surface-3);
+  border: 1px solid var(--border-2);
+  border-radius: var(--r-sm);
+  padding: 8px 16px;
+  letter-spacing: 0.08em;
+}
+
+/* ------------------------------------------------- success next-steps */
+.next {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.nextRow {
+  display: flex;
+  gap: var(--sp-3);
+  align-items: baseline;
+  font-size: var(--text-sm);
+  color: var(--text-mid);
+}
+
+.nextMark {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--r-full);
+  background: var(--border-3);
+  align-self: center;
+}
+
+.nextRow[data-state="now"] .nextMark {
+  background: var(--volt-400);
+  box-shadow: 0 0 8px var(--volt-400);
+}
+
+.nextLabel {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--track-caps);
+  text-transform: uppercase;
+  color: var(--text-low);
+  width: 44px;
+  flex: none;
+}
+
+/* ==================================================== the fork (two ways in) */
+.fork {
+  display: grid;
+  /* minmax(0,…) — a bare 1fr track floors at the card's min-content, which the
+     nowrap CTA pill inside it pushes past the 320px viewport. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--sp-4);
+  margin-top: var(--sp-8);
+  align-items: stretch;
+}
+
+@media (min-width: 860px) {
+  .fork {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+.forkCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  padding: clamp(20px, 3vw, 30px);
+  height: 100%;
+  min-width: 0;
+}
+
+/* At 320px the card's content box is 246px but the primary label is nowrap and
+   intrinsically ~281px, so the pill tightens — the same squeeze the product
+   hero CTAs use. :global because .hp-btn is the primitive's own class. */
+@media (max-width: 430px) {
+  .forkCard > :global(.hp-btn) {
+    align-self: stretch !important;
+    min-width: 0;
+    padding: 0 var(--sp-4) !important;
+    font-size: var(--text-sm) !important;
+  }
+}
+
+.forkHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+.forkPrice {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-4xl);
+  font-weight: var(--weight-semibold);
+  color: var(--text-hi);
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.forkCard[data-accent="volt"] .forkPrice {
+  color: var(--volt-400);
+}
+
+.forkMeta {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-low);
+}
+
+.check {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+
+.check li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: var(--text-sm);
+  line-height: var(--leading-body);
+  color: var(--text-mid);
+}
+
+.check li svg {
+  flex: none;
+  margin-top: 3px;
+  color: var(--volt-400);
+}
+
+/* Excluded rows are real comparison content, not decoration: the text stays at
+   full reading strength (--text-mid, inherited from .check li) and the state is
+   carried by the dash icon, not by a contrast drop. */
+.check li[data-off="true"] svg {
+  color: var(--text-mid);
+}
+
+/* ================================================= the 3-step launch path */
+.journey {
+  list-style: none;
+  margin: var(--sp-8) 0 0;
+  padding: 0;
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-4);
+}
+
+@media (min-width: 900px) {
+  .journey {
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--sp-5);
+  }
+}
+
+.jStep {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-6);
+  border: 1px solid var(--border-1);
+  border-radius: var(--r-lg);
+  background: var(--box-surface);
+  border-top: 2px solid var(--volt-600);
+}
+
+.jNum {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-sm);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  color: var(--volt-400);
+  background: var(--volt-tint);
+  border: 1px solid color-mix(in srgb, var(--volt-400) 32%, transparent);
+}
+
+.jTitle {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--text-hi);
+  letter-spacing: var(--track-tight);
+}
+
+.jBody {
+  color: var(--text-mid);
+  font-size: var(--text-sm);
+  line-height: var(--leading-body);
+}
+
+/* ============================================================ referral math */
+.mathRow {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-4);
+  margin-top: var(--sp-6);
+}
+
+@media (min-width: 720px) {
+  .mathRow {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.mathTile {
+  padding: var(--sp-5);
+  border: 1px solid var(--border-1);
+  border-radius: var(--r-md);
+  background: var(--surface-1);
+  text-align: center;
+}
+
+.mathNum {
+  display: block;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-semibold);
+  color: var(--volt-400);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.mathLabel {
+  display: block;
+  margin-top: 6px;
+  font-size: var(--text-sm);
+  color: var(--text-mid);
+}
+
+/* ============================================================ value tiles */
+.valueGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-4);
+  margin-top: var(--sp-8);
+}
+
+@media (min-width: 640px) {
+  .valueGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .valueGrid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.valueCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-5);
+  height: 100%;
+}
+
+.valueTitle {
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  color: var(--text-hi);
+  letter-spacing: var(--track-tight);
+}
+
+.valueBody {
+  font-size: var(--text-sm);
+  line-height: var(--leading-body);
+  color: var(--text-mid);
+}
+
+/* ================================================================== faq */
+.faq {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-3);
+  margin-top: var(--sp-8);
+}
+
+@media (min-width: 860px) {
+  .faq {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.faqItem {
+  padding: var(--sp-5);
+  border: 1px solid var(--border-1);
+  border-radius: var(--r-md);
+  background: var(--surface-1);
+}
+
+.faqQ {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  color: var(--text-hi);
+  letter-spacing: var(--track-tight);
+  line-height: var(--leading-tight);
+}
+
+.faqA {
+  margin: var(--sp-2) 0 0;
+  font-size: var(--text-sm);
+  line-height: var(--leading-body);
+  color: var(--text-mid);
+}

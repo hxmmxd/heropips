@@ -1,0 +1,7 @@
+/* Q cards ride the shared v2 box recipe (.hp-card in @heropips/ui/ui.css):
+ * top-lit surface, hairline top edge, shadow. Accordion behavior comes from
+ * .hp-faq-item in globals.css. */
+.list {
+  display: grid;
+  gap: 12px;
+}

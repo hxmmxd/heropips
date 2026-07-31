@@ -1,0 +1,334 @@
+/* Contextual brand art — dimensional (isometric) SVG scenes.
+ *
+ * One drawing system for the whole site:
+ *   solids     → three-face extrusion, shaded by mixing the face color
+ *                toward white (top) and black (right) — works in both themes
+ *   labels     → flat, unskewed JetBrains chips floating over the scene
+ *   volt       → the money path only · pulse → AI only · profit/loss → markets
+ *   motion     → floats, beacon breathing, energy-flow dashes, offset-path
+ *                sparks. All CSS-only; tokens.css kills every animation under
+ *                prefers-reduced-motion.
+ * Every piece is decorative (aria-hidden) and ships zero JS.
+ */
+
+.hp-art {
+  display: block;
+  width: 100%;
+  height: auto;
+  user-select: none;
+
+  /* --- 3D shading system (theme-tuned below) --- */
+  --hp3-lift: #ffffff;
+  --hp3-shade: #01040b;
+  --hp3-keep-t: 76%; /* top face:   keep% of --f, rest --hp3-lift  */
+  --hp3-keep-l: 92%; /* left face:  keep% of --f, rest --hp3-shade */
+  --hp3-keep-r: 58%; /* right face: keep% of --f, rest --hp3-shade */
+  --hp3-rim: rgba(255, 255, 255, 0.22);
+  --hp3-edge: rgba(255, 255, 255, 0.08);
+  --hp3-gs: rgba(0, 0, 0, 0.55);
+  --hp3-grid: rgba(243, 245, 250, 0.07);
+  --hp3-volt: var(--volt-400);
+  --hp3-pulse: var(--pulse-400);
+  --hp3-glass: var(--volt-500);
+  --hp3-glass-op: 0.32;
+  --hp3-chip-shadow: drop-shadow(0 10px 18px rgba(1, 4, 11, 0.45));
+  --hp3-card-shadow: drop-shadow(0 18px 32px rgba(1, 4, 11, 0.5));
+  /* halo painted under floating labels (see the type block below) */
+  --hp3-halo: color-mix(in srgb, var(--ink-950) 88%, transparent);
+}
+[data-theme="light"] .hp-art {
+  --hp3-keep-t: 58%;
+  --hp3-keep-l: 95%;
+  --hp3-keep-r: 68%;
+  --hp3-rim: rgba(20, 23, 26, 0.3);
+  --hp3-edge: rgba(20, 23, 26, 0.12);
+  --hp3-gs: rgba(20, 23, 26, 0.3);
+  --hp3-grid: rgba(20, 23, 26, 0.07);
+  --hp3-pulse: var(--pulse-300);
+  --hp3-glass: var(--volt-600);
+  --hp3-glass-op: 0.4;
+  --hp3-chip-shadow: drop-shadow(0 8px 14px rgba(20, 23, 26, 0.16));
+  --hp3-card-shadow: drop-shadow(0 16px 28px rgba(20, 23, 26, 0.18));
+  --hp3-halo: color-mix(in srgb, var(--paper-50) 90%, transparent);
+}
+
+/* ---------------------------------------------------------------- type
+ * Art label scale, authored in SVG user units. Every scene draws on a
+ * 560–640-unit viewBox and renders between ~0.83× (the hero console, in its
+ * desktop grid column) and 1.0×, so a label authored at N units lands at
+ * 0.83N–N CSS px. The floor below is 15 units → ≥12.5 CSS px, against the
+ * 8.5–11 units this system used to author: 6.6–8.5 CSS px at 400 weight in
+ * --text-low, which measured 4.05:1 on --surface-1 once the old 0.85 opacity
+ * was applied — below AA and not readable at any weight.
+ *
+ * Three things changed together, because size alone does not fix legibility
+ * over a shaded 3D scene:
+ *   size   → the steps below, never smaller than --al-xs
+ *   weight → 600 default / 700 for the --hi tone (mono now ships 700)
+ *   halo   → a canvas-colored stroke painted UNDER the glyph
+ *            (paint-order: stroke), so a label stays readable where it
+ *            crosses a lit top face, a volt beam or a grid line
+ * Labels that already sit on an opaque chip/card backing opt out of the halo.
+ *
+ * These five values mirror `AL` in iso.tsx, which Chip uses to size its own
+ * backing rect — change both together or chips will clip their labels.
+ */
+.hp-art { --al-xs:15px; --al-sm:16px; --al-md:17px; --al-lg:19px; --al-xl:22px; }
+.hp-art-mono {
+  font-family: var(--font-mono);
+  font-size: var(--al-md);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.05em;
+  fill: var(--text-mid);
+  paint-order: stroke;
+  stroke: var(--hp3-halo);
+  stroke-width: 3.5px;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+/* Tighter tracking on the smallest tier: it carries the longest strings
+   (18-char eyebrows inside a 196-unit card) and 0.05em would overrun them. */
+.hp-art-mono--xs { font-size: var(--al-xs); letter-spacing: 0.02em; }
+.hp-art-mono--sm { font-size: var(--al-sm); }
+.hp-art-mono--md { font-size: var(--al-md); }
+.hp-art-mono--lg { font-size: var(--al-lg); letter-spacing: 0.03em; }
+.hp-art-mono--xl { font-size: var(--al-xl); letter-spacing: 0.02em; }
+.hp-art-mono--hi { fill: var(--text-hi); font-weight: var(--weight-bold); }
+.hp-art-mono--mid { fill: var(--text-mid); }
+.hp-art-mono--volt { fill: var(--hp3-volt); font-weight: var(--weight-bold); }
+.hp-art-mono--pulse { fill: var(--hp3-pulse); font-weight: var(--weight-bold); }
+.hp-art-mono--loss { fill: var(--loss-400); font-weight: var(--weight-bold); }
+.hp-art-mono--profit { fill: var(--profit-400); font-weight: var(--weight-bold); }
+/* On an opaque panel the halo would read as a dark outline, not a lift. */
+.hp3-chip text,
+.hp3-card text { stroke: none; }
+/* Oversized watermark numeral (404) — decoration, never a label. */
+.hp3-ghost {
+  fill: var(--text-hi);
+  opacity: 0.06;
+  stroke: none;
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+/* Below ~560px every scene renders under half its viewBox width (288px against
+   640 units on a 320px phone = 0.45×), which would put even the --al-xl tier
+   at 9.9 CSS px. No size or weight fixes that — the geometry has no room for
+   a 27-unit label inside a 196-unit card. So the label layer drops out rather
+   than ship sub-legible text. Nothing is lost: every scene is aria-hidden
+   decoration, and each word it carried already exists as real HTML in its
+   <figcaption> and in the section copy beside it. What carries at this size is
+   the drawing itself — the extruded solids, the beams, the motion. */
+@media (max-width: 560px) {
+  .hp-art .hp3-chip,
+  .hp-art .hp3-card,
+  .hp-art text:not(.hp3-ghost) { display: none; }
+}
+
+/* -------------------------------------------------------------- solids */
+/* Faces read `--f` (base color) from their group; shading is theme-safe
+   because lighten-toward-white / darken-toward-black works on ink and paper. */
+.hp3-t {
+  fill: color-mix(in srgb, var(--f, var(--surface-3)) var(--hp3-keep-t), var(--hp3-lift));
+  stroke: var(--rim, var(--hp3-rim));
+  stroke-width: 1;
+  stroke-linejoin: round;
+  paint-order: stroke;
+}
+.hp3-l {
+  fill: color-mix(in srgb, var(--f, var(--surface-3)) var(--hp3-keep-l), var(--hp3-shade));
+  stroke: var(--hp3-edge);
+  stroke-width: 0.75;
+  stroke-linejoin: round;
+}
+.hp3-r {
+  fill: color-mix(in srgb, var(--f, var(--surface-3)) var(--hp3-keep-r), var(--hp3-shade));
+  stroke: var(--hp3-edge);
+  stroke-width: 0.75;
+  stroke-linejoin: round;
+}
+/* deep face for under-sides (octahedra, debris) */
+.hp3-d {
+  fill: color-mix(in srgb, var(--f, var(--surface-3)) 40%, var(--hp3-shade));
+  stroke: var(--hp3-edge);
+  stroke-width: 0.75;
+  stroke-linejoin: round;
+}
+
+/* ground contact — soft blurred ellipse */
+.hp3-gs {
+  fill: var(--hp3-gs);
+  filter: blur(9px);
+}
+
+/* iso floor/top grid lines */
+.hp3-grid { stroke: var(--hp3-grid); fill: none; stroke-width: 1; }
+
+/* thin structural wire */
+.hp3-wire { stroke: var(--border-3); fill: none; }
+
+/* ------------------------------------------------------------ energy */
+/* vertical energy sheet standing in a gate */
+.hp3-glass { fill: var(--hp3-glass); opacity: var(--hp3-glass-op); }
+.hp3-glass-halo { fill: var(--hp3-glass); opacity: 0.22; filter: blur(10px); }
+
+/* flowing beams — dash marches along the path */
+.hp3-beam {
+  fill: none;
+  stroke: var(--hp3-volt);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 4 10;
+  animation: hp3-flow 1.3s linear infinite;
+  opacity: 0.9;
+}
+.hp3-beam--pulse { stroke: var(--hp3-pulse); }
+.hp3-beam--loss { stroke: var(--loss-400); }
+.hp3-beam--soft {
+  stroke: var(--border-3);
+  stroke-width: 1.5;
+  animation-duration: 2.6s;
+  opacity: 1;
+}
+@keyframes hp3-flow {
+  to { stroke-dashoffset: -14; }
+}
+
+/* one-shot line draw (set --len to ≥ path length) */
+.hp3-draw {
+  stroke-dasharray: var(--len, 800);
+  stroke-dashoffset: var(--len, 800);
+  animation: hp3-draw 1.7s var(--ease-out) forwards;
+}
+@keyframes hp3-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+/* the living dot that rides a rail (hidden without offset-path support) */
+.hp3-spark {
+  fill: var(--hp3-volt);
+  filter: drop-shadow(0 0 6px var(--hp3-glass));
+  opacity: 0;
+}
+@supports (offset-path: path("M0 0 L10 10")) {
+  .hp3-spark[style*="offset-path"] {
+    animation: hp3-ride 5.5s linear infinite;
+  }
+}
+@keyframes hp3-ride {
+  0% { offset-distance: 0%; opacity: 0; }
+  8% { opacity: 1; }
+  92% { opacity: 1; }
+  100% { offset-distance: 100%; opacity: 0; }
+}
+
+/* ------------------------------------------------------------ beacons */
+.hp3-beacon-core { fill: var(--bc, var(--hp3-volt)); }
+.hp3-beacon-halo {
+  fill: var(--bc, var(--hp3-volt));
+  opacity: 0.24;
+  animation: hp3-breathe 2.7s ease-in-out infinite;
+}
+@keyframes hp3-breathe {
+  0%, 100% { opacity: 0.12; }
+  50% { opacity: 0.4; }
+}
+/* AI core inner light */
+.hp3-core-pulse { animation: hp3-core 2.4s ease-in-out infinite; }
+@keyframes hp3-core {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* -------------------------------------------------------------- chips */
+/* flat, unskewed labels floating over the 3D scene */
+.hp3-chip rect {
+  fill: var(--cbg, var(--surface-raised));
+  stroke: var(--cbd, var(--border-2));
+  stroke-width: 1.25;
+}
+.hp3-chip { filter: var(--hp3-chip-shadow); }
+.hp3-chip text { letter-spacing: 0.05em; font-weight: var(--weight-bold); fill: var(--ctx, var(--text-hi)); }
+.hp3-chip--volt {
+  --cbg: color-mix(in srgb, var(--volt-500) 16%, var(--surface-2));
+  --cbd: color-mix(in srgb, var(--volt-500) 55%, transparent);
+  --ctx: var(--hp3-volt);
+}
+.hp3-chip--pulse {
+  --cbg: color-mix(in srgb, var(--pulse-500) 14%, var(--surface-2));
+  --cbd: color-mix(in srgb, var(--pulse-500) 50%, transparent);
+  --ctx: var(--hp3-pulse);
+}
+.hp3-chip--profit {
+  --cbg: color-mix(in srgb, var(--profit-500) 14%, var(--surface-2));
+  --cbd: color-mix(in srgb, var(--profit-500) 50%, transparent);
+  --ctx: var(--profit-400);
+}
+.hp3-chip--loss {
+  --cbg: color-mix(in srgb, var(--loss-500) 12%, var(--surface-2));
+  --cbd: color-mix(in srgb, var(--loss-500) 50%, transparent);
+  --ctx: var(--loss-400);
+}
+/* Ghost chips carry no tint, so the label needs the canvas scrim as its
+   backing — without a fill the glyphs sit straight on the 3D solids. */
+.hp3-chip--ghost {
+  --cbg: var(--hp3-halo);
+  --cbd: var(--border-2);
+  --ctx: var(--text-hi);
+}
+
+/* flat floating cards (brief panels) */
+.hp3-card { filter: var(--hp3-card-shadow); }
+.hp3-card-bg {
+  fill: var(--surface-2);
+  stroke: var(--border-2);
+  stroke-width: 1.25;
+}
+
+/* ------------------------------------------------------------- motion */
+/* Float classes go on a group WITHOUT a transform attribute (wrap inside a
+   positioned <g>) — CSS transform would override the attribute otherwise. */
+.hp3-float { animation: hp3-float 6.4s ease-in-out infinite; }
+.hp3-float--deep { animation-name: hp3-float-deep; animation-duration: 7.8s; }
+@keyframes hp3-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7px); }
+}
+@keyframes hp3-float-deep {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-11px); }
+}
+
+/* slow orbit ring around AI cores */
+.hp3-orbit {
+  animation: hp3-spin 10s linear infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@keyframes hp3-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ------------------------------------------------------------- figure
+ * Each scene ships as a <figure>: the decorative SVG plus a real HTML caption.
+ * The long ground captions used to live INSIDE the svg as 8.5-unit <text>
+ * (≈6.6 CSS px) — illegible, unselectable, untranslatable, and invisible to
+ * crawlers and screen readers because every scene is aria-hidden. As HTML they
+ * inherit the site type scale. Sentence case at --text-sm, not uppercase mono
+ * micro-copy: this is the scene's thesis, so it is prose and gets prose size.
+ */
+.hp-artfig {
+  margin: 0;
+  display: grid;
+  gap: var(--sp-3);
+  min-width: 0;
+}
+.hp-artfig-cap {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  letter-spacing: 0.01em;
+  line-height: var(--leading-tight);
+  color: var(--text-mid);
+  text-wrap: balance;
+}

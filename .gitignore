@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
@@ -42,3 +43,32 @@ next-env.d.ts
 .metaapi/
 /doc_temp
 
+=======
+node_modules/
+.next/
+dist/
+.turbo/
+coverage/
+.DS_Store
+*.tsbuildinfo
+
+# Alternate Next build dirs (NEXT_DIST_DIR=.next-audit/.next-verify/...)
+.next-*/
+
+# ---- secrets ----------------------------------------------------------------
+# Every environment file is ignored; only the *.example templates are tracked.
+# `.env` and `*.local` alone left .env.staging and .env.production exposed.
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.local
+
+# Local operational artifacts
+/backups/
+infra/compose/backups/
+
+# Lighthouse / QA report output (scripts/lighthouse.mjs --json). CI uploads
+# these as build artifacts; they are never committed — 41 MB per full sweep.
+/.audit/
+>>>>>>> b44d13a (feat: initialize HeroPips repository with local docker stack fixes)

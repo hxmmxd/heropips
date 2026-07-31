@@ -1,0 +1,308 @@
+/* Automation — "the decision reaches your broker" page.
+ *
+ * Structure: split hero (copy + RailArt, CTAs above the fold) → broker
+ * datasheet (a real table in .hp-scroll-x, never an orphaning card grid) →
+ * execution rail (the four-step pipeline, charging to volt at the routing
+ * step) → credential ink poster (the trust anchor) → FAQ → CTA close.
+ *
+ * The rail idiom mirrors intelligence.module.css: this page is the second
+ * half of the same pipeline, so it draws it the same way.
+ * Tokens only — no raw color literals, everything remaps in light theme. */
+
+/* section head — the landing .hp-section-head recipe, page-local
+   (landing.css is imported by the landing route only). */
+.head { max-width: 660px; }
+.head h2 { margin: 12px 0 0; }
+.head p { margin: 14px 0 0; font-size: var(--text-lg); line-height: var(--leading-body); color: var(--text-mid); }
+
+/* anchor targets must clear the sticky nav (65px) */
+.anchor { scroll-margin-top: 88px; }
+
+/* ------------------------------------------------------------------ hero */
+.hero {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-10);
+  align-items: center;
+}
+
+/* 1280, not 1024: the hero's art column carries labels authored in SVG user
+   units, so its render width sets their CSS size. At 1024 the split gave the
+   scene a ~425px column against a 560-unit viewBox (0.76x), which put the
+   smallest label tier at 11.4 CSS px — under the 12px floor that
+   e2e/typography.spec.ts enforces. Stacked below 1280, the scene renders at its
+   full max-width and clears it. Matches the landing hero in landing.css. */
+@media (min-width: 1280px) {
+  .hero {
+    grid-template-columns: 1.05fr 0.95fr;
+    gap: var(--sp-16);
+  }
+}
+
+/* The global h1 ramp (6.4vw) is tuned for a full-bleed measure; in the split
+   hero it breaks the headline onto four ragged lines. Cap the size and let
+   the browser even out the line lengths. */
+.hero h1 {
+  font-size: clamp(var(--text-4xl), 4.4vw, var(--text-5xl));
+  text-wrap: balance;
+  margin: 0;
+}
+
+.heroCtas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  margin: var(--sp-8) 0 var(--sp-6);
+}
+
+/* The primary label ("Get instant access — $499 →") is long; paired with a
+   secondary CTA it outruns the hero column below ~1330px. Let the pair wrap,
+   and have each button own its full line so the stack looks deliberate. */
+.heroCtas > a { flex: 1 1 auto; min-width: max-content; }
+
+/* At 320px the container is 288px but the "$499" label is ~299px intrinsic
+   (the primitive sets padding/font/nowrap inline), so the pill must tighten to
+   fit. Inline styles need !important here — same approach globals.css uses to
+   force a 16px control font on touch devices. */
+@media (max-width: 430px) {
+  .heroCtas > a {
+    flex: 1 1 100%;
+    min-width: 0;
+    padding: 0 var(--sp-4) !important;
+    font-size: var(--text-md) !important;
+  }
+}
+
+/* mono fact strip — the spec line under the CTAs */
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2) var(--sp-4);
+  align-items: center;
+  margin-top: var(--sp-6);
+  color: var(--text-low);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.facts > span::after {
+  content: "·";
+  margin-left: var(--sp-4);
+  color: var(--border-3);
+}
+
+.facts > span:last-child::after { content: ""; margin-left: 0; }
+
+/* ------------------------------------------- broker datasheet (no orphans) */
+/* Four venues is tabular data, not four cards: an auto-fit grid orphans the
+   last tile at tablet widths. A real table keeps venue/coverage/status
+   comparable down the column and scrolls sideways instead of collapsing. */
+.sheet { padding: clamp(20px, 2.6vw, 28px) clamp(20px, 3vw, 32px); }
+
+/* The card's inline padding would clip the scroll fades short of the real
+   content edge; bleed the scroller out to the card border and re-apply the
+   padding inside it, so the affordance lines up with where the table ends.
+   --sx-bg stays at the shared --surface-1 default (pricing does the same). */
+.tableScroll {
+  margin-inline: calc(-1 * clamp(20px, 3vw, 32px));
+  padding-inline: clamp(20px, 3vw, 32px);
+}
+
+.table {
+  width: 100%;
+  min-width: 620px;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.table th,
+.table td { padding-right: var(--sp-6); }
+
+.table th:last-child,
+.table td:last-child { padding-right: 0; }
+
+.table thead th {
+  padding-bottom: var(--sp-3);
+  border-bottom: 1px solid var(--border-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-medium);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-low);
+}
+
+.colVenue { width: 46%; }
+.colScope { width: 28%; }
+.colStatus { width: 26%; }
+
+.table tbody th,
+.table tbody td {
+  padding-top: var(--sp-4);
+  padding-bottom: var(--sp-4);
+  border-bottom: 1px solid var(--border-1);
+  vertical-align: top;
+  font-weight: var(--weight-book);
+}
+
+/* row headers are semantic headings — never below 600, wrapped or not */
+.table tbody th {
+  font-weight: var(--weight-semibold);
+}
+
+.table tbody tr:last-child th,
+.table tbody tr:last-child td { border-bottom: 0; padding-bottom: 0; }
+
+/* the venue name is 17px; nudge the smaller data cells down so all three
+   columns sit on the same optical line instead of hanging from the box top */
+.table tbody td { padding-top: calc(var(--sp-4) + 4px); }
+
+.venue {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--track-tight);
+  color: var(--text-hi);
+}
+
+.venueDesc {
+  margin: 6px 0 0;
+  max-width: 46ch;
+  font-size: var(--text-sm);
+  line-height: var(--leading-body);
+  color: var(--text-mid);
+}
+
+.scope {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.04em;
+  color: var(--text-mid);
+}
+
+/* ---------------------------------------------------- the execution rail */
+.rail { position: relative; list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-4); }
+
+/* the spine: runs between the first and last node centers, charging to volt
+   at the routing step — the moment the order actually leaves the platform */
+.rail::before {
+  content: "";
+  position: absolute;
+  left: 23px;
+  top: 24px;
+  bottom: 24px;
+  width: 2px;
+  border-radius: var(--r-full);
+  background: linear-gradient(
+    180deg,
+    var(--border-2) 0%,
+    var(--border-2) 45%,
+    color-mix(in srgb, var(--volt-500) 55%, transparent) 62%,
+    var(--volt-500) 100%
+  );
+}
+
+@media (max-width: 560px) { .rail::before { left: 19px; } }
+
+.railItem {
+  position: relative;
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: var(--sp-4);
+  align-items: start;
+}
+
+@media (max-width: 560px) { .railItem { grid-template-columns: 40px minmax(0, 1fr); gap: var(--sp-3); } }
+
+/* node: sits above the spine, lights up at the execution step */
+.railNode {
+  position: relative;
+  z-index: 1;
+  display: inline-grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border-2);
+  background: var(--surface-3);
+  color: var(--text-mid);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+}
+
+@media (max-width: 560px) { .railNode { width: 40px; height: 40px; } }
+
+.railItem[data-tone="volt"] .railNode {
+  background: var(--grad-volt);
+  border-color: transparent;
+  color: var(--on-volt);
+}
+
+.railCard { padding: clamp(20px, 2.6vw, 26px); }
+.railCard h3 { margin: 6px 0 8px; font-size: var(--text-xl); }
+.railCard p { margin: 0; color: var(--text-mid); font-size: var(--text-sm); line-height: var(--leading-body); }
+
+/* -------------------------------------------- credentials (ink poster) */
+/* Inside .hp-bc--ink the surface is theme-invariant, so text uses the pinned
+   --bc-fg* vars rather than --text-* (which remap under the light theme). */
+.poster { display: grid; gap: var(--sp-6); }
+
+.posterBig {
+  margin: 0;
+  max-width: 16ch;
+  font-family: var(--font-display);
+  font-size: clamp(var(--text-2xl), 3.4vw, var(--text-4xl));
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-heading);
+  letter-spacing: var(--track-display);
+  color: var(--bc-fg);
+  text-wrap: balance;
+}
+
+/* 4 facts, 2 per row at width — divides evenly, never a ragged last row */
+.posterRows { margin: 0; display: grid; }
+
+@media (min-width: 760px) {
+  .posterRows { grid-template-columns: 1fr 1fr; column-gap: var(--sp-10); }
+}
+
+.posterRow {
+  padding: var(--sp-4) 0;
+  border-top: 1px solid color-mix(in srgb, var(--bc-fg) 14%, transparent);
+}
+
+.posterRow dt {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--bc-fg);
+}
+
+.posterRow dd {
+  margin: 8px 0 0;
+  font-size: var(--text-sm);
+  line-height: var(--leading-body);
+  color: var(--bc-fg-mid);
+}
+
+/* ------------------------------------------------------------- faq + cta */
+.faqList { display: grid; gap: var(--sp-3); }
+
+.ctaRow { display: flex; flex-wrap: wrap; gap: var(--sp-4); align-items: center; }
+
+/* Same 320px squeeze as .heroCtas above: the primary label is nowrap and
+   intrinsically ~327px, wider than the 288px container, so the pill tightens
+   to the same reduced padding/step the hero pair already uses. */
+@media (max-width: 430px) {
+  .ctaRow > a {
+    flex: 1 1 100%;
+    min-width: 0;
+    padding: 0 var(--sp-4) !important;
+    font-size: var(--text-md) !important;
+  }
+}

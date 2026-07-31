@@ -1,0 +1,128 @@
+.hero {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-10);
+  align-items: start;
+}
+
+/* 1280, not 1024: the hero's art column carries labels authored in SVG user
+   units, so its render width sets their CSS size. At 1024 the split gave the
+   scene a ~425px column against a 560-unit viewBox (0.76x), which put the
+   smallest label tier at 11.4 CSS px — under the 12px floor that
+   e2e/typography.spec.ts enforces. Stacked below 1280, the scene renders at its
+   full max-width and clears it. Matches the landing hero in landing.css. */
+@media (min-width: 1280px) {
+  .hero {
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: var(--sp-16);
+  }
+}
+
+/* Poster seat card internals (inside the ink BrandCard — bc-pinned vars). */
+.cardPrice {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(var(--text-5xl), 6vw, var(--text-6xl));
+  font-weight: var(--weight-semibold);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--volt-500);
+}
+
+.cardPriceMeta {
+  margin-top: var(--sp-2);
+  color: var(--text-mid);
+  font-size: var(--text-md);
+}
+
+.cardMeterLabel {
+  margin: var(--sp-6) 0 var(--sp-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--track-caps);
+  text-transform: uppercase;
+  color: var(--text-low);
+}
+
+.perks {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-4);
+}
+
+@media (min-width: 700px) {
+  .perks {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .perks {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.steps {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-4);
+  counter-reset: step;
+}
+
+@media (min-width: 900px) {
+  .steps {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.checkout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-10);
+  align-items: start;
+}
+
+@media (min-width: 1024px) {
+  .checkout {
+    grid-template-columns: 0.9fr 1.1fr;
+    gap: var(--sp-16);
+  }
+}
+
+.trustRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2) var(--sp-4);
+  align-items: center;
+  color: var(--text-low);
+  font-size: var(--text-sm);
+  font-family: var(--font-display);
+  font-weight: var(--weight-semibold);
+}
+
+.trustRow > span::after {
+  content: "·";
+  margin-left: var(--sp-4);
+  color: var(--border-3);
+}
+
+.trustRow > span:last-child::after {
+  content: "";
+  margin-left: 0;
+}
+
+/* Pipeline-node step chip — the landing rail vocabulary, on utility cards:
+   mono number in a volt-tinted square. Tokens only. */
+.stepNode {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-sm);
+  background: var(--volt-tint);
+  border: 1px solid color-mix(in srgb, var(--volt-400) 32%, transparent);
+  color: var(--volt-400);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+}

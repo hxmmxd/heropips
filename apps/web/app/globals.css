@@ -1,0 +1,169 @@
+@import "@heropips/ui/tokens.css";
+@import "@heropips/ui/brand.css";
+@import "@heropips/ui/loaders.css";
+@import "@heropips/ui/ui.css";
+/* Site chrome (nav + theme toggle) and the shared SVG art language. Inlined
+   here at build time rather than imported per-layout: each extra stylesheet is
+   another render-blocking request on the critical path (~300ms each under
+   simulated 4G, measured). One root sheet keeps LCP down. */
+@import "../components/chrome/chrome.css";
+@import "../components/art/art.css";
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+/* Smooth scrolling only for in-page anchor jumps (:focus-within), never for
+   client-side route changes — animated scroll-to-top on every navigation is
+   the single biggest "web page, not app" tell. */
+html:focus-within { scroll-behavior: smooth; }
+html {
+  -webkit-tap-highlight-color: transparent; /* we own :active states */
+  -webkit-text-size-adjust: 100%;           /* no iOS landscape font inflation */
+  text-size-adjust: 100%;
+}
+html, body { background: var(--bg-app); color: var(--text-body); }
+body {
+  font-family: var(--font-body);
+  font-size: var(--text-md);
+  /* 450, not 400: at 17px on near-black the regular weight loses stem contrast
+     and reads washed out. Variable font, so this is free. */
+  font-weight: var(--weight-book);
+  line-height: var(--leading-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+/* Kill double-tap-to-zoom delay heuristics on controls; scrolling unaffected. */
+a, button, input, select, textarea, summary, [role="button"] {
+  touch-action: manipulation;
+}
+/* iOS Safari zooms the page when a focused control is <16px. Overrides the
+   Input primitive's inline 15px on touch devices only. */
+@media (pointer: coarse) {
+  input, select, textarea { font-size: max(1em, 16px) !important; }
+}
+h1, h2, h3, h4 { font-family: var(--font-display); color: var(--text-heading); }
+/* Clamp floors come from the scale, not hand-picked literals — 39/31/20 were
+   off-scale leftovers. Floors now read 41/33/22 at the 320px viewport. */
+h1 { font-size: clamp(var(--text-4xl), 6.4vw, var(--text-7xl)); line-height: var(--leading-display); letter-spacing: var(--track-display); font-weight: var(--weight-bold); }
+h2 { font-size: clamp(var(--text-3xl), 4.4vw, var(--text-5xl)); line-height: var(--leading-display); letter-spacing: var(--track-display); font-weight: var(--weight-bold); }
+h3 { font-size: clamp(var(--text-xl), 2.6vw, var(--text-2xl)); line-height: var(--leading-heading); letter-spacing: var(--track-tight); font-weight: var(--weight-semibold); }
+/* Visually hidden, still announced. Lives here so every route group has it —
+   it was previously defined in the platform's app.css only, which forced
+   marketing surfaces to invent local copies (.ac-sr in academy.css). */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+a { color: var(--link); text-decoration: none; transition: color var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out); }
+a:hover { color: var(--link-hover); }
+/* Links inside running prose must not rely on color alone (WCAG 1.4.1):
+   underline them; standalone/nav/button links keep their clean look. */
+p a:not(.hp-btn) { text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+/* Horizontal-scroll affordance (WCAG-friendly): edge shadows appear only while
+   content hides beyond an edge — covers scroll with content (local), shadows
+   stay pinned (scroll). Theme-adaptive shadow; cover matches the surface. */
+.hp-scroll-x {
+  overflow-x: auto;
+  background:
+    linear-gradient(90deg, var(--sx-bg, var(--surface-1)) 30%, transparent) left / 40px 100% no-repeat local,
+    linear-gradient(270deg, var(--sx-bg, var(--surface-1)) 30%, transparent) right / 40px 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, var(--sx-shadow), transparent) left / 14px 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, var(--sx-shadow), transparent) right / 14px 100% no-repeat scroll;
+}
+:root { --sx-shadow: color-mix(in srgb, var(--text-hi) 22%, transparent); }
+code, .mono { font-family: var(--font-mono); }
+::selection { background: var(--volt-tint); color: var(--text-hi); }
+
+:focus-visible { outline: none; box-shadow: var(--ring-volt); border-radius: var(--r-xs); }
+
+.container { width: 100%; max-width: 1180px; margin: 0 auto; padding: 0 clamp(16px, 4vw, 32px); }
+.section { padding: clamp(56px, 9vw, 112px) 0; }
+
+.hp-btn:hover { transform: translateY(-1px); filter: brightness(1.06); }
+.hp-btn:active { transform: scale(.97); }
+.hp-btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+/* Volt/pulse buttons carry an inline glow box-shadow that beats the global
+   :focus-visible ring — replace it with an offset ring (needs !important vs
+   the inline style; colors from tokens). */
+.hp-btn:focus-visible { box-shadow: 0 0 0 2px var(--bg-app), 0 0 0 5px var(--volt-500) !important; }
+/* ≥44px touch targets: min-height wins over the primitive's inline height */
+@media (pointer: coarse), (max-width: 760px) {
+  .hp-btn { min-height: var(--ctl-md); }
+}
+
+/* arrow CTA links — used on landing + product + notes site-wide */
+.hp-arrow-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-display);
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-sm);
+  letter-spacing: var(--track-tight);
+}
+/* standalone CTAs — full touch height on mobile without shifting copy */
+@media (pointer: coarse), (max-width: 760px) {
+  .hp-arrow-link { min-height: var(--ctl-md); }
+}
+
+/* skeleton shimmer */
+.hp-skeleton { position: relative; overflow: hidden; }
+.hp-skeleton::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--text-hi) 6%, transparent), transparent);
+  animation: hp-shimmer 1.4s infinite;
+}
+@keyframes hp-shimmer { 100% { transform: translateX(100%); } }
+
+/* skip link (a11y) */
+.skip-link { position: absolute; left: -9999px; top: 0; z-index: 100; display: inline-flex; align-items: center; min-height: var(--ctl-md); background: var(--volt-500); color: var(--on-volt); padding: 10px 18px; border-radius: 0 0 var(--r-md) 0; font-family: var(--font-display); font-weight: 600; }
+.skip-link:focus { left: 0; }
+
+/* vertical link lists (footer columns, FAQ jump lists) — comfortable rows,
+   ≥44px touch targets on mobile without changing desktop rhythm */
+.hp-linklist { list-style: none; display: grid; gap: var(--sp-1); }
+.hp-linklist a { display: inline-flex; align-items: center; min-height: var(--ctl-sm); font-size: var(--text-sm); }
+.hp-linklist--muted a { color: var(--text-mid); }
+.hp-linklist--muted a:hover { color: var(--text-hi); }
+@media (pointer: coarse), (max-width: 760px) {
+  .hp-linklist a { min-height: var(--ctl-md); }
+}
+
+/* cards-as-links: whole-card hover lift (no inline styles to fight) */
+.hp-card-link { display: block; color: inherit; transition: transform var(--dur-fast) var(--ease-out); }
+.hp-card-link:hover { transform: translateY(-2px); color: inherit; }
+@media (prefers-reduced-motion: reduce) {
+  .hp-card-link:hover { transform: none; }
+}
+
+/* site footer (chrome) */
+.hp-footer { border-top: 1px solid var(--border-1); background: var(--surface-1); margin-top: var(--sp-16); }
+/* longhand only — the shorthand would zero .container's side gutters */
+.hp-footer-inner { padding-top: var(--sp-16); padding-bottom: var(--sp-10); }
+.hp-footer-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: var(--sp-8); }
+.hp-footer-brand { grid-column: span 1; min-width: 200px; }
+.hp-footer-mark { display: flex; align-items: center; gap: var(--sp-2); margin-bottom: var(--sp-3); }
+.hp-footer-word { font-family: var(--font-display); font-weight: var(--weight-bold); font-size: var(--text-lg); letter-spacing: var(--track-display); color: var(--text-hi); }
+.hp-footer-tag { font-size: var(--text-sm); color: var(--text-low); max-width: 260px; }
+.hp-footer-col-title { font-family: var(--font-display); font-size: var(--text-2xs); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--text-low); margin-bottom: var(--sp-3); }
+.hp-footer-legal { border-top: 1px solid var(--border-1); margin-top: var(--sp-10); padding-top: var(--sp-6); display: grid; gap: var(--sp-3); }
+.hp-footer-fine { font-size: var(--text-xs); color: var(--text-low); }
+
+/* FAQ accordion (details/summary) — surface comes from .hp-card; this class
+   only adds accordion-specific padding and summary behavior. */
+.hp-faq-item { padding: var(--sp-1) var(--sp-6); }
+.hp-faq-item summary { display: flex; justify-content: space-between; align-items: center; gap: var(--sp-4); min-height: var(--ctl-md); padding: var(--sp-4) 0; list-style: none; cursor: pointer; font-family: var(--font-display); font-weight: var(--weight-semibold); font-size: var(--text-lg); color: var(--text-hi); transition: color var(--dur-fast) var(--ease-out); }
+.hp-faq-item summary::-webkit-details-marker { display: none; }
+.hp-faq-item summary:hover { color: var(--accent-text); }
+.hp-faq-plus { flex-shrink: 0; color: var(--volt-400); transition: transform var(--dur-fast) var(--ease-out); }
+.hp-faq-item[open] .hp-faq-plus { transform: rotate(45deg); }
+.hp-faq-item > p { color: var(--text-mid); padding: 0 0 var(--sp-5); line-height: var(--leading-body); max-width: 68ch; }
+
+/* level-up loader (brand) */
+@keyframes hp-climb { 0% { transform: translateY(8px); opacity: 0; } 40% { opacity: 1; } 100% { transform: translateY(-8px); opacity: 0; } }

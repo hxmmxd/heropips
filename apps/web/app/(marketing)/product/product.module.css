@@ -1,0 +1,241 @@
+/* Product hub — the map of the platform, one level above the deep pages.
+ *
+ * Structure: split hero (copy + StackArt) → four-pillar 2x2 grid that routes
+ * into the deep pages → the trade journey as a vertical rail → FAQ → CTA card.
+ * The pillar grid is an explicit two-column layout rather than an auto-fit
+ * one: four items in `repeat(auto-fit, minmax(300px, 1fr))` fit three across
+ * at desktop widths and orphan the fourth on its own row.
+ * The rail idiom mirrors /product/intelligence — the spine charges neutral →
+ * pulse → volt so the pipeline reads as one flow, not four stacked cards.
+ * landing.css is imported by the landing route only, so the section-head
+ * recipe is re-declared here. Tokens only — no raw color literals. */
+
+/* section head — the landing .hp-section-head recipe, page-local */
+.head { max-width: 660px; }
+.head h2 { margin: 12px 0 0; }
+.head p { margin: 14px 0 0; font-size: var(--text-lg); line-height: var(--leading-body); color: var(--text-mid); }
+
+/* anchor targets must clear the sticky nav (65px) */
+.anchor { scroll-margin-top: 88px; }
+
+/* ------------------------------------------------------------------ hero */
+.hero {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-10);
+  align-items: center;
+}
+
+/* 1280, not 1024: the hero's art column carries labels authored in SVG user
+   units, so its render width sets their CSS size. At 1024 the split gave the
+   scene a ~425px column against a 560-unit viewBox (0.76x), which put the
+   smallest label tier at 11.4 CSS px — under the 12px floor that
+   e2e/typography.spec.ts enforces. Stacked below 1280, the scene renders at its
+   full max-width and clears it. Matches the landing hero in landing.css. */
+@media (min-width: 1280px) {
+  .hero {
+    grid-template-columns: 1.05fr 0.95fr;
+    gap: var(--sp-16);
+  }
+}
+
+/* The global h1 ramp (6.4vw) is tuned for a full-bleed measure; in the split
+   hero it breaks the headline onto four ragged lines. Cap the size and let
+   the browser even out the line lengths. */
+.hero h1 {
+  font-size: clamp(var(--text-4xl), 4.4vw, var(--text-5xl));
+  text-wrap: balance;
+}
+
+.heroCtas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  margin: var(--sp-8) 0 var(--sp-6);
+}
+
+/* The primary label ("Get instant access — $499 →") is long; paired with a
+   secondary CTA it outruns the hero column below ~1330px. Let the pair wrap,
+   and have each button own its full line so the stack looks deliberate. */
+.heroCtas > a { flex: 1 1 auto; min-width: max-content; }
+
+/* At 320px the container is 288px but the "$499" label is ~299px intrinsic
+   (the primitive sets padding/font/nowrap inline), so the pill must tighten to
+   fit. Inline styles need !important here — same approach globals.css uses to
+   force a 16px control font on touch devices. */
+@media (max-width: 430px) {
+  .heroCtas > a {
+    flex: 1 1 100%;
+    min-width: 0;
+    padding: 0 var(--sp-4) !important;
+    font-size: var(--text-md) !important;
+  }
+}
+
+/* mono fact strip — the spec line under the CTAs */
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2) var(--sp-4);
+  align-items: center;
+  margin-top: var(--sp-6);
+  color: var(--text-low);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.facts > span::after {
+  content: "·";
+  margin-left: var(--sp-4);
+  color: var(--border-3);
+}
+
+.facts > span:last-child::after { content: ""; margin-left: 0; }
+
+/* ---------------------------------------------------- pillars (clean 2x2) */
+.pillars {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(20px, 2.4vw, 32px);
+}
+
+@media (min-width: 900px) {
+  .pillars { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* The whole card is the link, so the height chain runs grid row → <a> →
+   Card. Grid stretch alone leaves the <a> auto-height, which makes the
+   card's `height: 100%` resolve against nothing. */
+.pillarLink { height: 100%; }
+
+/* equal-height cards with the arrow pinned to the bottom edge, so all four
+   read as one block rather than four differently-ragged boxes */
+.pillarCard {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: clamp(20px, 2.6vw, 28px);
+}
+
+.pillarCard h3 {
+  margin: 0;
+  font-size: var(--text-xl);
+  letter-spacing: var(--track-display);
+}
+
+.pillarCard p {
+  margin: 0;
+  color: var(--text-mid);
+  font-size: var(--text-md);
+  line-height: var(--leading-body);
+}
+
+.pillarArrow {
+  align-self: flex-start;
+  margin-top: auto;
+  padding-top: var(--sp-4);
+  color: var(--volt-400);
+}
+
+/* -------------------------------------------------------- the trade rail */
+.rail { position: relative; list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-4); }
+
+/* the spine: runs between the first and last node centers */
+.rail::before {
+  content: "";
+  position: absolute;
+  left: 23px;
+  top: 24px;
+  bottom: 24px;
+  width: 2px;
+  border-radius: var(--r-full);
+  background: linear-gradient(
+    180deg,
+    var(--border-2) 0%,
+    var(--border-2) 45%,
+    color-mix(in srgb, var(--pulse-500) 60%, transparent) 68%,
+    var(--volt-500) 100%
+  );
+}
+
+@media (max-width: 560px) { .rail::before { left: 19px; } }
+
+.railItem {
+  position: relative;
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: var(--sp-4);
+  align-items: start;
+}
+
+@media (max-width: 560px) { .railItem { grid-template-columns: 40px minmax(0, 1fr); gap: var(--sp-3); } }
+
+/* node: sits above the spine, charges up along the pipeline */
+.railNode {
+  position: relative;
+  z-index: 1;
+  display: inline-grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border-2);
+  background: var(--surface-3);
+  color: var(--text-mid);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+}
+
+@media (max-width: 560px) { .railNode { width: 40px; height: 40px; } }
+
+.railItem[data-tone="volt"] .railNode {
+  background: var(--grad-volt);
+  border-color: transparent;
+  color: var(--on-volt);
+}
+
+.railCard { padding: clamp(20px, 2.6vw, 26px); }
+.railCard h3 { margin: 0 0 8px; font-size: var(--text-xl); }
+.railCard p { margin: 0; color: var(--text-mid); font-size: var(--text-sm); line-height: var(--leading-body); }
+
+/* ------------------------------------------------------------------- faq */
+.faqList { display: grid; gap: var(--sp-3); }
+
+.faqMore { margin-top: var(--sp-5); font-size: var(--text-sm); color: var(--text-mid); }
+
+/* ------------------------------------------------------------- cta card */
+.ctaCard {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-6);
+  padding: clamp(28px, 3.4vw, 40px) clamp(20px, 2.8vw, 32px);
+}
+
+.ctaCopy { max-width: 520px; }
+.ctaCopy h2 { margin: 0 0 var(--sp-2); font-size: var(--text-3xl); }
+.ctaCopy p { margin: 0; color: var(--text-mid); }
+
+.ctaButtons { display: flex; flex-wrap: wrap; gap: var(--sp-3); }
+
+/* below the card's own wrap point the buttons should own the full width
+   rather than sitting as two half-orphans */
+@media (max-width: 560px) {
+  .ctaButtons { width: 100%; }
+  .ctaButtons > a { flex: 1 1 100%; }
+}
+
+/* Same 320px squeeze as the hero pair: the "$499" label is ~299px intrinsic
+   against a 288px container, and the primitive sets padding/font inline. */
+@media (max-width: 430px) {
+  .ctaButtons > a {
+    min-width: 0;
+    padding: 0 var(--sp-4) !important;
+    font-size: var(--text-md) !important;
+  }
+}

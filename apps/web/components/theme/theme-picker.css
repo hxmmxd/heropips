@@ -1,0 +1,43 @@
+/* =========================================================================
+ * ThemePicker — System / Dark / Light segmented control (/app/settings).
+ * Moved out of styled-jsx so it ships in the render-blocking CSS bundle
+ * instead of the component's body stream (no flash-then-collapse), and so
+ * the touch-size rule below no longer needs !important to beat a
+ * styled-jsx hash selector. Tokens only.
+ * ======================================================================= */
+
+.hp-theme-picker {
+  display: inline-flex;
+  gap: var(--sp-1);
+  padding: var(--sp-1);
+  border: 1px solid var(--border-2);
+  border-radius: var(--r-full);
+  background: var(--surface-2);
+}
+.hp-theme-picker .hp-tp-opt {
+  min-height: var(--ctl-sm);
+  padding: 0 var(--sp-4);
+  border: 0;
+  border-radius: var(--r-full);
+  background: none;
+  color: var(--text-mid);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+}
+.hp-theme-picker .hp-tp-opt:hover {
+  color: var(--text-hi);
+}
+.hp-theme-picker .hp-tp-opt.is-active {
+  background: var(--surface-raised);
+  color: var(--text-hi);
+}
+
+/* Coarse pointers get a full 44px target. */
+@media (pointer: coarse), (max-width: 760px) {
+  .hp-theme-picker .hp-tp-opt {
+    min-height: var(--ctl-md);
+  }
+}

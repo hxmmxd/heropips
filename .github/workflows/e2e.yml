@@ -1,0 +1,96 @@
+# Playwright e2e suite (marketing + member platform).
+#
+# The suite needs the full HeroPips stack running BEFORE Playwright starts —
+# there is deliberately no webServer block in playwright.config.ts.
+#
+# The stack is started through scripts/stack.mjs rather than a raw
+# `docker compose up`. That matters: the base compose file publishes no ports
+# and keeps the payment/mail doubles behind the `mocks` profile, so a bare
+# compose invocation would produce a stack the browser cannot reach and a
+# checkout flow with no payment provider. The wrapper applies the local
+# overlay, the env file and the profile, waits for health, and applies
+# migrations — exactly what a developer gets from `pnpm stack:up`.
+#
+# Triggers: manual dispatch, or add the `e2e` label to a PR.
+name: e2e
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [labeled]
+
+jobs:
+  e2e:
+    if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'e2e'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      BASE_URL: http://localhost:3000
+      LH_BASE_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browser
+        run: pnpm --filter @heropips/web exec playwright install --with-deps chromium
+
+      - name: Materialise the local environment
+        run: cp .env.local.example .env.local
+
+      # Runs preflight, builds, starts, waits for every healthcheck, then
+      # applies migrations. Fails the job if anything is unhealthy.
+      - name: Start the stack
+        run: pnpm stack:up
+
+      - name: Verify database schema
+        run: pnpm db:verify
+
+      - name: Seed demo data
+        run: pnpm db:seed
+
+      # The suite is one gate: functional flows, plus the four quality
+      # contracts AGENTS.md §11 requires — axe (WCAG 2.1 AA, both themes),
+      # the 12px/AA typography floor at every width in the matrix, internal
+      # link integrity, and the SEO/AEO artifacts.
+      - name: Run e2e suite
+        run: pnpm --filter @heropips/web e2e
+
+      # Lighthouse grades the compose image on :3000, which is a real
+      # production build — the script refuses to grade a dev server.
+      - name: Lighthouse budgets (mobile + desktop, all categories ≥ 95)
+        run: pnpm lighthouse --json .audit/lighthouse-ci.json
+
+      - name: Upload Lighthouse reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-reports
+          path: .audit/lighthouse-ci.json
+          retention-days: 7
+
+      - name: Upload traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-artifacts
+          path: apps/web/e2e/.artifacts
+          retention-days: 7
+
+      - name: Stack logs on failure
+        if: failure()
+        run: |
+          pnpm stack:ps
+          node scripts/stack.mjs logs --env local --no-follow
+
+      - name: Tear down
+        if: always()
+        run: pnpm stack:down

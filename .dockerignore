@@ -1,0 +1,19 @@
+# Build context = repo root; keep it lean.
+.git
+docs
+node_modules
+**/node_modules
+**/.next
+# Alternate build dirs (NEXT_DIST_DIR=.next-build/.next-audit/... used for
+# side-by-side prod builds). Hundreds of MB each; never part of an image.
+**/.next-*
+**/.turbo
+**/dist
+**/coverage
+**/*.log
+.env
+.env.*
+!.env.example
+*.md
+**/*.md
+.DS_Store

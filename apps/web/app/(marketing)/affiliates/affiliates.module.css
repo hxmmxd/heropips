@@ -1,0 +1,461 @@
+/* Affiliates — decision-first layout: hero with paths, chooser cards,
+   partner mechanics, apply grid. Tokens only — no raw color literals. */
+
+/* ---------------------------------------------------------------- hero */
+.hero {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-10);
+  align-items: center;
+}
+
+/* 1280, not 1024: the hero's art column carries labels authored in SVG user
+   units, so its render width sets their CSS size. At 1024 the split gave the
+   scene a ~425px column against a 560-unit viewBox (0.76x), which put the
+   smallest label tier at 11.4 CSS px — under the 12px floor that
+   e2e/typography.spec.ts enforces. Stacked below 1280, the scene renders at its
+   full max-width and clears it. Matches the landing hero in landing.css. */
+@media (min-width: 1280px) {
+  .hero {
+    grid-template-columns: 1.05fr 0.95fr;
+    gap: var(--sp-16);
+  }
+}
+
+.heroCtas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  margin-top: var(--sp-8);
+}
+
+/* mono fact strip under the hero CTAs — numbers speak mono */
+.factRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2) var(--sp-4);
+  align-items: center;
+  margin-top: var(--sp-6);
+  color: var(--text-low);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.factRow > span::after {
+  content: "·";
+  margin-left: var(--sp-4);
+  color: var(--border-3);
+}
+
+.factRow > span:last-child::after {
+  content: "";
+  margin-left: 0;
+}
+
+/* ------------------------------------------------------- path chooser */
+.chooser {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-4);
+  align-items: stretch;
+}
+
+@media (min-width: 900px) {
+  .chooser {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.chooserCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  padding: clamp(24px, 3.4vw, 36px);
+}
+
+/* checklist rows — volt tick in a tinted disc, strong lead-in */
+.check {
+  list-style: none;
+  display: grid;
+  gap: var(--sp-3);
+  margin: 0;
+  padding: 0;
+}
+
+.check li {
+  display: flex;
+  gap: var(--sp-3);
+  align-items: flex-start;
+  color: var(--text-mid);
+  font-size: var(--text-sm);
+  line-height: var(--leading-body);
+}
+
+.check strong {
+  color: var(--text-hi);
+  font-weight: var(--weight-semibold);
+}
+
+.checkIcon {
+  flex-shrink: 0;
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  border-radius: var(--r-full);
+  background: var(--volt-tint);
+  color: var(--volt-400);
+}
+
+.chooserFoot {
+  margin-top: auto;
+  padding-top: var(--sp-2);
+}
+
+/* ------------------------------------------------- partner steps (3-up) */
+.steps {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-4);
+}
+
+@media (min-width: 900px) {
+  .steps {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* pipeline-node step chip — mono number in a volt-tinted square */
+.stepNode {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-sm);
+  background: var(--volt-tint);
+  border: 1px solid color-mix(in srgb, var(--volt-400) 32%, transparent);
+  color: var(--volt-400);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+}
+
+/* ------------------------------------------------ levels: copy | table */
+.levels {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-10);
+  align-items: start;
+}
+
+@media (min-width: 1024px) {
+  .levels {
+    grid-template-columns: 0.9fr 1.1fr;
+    gap: var(--sp-16);
+  }
+}
+
+/* spec-sheet mechanics rows — mono label | body, hairline separated */
+.mech {
+  display: grid;
+  margin-top: var(--sp-8);
+  border-top: 1px solid var(--border-1);
+}
+
+.mechRow {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: var(--sp-4);
+  padding: var(--sp-4) 0;
+  border-bottom: 1px solid var(--border-1);
+}
+
+.mechLabel {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-medium);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--volt-400);
+  padding-top: 3px;
+}
+
+.mechBody {
+  color: var(--text-mid);
+  font-size: var(--text-sm);
+  line-height: var(--leading-body);
+}
+
+/* The shared .hp-scroll-x affordance assumes a --surface-1 backdrop; inside
+   the ink poster the cover gradients and edge shadows must ride bc-pinned
+   vars instead, or the fades paint the wrong color in light theme. */
+.levelsScroll {
+  --sx-bg: var(--bc-bg);
+  --sx-shadow: color-mix(in srgb, var(--bc-fg) 30%, transparent);
+}
+
+/* levels table lives inside the ink BrandCard — bc-pinned vars keep it
+   theme-invariant like the poster itself. Mono kicker typography for heads. */
+.levelsTable {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 420px;
+}
+
+.levelsTable thead th {
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--bc-fg-low);
+  padding: 8px 12px 10px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--bc-fg) 18%, transparent);
+}
+
+.levelsTable tbody th,
+.levelsTable tbody td {
+  text-align: left;
+  font-size: var(--text-sm);
+  color: var(--bc-fg-mid);
+  font-variant-numeric: tabular-nums;
+  padding: 12px 12px 12px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--bc-fg) 10%, transparent);
+}
+
+.levelsTable tbody th {
+  font-weight: var(--weight-semibold);
+  color: var(--volt-400);
+}
+
+.levelsTable .rate {
+  text-align: right;
+  color: var(--bc-fg);
+  padding: 12px 0 12px 12px;
+}
+
+/* ------------------------------------------------------------ FAQ list */
+.faqList {
+  display: grid;
+  gap: var(--sp-3);
+}
+
+/* -------------------------------------------------------- apply section */
+.applySection {
+  scroll-margin-top: 88px; /* clear the sticky nav on #apply jumps */
+}
+
+.applyGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-6);
+  align-items: start;
+}
+
+@media (min-width: 1024px) {
+  .applyGrid {
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: var(--sp-10);
+  }
+
+  .applyAside {
+    position: sticky;
+    top: 88px;
+  }
+}
+
+.formCard {
+  padding: clamp(24px, 4vw, 40px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-5);
+}
+
+@media (min-width: 700px) {
+  .formRow {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* audience-size radio chips — recognition over recall: all five brackets
+   visible, one tap. Real radios underneath for keyboard + SR semantics. */
+.fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+
+.legend {
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--text-hi);
+  letter-spacing: var(--track-tight);
+  padding: 0;
+  margin-bottom: var(--sp-2);
+}
+
+.chipGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.chipLabel {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--ctl-sm);
+  padding: 0 16px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--border-2);
+  background: var(--surface-2);
+  color: var(--text-mid);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    background var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+
+.chipLabel:hover {
+  border-color: var(--border-3);
+  color: var(--text-hi);
+}
+
+/* the real radio fills the chip so the whole pill is the hit target */
+.chipInput {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.chipLabel:has(.chipInput:checked) {
+  background: var(--volt-tint);
+  border-color: var(--volt-400);
+  color: var(--text-hi);
+}
+
+.chipLabel:has(.chipInput:focus-visible) {
+  box-shadow: var(--ring-volt);
+}
+
+@media (pointer: coarse), (max-width: 760px) {
+  .chipLabel {
+    min-height: var(--ctl-md);
+  }
+}
+
+/* textarea — mirrors the Input primitive surface */
+.textarea {
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--surface-2);
+  color: var(--text-hi);
+  border: 1px solid var(--border-2);
+  border-radius: var(--r-md);
+  font-size: var(--text-md);
+  font-family: var(--font-body);
+  line-height: var(--leading-body);
+  resize: vertical;
+  min-height: 104px;
+}
+
+.textarea::placeholder {
+  color: var(--text-low);
+}
+
+/* server-side failure banner — loud enough to see, quiet enough to retry */
+.formError {
+  display: flex;
+  gap: var(--sp-3);
+  align-items: flex-start;
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid color-mix(in srgb, var(--loss-400) 35%, transparent);
+  background: var(--loss-tint);
+  border-radius: var(--r-md);
+  color: var(--loss-400);
+  font-size: var(--text-sm);
+  line-height: var(--leading-body);
+}
+
+.formFoot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-3) var(--sp-4);
+}
+
+.formFootNote {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.04em;
+  color: var(--text-low);
+}
+
+/* --------------------------------------------- aside: what happens next */
+.nextList {
+  list-style: none;
+  margin: var(--sp-5) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.nextRow {
+  display: flex;
+  gap: var(--sp-3);
+  align-items: baseline;
+  font-size: var(--text-sm);
+  color: var(--text-mid);
+  line-height: var(--leading-body);
+}
+
+.nextMark {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--r-full);
+  background: var(--border-3);
+  align-self: center;
+}
+
+.nextRow[data-state="now"] .nextMark {
+  background: var(--volt-400);
+  box-shadow: 0 0 8px var(--volt-400);
+}
+
+.nextLabel {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--track-caps);
+  text-transform: uppercase;
+  color: var(--text-low);
+  width: 52px;
+  flex: none;
+}
+
+.asideDivider {
+  border: 0;
+  border-top: 1px solid var(--border-1);
+  margin: var(--sp-6) 0;
+}

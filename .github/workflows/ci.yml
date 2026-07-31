@@ -1,0 +1,219 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Static gates. Fast, no containers — fails a bad PR in under three minutes.
+  # ---------------------------------------------------------------------------
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Secret scan
+        run: node scripts/secret-scan.mjs
+
+      - name: Brand guard
+        run: node scripts/brand-guard.mjs
+
+      # Catches renamed files that silently orphan links and `path:line`
+      # citations across the engineering docs.
+      - name: Documentation integrity
+        run: node scripts/docs-check.mjs
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Unit & integration tests
+        run: pnpm test
+
+      # Advisory on a pull request so a fresh upstream advisory cannot block an
+      # unrelated fix; blocking on main so it still has to be dealt with.
+      - name: Dependency audit (high+)
+        run: pnpm audit --prod --audit-level high
+        continue-on-error: ${{ github.event_name == 'pull_request' }}
+
+      - name: Build all
+        run: pnpm build
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+
+  # ---------------------------------------------------------------------------
+  # Infrastructure gates. Catches the class of break that only shows up when
+  # compose, the env templates and the scripts are read together — a renamed
+  # variable, a dropped overlay, a compose file that no longer merges.
+  # ---------------------------------------------------------------------------
+  infra:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Materialise environment templates
+        run: |
+          cp .env.local.example .env.local
+          # staging/production need real secrets. Substituting the <angle>
+          # placeholders is enough to prove the compose files still render
+          # against every variable those templates promise to provide.
+          sed -e 's/<[^>]*>/rendercheck-placeholder/g' .env.staging.example    > .env.staging
+          sed -e 's/<[^>]*>/rendercheck-placeholder/g' .env.production.example > .env.production
+
+      - name: Preflight (local) must pass
+        run: node scripts/preflight.mjs --env local
+
+      - name: Compose files must merge in every environment
+        run: |
+          for env in local staging production; do
+            echo "--- $env ---"
+            node scripts/stack.mjs config --env "$env" > "/tmp/compose-$env.yml"
+          done
+
+      # Structural guarantees, asserted rather than assumed: a payment or mail
+      # double must be unreachable beyond local, and no service may publish a
+      # host port outside it.
+      - name: Staging and production expose no mocks and no service ports
+        run: |
+          for env in staging production; do
+            if grep -qE 'mailpit|nowpayments-mock' "/tmp/compose-$env.yml"; then
+              echo "::error::$env would start a development mock"; exit 1
+            fi
+            published=$(grep -c 'published:' "/tmp/compose-$env.yml" || true)
+            # caddy publishes 80, 443 and 443/udp — nothing else may.
+            if [ "$published" -gt 3 ]; then
+              echo "::error::$env publishes $published ports; only the edge proxy may"
+              grep -B12 'published:' "/tmp/compose-$env.yml" | grep -E '^  [a-z-]+:|published:'
+              exit 1
+            fi
+          done
+
+      # Regression guard for two routing bugs that shipped once. Both are
+      # invisible failures: nothing crashes, the feature just silently stops.
+      #
+      #   /v1/chat/ws     served by identity-svc, not Next.js
+      #                   (apps/services/identity/src/main.ts, chat/gateway.ts).
+      #                   Sent to web:3000 it 404s and the client degrades to
+      #                   polling with no error.
+      #   /v1/billing/ipn served by billing-svc. NOWPayments calls it from the
+      #                   public internet; with no edge route every production
+      #                   payment callback 404s and no seat is ever granted.
+      #
+      # apps/web declares no /v1/** route and no rewrites(), so neither path
+      # can be served by the catch-all.
+      - name: Edge must route internal paths to their owning service
+        run: |
+          for f in infra/compose/caddy/Caddyfile.production infra/compose/caddy/Caddyfile.staging; do
+            grep -q 'handle /v1/chat/ws' "$f" \
+              || { echo "::error::$f has no /v1/chat/ws handle — the lounge would 404"; exit 1; }
+            grep -q 'CHAT_UPSTREAM' "$f" \
+              || { echo "::error::$f does not proxy the chat handle to CHAT_UPSTREAM"; exit 1; }
+            grep -q 'handle /v1/billing/ipn' "$f" \
+              || { echo "::error::$f has no /v1/billing/ipn handle — payment callbacks would 404"; exit 1; }
+            grep -q 'BILLING_UPSTREAM' "$f" \
+              || { echo "::error::$f does not proxy the IPN handle to BILLING_UPSTREAM"; exit 1; }
+          done
+          # Staging gates the site behind basic auth; the payment provider
+          # cannot present credentials, so the IPN path must be exempt or every
+          # sandbox order stalls at `held`.
+          grep -q 'not path /v1/billing/ipn' infra/compose/caddy/Caddyfile.staging \
+            || { echo "::error::staging basic_auth would 401 every payment callback"; exit 1; }
+          for env in staging production; do
+            grep -q 'CHAT_UPSTREAM: identity:4003' "/tmp/compose-$env.yml" \
+              || { echo "::error::$env does not set CHAT_UPSTREAM to identity:4003"; exit 1; }
+            grep -q 'BILLING_UPSTREAM: billing:4002' "/tmp/compose-$env.yml" \
+              || { echo "::error::$env does not set BILLING_UPSTREAM to billing:4002"; exit 1; }
+          done
+          # The callback URL handed to the provider must match the path the
+          # edge actually serves.
+          grep -qE 'IPN_CALLBACK_URL=https://[^/]+/v1/billing/ipn' .env.production.example \
+            || { echo "::error::.env.production.example IPN_CALLBACK_URL does not match the edge route"; exit 1; }
+          echo "edge routing intact: chat WebSocket and payment IPN"
+
+      # Both edge configs must actually parse. A malformed Caddyfile is a
+      # total outage that no unit test would catch.
+      - name: Caddy configs must be valid
+        run: |
+          for f in production staging; do
+            docker run --rm \
+              -e SITE_DOMAIN=ci.example -e ACME_EMAIL=ci@example.com \
+              -e UPSTREAM=web:3000 -e CHAT_UPSTREAM=identity:4003 \
+              -e STAGING_BASICAUTH_USER=ci \
+              -e 'STAGING_BASICAUTH_HASH=$2a$14$abcdefghijklmnopqrstuv' \
+              -v "$PWD/infra/compose/caddy/Caddyfile.$f:/etc/caddy/Caddyfile:ro" \
+              caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+          done
+
+      # The secret guard is the reason preflight exists. Point a staging
+      # environment at the local configuration and it MUST refuse to start.
+      # A zero exit here means dev credentials could reach a real environment.
+      - name: Preflight must reject local values used as staging
+        run: |
+          cp .env.local.example .env.staging
+          if node scripts/preflight.mjs --env staging > /tmp/pf.txt 2>&1; then
+            echo "::error::preflight accepted local dev values as a staging config"
+            cat /tmp/pf.txt
+            exit 1
+          fi
+          echo "Correctly rejected. Blocking findings:"
+          grep '✗' /tmp/pf.txt
+          # Restore the renderable staging file for any later step.
+          sed -e 's/<[^>]*>/rendercheck-placeholder/g' .env.staging.example > .env.staging
+
+      - name: SQL migrations apply, verify, seed and are idempotent
+        run: |
+          node scripts/stack.mjs up --env local --service postgres --skip-preflight --no-build
+          node scripts/db.mjs apply  --env local
+          node scripts/db.mjs verify --env local
+          node scripts/db.mjs seed   --env local
+          # Re-running everything must be a no-op. This is what catches a
+          # migration that is not idempotent and a seed that duplicates rows.
+          node scripts/db.mjs apply  --env local
+          node scripts/db.mjs seed   --env local
+          node scripts/db.mjs verify --env local
+
+      - name: Tear down
+        if: always()
+        run: node scripts/stack.mjs down --env local || true
+
+  # ---------------------------------------------------------------------------
+  # Image build. Only on main — building seven images on every PR is not worth
+  # the queue time when `verify` already catches source-level breakage.
+  # ---------------------------------------------------------------------------
+  images:
+    runs-on: ubuntu-latest
+    needs: [verify, infra]
+    if: github.ref == 'refs/heads/main'
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Materialise local env for compose substitution
+        run: cp .env.local.example .env.local
+
+      - name: Build images
+        run: node scripts/stack.mjs build --env local

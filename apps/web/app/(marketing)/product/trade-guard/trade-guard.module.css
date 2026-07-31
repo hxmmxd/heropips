@@ -1,0 +1,290 @@
+/* Trade Guard — split hero → the guard stack → fail-closed → FAQ → CTA.
+ *
+ * The centerpiece is "What are the nine guards?" as one machined breaker
+ * panel: a single raised chassis (Card raised) holding nine guard modules in
+ * four labeled bands, with a mono nameplate strip (order in → guards →
+ * broker). Depth comes from the utility-box recipe: top-lit module surfaces
+ * seated into the chassis, raised icon plates, recessed config screens,
+ * stamped ghost numerals. Tokens only — every color remaps in light theme. */
+
+/* ---- section head (landing hp-section-head recipe, page-local) ---- */
+.head { max-width: 640px; }
+.head h2 { margin: 12px 0 0; }
+.head p { margin: 14px 0 0; font-size: var(--text-lg); line-height: var(--leading-body); color: var(--text-mid); }
+
+/* anchor targets must clear the sticky nav (65px) */
+.anchor { scroll-margin-top: 88px; }
+
+/* ---- hero: copy left, guard art right ---- */
+.hero {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-10);
+  align-items: center;
+}
+
+/* 1280, not 1024: the hero's art column carries labels authored in SVG user
+   units, so its render width sets their CSS size. At 1024 the split gave the
+   scene a ~425px column against a 560-unit viewBox (0.76x), which put the
+   smallest label tier at 11.4 CSS px — under the 12px floor that
+   e2e/typography.spec.ts enforces. Stacked below 1280, the scene renders at its
+   full max-width and clears it. Matches the landing hero in landing.css. */
+@media (min-width: 1280px) {
+  .hero {
+    grid-template-columns: 1.05fr 0.95fr;
+    gap: var(--sp-16);
+  }
+}
+
+/* The global h1 ramp (6.4vw) is tuned for a full-bleed measure; in the split
+   hero it breaks the headline onto four ragged lines. Cap the size and let
+   the browser even out the line lengths. */
+.hero h1 {
+  font-size: clamp(var(--text-4xl), 4.4vw, var(--text-5xl));
+  text-wrap: balance;
+}
+
+.heroCtas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  margin: var(--sp-8) 0 var(--sp-6);
+}
+
+/* The primary label ("Get instant access — $499 →") is long; paired with a
+   secondary CTA it outruns the hero column below ~1330px. Let the pair wrap,
+   and have each button own its full line so the stack looks deliberate. */
+.heroCtas > a { flex: 1 1 auto; min-width: max-content; }
+
+/* At 320px the container is 288px but the "$499" label is ~299px intrinsic
+   (the primitive sets padding/font/nowrap inline), so the pill must tighten to
+   fit. Inline styles need !important here — same approach globals.css uses to
+   force a 16px control font on touch devices. */
+@media (max-width: 430px) {
+  .heroCtas > a {
+    flex: 1 1 100%;
+    min-width: 0;
+    padding: 0 var(--sp-4) !important;
+    font-size: var(--text-md) !important;
+  }
+}
+
+/* mono fact strip — the spec line under the CTAs */
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2) var(--sp-4);
+  align-items: center;
+  margin-top: var(--sp-6);
+  color: var(--text-low);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.facts > span::after {
+  content: "·";
+  margin-left: var(--sp-4);
+  color: var(--border-3);
+}
+
+.facts > span:last-child::after { content: ""; margin-left: 0; }
+
+/* ---- chassis ---- */
+.panel { margin-top: 40px; padding: clamp(var(--sp-4), 3.5vw, var(--sp-8)); }
+
+/* ---- nameplate: the order path + fail-closed status LED ---- */
+.plate {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2) var(--sp-6);
+  padding-bottom: var(--sp-4);
+  border-bottom: 1px solid var(--border-1);
+}
+.plateFlow,
+.plateStatus {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-medium);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-low);
+}
+.plateFlow b { font-weight: var(--weight-medium); color: var(--accent-text); }
+.led {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: var(--r-full);
+  background: var(--accent-text);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent-text) 70%, transparent);
+  animation: ledBreathe 2.6s var(--ease-out) infinite alternate;
+}
+@keyframes ledBreathe {
+  from { opacity: 0.45; }
+  to { opacity: 1; }
+}
+
+/* ---- bands: label column beside the module grid on wide screens ---- */
+.band { padding-top: var(--sp-6); display: grid; gap: var(--sp-4); }
+.band + .band { margin-top: var(--sp-6); border-top: 1px solid var(--border-1); }
+@media (min-width: 1240px) {
+  .band { grid-template-columns: 200px minmax(0, 1fr); gap: var(--sp-8); align-items: start; }
+}
+.bandLabel { display: flex; flex-direction: column; gap: 6px; }
+.bandName {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-lg);
+  letter-spacing: var(--track-tight);
+  color: var(--text-heading);
+}
+.bandGloss { margin: 0; font-size: var(--text-sm); line-height: var(--leading-body); color: var(--text-mid); max-width: 44ch; }
+
+/* ---- module grid: fluid, never overflows at 320 ---- */
+.mods {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--sp-3);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+}
+/* tablet: a 3-guard band renders 2 + 1; let the orphan go full width so
+   rows stay flush instead of ragged. ≥1240px all three fit side by side. */
+@media (max-width: 1239px) {
+  .mods > li:nth-child(3):last-child { grid-column: 1 / -1; }
+}
+
+/* ---- guard module: a slot seated into the chassis ---- */
+.mod {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-5);
+  background: var(--box-surface);
+  border: 1px solid var(--border-1);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-1);
+  transition:
+    transform var(--dur-med) var(--ease-out),
+    border-color var(--dur-med) var(--ease-out),
+    box-shadow var(--dur-med) var(--ease-out);
+}
+.mod:hover { transform: translateY(-2px); border-color: var(--border-2); box-shadow: var(--shadow-2); }
+
+/* Stamped ghost numeral — machined into the surface, and DECORATION ONLY:
+   it is aria-hidden, and the same index is always rendered as real text by
+   .modTag ("guard 01"). At 33px it can never reach 4.5:1 without competing
+   with the guard title, so it stays sub-text-threshold — but expressed as a
+   token color at full opacity (no `opacity` on a text node) and lifted well
+   clear of the 1.21:1 level where it read as a rendering fault. */
+.modNum {
+  position: absolute;
+  top: var(--sp-3);
+  right: var(--sp-4);
+  font-family: var(--font-mono);
+  font-weight: var(--weight-bold);
+  font-size: var(--text-3xl);
+  line-height: 1;
+  letter-spacing: var(--track-tight);
+  color: color-mix(in srgb, var(--text-hi) 20%, transparent);
+  pointer-events: none;
+  user-select: none;
+}
+
+.modHead { display: flex; align-items: flex-start; gap: var(--sp-3); padding-right: var(--sp-10); }
+/* raised icon plate: lit top lip, seated shadow */
+.modIco {
+  flex: none;
+  width: 42px;
+  height: 42px;
+  border-radius: var(--r-sm);
+  display: grid;
+  place-items: center;
+  background: var(--volt-tint);
+  color: var(--accent-text);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text-hi) 10%, transparent), var(--shadow-1);
+}
+.modTag { margin-bottom: 4px; }
+.modName { margin: 0; font-size: var(--text-lg); line-height: var(--leading-heading); }
+
+/* recessed config screen — the rule as it reads in the engine */
+.modParam {
+  display: block;
+  padding: 7px 10px;
+  font-size: var(--text-xs);
+  color: var(--accent-text);
+  background: var(--bg-app);
+  border: 1px solid var(--border-1);
+  border-radius: var(--r-sm);
+  overflow-wrap: anywhere;
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--text-hi) 5%, transparent);
+}
+.modParam::before { content: "› "; color: var(--text-low); }
+
+.modDesc { margin: 0; font-size: var(--text-sm); line-height: var(--leading-body); color: var(--text-mid); }
+
+/* ---- guard 09, the one-switch preset: full width, volt hairline ---- */
+.modWide {
+  grid-column: 1 / -1;
+  background: linear-gradient(180deg, var(--volt-tint), transparent) 0 0 / 100% 88px no-repeat, var(--box-surface);
+}
+.modWide::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: var(--r-md);
+  right: var(--r-md);
+  height: 1px;
+  border-radius: var(--r-full);
+  background: var(--box-hairline-volt);
+  pointer-events: none;
+}
+@media (min-width: 900px) {
+  .modWide {
+    display: grid;
+    grid-template-columns: minmax(240px, 1fr) minmax(0, 1.8fr);
+    column-gap: var(--sp-8);
+    row-gap: var(--sp-3);
+    align-content: start;
+  }
+  .modWide .modHead { grid-column: 1; grid-row: 1 / span 2; }
+  .modWide .modParam,
+  .modWide .modDesc { grid-column: 2; }
+  /* keep the recessed screen clear of the stamped 09 numeral */
+  .modWide .modParam { margin-right: var(--sp-16); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mod:hover { transform: none; }
+  .led { animation: none; }
+}
+
+/* ---- fail-closed poster + faq + close ---- */
+.failCard { padding: 36px 32px; }
+
+.faqList { display: grid; gap: var(--sp-3); }
+
+.ctaRow { display: flex; flex-wrap: wrap; gap: var(--sp-4); align-items: center; }
+
+/* Same 320px squeeze as .heroCtas above: the primary label is nowrap and
+   intrinsically ~327px, wider than the 288px container, so the pill tightens
+   to the same reduced padding/step the hero pair already uses. */
+@media (max-width: 430px) {
+  .ctaRow > a {
+    flex: 1 1 100%;
+    min-width: 0;
+    padding: 0 var(--sp-4) !important;
+    font-size: var(--text-md) !important;
+  }
+}
