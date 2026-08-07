@@ -72,6 +72,7 @@ heropips/
 * **Non-Card Crypto Subscriptions**: Crypto payments powered by NOWPayments IPNs, featuring auto-converting USDT treasury settlements, seat hold reservations, and automated renewal engines.
 * **Double-Entry Financial Ledger**: `ledger-svc` enforces double-entry accounting ($\sum \text{Debits} = \sum \text{Credits}$) for affiliate rewards, referral bonuses, and lifetime seat grants.
 * **Security & Envelope Encryption**: Broker credentials (MetaAPI/CCXT) are encrypted using envelope encryption (HashiCorp Vault) and exist only in `connector-svc` memory.
+* **Dynamic UI Theming**: Features a polished "Volt on Ink" design system with robust light/dark mode support and seamless state transitions across the platform.
 
 ---
 
