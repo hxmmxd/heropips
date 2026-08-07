@@ -85,6 +85,36 @@ body.lp-scrollable {
     );
   }
   
+  /* Overrides for Connectivity / Integrations block */
+  .lp-integrations-wrap {
+    background-color: #0f1115;
+    background-image: 
+      radial-gradient(rgba(255, 255, 255, 0.05) 1.2px, transparent 1.2px),
+      radial-gradient(circle at 50% 0%, rgba(30, 32, 40, 0.7) 0%, #0f1115 80%);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  .lp-integrations-title {
+    color: #ffffff;
+  }
+  .lp-integrations-desc {
+    color: rgba(255, 255, 255, 0.65);
+  }
+  .lp-integration-card {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  .lp-integration-card-desc {
+    color: rgba(255, 255, 255, 0.6);
+  }
+  .lp-integration-card-footer {
+    border-top-color: rgba(255, 255, 255, 0.1);
+  }
+  .lp-integration-card-tag {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.7);
+  }
+
   /* Overrides for HeroPips Engine / Noise Narrative block */
   .lp-narrative-box {
     border-color: rgba(255, 255, 255, 0.1);
