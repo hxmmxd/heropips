@@ -20,14 +20,13 @@ interface TerminalTabProps {
   allowedSymbols?: string[];
   onTradeExecuted?: (result: { orderId: string; fillPrice?: number; ticket: any }) => void;
   onOpenManager?: () => void;
-  astroMode?: boolean;
   onSwitchTab?: (tab: string) => void;
 }
 
 const COMMANDS = [
   { name: '/analyze', desc: 'Perform multi-agent technical analysis', usage: '/analyze [symbol]', example: '/analyze EURUSD' },
   { name: '/signal', desc: 'Generate trade signal and ticket', usage: '/signal [symbol]', example: '/signal Gold' },
-  { name: '/astro', desc: 'Check celestial parameters and LOT multiplier', usage: '/astro [symbol]', example: '/astro BTCUSD' },
+
   { name: '/watchlist', desc: 'List active permitted instruments', usage: '/watchlist' },
   { name: '/clear', desc: 'Clear conversation history', usage: '/clear' },
 ];
@@ -35,7 +34,7 @@ const COMMANDS = [
 const QUICK_ACTIONS = [
   { label: 'Analyze Gold', prompt: '/analyze Gold', icon: <TrendingUp className="w-3.5 h-3.5 text-emerald-500" /> },
   { label: 'Signal EURUSD', prompt: '/signal EURUSD', icon: <Zap className="w-3.5 h-3.5 text-amber-500" /> },
-  { label: 'Astro BTCUSD', prompt: '/astro BTCUSD', icon: <Sparkles className="w-3.5 h-3.5 text-indigo-500" /> },
+
   { label: 'SMC QQQ', prompt: '/analyze QQQ', icon: <Search className="w-3.5 h-3.5 text-blue-500" /> },
   { label: 'Watchlist', prompt: '/watchlist', icon: <ClipboardList className="w-3.5 h-3.5 text-slate-500" /> },
 ];
@@ -48,11 +47,9 @@ export default function TerminalTab({
   allowedSymbols,
   onTradeExecuted,
   onOpenManager,
-  astroMode: astroModeProp,
   onSwitchTab,
 }: TerminalTabProps) {
   const searchParams = useSearchParams();
-  const astroMode = astroModeProp ?? searchParams.get('astro') === '1';
   const [inputValue, setInputValue] = useState('');
   const [activeCommandIndex, setActiveCommandIndex] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -187,14 +184,12 @@ export default function TerminalTab({
       {/* Chat Feed or Welcome Greeting */}
       {messages.length === 0 ? (
         <WelcomeScreen
-          astroMode={astroMode}
           onGenerateSignal={onGenerateSignal}
           onSendMessage={onSendMessage}
         />
       ) : (
         <ChatFeed
           messages={messages}
-          astroMode={astroMode}
           onGenerateSignal={onGenerateSignal}
           activeBrokerId={activeBrokerId}
           onTradeExecuted={onTradeExecuted}
@@ -267,11 +262,7 @@ export default function TerminalTab({
 
           <form
             onSubmit={handleSend}
-            className={`chat-input-container shadow-sm transition-all duration-300 ${
-              astroMode
-                ? 'border-amber-500/40 shadow-[0_0_20px_rgba(245,158,11,0.18)] bg-gradient-to-r from-slate-950 via-indigo-950/40 to-slate-950'
-                : ''
-            }`}
+            className="chat-input-container shadow-sm transition-all duration-300"
           >
             <button
               type="button"
@@ -300,7 +291,7 @@ export default function TerminalTab({
               onChange={(e) => setInputValue(e.target.value)}
               onInput={handleTextareaInput}
               onKeyDown={handleKeyDown}
-              placeholder="Chat with Xyro Trade AI"
+              placeholder="Chat with HeroPips AI"
               autoComplete="off"
               autoCorrect="off"
               spellCheck="false"
@@ -321,10 +312,10 @@ export default function TerminalTab({
               </button>
               <button
                 type="submit"
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-[var(--send-btn)] text-[var(--send-icon)] shadow-md active:scale-90 hover:opacity-90 transition shrink-0"
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-[var(--accent)] text-slate-950 shadow-md active:scale-90 hover:opacity-90 transition shrink-0"
                 aria-label="Send message"
               >
-                <ArrowUp className="w-4 h-4" />
+                <ArrowUp className="w-4 h-4" strokeWidth={2.5} />
               </button>
             </div>
           </form>

@@ -311,12 +311,12 @@ function AICoreHub() {
         animation: 'hub-pulse 2s ease-in-out infinite',
         zIndex: 2,
       }}>
-        {/* XYRO Icon */}
+        {/* HEROPIPS Icon */}
         <svg viewBox="0 0 24 24" fill="none" style={{ width: 26, height: 26 }}>
           <path d="M12 2L2 7l10 5 10-5-10-5z" fill="rgba(255,255,255,0.9)" />
           <path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="rgba(255,255,255,0.7)" strokeWidth="1.5" strokeLinecap="round" />
         </svg>
-        <span style={{ fontSize: 7.5, fontWeight: 900, color: 'rgba(255,255,255,0.9)', letterSpacing: '0.14em', marginTop: 3 }}>XYRO AI</span>
+        <span style={{ fontSize: 7.5, fontWeight: 900, color: 'rgba(255,255,255,0.9)', letterSpacing: '0.14em', marginTop: 3 }}>HEROPIPS AI</span>
       </div>
 
       {/* Processing indicator */}
@@ -516,7 +516,7 @@ export default function RealtimeSignalsShowcase() {
           }}>
             Every market analysis passes through{' '}
             <strong style={{ color: 'rgba(226,232,240,0.9)' }}>12 validation gates</strong>,
-            converges at the XYRO AI Core, and fires as an execution-ready trade signal.
+            converges at the HEROPIPS AI Core, and fires as an execution-ready trade signal.
           </p>
 
           {/* Live stats */}

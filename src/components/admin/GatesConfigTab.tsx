@@ -7,7 +7,7 @@ interface GatesConfigTabProps {
   initialConfig: Record<string, any>;
 }
 
-type TabCategory = 'core' | 'advanced' | 'astro' | 'risk';
+type TabCategory = 'core' | 'advanced' | 'risk';
 
 export default function GatesConfigTab({ initialConfig }: GatesConfigTabProps) {
   const [config, setConfig] = useState(initialConfig);
@@ -45,7 +45,7 @@ export default function GatesConfigTab({ initialConfig }: GatesConfigTabProps) {
     if (saveSuccess) setSaveSuccess(false);
   };
 
-  // Selectivity strength calculator based on all 20 gates (12 Technical + 5 Astro + 3 Risk)
+  // Selectivity strength calculator based on all 15 gates (12 Technical + 3 Risk)
   const calculateSelectivity = () => {
     let score = 0;
     
@@ -69,16 +69,14 @@ export default function GatesConfigTab({ initialConfig }: GatesConfigTabProps) {
       'gate_volatility_enabled', 'gate_cooldown_enabled', 'gate_news_enabled',
       'gate_htf_enabled', 'gate_session_enabled', 'gate_correlation_enabled',
       'gate_mtf_enabled', 'gate_vwap_enabled', 'gate_candle_enabled',
-      'gate_ecp_enabled', 'gate_daily_loss_enabled', 'gate_drawdown_enabled',
-      'gate_astro_lunar_enabled', 'gate_astro_aspect_enabled', 'gate_astro_mercury_enabled',
-      'gate_astro_voc_enabled', 'gate_astro_seasonal_enabled'
+      'gate_ecp_enabled', 'gate_daily_loss_enabled', 'gate_drawdown_enabled'
     ];
 
     enabledGates.forEach(g => {
       if (getBool(g, true)) score += 5;
     });
 
-    if (score > 135) return { label: 'MAX PROTECTION (AAA+ GRADE ONLY)', color: '#ef4444', desc: 'Squeezes out low-probability setups. Heavy risk and astronomical blockers active.' };
+    if (score > 135) return { label: 'MAX PROTECTION (AAA+ GRADE ONLY)', color: '#ef4444', desc: 'Squeezes out low-probability setups. Heavy risk blockers active.' };
     if (score > 95) return { label: 'CONSERVATIVE / STABLE', color: '#f97316', desc: 'Strict technical filters with default institutional risk limits.' };
     if (score > 60) return { label: 'BALANCED DEFENSIVE', color: '#10b981', desc: 'Optimized standard settings protecting account equity while capturing moves.' };
     return { label: 'PERMISSIVE (HIGH FREQUENCY)', color: '#3b82f6', desc: 'Low entry filters & high loss buffers. Maximizes transaction rate.' };
@@ -98,7 +96,7 @@ export default function GatesConfigTab({ initialConfig }: GatesConfigTabProps) {
         gate_ecp_bootstrap_trades: 10,
         gate_daily_loss_max_pct: 8.0,
         gate_drawdown_max_pct: 30.0,
-        gate_astro_min_aspects: 0,
+
         // Enabled status mappings
         gate_confluence_enabled: true,
         gate_smc_enabled: false,
@@ -114,12 +112,7 @@ export default function GatesConfigTab({ initialConfig }: GatesConfigTabProps) {
         gate_candle_enabled: true,
         gate_ecp_enabled: true,
         gate_daily_loss_enabled: true,
-        gate_drawdown_enabled: true,
-        gate_astro_lunar_enabled: false,
-        gate_astro_aspect_enabled: false,
-        gate_astro_mercury_enabled: false,
-        gate_astro_voc_enabled: false,
-        gate_astro_seasonal_enabled: false
+        gate_drawdown_enabled: true
       };
     } else if (presetName === 'swing') {
       preset = {
@@ -133,7 +126,7 @@ export default function GatesConfigTab({ initialConfig }: GatesConfigTabProps) {
         gate_ecp_bootstrap_trades: 30,
         gate_daily_loss_max_pct: 4.0,
         gate_drawdown_max_pct: 15.0,
-        gate_astro_min_aspects: 2,
+
         // All toggles set to true
         gate_confluence_enabled: true,
         gate_smc_enabled: true,
@@ -149,12 +142,7 @@ export default function GatesConfigTab({ initialConfig }: GatesConfigTabProps) {
         gate_candle_enabled: true,
         gate_ecp_enabled: true,
         gate_daily_loss_enabled: true,
-        gate_drawdown_enabled: true,
-        gate_astro_lunar_enabled: true,
-        gate_astro_aspect_enabled: true,
-        gate_astro_mercury_enabled: true,
-        gate_astro_voc_enabled: true,
-        gate_astro_seasonal_enabled: true
+        gate_drawdown_enabled: true
       };
     } else {
       // Standard
@@ -169,7 +157,7 @@ export default function GatesConfigTab({ initialConfig }: GatesConfigTabProps) {
         gate_ecp_bootstrap_trades: 20,
         gate_daily_loss_max_pct: 6.0,
         gate_drawdown_max_pct: 25.0,
-        gate_astro_min_aspects: 1,
+
         // Standard toggles enabled
         gate_confluence_enabled: true,
         gate_smc_enabled: true,
@@ -185,12 +173,7 @@ export default function GatesConfigTab({ initialConfig }: GatesConfigTabProps) {
         gate_candle_enabled: true,
         gate_ecp_enabled: true,
         gate_daily_loss_enabled: true,
-        gate_drawdown_enabled: true,
-        gate_astro_lunar_enabled: true,
-        gate_astro_aspect_enabled: true,
-        gate_astro_mercury_enabled: true,
-        gate_astro_voc_enabled: true,
-        gate_astro_seasonal_enabled: true
+        gate_drawdown_enabled: true
       };
     }
 
@@ -215,7 +198,7 @@ export default function GatesConfigTab({ initialConfig }: GatesConfigTabProps) {
         'gate_ecp_bootstrap_trades',
         'gate_daily_loss_max_pct',
         'gate_drawdown_max_pct',
-        'gate_astro_min_aspects',
+
         // Toggles
         'gate_confluence_enabled',
         'gate_smc_enabled',
@@ -231,12 +214,7 @@ export default function GatesConfigTab({ initialConfig }: GatesConfigTabProps) {
         'gate_candle_enabled',
         'gate_ecp_enabled',
         'gate_daily_loss_enabled',
-        'gate_drawdown_enabled',
-        'gate_astro_lunar_enabled',
-        'gate_astro_aspect_enabled',
-        'gate_astro_mercury_enabled',
-        'gate_astro_voc_enabled',
-        'gate_astro_seasonal_enabled'
+        'gate_drawdown_enabled'
       ];
 
       for (const key of keysToSave) {
@@ -398,7 +376,7 @@ export default function GatesConfigTab({ initialConfig }: GatesConfigTabProps) {
         <div className="adm-card-head" style={{ borderBottom: '1px solid var(--border)', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
           <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 15, fontWeight: 800, color: 'var(--text)', margin: 0 }}>
             <Shield size={18} color="#ff3c00" />
-            AI Strategy Gating & Dynamic Thresholds (All 15+ Gates)
+            AI Strategy Gating & Dynamic Thresholds (All 15 Gates)
           </h3>
           <div style={{ display: 'flex', background: 'rgba(0,0,0,0.02)', padding: 4, borderRadius: 10, border: '1px solid var(--border)', flexWrap: 'wrap', gap: 4 }}>
             <button className={`tab-btn ${activeCategory === 'core' ? 'active' : ''}`} onClick={() => setActiveCategory('core')}>
@@ -407,9 +385,7 @@ export default function GatesConfigTab({ initialConfig }: GatesConfigTabProps) {
             <button className={`tab-btn ${activeCategory === 'advanced' ? 'active' : ''}`} onClick={() => setActiveCategory('advanced')}>
               <Activity size={14} /> Advanced Stack (7-12)
             </button>
-            <button className={`tab-btn ${activeCategory === 'astro' ? 'active' : ''}`} onClick={() => setActiveCategory('astro')}>
-              <Sun size={14} /> Astro Alignment (13-17)
-            </button>
+
             <button className={`tab-btn ${activeCategory === 'risk' ? 'active' : ''}`} onClick={() => setActiveCategory('risk')}>
               <ShieldCheck size={14} /> Risk Governor (13-15)
             </button>
@@ -604,72 +580,6 @@ export default function GatesConfigTab({ initialConfig }: GatesConfigTabProps) {
             </div>
           )}
 
-          {/* CATEGORY 3: ASTRO ALIGNMENT (GATES 13-17) */}
-          {activeCategory === 'astro' && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
-              {/* Gate 13 Lunar */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 18, border: '1.5px solid var(--border)', borderRadius: 12 }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Gate 13: Lunar Alignment filter</span>
-                  <span style={{ fontSize: 11, color: 'var(--subtext)' }}>Enforces directional buy/sell alignment against lunar phase cycles (luna bias).</span>
-                </div>
-                <div onClick={() => handleToggleChange('gate_astro_lunar_enabled')} style={{ width: 44, height: 22, borderRadius: 22, background: getBool('gate_astro_lunar_enabled', true) ? '#ff3c00' : 'var(--border)', position: 'relative', cursor: 'pointer', transition: 'background 0.2s', flexShrink: 0 }}>
-                  <div style={{ width: 16, height: 16, borderRadius: '50%', background: 'white', position: 'absolute', top: 3, left: getBool('gate_astro_lunar_enabled', true) ? 25 : 3, transition: 'left 0.2s' }} />
-                </div>
-              </div>
-
-              {/* Gate 15 Mercury */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 18, border: '1.5px solid var(--border)', borderRadius: 12 }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Gate 15: Mercury Risk Blocker</span>
-                  <span style={{ fontSize: 11, color: 'var(--subtext)' }}>Blocks execution of new positions during Mercury Retrograde periods.</span>
-                </div>
-                <div onClick={() => handleToggleChange('gate_astro_mercury_enabled')} style={{ width: 44, height: 22, borderRadius: 22, background: getBool('gate_astro_mercury_enabled', true) ? '#ff3c00' : 'var(--border)', position: 'relative', cursor: 'pointer', transition: 'background 0.2s', flexShrink: 0 }}>
-                  <div style={{ width: 16, height: 16, borderRadius: '50%', background: 'white', position: 'absolute', top: 3, left: getBool('gate_astro_mercury_enabled', true) ? 25 : 3, transition: 'left 0.2s' }} />
-                </div>
-              </div>
-
-              {/* Gate 16 VOC */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 18, border: '1.5px solid var(--border)', borderRadius: 12 }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Gate 16: Eclipse & Void-of-Course Block</span>
-                  <span style={{ fontSize: 11, color: 'var(--subtext)' }}>Blocks trades during lunar eclipses or when the Moon is Void of Course (VOC).</span>
-                </div>
-                <div onClick={() => handleToggleChange('gate_astro_voc_enabled')} style={{ width: 44, height: 22, borderRadius: 22, background: getBool('gate_astro_voc_enabled', true) ? '#ff3c00' : 'var(--border)', position: 'relative', cursor: 'pointer', transition: 'background 0.2s', flexShrink: 0 }}>
-                  <div style={{ width: 16, height: 16, borderRadius: '50%', background: 'white', position: 'absolute', top: 3, left: getBool('gate_astro_voc_enabled', true) ? 25 : 3, transition: 'left 0.2s' }} />
-                </div>
-              </div>
-
-              {/* Gate 17 Seasonal */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 18, border: '1.5px solid var(--border)', borderRadius: 12 }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Gate 17: Seasonal Cycle Filter</span>
-                  <span style={{ fontSize: 11, color: 'var(--subtext)' }}>Ensures order direction aligns with yearly seasonal asset performance trends.</span>
-                </div>
-                <div onClick={() => handleToggleChange('gate_astro_seasonal_enabled')} style={{ width: 44, height: 22, borderRadius: 22, background: getBool('gate_astro_seasonal_enabled', true) ? '#ff3c00' : 'var(--border)', position: 'relative', cursor: 'pointer', transition: 'background 0.2s', flexShrink: 0 }}>
-                  <div style={{ width: 16, height: 16, borderRadius: '50%', background: 'white', position: 'absolute', top: 3, left: getBool('gate_astro_seasonal_enabled', true) ? 25 : 3, transition: 'left 0.2s' }} />
-                </div>
-              </div>
-
-              {/* Gate 14 Aspect */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 18, border: '1.5px solid var(--border)', borderRadius: 12, gridColumn: 'span 2', background: getBool('gate_astro_aspect_enabled', true) ? 'transparent' : 'rgba(0,0,0,0.02)', opacity: getBool('gate_astro_aspect_enabled', true) ? 1 : 0.65 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Gate 14: Min Planetary Aspects</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ fontSize: 13, fontWeight: 800, color: '#ff3c00', fontFamily: 'monospace' }}>
-                      {getVal('gate_astro_min_aspects', 1)} aspect(s)
-                    </span>
-                    <div onClick={() => handleToggleChange('gate_astro_aspect_enabled')} style={{ width: 32, height: 16, borderRadius: 16, background: getBool('gate_astro_aspect_enabled', true) ? '#ff3c00' : 'var(--border)', position: 'relative', cursor: 'pointer', transition: 'background 0.2s' }}>
-                      <div style={{ width: 12, height: 12, borderRadius: '50%', background: 'white', position: 'absolute', top: 2, left: getBool('gate_astro_aspect_enabled', true) ? 18 : 2, transition: 'left 0.2s' }} />
-                    </div>
-                  </div>
-                </div>
-                <input type="range" min="0" max="5" step="1" disabled={!getBool('gate_astro_aspect_enabled', true)} value={getVal('gate_astro_min_aspects', 1)} onChange={e => handleSliderChange('gate_astro_min_aspects', Number(e.target.value))} className="custom-slider" />
-                <span style={{ fontSize: 11, color: 'var(--subtext)' }}>Minimum active astrological planetary aspects (conjunctions, trines, squares) required to execute trades.</span>
-              </div>
-            </div>
-          )}
-
           {/* CATEGORY 4: RISK MANAGEMENT (GATES 13-15) */}
           {activeCategory === 'risk' && (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
@@ -729,7 +639,7 @@ export default function GatesConfigTab({ initialConfig }: GatesConfigTabProps) {
           {/* Feedback alerts */}
           {saveSuccess && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px', background: 'rgba(34,197,94,.08)', border: '1px solid rgba(34,197,94,.2)', borderRadius: 10, color: '#22c55e', fontSize: 12, fontWeight: 700 }}>
-              <CheckCircle size={15} /> All technical, astronomical, and risk governor configurations saved successfully.
+              <CheckCircle size={15} /> All technical and risk governor configurations saved successfully.
             </div>
           )}
 

@@ -6,7 +6,6 @@ import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
 import ModalNode from '@/components/ModalNode';
 import TerminalTab from '@/components/TerminalTab';
-import AstroDisclaimerModal from '@/components/AstroDisclaimerModal';
 import BrokerLimitModal from '@/components/BrokerLimitModal';
 import { PhoneVerificationModal } from '@/components/PhoneVerificationModal';
 import { createClient } from '@/lib/supabase/client';
@@ -21,7 +20,6 @@ const ProfileTab         = lazy(() => import('@/components/ProfileTab'));
 const SubscriptionTab    = lazy(() => import('@/components/SubscriptionTab'));
 const BillingTab         = lazy(() => import('@/components/BillingTab'));
 const CoursesTab         = lazy(() => import('@/components/CoursesTab'));
-const AstroPerformanceTab = lazy(() => import('@/components/AstroPerformanceTab'));
 
 // Minimal tab skeleton to show while a lazy tab loads
 function TabSkeleton() {
@@ -41,8 +39,6 @@ function HomeContent() {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [modalOpen, setModalOpen] = useState(false);
   const [brokerLimitModalOpen, setBrokerLimitModalOpen] = useState(false);
-  const [astroMode, setAstroMode] = useState(false);
-  const [showAstroDisclaimer, setShowAstroDisclaimer] = useState(false);
 
   const [isFree, setIsFree] = useState(true);
   const [dailySignalsUsed, setDailySignalsUsed] = useState(0);
@@ -93,17 +89,6 @@ function HomeContent() {
     }
   }, [theme]);
 
-  // Restore astroMode from localStorage on mount
-  useEffect(() => {
-    const saved = localStorage.getItem('astroMode') === 'true';
-    setAstroMode(saved);
-    document.documentElement.classList.toggle('astro-mode', saved);
-    // If astro was active, ensure dark mode is on
-    if (saved) {
-      setTheme('dark');
-    }
-  }, []);
-
   // Hydrate broker list from localStorage (runs before API fetch, no hydration mismatch)
   useEffect(() => {
     try {
@@ -114,53 +99,6 @@ function HomeContent() {
       }
     } catch {}
   }, []);
-
-  const handleToggleAstroMode = () => {
-    const next = !astroMode;
-    
-    if (next) {
-      const accepted = localStorage.getItem('astroDisclaimerAccepted') === 'true';
-      if (!accepted) {
-        setShowAstroDisclaimer(true);
-        return;
-      }
-    }
-    
-    toggleAstroModeActive(next);
-  };
-
-  const toggleAstroModeActive = (next: boolean) => {
-    setAstroMode(next);
-    localStorage.setItem('astroMode', String(next));
-    document.documentElement.classList.toggle('astro-mode', next);
-
-    if (next) {
-      // Save current theme then force dark
-      localStorage.setItem('preAstroTheme', theme);
-      setTheme('dark');
-
-      // Inject astro activation bot message into chat
-      const activationMsg: ChatMessage = {
-        id: `astro-activate-${Date.now()}`,
-        sender: 'bot',
-        text: 'ASTRO_ACTIVATION',
-        astroCard: true,
-      };
-      setMessages(prev => [...prev, activationMsg]);
-    } else {
-      // Restore previous theme
-      const prev = (localStorage.getItem('preAstroTheme') as 'light' | 'dark') ?? 'light';
-      setTheme(prev);
-      localStorage.removeItem('preAstroTheme');
-    }
-
-    // Non-blocking Supabase sync
-    fetch('/api/user/settings', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ astro_mode: next }),
-    }).catch(() => {});
-  };
 
   // Dynamic height handling for mobile keyboard resize
   useEffect(() => {
@@ -509,7 +447,6 @@ function HomeContent() {
       }
     }
 
-    const isAstroCommand = trimmed.toLowerCase().startsWith('/astro');
     const isSignalCommand = trimmed.toLowerCase().startsWith('/signal');
 
     const newUserMessage: ChatMessage = {
@@ -547,7 +484,6 @@ function HomeContent() {
           accountBalance: activeBroker.balance,
           forceSignal: forceSignal || isSignalCommand,
           activeBrokerId: activeBroker.acc,
-          astroMode: astroMode || isAstroCommand,
         }),
       });
 
@@ -562,7 +498,6 @@ function HomeContent() {
         signalSymbol: data.signalSymbol || undefined,
         marketData: data.marketData || undefined,
         gating: data.gating || undefined,
-        astroGate: data.astroGate || undefined,
         screenerData: data.screenerData || undefined,
       };
 
@@ -603,7 +538,6 @@ function HomeContent() {
         onToggle={() => setSidebarOpen(!sidebarOpen)}
         theme={theme}
         onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-        astroMode={astroMode}
         userPlan={isFree ? 'free' : 'pro'}
         dailySignalsUsed={dailySignalsUsed}
         connectedBrokersCount={brokers.length}
@@ -618,8 +552,6 @@ function HomeContent() {
           onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
           onRefresh={handleRefreshBalances}
           isRefreshing={isRefreshing}
-          astroMode={astroMode}
-          onToggleAstroMode={handleToggleAstroMode}
           currentTab={currentTab}
         />
 
@@ -662,7 +594,6 @@ function HomeContent() {
               activeBrokerId={activeBroker.acc}
               allowedSymbols={activeBroker.allowed_symbols}
               onOpenManager={() => setCurrentTab('manager')}
-              astroMode={astroMode}
               onSwitchTab={setCurrentTab}
               onTradeExecuted={(result) => {
                 const t = result.ticket;
@@ -790,11 +721,6 @@ function HomeContent() {
             </Suspense>
           )}
 
-          {currentTab === 'astro-performance' && (
-            <Suspense fallback={<TabSkeleton />}>
-              <AstroPerformanceTab />
-            </Suspense>
-          )}
         </div>
       </main>
 
@@ -803,17 +729,6 @@ function HomeContent() {
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         onConnect={handleAddBrokerNode}
-      />
-
-      {/* Astro Mode First-Activation Disclaimer Modal */}
-      <AstroDisclaimerModal
-        isOpen={showAstroDisclaimer}
-        onClose={() => setShowAstroDisclaimer(false)}
-        onAccept={() => {
-          localStorage.setItem('astroDisclaimerAccepted', 'true');
-          setShowAstroDisclaimer(false);
-          toggleAstroModeActive(true);
-        }}
       />
 
       {/* Broker limit reached modal */}

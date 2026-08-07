@@ -83,7 +83,7 @@ export default function VerifyPhonePage() {
           </div>
           <div>
             <h1 className="text-base font-extrabold text-slate-900 tracking-wider uppercase font-mono">
-              XYRO<span className="text-[#ff3c00]">TRADE</span>
+              HEROPIPS<span className="text-[#ff3c00]">TRADE</span>
             </h1>
             <p className="text-[10px] text-slate-400 font-mono font-semibold">INSTITUTIONAL AI TERMINAL</p>
           </div>
@@ -108,7 +108,7 @@ export default function VerifyPhonePage() {
 
       {/* Bottom Light Footer */}
       <footer className="relative z-10 w-full max-w-6xl flex items-center justify-between py-6 px-4 text-[11px] font-mono text-slate-400">
-        <div>© 2026 XyroTrade Inc. All Rights Reserved.</div>
+        <div>© 2026 HeroPips Inc. All Rights Reserved.</div>
         <div className="flex gap-6">
           <span className="hover:text-slate-600 transition-colors cursor-pointer">Privacy Policy</span>
           <span className="font-semibold text-slate-400">Security Node #85742</span>

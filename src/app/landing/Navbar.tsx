@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import * as NavigationMenu from '@radix-ui/react-navigation-menu';
 import { 
   Cpu, 
@@ -14,24 +14,27 @@ import {
   FileText, 
   Users,
   ChevronDown,
-  ArrowRight
+  ArrowRight,
+  Moon,
+  Sun
 } from 'lucide-react';
+import { Logo } from '@/components/Logo';
 
 export const NAV_DROPDOWNS = {
   Platform: [
-    { icon: Cpu, iconColor: '#ff3c00', title: 'AI Signal Engine', desc: '12-gate quantitative validation', href: '/landing/signal-engine' },
+    { icon: Cpu, iconColor: 'var(--volt-500)', title: 'AI Signal Engine', desc: '12-gate quantitative validation', href: '/landing/signal-engine' },
     { icon: ShieldCheck, iconColor: '#10b981', title: 'Risk Governor', desc: 'Auto position sizing & drawdown guard', href: '#' },
     { icon: BarChart3, iconColor: '#0088cc', title: 'Analytics Dashboard', desc: 'Full performance tracking & journal', href: '#' },
     { icon: Bot, iconColor: '#8b5cf6', title: 'AI Chat Assistant', desc: 'Ask anything, get instant analysis', href: '#' },
   ],
   'For Traders': [
-    { icon: Target, iconColor: '#ff3c00', title: 'Prop Firm Traders', desc: 'Pass challenges with governed risk', href: '#' },
+    { icon: Target, iconColor: 'var(--volt-500)', title: 'Prop Firm Traders', desc: 'Pass challenges with governed risk', href: '#' },
     { icon: Building2, iconColor: '#0088cc', title: 'Institutional', desc: 'White-label & API for firms & funds', href: '#' },
     { icon: Compass, iconColor: '#10b981', title: 'Beginners', desc: 'Start with guided, validated signals', href: '#' },
   ],
   Resources: [
     { icon: BookOpen, iconColor: '#0088cc', title: 'Documentation', desc: 'Guides, API refs & tutorials', href: '#' },
-    { icon: FileText, iconColor: '#ff3c00', title: 'Blog', desc: 'Strategy breakdowns & market insights', href: '#' },
+    { icon: FileText, iconColor: 'var(--volt-500)', title: 'Blog', desc: 'Strategy breakdowns & market insights', href: '#' },
     { icon: Users, iconColor: '#10b981', title: 'Community', desc: 'Telegram & Discord trader groups', href: '#' },
   ],
 };
@@ -40,6 +43,23 @@ export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [mobileActiveDropdown, setMobileActiveDropdown] = useState<string | null>(null);
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    setIsDark(document.documentElement.classList.contains('dark'));
+  }, []);
+
+  const handleToggleTheme = () => {
+    const nextDark = !isDark;
+    setIsDark(nextDark);
+    if (nextDark) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  };
 
   const toggleDropdown = (label: string) => {
     if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
@@ -73,12 +93,8 @@ export function Navbar() {
         <div className="lp-nav-inner">
 
           {/* Logo */}
-          <a href="/landing" className="lp-nav-logo" aria-label="XyroTrade" onClick={closeAllMenus}>
-            <img
-              src="/logos/xyrotrade-logo.png"
-              alt="XyroTrade"
-              className="lp-nav-logo-img"
-            />
+          <a href="/landing" className="lp-nav-logo flex items-center" aria-label="heropips" onClick={closeAllMenus}>
+            <Logo size={36} showWordmark={true} />
           </a>
 
 
@@ -143,7 +159,7 @@ export function Navbar() {
                       ))}
                     </div>
                     <div className="lp-dd-col-right">
-                      <div className="lp-dd-sidebar-tag">XYRO API</div>
+                      <div className="lp-dd-sidebar-tag">HEROPIPS API</div>
                       <h4 className="lp-dd-sidebar-title">Institutional Feed</h4>
                       <p className="lp-dd-sidebar-desc">Direct websocket execution & raw data streams.</p>
                       <NavigationMenu.Link asChild>
@@ -181,7 +197,7 @@ export function Navbar() {
                   <div className="lp-dd-footer">
                     <NavigationMenu.Link asChild>
                       <a href="#" className="lp-dd-footer-link" onClick={closeAllMenus}>
-                        <span>Learn strategies at Xyro Academy</span>
+                        <span>Learn strategies at heropips</span>
                         <ArrowRight size={13} />
                       </a>
                     </NavigationMenu.Link>
@@ -222,6 +238,10 @@ export function Navbar() {
 
           {/* Right actions */}
           <div className="lp-nav-actions">
+            <button onClick={handleToggleTheme} className="lp-nav-act-link flex items-center justify-center p-2 rounded-full hover:bg-[var(--surface-2)] transition text-[var(--text-mid)]" aria-label="Toggle Theme">
+              {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
+            <div className="lp-nav-act-sep" />
             <a href="#" className="lp-nav-act-link">Contact sales</a>
             <div className="lp-nav-act-sep" />
             <a href="/login" className="lp-nav-act-link" onClick={closeAllMenus}>Log in</a>
@@ -230,6 +250,9 @@ export function Navbar() {
 
           {/* Mobile-only: Create account (visible before hamburger on small screens) */}
           <div className="lp-nav-mobile-actions">
+            <button onClick={handleToggleTheme} className="lp-nav-act-link flex items-center justify-center p-2 rounded-full hover:bg-[var(--surface-2)] transition text-[var(--text-mid)]" aria-label="Toggle Theme">
+              {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
             <a href="/login?signup=true" className="lp-nav-mob-btn" onClick={closeAllMenus}>Create account</a>
           </div>
 

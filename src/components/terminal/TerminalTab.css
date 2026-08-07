@@ -19,61 +19,35 @@
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
   }
 
-  /* Typing indicator — cipher decode animation */
-  .typing-loader {
-    width: fit-content;
-    font-weight: bold;
-    font-family: monospace;
-    white-space: pre;
-    font-size: 16px;
-    line-height: 1.2em;
-    height: 1.2em;
-    overflow: hidden;
-    color: var(--subtext);
+  /* Typing indicator — minimal dots */
+  .typing-dots {
+    display: flex;
+    align-items: center;
+    gap: 4px;
   }
-
-  .typing-loader::before {
-    content: "Thinking...\A⌰oading...\A⌰⍜ading...\A⌰⍜⏃ding...\A⌰⍜⏃⎅ing...\A⌰⍜⏃⎅⟟ng...\A⌰⍜⏃⎅⟟⋏g...\A⌰⍜⏃⎅⟟⋏☌...\A⌰⍜⏃⎅⟟⋏☌⟒..\A⌰⍜⏃⎅⟟⋏☌⟒⏁.\A⌰⍜⏃⎅⟟⋏☌⟒⏁⋔";
-    white-space: pre;
-    display: inline-block;
-    animation: typing-scroll 1s infinite steps(11) alternate;
+  .typing-dots span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: var(--subtext);
+    opacity: 0.4;
+    animation: typing-dot-bounce 1.4s infinite ease-in-out both;
   }
+  .typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+  .typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+  .typing-dots span:nth-child(3) { animation-delay: 0s; }
 
-  @keyframes typing-scroll {
-    100% {
-      transform: translateY(-100%);
+  @keyframes typing-dot-bounce {
+    0%, 80%, 100% {
+      transform: scale(0.6);
+      opacity: 0.4;
+    }
+    40% {
+      transform: scale(1);
+      opacity: 1;
     }
   }
 
-  /* ── Astro Typing Indicator ────────────────────── */
-  .astro-typing-orbit-wrap {
-    width: 40px;
-    height: 40px;
-    flex-shrink: 0;
-  }
-  .astro-typing-orbit-svg {
-    width: 100%;
-    height: 100%;
-    filter: drop-shadow(0 0 4px rgba(245,158,11,0.4));
-  }
-
-  .astro-typing-loader {
-    width: fit-content;
-    font-weight: bold;
-    font-family: monospace;
-    white-space: pre;
-    font-size: 16px;
-    line-height: 1.2em;
-    height: 1.2em;
-    overflow: hidden;
-    color: #f59e0b;
-  }
-  .astro-typing-loader::before {
-    content: "Aligning..\A♈♉♊♋♌♍..\A☿ scanning..\A♎♏♐♑♒♓..\A🌙 syncing..\A✦ celestial..\A♃♄ transit..\A⚹ mapping..\A☽ phasing..\A✧ reading..\A♈♉♊♋♌♍♎♏";
-    white-space: pre;
-    display: inline-block;
-    animation: typing-scroll 1.2s infinite steps(11) alternate;
-  }
 
   /* ── Manager Chat Button (animated bars) ────────── */
   .mgr-chat-btn {
@@ -101,36 +75,32 @@
   .mgr-chat-btn:hover::before { opacity: 1; }
   .mgr-chat-btn:active { transform: scale(0.92); }
 
-  .mgr-chat-icon { position: relative; z-index: 1; }
-
-  /* Staggered pulse animation on each bar */
-  .mgr-bar {
-    transform-origin: bottom center;
-    animation: mgrBarPulse 2.4s ease-in-out infinite;
+  .mgr-chat-icon {
+    position: relative;
+    z-index: 1;
+    animation: zapPulse 2s infinite alternate ease-in-out;
   }
-  .mgr-bar-1 { animation-delay: 0s; }
-  .mgr-bar-2 { animation-delay: 0.3s; }
-  .mgr-bar-3 { animation-delay: 0.6s; }
 
-  @keyframes mgrBarPulse {
-    0%, 100% { transform: scaleY(1); opacity: 0.55; }
-    25%      { transform: scaleY(0.6); opacity: 0.35; }
-    50%      { transform: scaleY(1.1); opacity: 1; }
-    75%      { transform: scaleY(0.85); opacity: 0.7; }
+  @keyframes zapPulse {
+    0% {
+      filter: drop-shadow(0 0 2px rgba(134, 188, 5, 0.3));
+      transform: scale(0.95);
+      color: var(--subtext);
+    }
+    100% {
+      filter: drop-shadow(0 0 8px rgba(134, 188, 5, 0.8));
+      transform: scale(1.05);
+      color: var(--accent);
+    }
   }
 
   /* Glow ring on hover */
-  .mgr-chat-btn:hover .mgr-bar {
-    animation-duration: 1.2s;
-    opacity: 1;
+  .mgr-chat-btn:hover .mgr-chat-icon {
+    animation: none; /* stop pulse on hover and hold active state */
+    filter: drop-shadow(0 0 10px rgba(134, 188, 5, 1));
+    transform: scale(1.1);
+    color: var(--accent);
   }
-  .mgr-chat-btn:hover .mgr-bar-1 { fill: #D4A843; }
-  .mgr-chat-btn:hover .mgr-bar-2 { fill: #B8860B; }
-  .mgr-chat-btn:hover .mgr-bar-3 { fill: #8B6914; }
-
-  .dark .mgr-chat-btn:hover .mgr-bar-1 { fill: #F0C75E; }
-  .dark .mgr-chat-btn:hover .mgr-bar-2 { fill: #D4A843; }
-  .dark .mgr-chat-btn:hover .mgr-bar-3 { fill: #B8860B; }
 
   /* Custom Bot Typing Heartbeat Loader */
   .bot-typing-heartbeat-wrap {

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { Logo } from '@/components/Logo';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -125,12 +126,10 @@ export default function LoginPage() {
 
       <div className="auth-card">
         {/* Logo */}
-        <div className="auth-logo">
-          <img
-            src="/logos/xyrotrade-logo.png"
-            alt="XyroTrade"
-            className="auth-logo-img"
-          />
+        <div className="auth-logo flex flex-col items-center justify-center gap-3 mb-2">
+          <div className="flex justify-center mb-8">
+            <Logo size={44} showWordmark={true} className="items-center" />
+          </div>
         </div>
 
         <h1 className="auth-heading">

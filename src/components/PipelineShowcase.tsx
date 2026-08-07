@@ -7,7 +7,7 @@ import ModesNav from './pipeline/ModesNav';
 import MetricsSidebar from './pipeline/MetricsSidebar';
 import DataflowCanvas from './pipeline/DataflowCanvas';
 
-type Mode = 'quant' | 'astro' | 'webhook';
+type Mode = 'quant' | 'webhook';
 
 interface Gate { num: string; name: string; val: string }
 interface Cfg {
@@ -59,44 +59,6 @@ const MODES: Record<Mode, Cfg> = {
       ],
     ],
   },
-  astro: {
-    label: 'Astro Telemetry', color: '#fbbf24', rgb: '251,191,36',
-    asset: 'BTC/USD', price: '67,420.50', change: '+1.42%',
-    failedGateIndex: 7,
-    confluence: '48%',
-    rsi: '74.2', rsiTag: 'OVERBOUGHT', rsiColor: '#ef4444',
-    macd: '-12.4', macdTag: 'BEARISH', macdColor: '#ef4444',
-    ema: '$66,800', emaTag: 'ABOVE', emaColor: '#10b981',
-    atr: '420.5', atrTag: 'HIGH VOL', atrColor: '#f97316',
-    trend1: '↓ 1H BEARISH', trend1Color: '#fef2f2',
-    trend2: '🪐 RETROGRADE', trend2Color: '#fffbeb',
-    smc: ['HTF Moon Align', 'Outer Transit Conf.', 'Mercury Rx Block', 'Lunar Tide High'],
-    rows: [
-      [
-        { num:'01', name:'Phase Angle',   val:'Synodic 72% Bull'  },
-        { num:'02', name:'Declination',   val:'Peak Lat. Reverse' },
-        { num:'03', name:'Apogee/Perigee',val:'Perigee High ATR'  },
-        { num:'04', name:'Node Align',    val:'Eclipse Clear'     },
-        { num:'05', name:'Session Vol',   val:'NY overlap active' },
-        { num:'06', name:'Harmonics',     val:'Jupiter Trine OK'  },
-      ],
-      [
-        { num:'07', name:'Discordance',   val:'Square Conflict 0' },
-        { num:'08', name:'Mercury Retro', val:'Cancer (25.1°) Rx'  },
-        { num:'09', name:'Venus Speed',   val:'Acceleration High' },
-        { num:'10', name:'Outer Transit', val:'Macro Risk-On'     },
-        { num:'11', name:'Midheaven MC',  val:'Local Peak Align'  },
-        { num:'12', name:'Solar Flares',  val:'K-Index 2 (Safe)'  },
-      ],
-      [
-        { num:'13', name:'SMC BOS',       val:'Bullish Breakout'  },
-        { num:'14', name:'OB/FVG Mit.',   val:'OB Entry Cleared'  },
-        { num:'15', name:'MTF EMA',       val:'15M/1H Bull Trend'  },
-        { num:'16', name:'VWAP Dev.',     val:'Inside 1.5 Deviation'},
-        { num:'17', name:'Seasonal Qtr',  val:'Q4 Trend Concur'   },
-      ],
-    ],
-  },
   webhook: {
     label: 'API Webhook', color: '#f87171', rgb: '248,113,113',
     asset: 'EUR/USD', price: '1.08450', change: '+0.05%',
@@ -143,16 +105,15 @@ export default function PipelineShowcase() {
   // Auto-cycle modes
   useEffect(() => {
     if (!sigsActive) return;
-    const modesList: Mode[] = ['quant', 'astro', 'webhook'];
+    const modesList: Mode[] = ['quant', 'webhook'];
     const id = setTimeout(() => {
-      setMode(m => modesList[(modesList.indexOf(m) + 1) % 3]);
+      setMode(m => modesList[(modesList.indexOf(m) + 1) % 2]);
     }, 7000);
     return () => clearTimeout(id);
   }, [sigsActive]);
 
   const C = MODES[mode];
-  const isAstro = mode === 'astro';
-  const totalGatesCount = isAstro ? 17 : 12;
+  const totalGatesCount = 12;
   const passedGatesCount = C.failedGateIndex !== null ? totalGatesCount - 1 : totalGatesCount;
   const isSignalPass = C.failedGateIndex === null;
 
@@ -197,14 +158,14 @@ export default function PipelineShowcase() {
             fontSize: 38, fontWeight: 800, color: '#0f172a',
             margin: '0 0 14px', letterSpacing: '-0.025em', lineHeight: 1.15,
           }}>
-            {isAstro ? '17-Gate Celestial' : '12-Gate Quantitative'} Engine{' '}
+            12-Gate Quantitative Engine{' '}
             <span style={{ color: C.color, transition: 'color 0.5s' }}>→</span>
             {' '}Realtime Signals
           </h2>
 
           <p style={{ fontSize: 16, color: '#64748b', maxWidth: 580, margin: '0 auto', lineHeight: 1.7 }}>
             Every market signal passes through{' '}
-            <strong style={{ color: '#334155' }}>{isAstro ? '17 validation gates' : '12 validation gates'}</strong>,
+            <strong style={{ color: '#334155' }}>12 validation gates</strong>,
             converges at the Core Hub, and fires as an execution-ready trade signal.
           </p>
         </div>
@@ -311,7 +272,7 @@ export default function PipelineShowcase() {
               </p>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
                 {rowGates.map((g, ci) => {
-                  const flatIdx = ri * (isAstro ? 6 : 4) + ci;
+                  const flatIdx = ri * 4 + ci;
                   const isFailedGate = C.failedGateIndex !== null && flatIdx === C.failedGateIndex;
                   return (
                     <div

@@ -1,7 +1,6 @@
 export type StrategyPreset =
-  | 'full_17_gates'
+  | 'full_15_gates'
   | 'smc_only'
-  | 'astro_only'
   | 'tech_only'
   | 'high_confluence_80';
 
@@ -32,9 +31,9 @@ export const STRATEGY_PRESETS: Record<StrategyPreset, {
   icon: string;
   badgeColor: string;
 }> = {
-  full_17_gates: {
-    name: '17-Gate Quant Consensus',
-    desc: 'Requires full 12-Tech + 5-Astro + 3-Risk Governor consensus (SIGNAL / SHADOW).',
+  full_15_gates: {
+    name: '15-Gate Quant Consensus',
+    desc: 'Requires full 12-Tech + 3-Risk Governor consensus (SIGNAL / SHADOW).',
     icon: '🛡️',
     badgeColor: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
   },
@@ -44,12 +43,7 @@ export const STRATEGY_PRESETS: Record<StrategyPreset, {
     icon: '⚡',
     badgeColor: 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30',
   },
-  astro_only: {
-    name: 'Astro Celestial Overlay',
-    desc: 'Triggers on celestial aspect alignments, lunar phases, and astrological momentum.',
-    icon: '🪐',
-    badgeColor: 'bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30',
-  },
+
   tech_only: {
     name: '12 Technical Gates S/R Breakdown',
     desc: 'Focuses strictly on Price Action, RSI/MACD, Trendlines, and Support/Resistance.',
@@ -82,13 +76,13 @@ export function evaluateStrategyPreset(
   const smcConfirmations = snapshot.smcConfirmations || 0;
 
   switch (preset) {
-    case 'full_17_gates': {
+    case 'full_15_gates': {
       const minScore = minConfluenceThreshold ?? 50;
       const passed = (signalOutcome === 'SIGNAL' || signalOutcome === 'SHADOW') && confluenceScore >= minScore;
       return {
         shouldTrade: passed,
         reason: passed
-          ? `17-Gate Consensus Passed (${confluenceScore}% ${signalOutcome})`
+          ? `15-Gate Consensus Passed (${confluenceScore}% ${signalOutcome})`
           : `Gating Blocked: Outcome state is ${signalOutcome} (${confluenceScore}% vs ${minScore}% min)`,
       };
     }
@@ -103,16 +97,7 @@ export function evaluateStrategyPreset(
       };
     }
 
-    case 'astro_only': {
-      const astroScore = snapshot.astroData?.alignmentScore || snapshot.confluenceScore || 0;
-      const passed = astroScore >= 60;
-      return {
-        shouldTrade: passed,
-        reason: passed
-          ? `Astro Alignment Confirmed (${astroScore}% celestial score)`
-          : `Astro Blocked: Celestial score ${astroScore}% below 60% threshold`,
-      };
-    }
+
 
     case 'tech_only': {
       const techPassedGates = snapshot.gateResults?.filter((g: any) => g.passed)?.length || 0;
@@ -141,7 +126,7 @@ export function evaluateStrategyPreset(
       const passed = signalOutcome === 'SIGNAL' || signalOutcome === 'SHADOW';
       return {
         shouldTrade: passed,
-        reason: `Default 17-Gate Result: ${signalOutcome}`,
+        reason: `Default 15-Gate Result: ${signalOutcome}`,
       };
     }
   }

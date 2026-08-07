@@ -4,7 +4,7 @@ export function Footer() {
   return (
     <footer className="lp-footer">
       <div className="lp-footer-top">
-        <h2 className="lp-footer-cta-title">Try XyroTrade today</h2>
+        <h2 className="lp-footer-cta-title">Try HeroPips today</h2>
         <p className="lp-footer-cta-sub">Free to start. No commitments.</p>
         <a href="/login?signup=true" className="lp-footer-btn">Start for Free</a>
       </div>
@@ -46,12 +46,12 @@ export function Footer() {
 
       <div className="lp-footer-bottom">
         <p className="lp-footer-copyright">
-          © 2026 XyroTrade. Built with precision for quantitative systems.
+          © 2026 HeroPips. Built with precision for quantitative systems.
         </p>
       </div>
 
       <div className="lp-footer-brand-huge">
-        XYRO TRADE
+        HEROPIPS
       </div>
     </footer>
   );

@@ -16,9 +16,7 @@ const SYSTEM_APIS: SystemApi[] = [
   { method: 'POST', path: '/api/chat', description: 'AI chat + signal generation via LLM failover (Groq → NVIDIA → engine)', auth: 'none', category: 'AI & Trading' },
   { method: 'POST', path: '/api/execute', description: 'Execute broker order on connected MT5 account', auth: 'user', category: 'AI & Trading' },
   { method: 'POST', path: '/api/scan', description: 'Multi-asset market scanner with pattern detection', auth: 'none', category: 'AI & Trading' },
-  // Astro Mode
-  { method: 'GET', path: '/api/astro', description: 'Query live planetary coordinates and moon phases (accurate to <0.1° via astronomy-engine)', auth: 'none', category: 'Astro Mode' },
-  { method: 'GET', path: '/api/astro/analytics', description: 'Aggregated trade win rates and performance metrics categorized by celestial patterns', auth: 'user', category: 'Astro Mode' },
+
   // Market Data
   { method: 'GET', path: '/api/price-stream', description: 'SSE price stream (Twelve Data → Yahoo Finance fallback)', auth: 'none', category: 'Market Data' },
   { method: 'GET', path: '/api/candles', description: 'OHLCV candle history for charting (symbol, interval params)', auth: 'none', category: 'Market Data' },
@@ -35,8 +33,7 @@ const SYSTEM_APIS: SystemApi[] = [
   { method: 'POST', path: '/api/auth/signup', description: 'Register new user with email + referral code', auth: 'none', category: 'Auth' },
   { method: 'POST', path: '/api/auth/verify-otp', description: 'Verify OTP for email authentication', auth: 'none', category: 'Auth' },
   { method: 'POST', path: '/api/session-track', description: 'Track user session activity and last seen', auth: 'user', category: 'Auth' },
-  { method: 'GET', path: '/api/user/settings', description: 'Retrieve user preference settings (e.g. Astro Mode activation state)', auth: 'user', category: 'Auth' },
-  { method: 'PATCH', path: '/api/user/settings', description: 'Update user preference settings (e.g. Astro Mode activation state)', auth: 'user', category: 'Auth' },
+
   // Referral
   { method: 'GET', path: '/api/referral/profile', description: 'Get user referral profile and stats', auth: 'user', category: 'Referral' },
   { method: 'GET', path: '/api/referral/network', description: 'Fetch multi-level referral tree for user', auth: 'user', category: 'Referral' },

@@ -5,7 +5,7 @@ import { Navbar } from './Navbar';
 import { Footer } from './Footer';
 
 export const metadata: Metadata = {
-  title: 'XyroTrade — AI Trading Signals',
+  title: 'HeroPips — AI Trading Signals',
   description: 'Institutional-grade AI signals. 12-gate validation. One platform.',
 };
 

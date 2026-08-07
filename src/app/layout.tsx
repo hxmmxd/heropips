@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Plus_Jakarta_Sans } from 'next/font/google';
+import { Space_Grotesk, Instrument_Sans, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import '../components/ReferralHub.css';
 import '../components/terminal/TerminalTab.css';
@@ -11,14 +11,26 @@ function SignalProviderWrapper({ children }: { children: React.ReactNode }) {
   return <SignalProvider>{children}</SignalProvider>;
 }
 
-const plusJakartaSans = Plus_Jakarta_Sans({
-  variable: '--font-inter',
+const fontDisplay = Space_Grotesk({
+  variable: '--font-display',
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+});
+
+const fontBody = Instrument_Sans({
+  variable: '--font-body',
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+});
+
+const fontMono = JetBrains_Mono({
+  variable: '--font-mono',
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
 });
 
 export const metadata: Metadata = {
-  title: 'XyroTrade | AI-Powered Trading Signals',
+  title: 'HeroPips | AI-Powered Trading Signals',
   description: 'Automated AI Trading Terminal & MetaTrader 5 Node Infrastructure Dashboard.',
   manifest: '/manifest.json',
   icons: {
@@ -33,7 +45,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'XyroTrade',
+    title: 'HeroPips',
   },
 };
 
@@ -54,10 +66,25 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${plusJakartaSans.variable} h-full antialiased`}
+      className={`${fontDisplay.variable} ${fontBody.variable} ${fontMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col" suppressHydrationWarning><SignalProviderWrapper>{children}</SignalProviderWrapper></body>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                  document.documentElement.classList.add('dark')
+                } else {
+                  document.documentElement.classList.remove('dark')
+                }
+              } catch (_) {}
+            `,
+          }}
+        />
+      </head>
+      <body className="min-h-full flex flex-col font-body" suppressHydrationWarning><SignalProviderWrapper>{children}</SignalProviderWrapper></body>
     </html>
   );
 }

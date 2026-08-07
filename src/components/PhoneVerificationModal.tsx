@@ -401,7 +401,7 @@ export function PhoneVerificationModal({
                 {otpCode.map((digit, idx) => (
                   <input
                     key={idx}
-                    ref={(el) => (otpInputRefs.current[idx] = el)}
+                    ref={(el) => { otpInputRefs.current[idx] = el; }}
                     type="text"
                     inputMode="numeric"
                     maxLength={1}
@@ -473,7 +473,7 @@ export function PhoneVerificationModal({
           <span className="flex items-center gap-1">
             <Lock size={11} className="text-slate-400" /> 256-Bit Encrypted
           </span>
-          <span>XyroTrade Security Engine</span>
+          <span>HeroPips Security Engine</span>
         </div>
       </div>
     </div>

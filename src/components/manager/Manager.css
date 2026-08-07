@@ -323,7 +323,7 @@
   color: var(--subtext); transition: all 0.15s;
 }
 .mgr-mode-tab-active {
-  background: var(--accent); color: #ffffff; box-shadow: 0 2px 6px rgba(180, 145, 108, 0.25);
+  background: var(--accent); color: var(--on-volt); box-shadow: 0 2px 6px rgba(180, 145, 108, 0.25);
 }
 .mgr-symbol-row {
   display: flex; gap: 8px; justify-content: center; margin-bottom: 8px;
@@ -356,7 +356,7 @@
   cursor: pointer; transition: all 0.15s;
 }
 .mgr-mult-pill-active {
-  background: var(--accent); color: #ffffff; border-color: var(--accent);
+  background: var(--accent); color: var(--on-volt); border-color: var(--accent);
 }
 .mgr-action-btns { display: flex; gap: 8px; }
 .mgr-sell-btn, .mgr-buy-btn {
@@ -416,7 +416,7 @@
 .mgr-toggle-pill:first-child { border-radius: 6px 0 0 6px; }
 .mgr-toggle-pill:last-child { border-radius: 0 6px 6px 0; }
 .mgr-toggle-pill-active {
-  background: #8B6914; color: #fff; border-color: #8B6914;
+  background: var(--accent); color: var(--on-volt); border-color: var(--accent);
 }
 .mgr-risk-calc { font-size: 11px; color: var(--subtext); margin-top: 4px; }
 .mgr-risk-hint {
@@ -841,7 +841,7 @@
 }
 .mgr-pos-modify-save {
   padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 700;
-  border: none; background: #8B6914; color: #fff; cursor: pointer;
+  border: none; background: var(--accent); color: var(--on-volt); cursor: pointer;
 }
 
 /* ── Position Summary Header ── */
@@ -859,7 +859,7 @@
   cursor: pointer; transition: all 0.15s;
 }
 .mgr-pos-summary-btn-active {
-  background: var(--accent); color: #ffffff; border-color: var(--accent);
+  background: var(--accent); color: var(--on-volt); border-color: var(--accent);
 }
 
 
@@ -875,7 +875,7 @@
   cursor: pointer; transition: all 0.15s;
 }
 .mgr-sel-all-pill-active {
-  background: #8B6914; color: #fff; border-color: #8B6914;
+  background: var(--accent); color: var(--on-volt); border-color: var(--accent);
 }
 .mgr-sel-counter {
   font-size: 11px; color: var(--subtext); flex: 1; min-width: 0;
@@ -992,7 +992,7 @@
 .rsk-period-pill:first-child { border-radius: 8px 0 0 8px; }
 .rsk-period-pill:last-child { border-radius: 0 8px 8px 0; }
 .rsk-period-pill-active {
-  background: var(--accent); color: #fff; border-color: var(--accent);
+  background: var(--accent); color: var(--on-volt); border-color: var(--accent);
 }
 .rsk-net-pnl { text-align: right; }
 .rsk-net-pnl-label { display: block; font-size: 10px; font-weight: 600; color: var(--subtext); letter-spacing: 0.05em; }
@@ -1155,7 +1155,7 @@
 }
 .rsk-lb-btn:first-child { border-radius: 6px 0 0 6px; }
 .rsk-lb-btn:last-child { border-radius: 0 6px 6px 0; }
-.rsk-lb-btn-active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.rsk-lb-btn-active { background: var(--accent); color: var(--on-volt); border-color: var(--accent); }
 .rsk-lb-row {
   display: flex; align-items: center; gap: 10px; padding: 10px 0;
   border-bottom: 1px solid var(--border);
@@ -1615,7 +1615,7 @@
   transform: scale(0.92);
 }
 .mgr-dock-btn-accent {
-  background: var(--accent); color: #fff !important;
+  background: var(--accent); color: var(--on-volt) !important;
   box-shadow: 0 3px 8px rgba(180, 145, 108, 0.35);
 }
 .dark .mgr-dock-btn-accent {

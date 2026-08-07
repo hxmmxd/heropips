@@ -162,11 +162,6 @@ export default function TradeTicket({ ticket, onConfirm, onManagerExecute, isFre
               {ticket.confidence}
             </span>
           )}
-          {ticket.astroMode && (
-            <span className="text-[8px] font-black bg-indigo-950 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded uppercase tracking-wider">
-              Astro
-            </span>
-          )}
           <span className="text-[9px] font-bold text-green-500 bg-green-500/10 px-2 py-0.5 rounded uppercase">
             Verified
           </span>
@@ -227,48 +222,7 @@ export default function TradeTicket({ ticket, onConfirm, onManagerExecute, isFre
           </div>
         </div>
 
-        {/* Astro Confluence Telemetry Banner */}
-        {ticket.astroMode && ticket.astroDetails && (
-          <div className="p-3 rounded-xl bg-indigo-950/40 border border-indigo-500/20 text-[10px] space-y-2 animate-in fade-in duration-300">
-            <div className="flex items-center justify-between border-b border-indigo-500/10 pb-1.5">
-              <span className="text-amber-400 font-bold uppercase tracking-wider flex items-center gap-1">
-                🪐 Celestial Confluence
-              </span>
-              <span className="text-[9px] text-indigo-300 font-medium">Active</span>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-2 text-[9px] font-medium text-indigo-200">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[12px]">{ticket.astroDetails.moonEmoji}</span>
-                <span>{ticket.astroDetails.moonPhase} in {ticket.astroDetails.moonSign}</span>
-              </div>
-              <div className="text-right">
-                <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold ${
-                  ticket.astroDetails.mercuryState === 'retrograde' ? 'bg-red-500/25 text-red-300 border border-red-500/30' : 'bg-green-500/25 text-green-300 border border-green-500/30'
-                }`}>
-                  ☿ {ticket.astroDetails.mercuryState.toUpperCase()}
-                </span>
-              </div>
-            </div>
-
-            {(ticket.astroDetails.voidOfCourse || ticket.astroDetails.eclipse) && (
-              <div className="pt-1 border-t border-indigo-500/10 flex flex-wrap gap-1">
-                {ticket.astroDetails.voidOfCourse && (
-                  <span className="bg-amber-500/20 text-amber-300 border border-amber-500/30 px-1.5 py-0.5 rounded text-[8px] font-bold">
-                    Luna Void of Course
-                  </span>
-                )}
-                {ticket.astroDetails.eclipse && (
-                  <span className="bg-red-500/25 text-red-300 border border-red-500/30 px-1.5 py-0.5 rounded text-[8px] font-bold">
-                    Eclipse Blackout
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Confidence Bar */}
+        {/* Calculations */}
         {grade && (
           <div className="space-y-1.5">
             <div className="flex justify-between text-[9px]">

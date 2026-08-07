@@ -91,7 +91,7 @@ export class MetaTraderAdapter implements TradingAdapter {
       volume:     order.volume,
       stopLoss:   order.stopLoss,
       takeProfit: order.takeProfit,
-      comment:    'Xyro Trade Ai Signal',
+      comment:    'HeroPips AI Signal',
     });
 
     if (!result.success) {

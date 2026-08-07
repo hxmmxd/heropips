@@ -1,5 +1,5 @@
 /* ============================================================
-   XYROTRADE LANDING — Section-by-section build
+   HEROPIPS LANDING — Section-by-section build
    ============================================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
@@ -24,27 +24,32 @@ body.lp-scrollable {
 }
 
 .lp {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  background: #fff;
-  color: #0a0a0a;
+  font-family: var(--font-body), sans-serif;
+  background: var(--bg-app);
+  color: var(--text-hi);
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
 }
 
 /* ── Tokens ────────────────────────────────────────────────── */
 :root {
-  --c-accent:       #f05a28;
-  --c-accent-hover: #d94e20;
-  --c-dark:         #0a0a0a;
-  --c-dark2:        #111;
-  --c-gray-700:     #374151;
-  --c-gray-500:     #6b7280;
-  --c-gray-400:     #9ca3af;
-  --c-gray-200:     #e5e7eb;
-  --c-gray-100:     #f3f4f6;
-  --c-gray-50:      #f9fafb;
-  --c-bg:           #fff;
-  --c-cream:        #fafaf9;
+  --volt-500:       #C6FF2E;
+  --volt-500-hover: #A9E514;
+  --text-hi:         #0a0a0a;
+  --text-hi2:        #111;
+  --text-mid:     #374151;
+  --text-low:     #6b7280;
+  --border-strong:     #9ca3af;
+  --border-subtle:     #e5e7eb;
+  --surface-2:     #f3f4f6;
+  --surface-1:      #f9fafb;
+  --bg-app:           #fff;
+  --bg-app:        #fafaf9;
+  --lp-bg: var(--lp-bg);
+  --lp-nav-bg: var(--lp-nav-bg);
+  --lp-nav-glass: var(--lp-nav-glass);
+  --lp-text-dark: var(--lp-text-dark);
+  --lp-text-darker: var(--lp-text-darker);
   --r-sm:  6px;
   --r-md:  10px;
   --r-lg:  14px;
@@ -52,6 +57,16 @@ body.lp-scrollable {
   --r-full: 9999px;
   --nav-h: 58px;
   --max-w: 1280px;
+}
+
+:root.dark, .dark {
+  --lp-bg: var(--bg-app);
+  --lp-nav-bg: rgba(7, 8, 12, 0.88);
+  --lp-nav-glass: rgba(7, 8, 12, 0.96);
+  --lp-text-dark: var(--text-hi);
+  --lp-text-darker: var(--text-hi2);
+  --text-mid: #d1d5db; /* Brighter gray for nav links in dark mode */
+  --border-subtle: rgba(255, 255, 255, 0.15); /* Glass-like separator */
 }
 
 /* ════════════════════════════════════════════════════════════
@@ -80,7 +95,7 @@ body.lp-scrollable {
   align-items: center;
   gap: 0;
   /* Cream-tinted glassmorphism dock */
-  background: rgba(245, 240, 232, 0.88);
+  background: var(--lp-nav-bg);
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
   border: 1px solid rgba(0, 0, 0, 0.07);
@@ -94,7 +109,7 @@ body.lp-scrollable {
 }
 
 .lp-nav-inner:hover {
-  background: rgba(245, 240, 232, 0.96);
+  background: var(--lp-nav-glass);
   box-shadow:
     0 1px 0 rgba(255,255,255,0.9) inset,
     0 12px 40px rgba(0, 0, 0, 0.12),
@@ -146,7 +161,7 @@ body.lp-scrollable {
   gap: 4px;
   font-size: 14px;
   font-weight: 500;
-  color: var(--c-gray-700);
+  color: var(--text-mid);
   text-decoration: none;
   padding: 7px 11px;
   border-radius: var(--r-sm);
@@ -161,8 +176,8 @@ body.lp-scrollable {
 
 .lp-nav-link:hover,
 .lp-nav-item:hover > .lp-nav-link {
-  color: var(--c-dark);
-  background: var(--c-gray-100);
+  color: var(--text-hi);
+  background: var(--surface-2);
 }
 
 .lp-nav-chevron {
@@ -272,7 +287,7 @@ body.lp-scrollable {
 }
 
 .lp-nav-dropdown-item:hover .lp-nav-dd-title {
-  color: #ff3c00;
+  color: var(--volt-500);
 }
 
 /* Premium Dropdown Sizes */
@@ -307,7 +322,7 @@ body.lp-scrollable {
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 10% 20%, rgba(255, 60, 0, 0.015) 0%, transparent 60%);
+  background: radial-gradient(circle at 10% 20%, rgba(198, 255, 46, 0.015) 0%, transparent 60%);
   pointer-events: none;
   z-index: 1;
 }
@@ -338,7 +353,7 @@ body.lp-scrollable {
   text-decoration: none;
   font-size: 12px;
   font-weight: 600;
-  color: var(--c-gray-500);
+  color: var(--text-low);
   transition: color 0.2s;
 }
 
@@ -359,7 +374,7 @@ body.lp-scrollable {
 }
 
 .lp-dd-footer-link:hover {
-  color: #ff3c00;
+  color: var(--volt-500);
 }
 
 /* Columns Structure for Traders Dropdown */
@@ -392,7 +407,7 @@ body.lp-scrollable {
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 80% 20%, rgba(255, 60, 0, 0.06) 0%, transparent 75%);
+  background: radial-gradient(circle at 80% 20%, rgba(198, 255, 46, 0.06) 0%, transparent 75%);
   pointer-events: none;
   z-index: 1;
 }
@@ -428,7 +443,7 @@ body.lp-scrollable {
   font-size: 11.5px;
   font-weight: 600;
   color: #ffffff;
-  background: #ff3c00;
+  background: var(--volt-500);
   padding: 6px 12px;
   border-radius: 9999px;
   text-decoration: none;
@@ -437,14 +452,14 @@ body.lp-scrollable {
   justify-content: center;
   width: fit-content;
   gap: 4px;
-  box-shadow: 0 4px 12px rgba(255, 60, 0, 0.3);
+  box-shadow: 0 4px 12px rgba(198, 255, 46, 0.3);
   transition: all 0.2s ease;
   z-index: 2;
 }
 
 .lp-dd-sidebar-link:hover {
   background: #ffffff;
-  color: #ff3c00;
+  color: var(--volt-500);
   box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
   transform: translateY(-1px);
 }
@@ -467,20 +482,20 @@ body.lp-scrollable {
 .lp-nav-dd-title {
   font-size: 13.5px;
   font-weight: 600;
-  color: var(--c-dark);
+  color: var(--text-hi);
   margin-bottom: 2px;
   transition: color 0.2s;
 }
 
 .lp-nav-dd-desc {
   font-size: 11.5px;
-  color: var(--c-gray-500);
+  color: var(--text-low);
   line-height: 1.35;
 }
 
 .lp-nav-dropdown-sep {
   height: 1px;
-  background: var(--c-gray-100);
+  background: var(--surface-2);
   margin: 4px 6px;
 }
 
@@ -495,7 +510,7 @@ body.lp-scrollable {
 .lp-nav-act-link {
   font-size: 14px;
   font-weight: 500;
-  color: var(--c-gray-700);
+  color: var(--text-mid);
   text-decoration: none;
   padding: 7px 12px;
   border-radius: var(--r-sm);
@@ -504,23 +519,23 @@ body.lp-scrollable {
 }
 
 .lp-nav-act-link:hover {
-  color: var(--c-dark);
-  background: var(--c-gray-100);
+  color: var(--text-hi);
+  background: var(--surface-2);
 }
 
 .lp-nav-act-sep {
   width: 1px;
   height: 18px;
-  background: var(--c-gray-200);
+  background: var(--border-subtle);
   margin: 0 6px;
 }
 
 .lp-nav-act-btn {
   font-size: 14px;
   font-weight: 600;
-  color: var(--c-accent);
+  color: var(--volt-500);
   background: transparent;
-  border: 1.5px solid var(--c-accent);
+  border: 1.5px solid var(--volt-500);
   padding: 6px 16px;
   border-radius: var(--r-full);
   cursor: pointer;
@@ -533,7 +548,7 @@ body.lp-scrollable {
 }
 
 .lp-nav-act-btn:hover {
-  background: var(--c-accent);
+  background: var(--volt-500);
   color: #fff;
 }
 
@@ -548,7 +563,7 @@ body.lp-scrollable {
 .lp-nav-mob-login {
   font-size: 14px;
   font-weight: 500;
-  color: var(--c-gray-700);
+  color: var(--text-mid);
   text-decoration: none;
   padding: 6px 10px;
   border-radius: var(--r-sm);
@@ -557,16 +572,16 @@ body.lp-scrollable {
 }
 
 .lp-nav-mob-login:hover {
-  color: var(--c-dark);
-  background: var(--c-gray-100);
+  color: var(--text-hi);
+  background: var(--surface-2);
 }
 
 .lp-nav-mob-btn {
   font-size: 13.5px;
   font-weight: 600;
-  color: var(--c-accent);
+  color: var(--volt-500);
   background: transparent;
-  border: 1.5px solid var(--c-accent);
+  border: 1.5px solid var(--volt-500);
   padding: 6px 14px;
   border-radius: var(--r-full);
   cursor: pointer;
@@ -579,7 +594,7 @@ body.lp-scrollable {
 }
 
 .lp-nav-mob-btn:hover {
-  background: var(--c-accent);
+  background: var(--volt-500);
   color: #fff;
 }
 
@@ -590,7 +605,7 @@ body.lp-scrollable {
   border: none;
   cursor: pointer;
   padding: 8px 4px 8px 8px;
-  color: var(--c-dark);
+  color: var(--text-hi);
   flex-direction: column;
   gap: 5px;
 }
@@ -619,7 +634,7 @@ body.lp-scrollable {
   right: 12px;
   z-index: 199;
   /* Glassmorphic to match the nav dock */
-  background: rgba(245, 240, 232, 0.96);
+  background: var(--lp-nav-glass);
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
   border: 1px solid rgba(0, 0, 0, 0.07);
@@ -637,18 +652,18 @@ body.lp-scrollable {
 .lp-nav-mobile a {
   font-size: 15px;
   font-weight: 500;
-  color: var(--c-gray-700);
+  color: var(--text-mid);
   text-decoration: none;
   padding: 11px 12px;
   border-radius: var(--r-sm);
   display: block;
 }
 
-.lp-nav-mobile a:hover { background: var(--c-gray-100); color: var(--c-dark); }
+.lp-nav-mobile a:hover { background: var(--surface-2); color: var(--text-hi); }
 
 .lp-nav-mobile-sep {
   height: 1px;
-  background: var(--c-gray-100);
+  background: var(--surface-2);
   margin: 6px 0;
 }
 
@@ -658,14 +673,14 @@ body.lp-scrollable {
   text-align: center;
   font-size: 15px;
   font-weight: 600;
-  color: var(--c-accent) !important;
-  border: 1.5px solid var(--c-accent);
+  color: var(--volt-500) !important;
+  border: 1.5px solid var(--volt-500);
   border-radius: var(--r-full) !important;
   padding: 11px 16px !important;
 }
 
 .lp-nav-mobile-cta:hover {
-  background: var(--c-accent) !important;
+  background: var(--volt-500) !important;
   color: #fff !important;
 }
 
@@ -701,7 +716,7 @@ body.lp-scrollable {
    ══════════════════════════════════════════════════════════════ */
 
 .lp-stats {
-  background-color: #F5F0E8;
+  background-color: var(--lp-bg);
   padding: 0 12px;
   /* Gradient top & bottom rules — fade from transparent at edges */
   background-image:
@@ -761,7 +776,7 @@ body.lp-scrollable {
   transform: translateY(-50%);
   width: 2px;
   height: 0;
-  background: linear-gradient(to bottom, #ff6b3d, #ff3c00);
+  background: linear-gradient(to bottom, var(--volt-500), var(--volt-500));
   border-radius: 2px;
   transition: height 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -785,7 +800,7 @@ body.lp-scrollable {
 .lp-stat-num {
   font-size: 34px;
   font-weight: 800;
-  color: #111111;
+  color: var(--lp-text-darker);
   letter-spacing: -2px;
   line-height: 1;
   flex-shrink: 0;
@@ -794,23 +809,23 @@ body.lp-scrollable {
   transition: text-shadow 0.2s, color 0.2s;
 }
 .lp-stat:hover .lp-stat-num {
-  color: #ff3c00;
-  text-shadow: 0 0 24px rgba(255, 60, 0, 0.15);
+  color: var(--volt-500);
+  text-shadow: 0 0 24px rgba(198, 255, 46, 0.15);
 }
 
 /* 24/7 raw string */
 .lp-stat-raw {
   font-size: 34px;
   font-weight: 800;
-  color: #111111;
+  color: var(--lp-text-darker);
   letter-spacing: -2px;
   line-height: 1;
   flex-shrink: 0;
   transition: text-shadow 0.2s, color 0.2s;
 }
 .lp-stat:hover .lp-stat-raw {
-  color: #ff3c00;
-  text-shadow: 0 0 24px rgba(255, 60, 0, 0.15);
+  color: var(--volt-500);
+  text-shadow: 0 0 24px rgba(198, 255, 46, 0.15);
 }
 
 /* Label + sub-description stacked */
@@ -896,7 +911,7 @@ body.lp-scrollable {
 
 .lp-hero-wrap {
   padding: 80px 12px 32px;   /* 52px nav + 12px top + 16px gap + 32px bottom breathing room */
-  background: #F5F0E8;
+  background: var(--lp-bg);
 }
 
 
@@ -939,8 +954,8 @@ body.lp-scrollable {
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(255, 60, 0, 0.08) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 60, 0, 0.08) 1px, transparent 1px);
+    linear-gradient(rgba(198, 255, 46, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(198, 255, 46, 0.08) 1px, transparent 1px);
   background-size: 48px 48px;
   /* Vignette: fade grid out toward edges so it doesn't clash with glow */
   -webkit-mask-image: radial-gradient(ellipse 90% 80% at 50% 40%, black 40%, transparent 100%);
@@ -960,7 +975,7 @@ body.lp-scrollable {
   height: 340px;
   background: radial-gradient(
     ellipse at center,
-    rgba(255, 60, 0, 0.12) 0%,
+    rgba(198, 255, 46, 0.12) 0%,
     rgba(255, 160, 40, 0.035) 40%,
     transparent 70%
   );
@@ -993,7 +1008,7 @@ body.lp-scrollable {
 .lp-hero-announce-dot {
   width: 6px;
   height: 6px;
-  background: #ff3c00;
+  background: var(--volt-500);
   border-radius: 50%;
   flex-shrink: 0;
 }
@@ -1051,7 +1066,7 @@ body.lp-scrollable {
   display: block;
   font-style: italic;
   font-weight: 800;
-  color: #ff3c00;
+  color: var(--volt-500);
   letter-spacing: -2px;
 }
 
@@ -1271,7 +1286,7 @@ body.lp-scrollable {
   left: -60px;
   width: 320px;
   height: 320px;
-  background: radial-gradient(circle, rgba(255, 60, 0, 0.14) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(198, 255, 46, 0.14) 0%, transparent 70%);
   filter: blur(50px);
   pointer-events: none;
   z-index: 0;
@@ -1428,16 +1443,16 @@ body.lp-scrollable {
 
 .lp-hero-video:hover .lp-video-play-btn {
   transform: scale(1.08);
-  background: rgba(255, 60, 0, 0.15); /* orange brand highlight on hover */
-  border-color: rgba(255, 60, 0, 0.4);
+  background: rgba(198, 255, 46, 0.15); /* orange brand highlight on hover */
+  border-color: rgba(198, 255, 46, 0.4);
   box-shadow: 
-    0 12px 40px rgba(255, 60, 0, 0.25),
-    0 0 15px rgba(255, 60, 0, 0.1),
+    0 12px 40px rgba(198, 255, 46, 0.25),
+    0 0 15px rgba(198, 255, 46, 0.1),
     inset 0 1px 1px rgba(255, 255, 255, 0.3);
 }
 
 .lp-hero-video:hover .lp-play-icon {
-  fill: #ff3c00;
+  fill: var(--volt-500);
   transform: scale(1.05);
 }
 
@@ -1575,7 +1590,7 @@ body.lp-scrollable {
    ══════════════════════════════════════════════════════════════ */
 
 .lp-narrative {
-  background: #F5F0E8;
+  background: var(--lp-bg);
   padding: 80px 24px 80px;
   position: relative;
   overflow: hidden;
@@ -1589,7 +1604,7 @@ body.lp-scrollable {
   width: 750px;
   height: 750px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 60, 0, 0.035) 0%, transparent 68%);
+  background: radial-gradient(circle, rgba(198, 255, 46, 0.035) 0%, transparent 68%);
   pointer-events: none;
   z-index: 1;
   transform: translateY(var(--narrative-glow-translate, 0px));
@@ -1654,7 +1669,7 @@ body.lp-scrollable {
   border-right: 1px solid rgba(0, 0, 0, 0.07);
   position: relative;
   background-image: 
-    radial-gradient(circle at 0% 0%, rgba(255, 60, 0, 0.05) 0%, transparent 60%),
+    radial-gradient(circle at 0% 0%, rgba(198, 255, 46, 0.05) 0%, transparent 60%),
     linear-gradient(to right, rgba(0, 0, 0, 0.045) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(0, 0, 0, 0.045) 1px, transparent 1px),
     linear-gradient(135deg, rgba(255, 255, 255, 0.55) 0%, rgba(245, 240, 232, 0.5) 100%);
@@ -1686,7 +1701,7 @@ body.lp-scrollable {
   transform: translateY(-50%);
   width: 5px;
   height: 5px;
-  background: #ff3c00;
+  background: var(--volt-500);
   border-radius: 50%;
   animation: badge-pulse 1.8s infinite ease-in-out;
 }
@@ -1706,7 +1721,7 @@ body.lp-scrollable {
 }
 
 .lp-narrative-main-highlight {
-  color: #ff3c00;
+  color: var(--volt-500);
 }
 
 .lp-narrative-main-desc {
@@ -1720,7 +1735,7 @@ body.lp-scrollable {
 
 .lp-narrative-cta-btn {
   padding: 10px 24px;
-  background: #fff;
+  background: var(--bg-app);
   border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 100px;
   color: #0f0f0f;
@@ -1838,7 +1853,7 @@ body.lp-scrollable {
   position: absolute;
   width: 5px;
   height: 5px;
-  background: #fff;
+  background: var(--bg-app);
   border: 1px solid rgba(0, 0, 0, 0.12);
   z-index: 10;
   pointer-events: none;
@@ -1862,7 +1877,7 @@ body.lp-scrollable {
   border-bottom-left-radius: 15px;
   border-bottom-right-radius: 15px;
   overflow: hidden;
-  box-shadow: inset 0 -4px 16px rgba(255, 60, 0, 0.015);
+  box-shadow: inset 0 -4px 16px rgba(198, 255, 46, 0.015);
 }
 
 
@@ -1874,7 +1889,7 @@ body.lp-scrollable {
   transform: translateX(-50%);
   width: 150px;
   height: 20px;
-  background: #ff3c00;
+  background: var(--volt-500);
   filter: blur(24px);
   opacity: 0.12;
   pointer-events: none;
@@ -1884,7 +1899,7 @@ body.lp-scrollable {
   display: inline-block;
   font-size: 10px;
   font-weight: 700;
-  color: #ff3c00;
+  color: var(--volt-500);
   letter-spacing: 0.15em;
   text-transform: uppercase;
   margin-bottom: 8px;
@@ -1899,7 +1914,7 @@ body.lp-scrollable {
 }
 
 .lp-sol-highlight {
-  color: #ff3c00;
+  color: var(--volt-500);
 }
 
 @media (max-width: 768px) {
@@ -2001,7 +2016,7 @@ body.lp-scrollable {
    ══════════════════════════════════════════════════════════════ */
 
 .lp-gates {
-  background: #F5F0E8;
+  background: var(--lp-bg);
   padding: 80px 24px 100px;
   position: relative;
 }
@@ -2022,7 +2037,7 @@ body.lp-scrollable {
 .lp-gates-eyebrow {
   font-size: 11px;
   font-weight: 700;
-  color: #ff3c00;
+  color: var(--volt-500);
   letter-spacing: 0.15em;
   text-transform: uppercase;
   margin-bottom: 12px;
@@ -2189,11 +2204,11 @@ body.lp-scrollable {
 
 
 /* ══════════════════════════════════════════════════════════════
-   COMPARISON SECTION (RETAIL CHAOS VS XYRO TERMINAL)
+   COMPARISON SECTION (RETAIL CHAOS VS HEROPIPS TERMINAL)
    ══════════════════════════════════════════════════════════════ */
 .lp-comp {
   padding: 80px 24px;
-  background: #F5F0E8;
+  background: var(--lp-bg);
   position: relative;
   z-index: 10;
 }
@@ -2449,7 +2464,7 @@ body.lp-scrollable {
 .lp-comp-gate-mini-status-text {
   font-size: 11.5px;
   font-weight: 800;
-  color: #1c1917;
+  color: var(--lp-text-dark);
   letter-spacing: -0.3px;
   line-height: 1.2;
 }
@@ -2649,7 +2664,7 @@ body.lp-scrollable {
 .lp-comp-osc-symbol {
   font-size: 14.5px;
   font-weight: 800;
-  color: #1c1917;
+  color: var(--lp-text-dark);
   letter-spacing: -0.2px;
 }
 
@@ -2832,7 +2847,7 @@ body.lp-scrollable {
 /* ── Confluence Processor Section ──────────────────────── */
 .lp-proc-wrap {
   padding: 0 24px 80px;
-  background: #F5F0E8; /* warm ivory cream */
+  background: var(--lp-bg); /* warm ivory cream */
   position: relative;
   overflow: hidden;
 }
@@ -2863,7 +2878,7 @@ body.lp-scrollable {
 .lp-proc-eyebrow {
   font-size: 11px;
   font-weight: 700;
-  color: var(--c-accent);
+  color: var(--volt-500);
   letter-spacing: 0.15em;
   text-transform: uppercase;
   margin-bottom: 12px;
@@ -2907,7 +2922,7 @@ body.lp-scrollable {
 .lp-proc-chip-glow-bg {
   position: absolute;
   inset: -15px;
-  background: radial-gradient(circle, rgba(255, 60, 0, 0.06), transparent 70%);
+  background: radial-gradient(circle, rgba(198, 255, 46, 0.06), transparent 70%);
   z-index: -1;
   pointer-events: none;
   border-radius: 35px;
@@ -2933,7 +2948,7 @@ body.lp-scrollable {
 .lp-proc-chip-spinner {
   width: 58px;
   height: 58px;
-  border: 2px dashed rgba(255, 60, 0, 0.4);
+  border: 2px dashed rgba(198, 255, 46, 0.4);
   border-radius: 50%;
   animation: proc-spin 12s linear infinite;
   position: absolute;
@@ -2943,9 +2958,9 @@ body.lp-scrollable {
   font-family: 'Pixelify Sans', monospace;
   font-size: 18px;
   font-weight: 700;
-  color: #ff3c00;
+  color: var(--volt-500);
   z-index: 2;
-  text-shadow: 0 0 8px rgba(255, 60, 0, 0.4);
+  text-shadow: 0 0 8px rgba(198, 255, 46, 0.4);
 }
 
 .lp-proc-chip-info {
@@ -3009,7 +3024,7 @@ body.lp-scrollable {
 }
 
 .lp-proc-wire-glow.left-flow {
-  stroke: #ff3c00;
+  stroke: var(--volt-500);
 }
 
 .lp-proc-wire-glow.right-flow {
@@ -3184,7 +3199,7 @@ body.lp-scrollable {
 .lp-bento-title {
   font-size: 36px;
   font-weight: 800;
-  color: var(--c-dark);
+  color: var(--text-hi);
   letter-spacing: -0.03em;
   line-height: 1.2;
 }
@@ -3263,7 +3278,7 @@ body.lp-scrollable {
 .lp-bento-card-title {
   font-size: 14.5px;
   font-weight: 700;
-  color: var(--c-dark);
+  color: var(--text-hi);
   line-height: 1.35;
   margin: 0;
   display: -webkit-box;
@@ -3274,7 +3289,7 @@ body.lp-scrollable {
 
 .lp-bento-card-desc {
   font-size: 12.5px;
-  color: var(--c-gray-500);
+  color: var(--text-low);
   line-height: 1.45;
   margin: 0;
 }
@@ -3282,7 +3297,7 @@ body.lp-scrollable {
 .lp-bento-link {
   font-size: 12.5px;
   font-weight: 700;
-  color: var(--c-dark);
+  color: var(--text-hi);
   text-decoration: underline;
   text-underline-offset: 3px;
   margin-top: auto;
@@ -3290,7 +3305,7 @@ body.lp-scrollable {
 }
 
 .lp-bento-link:hover {
-  color: var(--c-accent);
+  color: var(--volt-500);
 }
 
 /* 1. Tall Left Card */
@@ -3529,7 +3544,7 @@ body.lp-scrollable {
 .lp-footer-cta-title {
   font-size: 56px;
   font-weight: 800;
-  color: #1c1917;
+  color: var(--lp-text-dark);
   letter-spacing: -0.04em;
   line-height: 1.1;
   margin: 0;
@@ -3542,7 +3557,7 @@ body.lp-scrollable {
 }
 
 .lp-footer-btn {
-  background: #1c1917;
+  background: var(--lp-text-dark);
   color: #ffffff;
   border-radius: 9999px;
   padding: 14px 32px;
@@ -3586,7 +3601,7 @@ body.lp-scrollable {
 }
 
 .lp-footer-nav a:hover {
-  color: #1c1917;
+  color: var(--lp-text-dark);
 }
 
 .lp-footer-socials {
@@ -3600,7 +3615,7 @@ body.lp-scrollable {
 }
 
 .lp-footer-socials a:hover {
-  color: #1c1917;
+  color: var(--lp-text-dark);
   transform: translateY(-1px);
 }
 
@@ -3666,7 +3681,7 @@ body.lp-scrollable {
 
 /* ── Integrations Section ── */
 .lp-integrations-section {
-  background: #F5F0E8; /* warm ivory cream background matching Confluence Processor section */
+  background: var(--lp-bg); /* warm ivory cream background matching Confluence Processor section */
   padding: 0 24px 80px; /* clean layout padding */
   position: relative;
   overflow: hidden;
@@ -3678,7 +3693,7 @@ body.lp-scrollable {
   left: -10%;
   width: 50%;
   height: 60%;
-  background: radial-gradient(circle, rgba(255, 60, 0, 0.035) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(198, 255, 46, 0.035) 0%, transparent 70%);
   pointer-events: none;
   z-index: 1;
 }
@@ -3733,7 +3748,7 @@ body.lp-scrollable {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.05em;
-  color: #ff3c00;
+  color: var(--volt-500);
   text-transform: uppercase;
   margin-bottom: 12px;
   display: inline-block;
@@ -3742,7 +3757,7 @@ body.lp-scrollable {
 .lp-integrations-title {
   font-size: 38px;
   font-weight: 800;
-  color: #1c1917;
+  color: var(--lp-text-dark);
   letter-spacing: -1.2px;
   line-height: 1.15;
   margin-bottom: 16px;
@@ -3826,7 +3841,7 @@ body.lp-scrollable {
 
 .lp-integration-card:hover {
   transform: translateY(-6px);
-  border-color: var(--brand-border-color, rgba(255, 60, 0, 0.15));
+  border-color: var(--brand-border-color, rgba(198, 255, 46, 0.15));
   background: #ffffff;
   box-shadow: 
     0 20px 48px rgba(27, 22, 19, 0.04),
@@ -3853,7 +3868,7 @@ body.lp-scrollable {
   font-size: 8.5px;
   font-weight: 700;
   letter-spacing: 0.08em;
-  color: var(--c-gray-500);
+  color: var(--text-low);
   background: rgba(27, 22, 19, 0.035);
   border: 1px solid rgba(27, 22, 19, 0.05);
   padding: 3px 8px;
@@ -3903,22 +3918,22 @@ body.lp-scrollable {
 .lp-integration-card-status {
   font-size: 11.5px;
   font-weight: 600;
-  color: var(--c-gray-500);
+  color: var(--text-low);
   transition: color 0.25s;
 }
 
 .lp-integration-card-arrow {
-  color: var(--c-gray-400);
+  color: var(--border-strong);
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), color 0.25s;
 }
 
 .lp-integration-card:hover .lp-integration-card-status {
-  color: var(--c-dark);
+  color: var(--text-hi);
 }
 
 .lp-integration-card:hover .lp-integration-card-arrow {
   transform: translateX(4px);
-  color: var(--brand-border-color, #ff3c00);
+  color: var(--brand-border-color, var(--volt-500));
 }
 
 @media (max-width: 1024px) {
@@ -3979,7 +3994,7 @@ body.lp-scrollable {
   align-items: center;
   font-size: 15px;
   font-weight: 500;
-  color: var(--c-gray-700);
+  color: var(--text-mid);
   background: none;
   border: none;
   padding: 11px 12px;
@@ -3991,8 +4006,8 @@ body.lp-scrollable {
 
 .lp-nav-mobile-toggle:hover,
 .lp-nav-mobile-toggle.active {
-  background: var(--c-gray-100);
-  color: var(--c-dark);
+  background: var(--surface-2);
+  color: var(--text-hi);
 }
 
 .lp-nav-mobile-toggle .lp-nav-chevron {
@@ -4010,7 +4025,7 @@ body.lp-scrollable {
   flex-direction: column;
   gap: 4px;
   padding: 4px 12px 10px 24px;
-  border-left: 1.5px solid var(--c-gray-200);
+  border-left: 1.5px solid var(--border-subtle);
   margin-left: 18px;
   margin-top: 2px;
   margin-bottom: 4px;
@@ -4030,7 +4045,7 @@ body.lp-scrollable {
 }
 
 .lp-nav-mobile-dropdown-item:hover {
-  background: var(--c-gray-50) !important;
+  background: var(--surface-1) !important;
 }
 
 .lp-nav-mobile-dropdown-icon {
@@ -4048,12 +4063,12 @@ body.lp-scrollable {
 .lp-nav-mobile-dropdown-title {
   font-size: 13.5px;
   font-weight: 600;
-  color: var(--c-dark);
+  color: var(--text-hi);
 }
 
 .lp-nav-mobile-dropdown-desc {
   font-size: 11.5px;
-  color: var(--c-gray-500);
+  color: var(--text-low);
   line-height: 1.3;
 }
 
@@ -4089,9 +4104,9 @@ body.lp-scrollable {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.05em;
-  color: #ff3c00;
-  background: rgba(255, 60, 0, 0.05);
-  border: 1px solid rgba(255, 60, 0, 0.1);
+  color: var(--volt-500);
+  background: rgba(198, 255, 46, 0.05);
+  border: 1px solid rgba(198, 255, 46, 0.1);
   padding: 5px 12px;
   border-radius: 9999px;
   text-transform: uppercase;
@@ -4101,7 +4116,7 @@ body.lp-scrollable {
 .lp-faq-title {
   font-size: 38px;
   font-weight: 800;
-  color: #1c1917;
+  color: var(--lp-text-dark);
   letter-spacing: -1.2px;
   line-height: 1.15;
   margin-bottom: 16px;
@@ -4136,10 +4151,10 @@ body.lp-scrollable {
 }
 
 .lp-faq-item-card.open {
-  border-color: #ff3c00;
+  border-color: var(--volt-500);
   box-shadow: 
     0 12px 28px -4px rgba(27, 22, 19, 0.04),
-    0 0 15px rgba(255, 60, 0, 0.02);
+    0 0 15px rgba(198, 255, 46, 0.02);
 }
 
 .lp-faq-question-btn {
@@ -4153,7 +4168,7 @@ body.lp-scrollable {
   text-align: left;
   font-size: 16px;
   font-weight: 700;
-  color: #1c1917;
+  color: var(--lp-text-dark);
   cursor: pointer;
   outline: none;
   font-family: inherit;
@@ -4161,17 +4176,17 @@ body.lp-scrollable {
 }
 
 .lp-faq-question-btn:hover {
-  color: #ff3c00;
+  color: var(--volt-500);
 }
 
 .lp-faq-chevron {
-  color: var(--c-gray-400);
+  color: var(--border-strong);
   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), color 0.3s;
 }
 
 .lp-faq-item-card.open .lp-faq-chevron {
   transform: rotate(180deg);
-  color: #ff3c00;
+  color: var(--volt-500);
 }
 
 .lp-faq-answer-wrapper {
@@ -4192,12 +4207,12 @@ body.lp-scrollable {
   align-items: center;
   justify-content: center;
   font-size: 13.5px;
-  color: var(--c-gray-500);
+  color: var(--text-low);
   margin-top: 10px;
 }
 
 .lp-faq-mail-link {
-  color: #ff3c00;
+  color: var(--volt-500);
   text-decoration: none;
   font-weight: 600;
   margin-left: 4px;

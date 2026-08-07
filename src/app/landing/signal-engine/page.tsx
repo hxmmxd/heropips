@@ -205,7 +205,7 @@ export default function SignalEnginePage() {
 
   // Set page document title
   useEffect(() => {
-    document.title = "XyroTrade | AI Signal Engine";
+    document.title = "HeroPips | AI Signal Engine";
   }, []);
 
   // ---------------------------------------------------------
@@ -393,7 +393,7 @@ export default function SignalEnginePage() {
           .dashboard-eyebrow {
             font-size: 11px;
             font-weight: 700;
-            color: #f05a28;
+            color: var(--volt-500);
             letter-spacing: 0.15em;
             text-transform: uppercase;
             margin-bottom: 12px;
@@ -699,7 +699,7 @@ export default function SignalEnginePage() {
             border-left-width: 4px;
           }
           .risk-block-card.border-red { border-left-color: #ef4444; }
-          .risk-block-card.border-orange { border-left-color: #f05a28; }
+          .risk-block-card.border-volt { border-left-color: var(--volt-500); }
           .risk-block-card.border-blue { border-left-color: #3b82f6; }
           .risk-block-title {
             font-size: 14px;
@@ -750,7 +750,7 @@ export default function SignalEnginePage() {
           }
           .form-input-range {
             width: 100%;
-            accent-color: #f05a28;
+            accent-color: var(--volt-500);
             cursor: pointer;
           }
           .form-select-group {
@@ -823,7 +823,7 @@ export default function SignalEnginePage() {
           .final-risk-value {
             font-size: 28px;
             font-weight: 800;
-            color: #f05a28;
+            color: var(--volt-500);
             font-family: monospace;
           }
 
@@ -1152,9 +1152,9 @@ export default function SignalEnginePage() {
                         </p>
                       </div>
 
-                      <div className="risk-block-card border-orange">
+                      <div className="risk-block-card border-volt">
                         <h4 className="risk-block-title">
-                          <Zap size={16} style={{ color: '#f05a28' }} />
+                          <Zap size={16} style={{ color: 'var(--volt-500)' }} />
                           Gate 14: Daily Loss Circuit Breaker (DLCB)
                         </h4>
                         <p className="risk-block-desc">
@@ -1204,7 +1204,7 @@ export default function SignalEnginePage() {
                     {/* Left: Input Calculator Controls */}
                     <div className="calc-column">
                       <h4 className="calc-column-title">
-                        <Gauge size={16} style={{ color: '#f05a28' }} />
+                        <Gauge size={16} style={{ color: 'var(--volt-500)' }} />
                         Sizing Parameters
                       </h4>
 
@@ -1372,7 +1372,7 @@ export default function SignalEnginePage() {
                       <div className="mc-simulator-card">
                         <div className="mc-hdr">
                           <h4 style={{ fontSize: '14.5px', fontWeight: '700', color: '#0b0f19', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <BarChart3 size={15} style={{ color: '#f05a28' }} />
+                            <BarChart3 size={15} style={{ color: 'var(--volt-500)' }} />
                             Monte Carlo Ruin Probability Engine
                           </h4>
                           <button 
@@ -1567,7 +1567,7 @@ export default function SignalEnginePage() {
 
                   <div className="vps-details-card" style={{ background: 'rgba(11, 15, 25, 0.02)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                      <Terminal size={18} style={{ color: '#f05a28' }} />
+                      <Terminal size={18} style={{ color: 'var(--volt-500)' }} />
                       <h4 style={{ fontSize: '15px', fontWeight: '800', color: '#0b0f19' }}>
                         Low-Latency Technical Targets
                       </h4>

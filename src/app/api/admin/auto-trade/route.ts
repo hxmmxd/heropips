@@ -246,7 +246,7 @@ export async function POST(request: Request) {
         id: 'bot_default_01',
         name: 'Default 17-Gate Bot',
         accountId: legacyConfig.auto_test_account,
-        strategyPreset: 'full_17_gates',
+        strategyPreset: 'full_15_gates',
         intervalMinutes: legacyConfig.auto_test_interval,
         sizingMode: legacyConfig.auto_test_sizing_mode,
         sizingValue: legacyConfig.auto_test_sizing_value,
@@ -323,7 +323,7 @@ export async function POST(request: Request) {
         else if (sym === 'BTCUSD') qSym = 'BTC/USD';
 
         try {
-          const snap = await getMarketSnapshot(qSym, true);
+          const snap = await getMarketSnapshot(qSym);
           if (snap) {
             const ev = evaluateStrategyPreset(bot.strategyPreset, snap, bot.minConfluenceThreshold);
             const score = snap.confluenceScore || 0;
@@ -498,7 +498,7 @@ export async function POST(request: Request) {
         isGatingSkipped: shouldSkipGating,
         testMode: 'strict',
         gateResults: rawSnapshot?.gateResults || [],
-        astroGates: rawSnapshot?.astroGates || [],
+
         riskGates: rawSnapshot?.riskGates || []
       };
 

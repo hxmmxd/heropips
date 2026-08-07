@@ -214,9 +214,9 @@ function NarrativeSection() {
             <div className="lp-grid-dot dot-tr" />
             <div className="lp-grid-dot dot-mid" />
             
-            <div className="lp-sol-badge">THE XYRO ENGINE</div>
+            <div className="lp-sol-badge">THE HEROPIPS ENGINE</div>
             <h3 className="lp-sol-text">
-              Xyro combines everything <span className="lp-sol-highlight">before giving an answer.</span>
+              HeroPips combines everything <span className="lp-sol-highlight">before giving an answer.</span>
             </h3>
           </div>
 
@@ -311,21 +311,21 @@ function ConfluenceProcessorSection() {
   const activeGate = hoveredGate !== null ? hoveredGate : activeCycleGate;
 
   // Dynamic colors and shadows based on active side
-  let glowColor = 'rgba(255, 60, 0, 0.05)';
+  let glowColor = 'rgba(198, 255, 46, 0.05)';
   let glowBorder = 'rgba(0, 0, 0, 0.07)';
-  let spinnerColor = 'rgba(255, 60, 0, 0.35)';
-  let scoreColor = '#ff3c00';
+  let spinnerColor = 'rgba(198, 255, 46, 0.35)';
+  let scoreColor = 'var(--volt-500)';
 
   if (activeGate !== null) {
     if (activeGate < 6) {
-      glowColor = 'rgba(255, 60, 0, 0.14)';
-      glowBorder = 'rgba(255, 60, 0, 0.3)';
-      spinnerColor = '#ff3c00';
+      glowColor = 'rgba(198, 255, 46, 0.14)';
+      glowBorder = 'rgba(198, 255, 46, 0.3)';
+      spinnerColor = 'var(--volt-500)';
     } else {
-      glowColor = 'rgba(8, 145, 178, 0.14)';
-      glowBorder = 'rgba(8, 145, 178, 0.3)';
-      spinnerColor = '#0891b2';
-      scoreColor = '#0891b2';
+      glowColor = 'rgba(198, 255, 46, 0.14)';
+      glowBorder = 'rgba(198, 255, 46, 0.3)';
+      spinnerColor = 'var(--surface-3)';
+      scoreColor = 'var(--surface-3)';
     }
   }
 
@@ -390,7 +390,7 @@ function ConfluenceProcessorSection() {
 
           <div className="lp-proc-chip-info">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: '4px' }}>
-              <h3 className="lp-proc-chip-title">XYRO CONFLUENCE CORE</h3>
+              <h3 className="lp-proc-chip-title">HEROPIPS CONFLUENCE CORE</h3>
               <span className="lp-proc-chip-status">
                 <span className="lp-proc-chip-status-dot" />
                 ACTIVE SYNTHESIS
@@ -402,7 +402,7 @@ function ConfluenceProcessorSection() {
               style={{
                 fontFamily: 'Courier New, monospace',
                 fontSize: '10px',
-                background: '#080708',
+                background: 'var(--surface-1)',
                 padding: '8px 12px',
                 borderRadius: '8px',
                 textAlign: 'left',
@@ -422,7 +422,7 @@ function ConfluenceProcessorSection() {
                 }
                 const prefix = log.substring(0, colonIdx + 1);
                 const rest = log.substring(colonIdx + 1);
-                const tagColor = activeGate < 6 ? '#ff5522' : '#00e5ff';
+                const tagColor = activeGate < 6 ? 'var(--volt-500)' : 'var(--surface-3)';
                 return (
                   <div>
                     <span style={{ color: tagColor, fontWeight: 700, marginRight: '6px' }}>{prefix}</span>
@@ -452,7 +452,7 @@ function ConfluenceProcessorSection() {
                 <path 
                   d={`M ${startXLeft} 0 L ${startXLeft} 10 C ${startXLeft} 20, ${endXLeft} 20, ${endXLeft} 30 L ${endXLeft} 40`}
                   className="lp-proc-wire"
-                  style={{ stroke: isActiveLeft ? 'rgba(255, 60, 0, 0.25)' : undefined }}
+                  style={{ stroke: isActiveLeft ? 'rgba(198, 255, 46, 0.25)' : undefined }}
                 />
                 <path 
                   d={`M ${startXLeft} 0 L ${startXLeft} 10 C ${startXLeft} 20, ${endXLeft} 20, ${endXLeft} 30 L ${endXLeft} 40`}
@@ -463,8 +463,8 @@ function ConfluenceProcessorSection() {
                     opacity: activeGate === idx ? 0.9 : 0.15
                   }}
                 />
-                <circle cx={startXLeft} cy="1" r="0.6" fill={isActiveLeft ? '#ff3c00' : 'rgba(255,255,255,0.2)'} />
-                <circle cx={endXLeft} cy="39" r="0.6" fill={isActiveLeft ? '#ff3c00' : 'rgba(0,0,0,0.1)'} />
+                <circle cx={startXLeft} cy="1" r="0.6" fill={isActiveLeft ? 'var(--volt-500)' : 'rgba(255,255,255,0.2)'} />
+                <circle cx={endXLeft} cy="39" r="0.6" fill={isActiveLeft ? 'var(--volt-500)' : 'rgba(0,0,0,0.1)'} />
 
                 {/* Right wire base & glow */}
                 <path 
@@ -481,8 +481,8 @@ function ConfluenceProcessorSection() {
                     opacity: activeGate === (idx + 6) ? 0.9 : 0.15
                   }}
                 />
-                <circle cx={startXRight} cy="1" r="0.6" fill={isActiveRight ? '#0891b2' : 'rgba(255,255,255,0.2)'} />
-                <circle cx={endXRight} cy="39" r="0.6" fill={isActiveRight ? '#0891b2' : 'rgba(0,0,0,0.1)'} />
+                <circle cx={startXRight} cy="1" r="0.6" fill={isActiveRight ? 'var(--surface-3)' : 'rgba(255,255,255,0.2)'} />
+                <circle cx={endXRight} cy="39" r="0.6" fill={isActiveRight ? 'var(--surface-3)' : 'rgba(0,0,0,0.1)'} />
               </g>
             );
           })}
@@ -493,8 +493,8 @@ function ConfluenceProcessorSection() {
           {PROCESSOR_GATES.map((g, idx) => {
             const isActive = activeGate === idx;
             const isLeft = idx < 6;
-            const activeColor = isLeft ? 'rgba(255, 60, 0, 0.3)' : 'rgba(8, 145, 178, 0.3)';
-            const numBg = isLeft ? '#ff3c00' : '#0891b2';
+            const activeColor = isLeft ? 'rgba(198, 255, 46, 0.3)' : 'rgba(198, 255, 46, 0.3)';
+            const numBg = isLeft ? 'var(--volt-500)' : 'var(--surface-3)';
             
             return (
               <div 
@@ -541,19 +541,19 @@ function ConfluenceProcessorSection() {
 
 
 
-function XyroEcosystemSection() {
+function HeroPipsEcosystemSection() {
   return (
     <section className="lp-bento-wrap">
       <div className="lp-bento-inner">
         <div className="lp-bento-header">
-          <h2 className="lp-bento-title">Learn more about Xyro engineering</h2>
+          <h2 className="lp-bento-title">Learn more about HeroPips engineering</h2>
         </div>
 
         <div className="lp-bento-grid">
           {/* Card 1: Academy (Tall left card) */}
           <div className="lp-bento-card card-academy">
             <div className="lp-bento-img-wrap">
-              <img src="/bento_academy_1784132288526.png" alt="Xyro Academy" className="lp-bento-img" />
+              <img src="/bento_academy_1784132288526.png" alt="HeroPips Academy" className="lp-bento-img" />
             </div>
             <div className="lp-bento-content">
               <span className="lp-bento-tag tag-purple">CONFERENCE</span>
@@ -566,14 +566,14 @@ function XyroEcosystemSection() {
           <div className="lp-bento-card card-get-started">
             <div className="lp-bento-content-split">
               <div className="lp-bento-text">
-                <h3 className="lp-bento-card-title">Get started with Xyro</h3>
+                <h3 className="lp-bento-card-title">Get started with HeroPips</h3>
                 <p className="lp-bento-card-desc">
-                  Find the content that helps you level up your trading skills and build confidently with Xyro.
+                  Find the content that helps you level up your trading skills and build confidently with HeroPips.
                 </p>
                 <a href="#" className="lp-bento-link">Go to University →</a>
               </div>
               <div className="lp-bento-img-side">
-                <img src="/bento_path_1784132304631.png" alt="Xyro Path" className="lp-bento-img" />
+                <img src="/bento_path_1784132304631.png" alt="HeroPips Path" className="lp-bento-img" />
               </div>
             </div>
           </div>
@@ -595,17 +595,17 @@ function XyroEcosystemSection() {
                 overflow: 'hidden'
               }}>
                 <svg viewBox="0 0 100 50" style={{ width: '80%', height: '80%', opacity: 0.2 }}>
-                  <path d="M 10 10 L 30 10 L 50 30 L 90 30" fill="none" stroke="#ff3c00" strokeWidth="1" />
+                  <path d="M 10 10 L 30 10 L 50 30 L 90 30" fill="none" stroke="var(--volt-500)" strokeWidth="1" />
                   <path d="M 10 40 L 40 40 L 60 20 L 90 20" fill="none" stroke="#0ea5e9" strokeWidth="1" />
                 </svg>
-                <span style={{ position: 'absolute', fontFamily: 'Courier New, monospace', fontSize: '9px', color: '#ff3c00', fontWeight: 'bold' }}>
-                  XYRO_FEED_STREAM_OK
+                <span style={{ position: 'absolute', fontFamily: 'Courier New, monospace', fontSize: '9px', color: 'var(--volt-500)', fontWeight: 'bold' }}>
+                  HEROPIPS_FEED_STREAM_OK
                 </span>
               </div>
             </div>
             <div className="lp-bento-content">
-              <span className="lp-bento-tag tag-orange">LIVESTREAM</span>
-              <h3 className="lp-bento-card-title">How Xyro Uses Xyro: ABM data flows to find high-probability signals</h3>
+              <span className="lp-bento-tag tag-volt">LIVESTREAM</span>
+              <h3 className="lp-bento-card-title">How HeroPips Uses HeroPips: ABM data flows to find high-probability signals</h3>
               <a href="#" className="lp-bento-link">Watch →</a>
             </div>
           </div>
@@ -630,7 +630,7 @@ function XyroEcosystemSection() {
               </div>
               <div className="lp-bento-text">
                 <span className="lp-bento-tag tag-green">COMMUNITY STORY</span>
-                <h3 className="lp-bento-card-title">Sandra has built the Xyro developer community in Lagos</h3>
+                <h3 className="lp-bento-card-title">Sandra has built the HeroPips developer community in Lagos</h3>
                 <a href="#" className="lp-bento-link">Read story →</a>
               </div>
             </div>
@@ -639,7 +639,7 @@ function XyroEcosystemSection() {
           {/* Card 6: Join Discord (Bottom Center card) */}
           <div className="lp-bento-card card-join-us">
             <div className="lp-bento-img-wrap">
-              <img src="/bento_team_1784132380508.png" alt="Xyro Team" className="lp-bento-img" />
+              <img src="/bento_team_1784132380508.png" alt="HeroPips Team" className="lp-bento-img" />
             </div>
             <div className="lp-bento-content">
               <span className="lp-bento-tag tag-white" style={{ color: '#ffcc00' }}>COME AND JOIN US</span>
@@ -800,19 +800,19 @@ function FaqSection() {
       a: 'Our MT5 Farm is a proprietary, in-house infrastructure composed of co-located high-frequency servers situated in key global financial data centers (LD4 and NY4). By hosting direct API bridge connections close to liquidity providers, we reduce round-trip latency to sub-millisecond levels, eliminating slippage and maximizing execution speed.'
     },
     {
-      q: 'Can XyroTrade help me pass Prop Firm challenges?',
-      a: 'Absolutely. XyroTrade is specifically built with advanced risk governance controls to help traders pass challenges from firms like FTMO, FundedNext, and MFF. The Risk Governor automatically calculates position sizing based on your specific drawdown limits, ensuring you never violate daily loss thresholds or max drawdown rules.'
+      q: 'Can HeroPips help me pass Prop Firm challenges?',
+      a: 'Absolutely. HeroPips is specifically built with advanced risk governance controls to help traders pass challenges from firms like FTMO, FundedNext, and MFF. The Risk Governor automatically calculates position sizing based on your specific drawdown limits, ensuring you never violate daily loss thresholds or max drawdown rules.'
     },
     {
       q: 'Is my broker account secure when connecting via API?',
-      a: 'Security is our highest priority. XyroTrade uses bank-grade AES-256 API key encryption. We only request trading execution permissions; withdrawal access is strictly blocked. Furthermore, your API keys are stored in isolated, hardware-security modules (HSMs) on our secure cloud architecture.'
+      a: 'Security is our highest priority. HeroPips uses bank-grade AES-256 API key encryption. We only request trading execution permissions; withdrawal access is strictly blocked. Furthermore, your API keys are stored in isolated, hardware-security modules (HSMs) on our secure cloud architecture.'
     },
     {
       q: 'How does the AI Chat Assistant analyze live market charts?',
       a: 'The AI Chat Assistant is directly hooked into our real-time price feeds and news sentiment engine. When you ask about an asset, the AI dynamically extracts price structure, candlestick formations, order block imbalances, and sentiment reports, delivering technical analyses in seconds.'
     },
     {
-      q: 'Can I white-label XyroTrade\'s signals or connect via custom Webhooks?',
+      q: 'Can I white-label HeroPips\'s signals or connect via custom Webhooks?',
       a: 'Yes. We offer white-label solutions and direct websocket/REST API feeds for quantitative desks, family offices, and professional trading communities. You can customize the signal routing, integrate custom risk templates, and broadcast alerts directly to your Discord, Telegram, or custom webhook endpoints.'
     }
   ];
@@ -865,7 +865,7 @@ function FaqSection() {
           <div className="lp-faq-footer">
             <Mail size={14} style={{ marginRight: 6 }} />
             <span>Feel free to mail us for any enquiries: </span>
-            <a href="mailto:support@xyrotrade.com" className="lp-faq-mail-link">support@xyrotrade.com</a>
+            <a href="mailto:support@heropips.com" className="lp-faq-mail-link">support@heropips.com</a>
           </div>
         </div>
       </div>
@@ -959,15 +959,15 @@ export default function LandingPage() {
           onMouseLeave={() => setIsHovered(false)}
         >
           {/* Glowing neon atmosphere spots */}
-          <div className="lp-hero-glow-orange" aria-hidden />
+          <div className="lp-hero-glow-volt" aria-hidden />
           <div className="lp-hero-glow-cyan" aria-hidden />
 
           {/* Border Beam Glow Overlay */}
           <svg className="lp-border-beam-svg" aria-hidden>
             <defs>
               <linearGradient id="hero-beam-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#ff3c00" stopOpacity="0" />
-                <stop offset="50%" stopColor="#ff3c00" stopOpacity="1" />
+                <stop offset="0%" stopColor="var(--volt-500)" stopOpacity="0" />
+                <stop offset="50%" stopColor="var(--volt-500)" stopOpacity="1" />
                 <stop offset="100%" stopColor="#f59e0b" stopOpacity="0" />
               </linearGradient>
             </defs>
@@ -984,7 +984,7 @@ export default function LandingPage() {
               zIndex: 0,
               opacity: isHovered ? 1 : 0,
               transition: 'opacity 0.4s ease',
-              background: `radial-gradient(450px circle at ${coords.x}px ${coords.y}px, rgba(255, 60, 0, 0.045), transparent 75%)`,
+              background: `radial-gradient(450px circle at ${coords.x}px ${coords.y}px, rgba(198, 255, 46, 0.045), transparent 75%)`,
             }}
             aria-hidden
           />
@@ -1018,7 +1018,7 @@ export default function LandingPage() {
             <div className="lp-hero-left">
               <motion.div className="lp-hero-announce" variants={fadeInUp}>
                 <span className="lp-hero-announce-dot" />
-                <span className="lp-hero-announce-brand">Xyro Trade 2.0</span>
+                <span className="lp-hero-announce-brand">HeroPips 2.0</span>
                 {' · 12-Gate Confluence Engine · Now Live'}
               </motion.div>
 
@@ -1102,7 +1102,7 @@ export default function LandingPage() {
                 <div className="lp-video-container">
                   <img 
                     src="/images/hero-video-placeholder.png" 
-                    alt="XyroTrade Showcase Overview" 
+                    alt="HeroPips Showcase Overview" 
                     className="lp-hero-video-poster"
                   />
                   <div className="lp-video-overlay-glass">
@@ -1155,7 +1155,7 @@ export default function LandingPage() {
       <IntegrationsSection />
 
       {/* ── BENTO ECOSYSTEM ── */}
-      <XyroEcosystemSection />
+      <HeroPipsEcosystemSection />
 
       {/* ── FAQ ── */}
       <FaqSection />

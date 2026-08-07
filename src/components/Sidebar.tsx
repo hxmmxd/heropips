@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Terminal, Server, Receipt, Network, X, LogOut, Settings, ChevronDown, BarChart3, GraduationCap, Star, Telescope, Sparkles } from 'lucide-react';
+import { Terminal, Server, Receipt, Network, X, LogOut, Settings, ChevronDown, BarChart3, GraduationCap, Star, Sparkles, ChevronsUp } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { getUserAvatar } from '@/lib/avatar';
 
@@ -12,7 +12,6 @@ interface SidebarProps {
   onToggle: () => void;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
-  astroMode?: boolean;
   userPlan?: string;
   dailySignalsUsed?: number;
   connectedBrokersCount?: number;
@@ -25,7 +24,6 @@ export default function Sidebar({
   onToggle,
   theme,
   onToggleTheme,
-  astroMode,
   userPlan,
   dailySignalsUsed: propDailySignalsUsed,
   connectedBrokersCount: propConnectedBrokersCount,
@@ -83,7 +81,6 @@ export default function Sidebar({
     { id: 'history', label: 'Trade Logs', icon: Receipt },
     { id: 'referral', label: 'Referral Hub', icon: Network },
     { id: 'courses', label: 'Courses', icon: GraduationCap },
-    ...(astroMode ? [{ id: 'astro-performance', label: 'Astro Analytics', icon: Telescope }] : []),
   ];
 
   const bottomLinks = [
@@ -293,13 +290,21 @@ export default function Sidebar({
                   </div>
                 </div>
 
-                {/* Upgrade button */}
+                {/* Premium Upgrade Button */}
                 <button
                   onClick={() => { switchTab('subscription'); if (isOpen) onToggle(); }}
-                  className="sb-upgrade-btn"
+                  className="relative overflow-hidden w-full group flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#0B0D14] text-[var(--accent)] font-extrabold text-[13px] border border-[var(--accent)]/30 shadow-[0_4px_20px_0_rgba(132,204,22,0.15)] transition-all duration-300 hover:shadow-[0_0_25px_rgba(132,204,22,0.3)] hover:border-[var(--accent)]/60 hover:-translate-y-0.5 active:translate-y-0"
                 >
-                  <Star className="w-4 h-4" strokeWidth={2} />
-                  Upgrade
+                  {/* Subtle inner glow */}
+                  <div className="absolute inset-0 rounded-xl shadow-[inset_0_0_15px_rgba(132,204,22,0.1)] pointer-events-none" />
+                  
+                  {/* Shimmer effect */}
+                  <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-[var(--accent)]/10 to-transparent group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
+                  
+                  <div className="relative flex items-center justify-center w-6 h-6 rounded-full bg-[var(--accent)]/10 group-hover:bg-[var(--accent)]/20 transition-colors duration-300">
+                    <ChevronsUp className="w-4 h-4 text-[var(--accent)] drop-shadow-[0_0_8px_var(--accent)]" strokeWidth={3} />
+                  </div>
+                  <span className="drop-shadow-[0_0_5px_var(--accent)] tracking-wide uppercase text-[12px] opacity-90 group-hover:opacity-100 transition-opacity">Upgrade</span>
                 </button>
               </>
             ) : (

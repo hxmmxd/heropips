@@ -7,7 +7,6 @@ import { ChatMessage } from '../../types';
 import { parseMarkdown } from '@/utils/markdownParser';
 import { useSignal } from '@/contexts/SignalContext';
 import { useLivePrices } from '@/hooks/useLivePrices';
-import AstroActivationBody from './AstroActivationBody';
 import { CoinIcon } from './AssetIcons';
 import TradeTicket from '../TradeTicket';
 
@@ -15,7 +14,7 @@ const MiniChart = dynamic(() => import('../MiniChart'), { ssr: false });
 
 interface ChatFeedProps {
   messages: ChatMessage[];
-  astroMode: boolean;
+
   onGenerateSignal?: (symbol: string) => void;
   activeBrokerId: string;
   onTradeExecuted?: (result: { orderId: string; fillPrice?: number; ticket: any }) => void;
@@ -26,7 +25,7 @@ interface ChatFeedProps {
 
 export default function ChatFeed({
   messages,
-  astroMode,
+
   onGenerateSignal,
   activeBrokerId,
   onTradeExecuted,
@@ -57,29 +56,7 @@ export default function ChatFeed({
             );
           }
 
-          // ── Astro Activation Card ──
-          if (msg.astroCard && msg.text === 'ASTRO_ACTIVATION') {
-            return (
-              <div key={msg.id} className="flex px-4 mb-6 animate-in slide-in-from-bottom-3 duration-500">
-                <div className="w-full max-w-md bg-gradient-to-br from-slate-950 via-indigo-950/80 to-slate-950 border border-amber-500/25 rounded-2xl shadow-[0_0_25px_rgba(245,158,11,0.12)] overflow-hidden">
-                  {/* Header */}
-                  <div className="px-5 py-3.5 border-b border-amber-500/15 flex items-center gap-2.5">
-                    <span className="text-lg">✦</span>
-                    <h3 className="text-sm font-black text-amber-400 uppercase tracking-[0.18em]">
-                      Astro Mode Activated
-                    </h3>
-                  </div>
-                  <AstroActivationBody />
-                  {/* Footer */}
-                  <div className="px-5 py-2.5 border-t border-amber-500/10 bg-amber-950/10">
-                    <p className="text-[9px] text-slate-400 leading-relaxed">
-                      Celestial cycles are now layered into every signal. Ask me to analyze any asset.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            );
-          }
+
 
           // ── Bot message ──
           const isTyping = msg.text === '__TYPING__';
@@ -164,44 +141,15 @@ export default function ChatFeed({
                 isTyping ? 'space-x-3 items-center' : 'flex-col items-start'
               }`}
             >
-              {isTyping && (
-                astroMode ? (
-                  /* ── Astro Planet Orbit Typing Indicator ── */
-                  <div className="astro-typing-orbit-wrap shrink-0">
-                    <svg className="astro-typing-orbit-svg" viewBox="0 0 48 48">
-                      <circle cx="24" cy="24" r="18" fill="none" stroke="rgba(245,158,11,0.2)" strokeWidth="1" strokeDasharray="3 2" />
-                      <circle cx="24" cy="24" r="3" fill="rgba(245,158,11,0.6)">
-                        <animate attributeName="r" values="2.5;3.5;2.5" dur="2s" repeatCount="indefinite" />
-                        <animate attributeName="opacity" values="0.5;1;0.5" dur="2s" repeatCount="indefinite" />
-                      </circle>
-                      <circle r="2.5" fill="#fbbf24">
-                        <animateMotion dur="2.4s" repeatCount="indefinite" path="M24,6 A18,18 0 1,1 23.99,6" />
-                        <animate attributeName="opacity" values="0.7;1;0.7" dur="1.2s" repeatCount="indefinite" />
-                      </circle>
-                      <circle r="1.2" fill="#38bdf8" opacity="0.8">
-                        <animateMotion dur="4s" repeatCount="indefinite" path="M24,6 A18,18 0 1,1 23.99,6" begin="-1.5s" />
-                      </circle>
-                    </svg>
-                  </div>
-                ) : (
-                  <div className="bot-typing-heartbeat-wrap shrink-0">
-                    <svg className="bot-typing-heartbeat-svg" viewBox="0 0 64 48">
-                      <polyline className="bot-hb-back" points="0.157 23.954, 14 23.954, 21.843 48, 43 0, 50 24, 64 24" />
-                      <polyline className="bot-hb-front" points="0.157 23.954, 14 23.954, 21.843 48, 43 0, 50 24, 64 24" />
-                    </svg>
-                  </div>
-                )
-              )}
+
               {/* Response Content */}
               <div className="flex-1 space-y-2 w-full">
                 {/* Typing animation */}
                 {isTyping && (
-                  <div className={`border px-5 py-3 rounded-[20px] max-w-full shadow-sm ${
-                    astroMode
-                      ? 'bg-gradient-to-r from-amber-950/20 to-slate-950/40 border-amber-500/15'
-                      : 'bg-[var(--sidebar-bg)] border-[var(--border)]'
-                  }`}>
-                    <div className={astroMode ? 'astro-typing-loader' : 'typing-loader'} />
+                  <div className="border px-4 py-3 rounded-[20px] shadow-sm bg-[var(--sidebar-bg)] border-[var(--border)] flex items-center justify-center h-10 w-[72px]">
+                    <div className="typing-dots">
+                      <span /><span /><span />
+                    </div>
                   </div>
                 )}
 
@@ -409,18 +357,7 @@ export default function ChatFeed({
                           📰 {msg.marketData.newsSentiment || 'NEUTRAL'}
                         </span>
 
-                        {/* Astro Gate */}
-                        {msg.astroGate && (
-                          <span className={`text-[10px] font-bold tracking-wider px-2.5 py-1.5 rounded-lg border ${
-                            !msg.astroGate.allowed
-                              ? 'bg-red-500/8 text-red-400 border-red-500/20'
-                              : msg.astroGate.lotMultiplier < 1
-                              ? 'bg-amber-500/8 text-amber-400 border-amber-500/20'
-                              : 'bg-emerald-500/8 text-emerald-400 border-emerald-500/20'
-                          }`}>
-                            {msg.astroGate.statusLine}
-                          </span>
-                        )}
+
 
                         {/* Risk Governor */}
                         {msg.gating?.riskSummary && (
@@ -473,33 +410,23 @@ export default function ChatFeed({
                             </summary>
                             <div className="mt-2 space-y-1">
                               {msg.gating.gates.map((gate: any, gi: number) => {
-                                const isAstroGate = ['Lunar Alignment','Planetary Aspect','Mercury Risk','Eclipse / VOC Block','Seasonal Cycle'].includes(gate.name);
                                 const isRiskGate = gate.name?.startsWith('Gate 13') || gate.name?.startsWith('Gate 14') || gate.name?.startsWith('Gate 15');
                                 return (
                                   <div key={gi} className={`relative flex items-start gap-2.5 pl-3 pr-3 py-2 rounded-xl overflow-hidden ${
                                     gate.passed
                                       ? isRiskGate ? 'bg-violet-500/5 border border-violet-500/10'
-                                      : isAstroGate ? 'bg-amber-500/5 border border-amber-500/10'
                                       : 'bg-emerald-500/5 border border-emerald-500/10'
                                       : 'bg-red-500/5 border border-red-500/10'
                                   }`}>
                                     <div className={`absolute left-0 top-0 bottom-0 w-[2px] ${
-                                      gate.passed ? (isRiskGate ? 'bg-violet-500' : isAstroGate ? 'bg-amber-500' : 'bg-emerald-500') : 'bg-red-500'
+                                      gate.passed ? (isRiskGate ? 'bg-violet-500' : 'bg-emerald-500') : 'bg-red-500'
                                     }`} />
                                     {(() => {
-                                      const ASTRO_GATE_ICONS: Record<string, string> = {
-                                        'Lunar Alignment': '☽',
-                                        'Planetary Aspect': '♃',
-                                        'Mercury Risk': '☿',
-                                        'Eclipse / VOC Block': '◑',
-                                        'Seasonal Cycle': '✦',
-                                      };
                                       const RISK_GATE_ICONS: Record<string, string> = {
                                         'Gate 13': '📈',
                                         'Gate 14': '⚡',
                                         'Gate 15': '🛡️',
                                       };
-                                      const astroIcon = ASTRO_GATE_ICONS[gate.name];
                                       const riskKey = Object.keys(RISK_GATE_ICONS).find(k => gate.name?.startsWith(k));
                                       const riskIcon = riskKey ? RISK_GATE_ICONS[riskKey] : null;
                                       if (riskIcon) {
@@ -510,17 +437,6 @@ export default function ChatFeed({
                                               : 'bg-red-500/15 text-red-400'
                                           }`}>
                                             {riskIcon}
-                                          </div>
-                                        );
-                                      }
-                                      if (astroIcon) {
-                                        return (
-                                          <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 mt-0.5 text-[11px] ${
-                                            gate.passed
-                                              ? 'bg-amber-500/15 text-amber-400'
-                                              : 'bg-red-500/15 text-red-400'
-                                          }`}>
-                                            {astroIcon}
                                           </div>
                                         );
                                       }
@@ -541,9 +457,6 @@ export default function ChatFeed({
                                         <span className="text-[10px] font-bold text-[var(--text)]">{gate.name}</span>
                                         {['Confluence','News Event','MTF Stack'].includes(gate.name) && (
                                           <span className="text-[7px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-orange-500/12 text-orange-400 border border-orange-500/15">CRITICAL</span>
-                                        )}
-                                        {isAstroGate && (
-                                          <span className="text-[7px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/12 text-amber-400 border border-amber-500/15">ASTRO</span>
                                         )}
                                         {isRiskGate && (
                                           <span className="text-[7px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-violet-500/12 text-violet-400 border border-violet-500/15">RISK</span>
@@ -586,7 +499,7 @@ export default function ChatFeed({
                             }`}>
                               {msg.marketData.confidenceGrade}
                             </span>
-                            <span className="text-[9.5px] font-semibold text-[var(--subtext)] font-sans tracking-tight whitespace-nowrap">
+                            <span className="text-[9.5px] font-semibold text-[var(--subtext)] font-body tracking-tight whitespace-nowrap">
                               {msg.marketData.confluenceScore < 65 ? 'Moderate Confidence' : 'Confidence'}
                             </span>
                           </div>
@@ -684,7 +597,7 @@ export default function ChatFeed({
                 {msg.signalSymbol && !msg.ticket && !msg.marketData && (
                   <button
                     onClick={() => onGenerateSignal?.(msg.signalSymbol!)}
-                    className="flex items-center gap-2 mt-2 px-5 py-2.5 rounded-2xl text-white text-[12px] font-bold uppercase tracking-wider shadow-lg active:scale-95 transition-all whitespace-nowrap shrink-0" style={{ background: 'var(--accent)', boxShadow: '0 4px 16px rgba(180,145,108,0.25)' }}
+                    className="flex items-center gap-2 mt-2 px-5 py-2.5 rounded-2xl text-[var(--on-volt)] text-[12px] font-bold uppercase tracking-wider shadow-lg active:scale-95 transition-all whitespace-nowrap shrink-0" style={{ background: 'var(--accent)', boxShadow: '0 4px 16px rgba(198,255,46,0.25)' }}
                   >
                     <Zap className="w-3.5 h-3.5" />
                     Generate Trade Signal

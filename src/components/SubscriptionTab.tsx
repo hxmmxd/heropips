@@ -166,7 +166,7 @@ export default function SubscriptionTab({ onBack }: SubscriptionTabProps) {
         {/* Heading Row */}
         <div className="text-center mb-4">
           <h2 className="text-2xl font-black text-[var(--text)] tracking-tight">
-            Compare Xyro Trade plans
+            Compare HeroPips plans
           </h2>
           <p className="text-[9.5px] text-[var(--subtext)] font-extrabold uppercase tracking-widest mt-1.5">
             Choose the best plan for you
@@ -235,7 +235,7 @@ export default function SubscriptionTab({ onBack }: SubscriptionTabProps) {
             All payments are processed securely via NOWPayments. Prices calculated in USD.
           </p>
           <p className="text-[9.5px] text-[var(--subtext)]/80 leading-relaxed font-medium max-w-[640px] mx-auto">
-            *Xyro Trade is powered by large language models. While it can produce powerful results, its behavior is probabilistic — meaning it may occasionally make mistakes. Please verify and confirm all transactions independently.
+            *HeroPips is powered by large language models. While it can produce powerful results, its behavior is probabilistic — meaning it may occasionally make mistakes. Please verify and confirm all transactions independently.
           </p>
         </div>
       </div>

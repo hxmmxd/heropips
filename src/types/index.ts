@@ -25,23 +25,14 @@ export interface TradeTicketProps {
   confidence?: 'AAA' | 'AA' | 'A' | 'BBB';
   apiSymbol?: string; // Raw API symbol (e.g. "XAU/USD") for execution
   executionStatus?: 'PENDING' | 'SUCCESS' | 'FAILED';
-  astroMode?: boolean;
-  astroDetails?: {
-    moonPhase: string;
-    moonEmoji: string;
-    moonSign: string;
-    mercuryState: string;
-    voidOfCourse: boolean;
-    eclipse: boolean;
-    seasonal: string;
-  };
+
 }
 
 export interface ChatMessage {
   id: string;
   sender: 'user' | 'bot';
   text?: string;
-  astroCard?: boolean;         // renders the Astro Activation card
+
   ticket?: TradeTicketProps;
   signalSymbol?: string;
   marketData?: {
@@ -66,12 +57,7 @@ export interface ChatMessage {
     riskSummary?: string | null;
     riskMultipliers?: any | null;
   };
-  astroGate?: {
-    allowed: boolean;
-    lotMultiplier: number;
-    statusLine: string;
-    blockReason: string | null;
-  };
+
   screenerData?: {
     symbol: string;
     displaySymbol: string;

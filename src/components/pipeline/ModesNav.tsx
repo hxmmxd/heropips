@@ -2,7 +2,7 @@
 
 import React from 'react';
 
-type Mode = 'quant' | 'astro' | 'webhook';
+type Mode = 'quant' | 'webhook';
 
 interface ModeConfig {
   label: string;
