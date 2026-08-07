@@ -286,6 +286,61 @@ const PROCESSOR_GATES = [
   { num: '12', name: 'Risk-Reward Cutoff', desc: 'R:R ratio validation', log: 'R:R Cutoff: 1:2.5 minimum target cleared.' },
 ];
 
+function TerminalTypingText({ log, activeGate }: { log: string, activeGate: number }) {
+  const [typedCount, setTypedCount] = useState(0);
+
+  useEffect(() => {
+    setTypedCount(0);
+    if (!log) return;
+    
+    // We want the prefix to appear instantly, and the rest to type out.
+    const colonIdx = log.indexOf(':');
+    const rest = colonIdx === -1 ? log : log.substring(colonIdx + 1);
+    
+    const interval = setInterval(() => {
+      setTypedCount(prev => {
+        if (prev >= rest.length) {
+          clearInterval(interval);
+          return prev;
+        }
+        return prev + 1;
+      });
+    }, 15); // Fast 15ms per character
+
+    return () => clearInterval(interval);
+  }, [log, activeGate]);
+
+  const colonIdx = log.indexOf(':');
+  if (colonIdx === -1) {
+    return <span style={{ color: '#ffffff' }}>{log.substring(0, typedCount)}</span>;
+  }
+  
+  const prefix = log.substring(0, colonIdx + 1);
+  const rest = log.substring(colonIdx + 1);
+  const tagColor = activeGate < 6 ? 'var(--volt-500)' : 'rgba(255, 255, 255, 0.5)';
+  
+  return (
+    <div>
+      <span style={{ color: tagColor, fontWeight: 700, marginRight: '6px' }}>{prefix}</span>
+      <span style={{ color: '#ffffff' }}>
+        {rest.substring(0, typedCount)}
+        {/* Blinking cursor */}
+        <span 
+          style={{ 
+            display: 'inline-block', 
+            width: '6px', 
+            height: '10px', 
+            background: '#ffffff', 
+            marginLeft: '4px',
+            animation: 'blink 1s step-end infinite',
+            verticalAlign: 'baseline'
+          }} 
+        />
+      </span>
+    </div>
+  );
+}
+
 function ConfluenceProcessorSection() {
   const [hoveredGate, setHoveredGate] = useState<number | null>(null);
   const [activeCycleGate, setActiveCycleGate] = useState(0);
@@ -415,22 +470,7 @@ function ConfluenceProcessorSection() {
                 wordBreak: 'break-word'
               }}
             >
-              {(() => {
-                const log = PROCESSOR_GATES[activeGate].log;
-                const colonIdx = log.indexOf(':');
-                if (colonIdx === -1) {
-                  return <span style={{ color: '#ffffff' }}>{log}</span>;
-                }
-                const prefix = log.substring(0, colonIdx + 1);
-                const rest = log.substring(colonIdx + 1);
-                const tagColor = activeGate < 6 ? 'var(--volt-500)' : 'rgba(255, 255, 255, 0.5)';
-                return (
-                  <div>
-                    <span style={{ color: tagColor, fontWeight: 700, marginRight: '6px' }}>{prefix}</span>
-                    <span style={{ color: '#ffffff' }}>{rest}</span>
-                  </div>
-                );
-              })()}
+              <TerminalTypingText log={PROCESSOR_GATES[activeGate].log} activeGate={activeGate} />
             </div>
           </div>
         </div>

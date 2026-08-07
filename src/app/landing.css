@@ -3249,11 +3249,16 @@ body.lp-scrollable {
 
 @keyframes proc-flow {
   0% {
-    stroke-dashoffset: 100;
-  }
-  100% {
     stroke-dashoffset: 0;
   }
+  100% {
+    stroke-dashoffset: 100;
+  }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
 }
 
 /* Gates Grid */
