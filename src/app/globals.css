@@ -785,10 +785,10 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #0f0d0c; /* carbon dark matching platform */
+  background-color: #090a0f; /* deep blue-slate matching landing page */
   background-image: 
     radial-gradient(rgba(255, 255, 255, 0.015) 1.2px, transparent 1.2px),
-    radial-gradient(circle at 50% 30%, rgba(255, 60, 0, 0.04) 0%, #0f0d0c 100%);
+    radial-gradient(circle at 50% 30%, rgba(198, 255, 46, 0.03) 0%, #090a0f 100%);
   background-size: 24px 24px, 100% 100%;
   transition: background-color 0.3s ease, background-image 0.3s ease;
   font-family: inherit;
@@ -886,9 +886,9 @@ body {
   box-sizing: border-box;
 }
 .auth-input-group input:focus {
-  border-color: #ff3c00;
+  border-color: var(--volt-500);
   background: #141211;
-  box-shadow: 0 0 0 3px rgba(255, 60, 0, 0.15);
+  box-shadow: 0 0 0 3px rgba(198, 255, 46, 0.15);
 }
 .auth-input-group input::placeholder {
   color: rgba(255, 255, 255, 0.25);
@@ -971,7 +971,7 @@ body {
 .auth-switch button {
   background: none;
   border: none;
-  color: #ff3c00;
+  color: var(--volt-500);
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
@@ -979,7 +979,7 @@ body {
   transition: color 0.2s;
 }
 .auth-switch button:hover {
-  color: #d63200;
+  color: #d4ff4d;
   text-decoration: underline;
 }
 
@@ -1024,7 +1024,7 @@ body {
   transition: color 0.2s;
 }
 .auth-terms a:hover {
-  color: #ff3c00;
+  color: var(--volt-500);
   text-decoration: underline;
 }
 
@@ -1072,9 +1072,9 @@ body {
   color: #1c1917;
 }
 .auth-light .auth-input-group input:focus {
-  border-color: #ff3c00;
+  border-color: #1c1917;
   background: #ffffff;
-  box-shadow: 0 0 0 3px rgba(255, 60, 0, 0.1);
+  box-shadow: 0 0 0 3px rgba(28, 25, 23, 0.1);
 }
 .auth-light .auth-input-group input::placeholder {
   color: rgba(27, 22, 19, 0.35);
@@ -1097,6 +1097,12 @@ body {
 .auth-light .auth-switch {
   color: rgba(27, 22, 19, 0.55);
 }
+.auth-light .auth-switch button {
+  color: #1c1917;
+}
+.auth-light .auth-switch button:hover {
+  color: #000000;
+}
 .auth-light .auth-divider span {
   color: rgba(27, 22, 19, 0.35);
 }
@@ -1111,7 +1117,7 @@ body {
   color: rgba(27, 22, 19, 0.65);
 }
 .auth-light .auth-terms a:hover {
-  color: #ff3c00;
+  color: #1c1917;
 }
 .auth-light .auth-alert-error {
   background: rgba(239, 68, 68, 0.05);
