@@ -458,7 +458,7 @@ function ConfluenceProcessorSection() {
               style={{
                 fontFamily: 'Courier New, monospace',
                 fontSize: '10px',
-                background: 'var(--surface-1)',
+                background: 'rgba(255, 255, 255, 0.04)',
                 padding: '8px 12px',
                 borderRadius: '8px',
                 textAlign: 'left',
