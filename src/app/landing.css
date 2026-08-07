@@ -60,9 +60,9 @@ body.lp-scrollable {
 }
 
 :root.dark, .dark {
-  --lp-bg: var(--bg-app);
-  --lp-nav-bg: rgba(7, 8, 12, 0.88);
-  --lp-nav-glass: rgba(7, 8, 12, 0.96);
+  --lp-bg: #090a0f; /* Premium deep blue-slate instead of flat black */
+  --lp-nav-bg: rgba(9, 10, 15, 0.88);
+  --lp-nav-glass: rgba(9, 10, 15, 0.96);
   --lp-text-dark: var(--text-hi);
   --lp-text-darker: var(--text-hi2);
   --text-mid: #d1d5db; /* Brighter gray for nav links in dark mode */
@@ -117,7 +117,7 @@ body.lp-scrollable {
 
   /* Overrides for Confluence block */
   .lp-proc-wrap {
-    background: var(--bg-app);
+    background: radial-gradient(circle at center 20%, #11141c 0%, #07080a 100%);
   }
   .lp-proc-chip-top {
     background: rgba(255, 255, 255, 0.05);
@@ -141,7 +141,7 @@ body.lp-scrollable {
   
   /* Overrides for Bento Ecosystem block */
   .lp-bento-wrap {
-    background: var(--bg-app);
+    background: radial-gradient(ellipse at center bottom, #13111c 0%, #07080a 100%);
   }
   .lp-bento-card {
     background: rgba(255, 255, 255, 0.03);
@@ -165,7 +165,7 @@ body.lp-scrollable {
 
   /* Overrides for Footer */
   .lp-footer {
-    background: var(--bg-app);
+    background: #040506;
     border-top-color: rgba(255, 255, 255, 0.05);
   }
   .lp-footer-cta-title {
@@ -205,6 +205,9 @@ body.lp-scrollable {
   }
 
   /* Overrides for FAQ block */
+  .lp-faq-section {
+    background: #07080a;
+  }
   .lp-faq-desc {
     color: rgba(255, 255, 255, 0.65);
   }
