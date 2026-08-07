@@ -86,15 +86,15 @@ body.lp-scrollable {
     background: rgba(255, 255, 255, 0.1);
   }
   .lp-noise-badge {
-    color: var(--text-hi);
+    color: #ffffff;
     border-color: rgba(255, 255, 255, 0.15);
     background: rgba(255, 255, 255, 0.05);
   }
   .lp-narrative-main-title, .lp-sol-text, .lp-noise-card-title {
-    color: var(--text-hi);
+    color: #ffffff;
   }
   .lp-narrative-main-desc, .lp-noise-card-desc, .lp-noise-card-label {
-    color: var(--text-hi2);
+    color: rgba(255, 255, 255, 0.65);
   }
   .lp-narrative-cta-btn {
     background: #ffffff;
