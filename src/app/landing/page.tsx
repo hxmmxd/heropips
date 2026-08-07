@@ -283,7 +283,7 @@ const PROCESSOR_GATES = [
   { num: '09', name: 'Mean Reversion Bands', desc: 'Z-score standard deviation', log: 'Bands: Z-score at -1.4 (oversold bounds).' },
   { num: '10', name: 'Spread Arbitrage', desc: 'Exchange slip cost check', log: 'Arbitrage: Feed spread verified < 0.1 pips.' },
   { num: '11', name: 'Trend Velocity (ADX)', desc: 'Directional momentum ADX', log: 'ADX: Momentum velocity confirmed at 32.5.' },
-  { num: '12', name: 'Risk-Reward Cutoff', desc: 'R:R ratio validation', log: 'R:R Cutoff: 1:2.5 minimum target cleared.' },
+  { num: '12', name: 'Risk-Reward Cutoff', desc: 'R:R ratio validation', log: 'Risk-Reward: 1:2.5 minimum target cleared.' },
 ];
 
 function TerminalTypingText({ log, activeGate }: { log: string, activeGate: number }) {
@@ -317,7 +317,7 @@ function TerminalTypingText({ log, activeGate }: { log: string, activeGate: numb
   
   const prefix = log.substring(0, colonIdx + 1);
   const rest = log.substring(colonIdx + 1);
-  const tagColor = activeGate < 6 ? 'var(--volt-500)' : 'rgba(255, 255, 255, 0.5)';
+  const tagColor = activeGate < 6 ? 'var(--volt-500)' : '#0891b2';
   
   return (
     <div>
@@ -377,10 +377,10 @@ function ConfluenceProcessorSection() {
       glowBorder = 'rgba(198, 255, 46, 0.3)';
       spinnerColor = 'var(--volt-500)';
     } else {
-      glowColor = 'rgba(198, 255, 46, 0.14)';
-      glowBorder = 'rgba(198, 255, 46, 0.3)';
-      spinnerColor = 'var(--surface-3)';
-      scoreColor = 'var(--surface-3)';
+      glowColor = 'rgba(8, 145, 178, 0.14)';
+      glowBorder = 'rgba(8, 145, 178, 0.3)';
+      spinnerColor = '#0891b2';
+      scoreColor = '#0891b2';
     }
   }
 
@@ -534,8 +534,8 @@ function ConfluenceProcessorSection() {
           {PROCESSOR_GATES.map((g, idx) => {
             const isActive = activeGate === idx;
             const isLeft = idx < 6;
-            const activeColor = isLeft ? 'rgba(198, 255, 46, 0.3)' : 'rgba(198, 255, 46, 0.3)';
-            const numBg = isLeft ? 'var(--volt-500)' : 'var(--surface-3)';
+            const activeColor = isLeft ? 'rgba(198, 255, 46, 0.3)' : 'rgba(8, 145, 178, 0.3)';
+            const numBg = isLeft ? 'var(--volt-500)' : '#0891b2';
             
             return (
               <div 
