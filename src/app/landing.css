@@ -115,6 +115,47 @@ body.lp-scrollable {
     color: rgba(255, 255, 255, 0.7);
   }
 
+  /* Overrides for Footer */
+  .lp-footer {
+    background: var(--bg-app);
+    border-top-color: rgba(255, 255, 255, 0.05);
+  }
+  .lp-footer-cta-title {
+    color: #ffffff;
+  }
+  .lp-footer-cta-sub {
+    color: rgba(255, 255, 255, 0.65);
+  }
+  .lp-footer-btn {
+    background: #ffffff;
+    color: #0f1115;
+  }
+  .lp-footer-btn:hover {
+    background: var(--volt-500);
+    color: #0f1115;
+  }
+  .lp-footer-nav a {
+    color: rgba(255, 255, 255, 0.65);
+  }
+  .lp-footer-nav a:hover {
+    color: #ffffff;
+  }
+  .lp-footer-socials a {
+    color: rgba(255, 255, 255, 0.55);
+  }
+  .lp-footer-socials a:hover {
+    color: #ffffff;
+  }
+  .lp-footer-divider {
+    background: rgba(255, 255, 255, 0.08);
+  }
+  .lp-footer-copyright {
+    color: rgba(255, 255, 255, 0.4);
+  }
+  .lp-footer-brand-huge {
+    color: rgba(255, 255, 255, 0.02);
+  }
+
   /* Overrides for FAQ block */
   .lp-faq-desc {
     color: rgba(255, 255, 255, 0.65);
