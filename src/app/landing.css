@@ -68,6 +68,23 @@ body.lp-scrollable {
   --text-mid: #d1d5db; /* Brighter gray for nav links in dark mode */
   --border-subtle: rgba(255, 255, 255, 0.15); /* Glass-like separator */
   
+  /* Overrides for Stats Strip */
+  .lp-stat-num, .lp-stat-raw, .lp-stat-label {
+    color: #ffffff;
+  }
+  .lp-stat-desc {
+    color: rgba(255, 255, 255, 0.55);
+  }
+  .lp-stat:not(:last-child)::after {
+    background: linear-gradient(
+      to bottom,
+      transparent 0%,
+      rgba(255, 255, 255, 0.15) 25%,
+      rgba(255, 255, 255, 0.15) 75%,
+      transparent 100%
+    );
+  }
+  
   /* Overrides for HeroPips Engine / Noise Narrative block */
   .lp-narrative-box {
     border-color: rgba(255, 255, 255, 0.1);
