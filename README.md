@@ -15,6 +15,33 @@ Designed for scalability, low-latency execution, and seamless user experiences, 
 
 HeroPips is built natively on the **Next.js 15 App Router** architecture. It leverages a serverless backend paradigm, powered by Next.js API Routes and Supabase (PostgreSQL), drastically reducing latency between frontend actions and database writes.
 
+```text
+                               ┌───────────────────────────┐
+                               │   Cloudflare CDN & WAF    │
+                               └─────────────┬─────────────┘
+                                             │
+                               ┌─────────────▼─────────────┐
+                               │ Next.js 15 (App Router)   │
+                               └───────┬────────────┬──────┘
+                                       │            │
+       ┌───────────────────────────────┴────┐  ┌────┴───────────────────────────────┐
+       │                                    │  │                                    │
+┌──────▼───────┐                    ┌───────▼──▼───────┐                    ┌───────▼──────┐
+│  Supabase    │                    │ Next.js APIs     │                    │  Firebase    │
+│ (PostgreSQL, │◄───────────────────┤ (/src/app/api)   ├───────────────────►│ (Phone OTP)  │
+│  Auth, RLS)  │                    └───────┬──────────┘                    └──────────────┘
+└──────────────┘                            │
+                                            │ (Fast-Path Execution)
+                                    ┌───────▼──────────┐
+                                    │    MT5 Farm /    │
+                                    │ Broker Adapters  │
+                                    └───────┬──────────┘
+                                            │
+                                    ┌───────▼──────────┐
+                                    │ MetaTrader 5 API │
+                                    └──────────────────┘
+```
+
 ### ⚙️ Core Technology Stack
 - **Frontend Framework**: Next.js 15 (React 19 Server Components)
 - **Styling & UI**: Tailwind CSS, Lucide React Icons, Custom "Volt on Ink" Design System.
