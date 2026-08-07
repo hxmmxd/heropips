@@ -115,6 +115,30 @@ body.lp-scrollable {
     color: rgba(255, 255, 255, 0.7);
   }
 
+  /* Overrides for Confluence block */
+  .lp-proc-wrap {
+    background: var(--bg-app);
+  }
+  .lp-proc-chip-top {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.15);
+    box-shadow: 
+      0 30px 60px rgba(0, 0, 0, 0.5),
+      0 10px 20px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+  .lp-proc-gate-card {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  .lp-proc-gate-card:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+  .lp-proc-terminal {
+    background: rgba(255, 255, 255, 0.03) !important;
+  }
+  
   /* Overrides for Footer */
   .lp-footer {
     background: var(--bg-app);

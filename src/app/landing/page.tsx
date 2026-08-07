@@ -399,6 +399,7 @@ function ConfluenceProcessorSection() {
 
             {/* Terminal console screen displaying active log */}
             <div 
+              className="lp-proc-terminal"
               style={{
                 fontFamily: 'Courier New, monospace',
                 fontSize: '10px',
@@ -422,7 +423,7 @@ function ConfluenceProcessorSection() {
                 }
                 const prefix = log.substring(0, colonIdx + 1);
                 const rest = log.substring(colonIdx + 1);
-                const tagColor = activeGate < 6 ? 'var(--volt-500)' : 'var(--surface-3)';
+                const tagColor = activeGate < 6 ? 'var(--volt-500)' : 'rgba(255, 255, 255, 0.5)';
                 return (
                   <div>
                     <span style={{ color: tagColor, fontWeight: 700, marginRight: '6px' }}>{prefix}</span>
