@@ -552,7 +552,7 @@ function ConfluenceProcessorSection() {
                 <span 
                   className="lp-proc-gate-num"
                   style={{
-                    color: isActive ? '#ffffff' : undefined,
+                    color: isActive ? (isLeft ? '#0d0c0b' : 'var(--bg-app)') : undefined,
                     background: isActive ? numBg : undefined,
                     borderColor: isActive ? numBg : undefined
                   }}
