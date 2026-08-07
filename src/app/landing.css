@@ -3787,8 +3787,8 @@ body.lp-scrollable {
 }
 
 .lp-footer-btn {
-  background: var(--lp-text-dark);
-  color: #ffffff;
+  background: var(--text-hi);
+  color: var(--bg);
   border-radius: 9999px;
   padding: 14px 32px;
   font-size: 15px;
@@ -3800,7 +3800,7 @@ body.lp-scrollable {
 
 .lp-footer-btn:hover {
   transform: translateY(-1px);
-  background: #2d2926;
+  opacity: 0.9;
   box-shadow: 0 8px 25px rgba(27, 22, 19, 0.15);
 }
 
