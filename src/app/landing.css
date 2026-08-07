@@ -139,6 +139,30 @@ body.lp-scrollable {
     background: rgba(255, 255, 255, 0.03) !important;
   }
   
+  /* Overrides for Bento Ecosystem block */
+  .lp-bento-wrap {
+    background: var(--bg-app);
+  }
+  .lp-bento-card {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+  .lp-bento-card:hover {
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+  .card-academy .lp-bento-content {
+    background: rgba(139, 92, 246, 0.06);
+  }
+  .card-get-started {
+    background: rgba(255, 255, 255, 0.03);
+  }
+  .card-story-tokyo .lp-bento-content {
+    background: rgba(2, 132, 199, 0.06);
+  }
+  .card-story-lagos {
+    background: rgba(22, 163, 74, 0.06);
+  }
+
   /* Overrides for Footer */
   .lp-footer {
     background: var(--bg-app);
