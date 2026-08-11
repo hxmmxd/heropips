@@ -224,7 +224,7 @@ function HomeContent() {
 
           if (isRequired) {
             const isCookieVerified = typeof window !== 'undefined' && (localStorage.getItem('tgpt_phone_verified') === 'true' || document.cookie.includes('phone_verified=true'));
-            const isVerified = Boolean(data?.phone_verified) || isCookieVerified;
+            const isVerified = Boolean((data as any)?.phone_verified) || isCookieVerified;
             setPhoneVerified(isVerified);
             if (!isVerified) {
               window.location.href = '/verify-phone';
