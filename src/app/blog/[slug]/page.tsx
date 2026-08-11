@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Share2, Link as LinkIcon, Twitter, Linkedin, Calendar } from 'lucide-react';
+import { ArrowLeft, Share2, Link as LinkIcon, Calendar } from 'lucide-react';
 import { LogoMark } from '@/components/Logo';
 import ScrollProgressRail from '@/components/blog/ScrollProgressRail';
 import MobileScrollProgressRail from '@/components/blog/MobileScrollProgressRail';
