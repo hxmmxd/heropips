@@ -92,8 +92,19 @@ function NarrativeSection() {
       {/* Parallax background radial glow */}
       <div className="lp-narrative-bg-glow" />
 
-      <motion.div 
-        className="lp-narrative-inner"
+      <div className="lp-struct-container">
+        {/* Horizontal Bounding Lines */}
+        <div className="lp-struct-h-line top" />
+        <div className="lp-struct-h-line bottom" />
+        <div className="lp-struct-v-line left" />
+        <div className="lp-struct-v-line right" />
+        <div className="lp-struct-crosshair top left" />
+        <div className="lp-struct-crosshair top right" />
+        <div className="lp-struct-crosshair bottom left" />
+        <div className="lp-struct-crosshair bottom right" />
+
+        <motion.div 
+          className="lp-narrative-inner"
         initial={{ opacity: 0, y: 40 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-120px" }}
@@ -221,12 +232,11 @@ function NarrativeSection() {
           </div>
 
         </div>
-      </motion.div>
+        </motion.div>
+      </div>
     </section>
   );
 }
-
-
 
 
 
@@ -394,7 +404,18 @@ function ConfluenceProcessorSection() {
 
   return (
     <section className="lp-proc-wrap">
-      <div className="lp-proc-inner">
+      <div className="lp-struct-container">
+        {/* Horizontal Bounding Lines */}
+        <div className="lp-struct-h-line top" />
+        <div className="lp-struct-h-line bottom" />
+        <div className="lp-struct-v-line left" />
+        <div className="lp-struct-v-line right" />
+        <div className="lp-struct-crosshair top left" />
+        <div className="lp-struct-crosshair top right" />
+        <div className="lp-struct-crosshair bottom left" />
+        <div className="lp-struct-crosshair bottom right" />
+
+        <div className="lp-proc-inner">
         <div className="lp-proc-header">
           <p className="lp-proc-eyebrow">Real-Time Synthesis</p>
           <h2 className="lp-proc-title">The 12-Gate Confluence Processor</h2>
@@ -576,118 +597,137 @@ function ConfluenceProcessorSection() {
             })}
           </div>
         </div>
-      </section>
+      </div>
+    </section>
   );
 }
 
 
 
 function HeroPipsEcosystemSection() {
+  const [cards, setCards] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const [errorMsg, setErrorMsg] = useState('');
+
+  useEffect(() => {
+    const fetchCards = async () => {
+      try {
+        const { createClient } = await import('@/lib/supabase/client');
+        const supabase = createClient();
+        const { data, error } = await supabase
+          .from('bento_cards')
+          .select('*')
+          .eq('is_published', true)
+          .order('order_index', { ascending: true });
+        
+        if (error) {
+          console.error('Supabase fetch error:', error);
+          setErrorMsg(error.message);
+        } else if (data) {
+          setCards(data);
+        }
+      } catch (err: any) {
+        console.error('Failed to fetch bento cards:', err);
+        setErrorMsg(err.message || String(err));
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCards();
+  }, []);
+
+  if (loading) return <div className="p-10 text-center text-white">Loading Bento Cards...</div>;
+  if (errorMsg) return <div className="p-10 text-center text-red-500">Error: {errorMsg}</div>;
+  if (cards.length === 0) return <div className="p-10 text-center text-yellow-500">No published cards found in bento_cards table!</div>;
+
   return (
     <section className="lp-bento-wrap">
-      <div className="lp-bento-inner">
+      <div className="lp-struct-container">
+        {/* Horizontal Bounding Lines */}
+        <div className="lp-struct-h-line top" />
+        <div className="lp-struct-h-line bottom" />
+        <div className="lp-struct-v-line left" />
+        <div className="lp-struct-v-line right" />
+        <div className="lp-struct-crosshair top left" />
+        <div className="lp-struct-crosshair top right" />
+        <div className="lp-struct-crosshair bottom left" />
+        <div className="lp-struct-crosshair bottom right" />
+
+        <div className="lp-bento-inner">
         <div className="lp-bento-header">
           <h2 className="lp-bento-title">Learn more about HeroPips engineering</h2>
         </div>
 
         <div className="lp-bento-grid">
-          {/* Card 1: Academy (Tall left card) */}
-          <div className="lp-bento-card card-academy">
-            <div className="lp-bento-img-wrap">
-              <img src="/bento_academy_1784132288526.png" alt="HeroPips Academy" className="lp-bento-img" />
-            </div>
-            <div className="lp-bento-content">
-              <span className="lp-bento-tag tag-purple">CONFERENCE</span>
-              <h3 className="lp-bento-card-title">Sculpt: The quantitative trading conference returns in 2026</h3>
-              <a href="#" className="lp-bento-link">Get tickets →</a>
-            </div>
-          </div>
+          {cards.map((card) => {
+            // Map the size to generic classes
+            let sizeClass = 'bento-square';
+            if (card.bento_size === 'tall') sizeClass = 'bento-tall';
+            if (card.bento_size === 'wide') sizeClass = 'bento-wide';
+            if (card.bento_size === 'large') sizeClass = 'bento-large';
 
-          {/* Card 2: Get Started with APIs (Wide top center card) */}
-          <div className="lp-bento-card card-get-started">
-            <div className="lp-bento-content-split">
-              <div className="lp-bento-text">
-                <h3 className="lp-bento-card-title">Get started with HeroPips</h3>
-                <p className="lp-bento-card-desc">
-                  Find the content that helps you level up your trading skills and build confidently with HeroPips.
-                </p>
-                <a href="#" className="lp-bento-link">Go to University →</a>
-              </div>
-              <div className="lp-bento-img-side">
-                <img src="/bento_path_1784132304631.png" alt="HeroPips Path" className="lp-bento-img" />
-              </div>
-            </div>
-          </div>
+            if (card.card_type === 'split') {
+              return (
+                <div key={card.id} className={`lp-bento-card ${sizeClass}`}>
+                  <div className="lp-bento-content-split flex w-full h-full">
+                    <div className="lp-bento-text">
+                      <span className={`lp-bento-tag tag-${card.tag_color}`}>{card.tag_text}</span>
+                      <h3 className="lp-bento-card-title">{card.title}</h3>
+                      {card.description && <p className="lp-bento-card-desc">{card.description}</p>}
+                      {card.link_url && <a href={card.link_url} className="lp-bento-link">{card.link_text || 'Learn more →'}</a>}
+                    </div>
+                    <div className="lp-bento-img-side">
+                      {card.image_url && <img src={card.image_url} alt={card.title} className="lp-bento-img" />}
+                    </div>
+                  </div>
+                </div>
+              );
+            }
 
-          {/* Card 3: Livestream (Middle center card) */}
-          <div className="lp-bento-card card-livestream">
-            <div className="lp-bento-img-wrap">
-              <div className="lp-bento-livestream-overlay">
-                <span className="lp-bento-live-badge">● LIVESTREAM</span>
-              </div>
-              <div style={{
-                width: '100%',
-                height: '100%',
-                background: 'linear-gradient(135deg, #0f0c0b 0%, #1c1a18 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                position: 'relative',
-                overflow: 'hidden'
-              }}>
-                <svg viewBox="0 0 100 50" style={{ width: '80%', height: '80%', opacity: 0.2 }}>
-                  <path d="M 10 10 L 30 10 L 50 30 L 90 30" fill="none" stroke="var(--volt-500)" strokeWidth="1" />
-                  <path d="M 10 40 L 40 40 L 60 20 L 90 20" fill="none" stroke="#0ea5e9" strokeWidth="1" />
-                </svg>
-                <span style={{ position: 'absolute', fontFamily: 'Courier New, monospace', fontSize: '9px', color: 'var(--volt-500)', fontWeight: 'bold' }}>
-                  HEROPIPS_FEED_STREAM_OK
-                </span>
-              </div>
-            </div>
-            <div className="lp-bento-content">
-              <span className="lp-bento-tag tag-volt">LIVESTREAM</span>
-              <h3 className="lp-bento-card-title">How HeroPips Uses HeroPips: ABM data flows to find high-probability signals</h3>
-              <a href="#" className="lp-bento-link">Watch →</a>
-            </div>
-          </div>
+            if (card.card_type === 'video') {
+              return (
+                <div key={card.id} className={`lp-bento-card ${sizeClass} card-type-video`}>
+                  {card.image_url && (
+                    <div className="lp-bento-img-wrap-full">
+                      <img src={card.image_url} alt={card.title} className="lp-bento-img" />
+                      <div className="lp-bento-livestream-overlay">
+                        <span className="lp-bento-live-badge">• LIVESTREAM</span>
+                      </div>
+                    </div>
+                  )}
+                  <div className="lp-bento-content-overlay">
+                    <span className={`lp-bento-tag tag-${card.tag_color}`}>{card.tag_text}</span>
+                    <h3 className="lp-bento-card-title">{card.title}</h3>
+                    {card.description && <p className="lp-bento-card-desc">{card.description}</p>}
+                    {card.link_url && <a href={card.link_url} className="lp-bento-link">{card.link_text || 'Learn more →'}</a>}
+                  </div>
+                </div>
+              );
+            }
 
-          {/* Card 4: Community Story (Right tall card) */}
-          <div className="lp-bento-card card-story-tokyo">
-            <div className="lp-bento-img-wrap">
-              <img src="/bento_story_quant_1784132323620.png" alt="Tokyo Quant Story" className="lp-bento-img" />
-            </div>
-            <div className="lp-bento-content">
-              <span className="lp-bento-tag tag-blue">COMMUNITY STORY</span>
-              <h3 className="lp-bento-card-title">Where traders often choose between gut or data, she carved her own path</h3>
-              <a href="#" className="lp-bento-link">Read story →</a>
-            </div>
-          </div>
-
-          {/* Card 5: Sandra Lagos Community (Bottom Left card) */}
-          <div className="lp-bento-card card-story-lagos">
-            <div className="lp-bento-content-side">
-              <div className="lp-bento-img-left">
-                <img src="/bento_story_lagos_1784132342109.png" alt="Sandra Lagos Story" className="lp-bento-img" />
+            return (
+              <div key={card.id} className={`lp-bento-card ${sizeClass}`}>
+                {card.image_url && (
+                  <div className="lp-bento-img-wrap">
+                    <img src={card.image_url} alt={card.title} className="lp-bento-img" />
+                    {card.card_type === 'video' && (
+                      <div className="absolute top-4 right-4 bg-red-500/90 text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider backdrop-blur-sm">
+                        • LIVESTREAM
+                      </div>
+                    )}
+                  </div>
+                )}
+                <div className="lp-bento-content">
+                  <span className={`lp-bento-tag tag-${card.tag_color}`}>{card.tag_text}</span>
+                  <h3 className="lp-bento-card-title">{card.title}</h3>
+                  {card.description && <p className="lp-bento-card-desc">{card.description}</p>}
+                  {card.link_url && <a href={card.link_url} className="lp-bento-link">{card.link_text || 'Learn more →'}</a>}
+                </div>
               </div>
-              <div className="lp-bento-text">
-                <span className="lp-bento-tag tag-green">COMMUNITY STORY</span>
-                <h3 className="lp-bento-card-title">Sandra has built the HeroPips developer community in Lagos</h3>
-                <a href="#" className="lp-bento-link">Read story →</a>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 6: Join Discord (Bottom Center card) */}
-          <div className="lp-bento-card card-join-us">
-            <div className="lp-bento-img-wrap">
-              <img src="/bento_team_1784132380508.png" alt="HeroPips Team" className="lp-bento-img" />
-            </div>
-            <div className="lp-bento-content">
-              <span className="lp-bento-tag tag-white" style={{ color: '#ffcc00' }}>COME AND JOIN US</span>
-              <h3 className="lp-bento-card-title" style={{ color: '#ffffff' }}>Connect and build with us: See open roles</h3>
-              <a href="#" className="lp-bento-link" style={{ color: '#ffffff' }}>See open roles →</a>
-            </div>
-          </div>
+            );
+          })}
+        </div>
         </div>
       </div>
     </section>
@@ -778,8 +818,18 @@ function IntegrationsSection() {
       {/* Background Mesh Glow Ambient Spots */}
       <div className="lp-integrations-ambient-left" aria-hidden />
       <div className="lp-integrations-ambient-right" aria-hidden />
+      
+      <div className="lp-struct-container">
+        {/* Horizontal Bounding Lines */}
+        <div className="lp-struct-h-line top" />
+        <div className="lp-struct-h-line bottom" />
+        <div className="lp-struct-v-line left" />
+        <div className="lp-struct-v-line right" />
+        <div className="lp-struct-crosshair top left" />
+        <div className="lp-struct-crosshair top right" />
+        <div className="lp-struct-crosshair bottom left" />
+        <div className="lp-struct-crosshair bottom right" />
 
-      <div className="lp-integrations-wrap">
         <div className="lp-integrations-inner">
           <div className="lp-integrations-header">
             <span className="lp-integrations-tag">CONNECTIVITY</span>
@@ -860,7 +910,17 @@ function FaqSection() {
 
   return (
     <section className="lp-faq-section">
-      <div className="lp-faq-wrap">
+      <div className="lp-struct-container">
+        {/* Horizontal Bounding Lines */}
+        <div className="lp-struct-h-line top" />
+        <div className="lp-struct-h-line bottom" />
+        <div className="lp-struct-v-line left" />
+        <div className="lp-struct-v-line right" />
+        <div className="lp-struct-crosshair top left" />
+        <div className="lp-struct-crosshair top right" />
+        <div className="lp-struct-crosshair bottom left" />
+        <div className="lp-struct-crosshair bottom right" />
+
         <div className="lp-faq-inner">
           <div className="lp-faq-header">
             <span className="lp-faq-tag">
@@ -973,6 +1033,150 @@ const statsContainer = {
   },
 };
 
+function DualFocusSection() {
+  return (
+    <section className="lp-dual-section">
+      <div className="lp-dual-grid">
+        {/* Structural Horizontal Lines */}
+        <div className="lp-struct-h-line top" />
+        <div className="lp-struct-h-line bottom" />
+        {/* Structural Vertical Lines */}
+        <div className="lp-struct-v-line left" />
+        <div className="lp-struct-v-line center hidden md:block" />
+        <div className="lp-struct-v-line right" />
+        
+        {/* Structural Crosshairs */}
+        <div className="lp-struct-crosshair top left" />
+        <div className="lp-struct-crosshair top center hidden md:block" />
+        <div className="lp-struct-crosshair top right" />
+        <div className="lp-struct-crosshair bottom left" />
+        <div className="lp-struct-crosshair bottom center hidden md:block" />
+        <div className="lp-struct-crosshair bottom right" />
+
+        {/* Education Box */}
+        <motion.div 
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+          className="lp-dual-card group relative overflow-hidden"
+        >
+          {/* Full-bleed background image */}
+          <img 
+            src="/academy-student.png" 
+            alt="Hero Academy" 
+            className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-all duration-1000 group-hover:scale-105"
+          />
+          {/* Heavy gradient overlay for readability */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#09090b] via-[#09090b]/50 to-transparent" />
+          
+          <div className="lp-dual-glow volt-glow transition-all duration-500 group-hover:scale-125 group-hover:opacity-40" />
+          
+          <div className="relative z-10 flex flex-col h-full justify-end">
+            {/* Bottom Content */}
+            <div className="lp-dual-content pt-32 pb-2">
+              <h3 className="lp-dual-title" style={{ marginBottom: '12px' }}>
+                Hero <span style={{ color: '#C6FF2E' }}>Academy.</span>
+              </h3>
+              <p className="lp-dual-desc" style={{ marginBottom: '24px' }}>
+                Master market microstructure and algorithmic order flow through our immersive curriculum.
+              </p>
+              
+              <div className="self-start mt-4">
+                <AvatarCircles 
+                  numPeople={99} 
+                  avatarUrls={[
+                    { imageUrl: "https://i.pravatar.cc/150?img=11", profileUrl: "#" },
+                    { imageUrl: "https://i.pravatar.cc/150?img=32", profileUrl: "#" },
+                    { imageUrl: "https://i.pravatar.cc/150?img=12", profileUrl: "#" },
+                  ]} 
+                />
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* AI Signal Box */}
+        <motion.div 
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
+          className="lp-dual-card group relative overflow-hidden"
+        >
+          {/* Animated Code-based Trading Background */}
+          <div className="absolute inset-0 z-0 overflow-hidden opacity-40 group-hover:opacity-70 transition-opacity duration-1000">
+            {/* Tech Grid */}
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
+            
+            {/* Animated Trading Bars */}
+            <div className="absolute left-0 right-0 bottom-0 h-full flex items-end justify-between px-6 pb-24 gap-3">
+              {[40, 25, 60, 45, 80, 55, 30, 65, 90, 70, 50, 85].map((h, i) => (
+                <div 
+                  key={i}
+                  className={`w-full rounded-t-sm bg-gradient-to-t ${i === 1 || i === 3 || i === 6 || i === 10 ? 'from-red-500/10 to-red-500/60' : 'from-[#C6FF2E]/10 to-[#C6FF2E]/60'} animate-pulse`}
+                  style={{
+                    height: `${h}%`,
+                    animationDelay: `${i * 0.1}s`,
+                    animationDuration: `${(i % 3) + 2}s`
+                  }}
+                />
+              ))}
+            </div>
+            
+            {/* Soft glow radial gradient */}
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#09090b_100%)]" />
+          </div>
+          {/* Heavy gradient overlay for readability */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#09090b] via-[#09090b]/50 to-transparent" />
+          
+          <div className="lp-dual-glow volt-glow transition-all duration-500 group-hover:scale-125 group-hover:opacity-40" />
+          
+          <div className="relative z-10 flex flex-col h-full justify-end">
+            {/* Bottom Content */}
+            <div className="lp-dual-content pt-32 pb-2">
+              <div className="lp-dual-badge self-start mb-4">
+                <span className="w-2 h-2 rounded-full bg-[#C6FF2E] shadow-[0_0_10px_rgba(198,255,46,0.8)] animate-pulse" />
+                <span>AI Signal Engine</span>
+              </div>
+              <h3 className="lp-dual-title" style={{ marginBottom: '12px' }}>
+                Ai <span style={{ color: '#C6FF2E' }}>Terminal.</span>
+              </h3>
+              <p className="lp-dual-desc" style={{ marginBottom: '24px' }}>
+                Execute without bias. Our AI engine processes tick-level data to find high-probability setups.
+              </p>
+              
+              <div className="self-start mt-4">
+                <div className="flex -space-x-2">
+                  <div className="group flex h-8 w-8 items-center justify-center rounded-full border border-white/50 bg-gradient-to-br from-zinc-800 to-zinc-950 z-40 shadow-xl overflow-hidden hover:-translate-y-1 hover:scale-110 hover:z-50 transition-all duration-300 cursor-pointer">
+                    <img src="/logos/mt5_logo.svg" alt="MT5" className="h-full w-full object-contain p-[6px] group-hover:opacity-100 opacity-90 transition-opacity" />
+                  </div>
+                  <div className="group flex h-8 w-8 items-center justify-center rounded-full border border-white/50 bg-black z-30 shadow-xl overflow-hidden hover:-translate-y-1 hover:scale-110 hover:z-50 transition-all duration-300 cursor-pointer">
+                    <img src="/logos/binance_icon.png" alt="Binance" className="h-full w-full object-cover scale-[1.05] group-hover:opacity-100 opacity-90 transition-opacity" />
+                  </div>
+                  <div className="group flex h-8 w-8 items-center justify-center rounded-full border border-white/50 bg-black z-20 shadow-xl overflow-hidden hover:-translate-y-1 hover:scale-110 hover:z-50 transition-all duration-300 cursor-pointer">
+                    <img src="/logos/kucoin_icon.png" alt="Kucoin" className="h-full w-full object-cover scale-[1.05] group-hover:opacity-100 opacity-90 transition-opacity" />
+                  </div>
+                  <div className="group flex h-8 w-8 items-center justify-center rounded-full border border-white/50 bg-gradient-to-br from-zinc-800 to-zinc-950 z-10 shadow-xl overflow-hidden hover:-translate-y-1 hover:scale-110 hover:z-50 transition-all duration-300 cursor-pointer">
+                    <img src="/logos/tradingview_icon.svg" alt="TradingView" className="h-full w-full object-contain p-[6px] group-hover:opacity-100 opacity-90 transition-opacity" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+      </div>
+    </section>
+  );
+}
+import { AvatarCircles } from "@/components/magicui/avatar-circles";
+import { InteractiveGridPattern } from "@/components/magicui/interactive-grid-pattern";
+
+function ArchitecturalGrid() {
+  return <div className="lp-arch-grid" />;
+}
+
 /* ── Page ───────────────────────────────────────────── */
 export default function LandingPage() {
   const heroRef = useRef<HTMLDivElement>(null);
@@ -990,8 +1194,21 @@ export default function LandingPage() {
 
   return (
     <>
+      <ArchitecturalGrid />
+      
       {/* ── HERO ── */}
-      <section className="lp-hero-wrap">
+      <section className="lp-hero-wrap relative">
+        <div className="lp-struct-container">
+          {/* Horizontal Bounding Lines */}
+          <div className="lp-struct-h-line top" style={{ top: 0 }} />
+          <div className="lp-struct-h-line bottom" />
+          <div className="lp-struct-v-line left" />
+          <div className="lp-struct-v-line right" />
+          <div className="lp-struct-crosshair top left" style={{ top: '-4px' }} />
+          <div className="lp-struct-crosshair top right" style={{ top: '-4px' }} />
+          <div className="lp-struct-crosshair bottom left" />
+          <div className="lp-struct-crosshair bottom right" />
+
         <div 
           className="lp-hero"
           ref={heroRef}
@@ -1030,19 +1247,16 @@ export default function LandingPage() {
             aria-hidden
           />
 
-          {/* Dot-grid texture that reveals itself around the cursor */}
-          <div 
-            className="lp-hero-dots" 
-            style={{
-              maskImage: isHovered 
-                ? `radial-gradient(320px circle at ${coords.x}px ${coords.y}px, black 30%, transparent 100%)`
-                : undefined,
-              WebkitMaskImage: isHovered 
-                ? `radial-gradient(320px circle at ${coords.x}px ${coords.y}px, black 30%, transparent 100%)`
-                : undefined,
-            }}
-            aria-hidden 
-          />
+          {/* Interactive Grid Pattern background */}
+          <div className="absolute inset-0 z-0 overflow-hidden pointer-events-auto">
+            <InteractiveGridPattern
+              className="opacity-70"
+              squaresClassName="hover:fill-volt-500/10 hover:stroke-volt-500/20 stroke-white/5 transition-all duration-300"
+              width={48}
+              height={48}
+              squares={[40, 40]}
+            />
+          </div>
 
           {/* Bottom radial glow */}
           <div className="lp-hero-glow" aria-hidden />
@@ -1159,17 +1373,23 @@ export default function LandingPage() {
 
           </motion.div>
         </div>
+        </div>
       </section>
 
       {/* ── STATS ── */}
       <section className="lp-stats">
-        <motion.div 
-          className="lp-stats-inner"
-          variants={statsContainer}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-100px" }}
-        >
+        <div className="lp-struct-container">
+          {/* Vertical Bounding Lines */}
+          <div className="lp-struct-v-line left" />
+          <div className="lp-struct-v-line right" />
+
+          <motion.div 
+            className="lp-stats-inner"
+            variants={statsContainer}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+          >
           {STATS.map((s, i) => (
             <motion.div className="lp-stat" variants={fadeInUp} key={i}>
               <span className="lp-stat-num">
@@ -1183,8 +1403,12 @@ export default function LandingPage() {
               </div>
             </motion.div>
           ))}
-        </motion.div>
+          </motion.div>
+        </div>
       </section>
+
+      {/* ── DUAL FOCUS (Education & AI) ── */}
+      <DualFocusSection />
 
       {/* ── NARRATIVE ── */}
       <NarrativeSection />

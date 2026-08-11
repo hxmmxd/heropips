@@ -314,8 +314,9 @@ export async function resolveAccountId(loginOrId: string | number): Promise<stri
   }
 
   // 2. Direct fast-path: if loginStr is numeric (standard MT5 login), return immediately!
+  // The MT5 farm orchestrator uses 'mt5_' prefix for account IDs based on logins.
   if (/^\d+$/.test(loginStr)) {
-    return loginStr;
+    return `mt5_${loginStr}`;
   }
 
   // 3. Check cache / static mappings
@@ -583,7 +584,7 @@ export async function farmExecuteTrade(
     method: 'POST',
     headers: FARM_HEADERS,
     body: JSON.stringify(payload),
-    signal: AbortSignal.timeout(15000),
+    signal: AbortSignal.timeout(45000),
   });
   const data = await res.json();
 
@@ -624,7 +625,7 @@ export async function farmClosePosition(accountId: string, positionId: string, v
   const res = await fetch(sidecarUrl(resolvedId, `positions/${positionId}${qs}`), {
     method: 'DELETE',
     headers: FARM_HEADERS,
-    signal: AbortSignal.timeout(15000),
+    signal: AbortSignal.timeout(45000),
   });
   return res.json().catch(() => ({
     success: false,
@@ -640,7 +641,7 @@ export async function farmCloseAllPositions(accountId: string, symbol?: string):
   const res = await fetch(sidecarUrl(resolvedId, `positions${qs}`), {
     method: 'DELETE',
     headers: FARM_HEADERS,
-    signal: AbortSignal.timeout(20000),
+    signal: AbortSignal.timeout(45000),
   });
   return res.json().catch(() => ({
     closed: 0,
@@ -653,42 +654,29 @@ export async function farmCloseAllPositions(accountId: string, symbol?: string):
  */
 export async function farmModifyPosition(accountId: string, positionId: string, opts: { stopLoss?: number; takeProfit?: number }): Promise<any> {
   const resolvedId = await resolveAccountId(accountId);
-  const sl = opts.stopLoss;
-  const tp = opts.takeProfit;
-  const bodyPayload: Record<string, any> = {};
-  if (sl !== undefined) {
-    bodyPayload.stopLoss = sl;
-    bodyPayload.stop_loss = sl;
-    bodyPayload.sl = sl;
-  }
-  if (tp !== undefined) {
-    bodyPayload.takeProfit = tp;
-    bodyPayload.take_profit = tp;
-    bodyPayload.tp = tp;
-  }
-
   const qParams = new URLSearchParams();
-  if (sl !== undefined) {
-    qParams.append('stopLoss', String(sl));
-    qParams.append('stop_loss', String(sl));
-    qParams.append('sl', String(sl));
+  
+  if (opts.stopLoss !== undefined) {
+    qParams.append('sl', String(opts.stopLoss));
   }
-  if (tp !== undefined) {
-    qParams.append('takeProfit', String(tp));
-    qParams.append('take_profit', String(tp));
-    qParams.append('tp', String(tp));
+  if (opts.takeProfit !== undefined) {
+    qParams.append('tp', String(opts.takeProfit));
   }
+  
   const qs = qParams.toString() ? `?${qParams.toString()}` : '';
 
   const res = await fetch(sidecarUrl(resolvedId, `positions/${positionId}${qs}`), {
     method: 'PUT',
     headers: FARM_HEADERS,
-    body: JSON.stringify(bodyPayload),
     signal: AbortSignal.timeout(10000),
   });
-  return res.json().catch(() => ({
-    success: false,
-  }));
+  const text = await res.text();
+  console.log(`[MT5 Farm API] PUT /positions/${positionId}${qs} -> ${res.status} ${text}`);
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    return { success: false, error: text };
+  }
 }
 
 /**
@@ -1018,7 +1006,7 @@ export async function farmAdminCreateKey(label: string, rateLimit = 100): Promis
     method: 'POST',
     headers: FARM_HEADERS,
     body: JSON.stringify({ label, rate_limit: rateLimit }),
-    signal: AbortSignal.timeout(8000),
+    signal: AbortSignal.timeout(45000),
   });
   if (!res.ok) throw new Error(`[MT5 Farm Admin] Create key failed: ${res.status}`);
   return res.json();

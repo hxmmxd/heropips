@@ -1,15 +1,12 @@
 import { NextResponse } from 'next/server';
 import { connectBroker, disconnectBroker, getAllBrokers, getBrokerDetails, searchBrokerServers, syncBrokerToSupabase } from '@/lib/broker';
 import { createClient } from '@/lib/supabase/server';
-import { farmGetAccount, farmGetAccountInfo, farmGetSymbols, resolveAccountId, FARM_BASE, FARM_HEADERS, sidecarUrl, syncFarmConfig } from '@/lib/mt5farm';
-
+import { farmGetAccount, farmGetAccountInfo, farmGetSymbols, resolveAccountId, FARM_BASE, FARM_HEADERS, sidecarUrl, syncFarmConfig, farmWake } from '@/lib/mt5farm';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   await syncFarmConfig();
-
-
 
   try {
     const { searchParams } = new URL(request.url);
@@ -35,6 +32,10 @@ export async function GET(request: Request) {
         // Use the MT5 login number as the farm account ID — never the Supabase UUID.
         const loginOrId = b.login || b.id;
         const accountId = await resolveAccountId(loginOrId);
+        
+        // PROACTIVE WAKE: Instantly trigger sidecar boot sequence when user loads the app
+        farmWake(accountId).catch(() => {});
+
         try {
           // Fetch orchestrator status + sidecar account info in parallel.
           // Increased timeout to 4s to allow waking containers enough time to complete boot sequence.

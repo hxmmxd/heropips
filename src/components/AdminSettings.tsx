@@ -18,6 +18,7 @@ import RebatesTab from './admin/RebatesTab';
 import CronJobsTab from './admin/CronJobsTab';
 import TelegramConfigTab from './admin/TelegramConfigTab';
 import GatesConfigTab from './admin/GatesConfigTab';
+import BentoCmsTab from './admin/BentoCmsTab';
 
 interface AdminSettingsProps {
   initialConfig: Record<string, any>;
@@ -32,7 +33,7 @@ export default function AdminSettings({
   onRefresh,
   apiStats = [],
 }: AdminSettingsProps) {
-  const [settingsSubPage, setSettingsSubPage] = useState<'main' | 'gates' | 'referral' | 'pricing' | 'announcements' | 'payments' | 'smtp' | 'invoice' | 'integrations' | 'rebates' | 'cron' | 'courses' | 'apis' | 'telegram'>('main');
+  const [settingsSubPage, setSettingsSubPage] = useState<'main' | 'gates' | 'referral' | 'pricing' | 'announcements' | 'payments' | 'smtp' | 'invoice' | 'integrations' | 'rebates' | 'cron' | 'courses' | 'apis' | 'telegram' | 'bento'>('main');
 
   return (
     <div style={{ display: 'flex', gap: 24, width: '100%' }}>
@@ -52,6 +53,7 @@ export default function AdminSettings({
           { id: 'cron', label: 'Cron Jobs', icon: Clock },
           { id: 'courses', label: 'Courses', icon: GraduationCap },
           { id: 'telegram', label: 'Telegram & Alerts', icon: MessageSquare },
+          { id: 'bento', label: 'Bento Grid CMS', icon: FileText },
           { id: 'apis', label: 'System APIs', icon: Terminal },
         ].map(tab => {
           const Icon = tab.icon;
@@ -97,6 +99,9 @@ export default function AdminSettings({
         )}
         {settingsSubPage === 'integrations' && (
           <ApiIntegrationsTab initialConfig={initialConfig} apiStats={apiStats} />
+        )}
+        {settingsSubPage === 'bento' && (
+          <BentoCmsTab />
         )}
         {settingsSubPage === 'rebates' && (
           <RebatesTab />

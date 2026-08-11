@@ -52,16 +52,34 @@ export async function GET(request: Request) {
     const rawAccountId = await resolveAccountId(brokerId, supabase);
     const accountId = await resolveFarmAccountId(rawAccountId);
 
+    // Helper to gracefully retry if sidecar returns {"status":"waking"} (HTTP 202)
+    const fetchWithWakeRetry = async (url: string) => {
+      for (let i = 0; i < 4; i++) {
+        const res = await fetch(url, { headers: FARM_HEADERS, signal: AbortSignal.timeout(45000), cache: 'no-store' });
+        if (!res.ok) return res;
+        const data = await res.clone().json().catch(() => null);
+        if (data && data.status === 'waking') {
+          await new Promise(r => setTimeout(r, 5000));
+          continue;
+        }
+        return res;
+      }
+      return fetch(url, { headers: FARM_HEADERS, signal: AbortSignal.timeout(45000), cache: 'no-store' });
+    };
+
     // Fetch positions, account info, and pending orders in parallel
     const [infoRes, posRes, ordersRes] = await Promise.all([
-      fetch(sidecarUrl(accountId, 'account-information'), { headers: FARM_HEADERS, signal: AbortSignal.timeout(8000) }),
-      fetch(sidecarUrl(accountId, 'positions'),           { headers: FARM_HEADERS, signal: AbortSignal.timeout(8000) }),
-      fetch(sidecarUrl(accountId, 'orders'),              { headers: FARM_HEADERS, signal: AbortSignal.timeout(8000) }),
+      fetchWithWakeRetry(sidecarUrl(accountId, 'account-information')),
+      fetchWithWakeRetry(sidecarUrl(accountId, 'positions')),
+      fetchWithWakeRetry(sidecarUrl(accountId, 'orders')),
     ]);
 
-    const info      = infoRes.ok   ? await infoRes.json()   : {};
-    const posData   = posRes.ok    ? await posRes.json()     : [];
-    const ordersData = ordersRes.ok ? await ordersRes.json() : [];
+    const info      = infoRes.ok   ? await infoRes.json().catch(()=>({}))   : {};
+    const posData   = posRes.ok    ? await posRes.json().catch(()=>[])     : [];
+    const ordersData = ordersRes.ok ? await ordersRes.json().catch(()=>[]) : [];
+
+    console.log('[Positions API] posData:', posData);
+    console.log('[Positions API] isArray?', Array.isArray(posData));
 
     const positions     = Array.isArray(posData)    ? posData    : [];
     const pendingOrders = Array.isArray(ordersData) ? ordersData : [];

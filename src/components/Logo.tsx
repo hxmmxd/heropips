@@ -9,23 +9,9 @@ export function LogoMark({ className = '', size = 32 }: { className?: string; si
       height={size}
       className={className}
     >
-      <rect width="64" height="64" rx="16" className="fill-[var(--logo-bg)] transition-colors duration-300" />
-      <path 
-        d="M18 30 L32 16 L46 30" 
-        fill="none" 
-        className="stroke-[var(--logo-fg)] transition-colors duration-300" 
-        strokeWidth="9" 
-        strokeLinecap="round" 
-        strokeLinejoin="round" 
-      />
-      <path 
-        d="M18 47 L32 33 L46 47" 
-        fill="none" 
-        className="stroke-[var(--logo-fg)] transition-colors duration-300" 
-        strokeWidth="9" 
-        strokeLinecap="round" 
-        strokeLinejoin="round" 
-      />
+      <rect x="8" y="8" width="48" height="48" rx="12" fill="#C6FF2E" />
+      <path d="M20 32 L32 20 L44 32" fill="none" stroke="#0D0F07" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M20 45 L32 33 L44 45" fill="none" stroke="#0D0F07" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

@@ -15,11 +15,11 @@
 }
 .mgr-tab:hover { color: var(--text); }
 .mgr-tab-active {
-  color: var(--accent); font-weight: 700;
+  color: var(--text); font-weight: 700;
 }
 .mgr-tab-active::after {
   content: ''; position: absolute; bottom: -1px; left: 8px; right: 8px;
-  height: 2.5px; background: var(--accent); border-radius: 2.5px 2.5px 0 0;
+  height: 2.5px; background: var(--accent-text); border-radius: 2.5px 2.5px 0 0;
 }
 .mgr-tab-badge {
   font-size: 10px; font-weight: 700; background: var(--text); color: var(--bg);

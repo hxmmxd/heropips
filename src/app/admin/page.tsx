@@ -161,7 +161,7 @@ export default function AdminPage() {
   }>({
     name: '',
     accountId: '',
-    strategyPreset: 'full_17_gates',
+    strategyPreset: 'full_15_gates',
     minConfluenceThreshold: 50,
     tpMode: 'quick_scalp',
     customTpDistance: undefined,
@@ -302,7 +302,7 @@ export default function AdminPage() {
     setBotForm({
       name: `Strategy Bot #${bots.length + 1}`,
       accountId: brokers.length > 0 ? (brokers[0].mt5_login || brokers[0].id) : '',
-      strategyPreset: 'full_17_gates',
+      strategyPreset: 'full_15_gates',
       minConfluenceThreshold: 50,
       tpMode: 'quick_scalp',
       customTpDistance: undefined,
@@ -3710,7 +3710,7 @@ export default function AdminPage() {
                   ) : (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 14 }}>
                       {bots.map((bot, idx) => {
-                        const presetInfo = STRATEGY_PRESETS[bot.strategyPreset] || STRATEGY_PRESETS.full_17_gates;
+                        const presetInfo = STRATEGY_PRESETS[bot.strategyPreset] || STRATEGY_PRESETS.full_15_gates;
                         const accountObj = brokers.find(b => (b.mt5_login || b.id) === bot.accountId);
 
                         return (
@@ -4003,7 +4003,7 @@ export default function AdminPage() {
                             onChange={e => setBotForm(prev => ({ ...prev, strategyPreset: e.target.value as StrategyPreset }))}
                             style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
                           >
-                            <option value="full_17_gates">🛡️ 17-Gate Quant Consensus (Tech + Astro + Risk Governor)</option>
+                            <option value="full_15_gates">🛡️ 15-Gate Quant Consensus (Tech + Astro + Risk Governor)</option>
                             <option value="smc_only">⚡ Pure Smart Money Concepts (SMC Order Block / FVG)</option>
                             <option value="astro_only">🪐 Astro Celestial Overlay (Lunar & Aspect Alignments)</option>
                             <option value="tech_only">📈 12 Technical Gates Only (Ignores Astro Gating)</option>

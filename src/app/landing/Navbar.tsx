@@ -245,7 +245,7 @@ export function Navbar() {
             <a href="#" className="lp-nav-act-link">Contact sales</a>
             <div className="lp-nav-act-sep" />
             <a href="/login" className="lp-nav-act-link" onClick={closeAllMenus}>Log in</a>
-            <a href="/login?signup=true" className="lp-nav-act-btn" onClick={closeAllMenus}>Create account</a>
+            <a href="/login?signup=true" className="lp-nav-act-btn" onClick={closeAllMenus}>Signup</a>
           </div>
 
           {/* Mobile-only: Create account (visible before hamburger on small screens) */}
@@ -253,7 +253,7 @@ export function Navbar() {
             <button onClick={handleToggleTheme} className="lp-nav-act-link flex items-center justify-center p-2 rounded-full hover:bg-[var(--surface-2)] transition text-[var(--text-mid)]" aria-label="Toggle Theme">
               {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
-            <a href="/login?signup=true" className="lp-nav-mob-btn" onClick={closeAllMenus}>Create account</a>
+            <a href="/login?signup=true" className="lp-nav-mob-btn" onClick={closeAllMenus}>Signup</a>
           </div>
 
           {/* Hamburger */}
@@ -306,7 +306,7 @@ export function Navbar() {
         <a href="#" onClick={closeAllMenus}>Brokers</a>
         <div className="lp-nav-mobile-sep" />
         <a href="/login" onClick={closeAllMenus}>Log in</a>
-        <a href="/login?signup=true" className="lp-nav-mobile-cta" onClick={closeAllMenus}>Create account</a>
+        <a href="/login?signup=true" className="lp-nav-mobile-cta" onClick={closeAllMenus}>Signup</a>
       </div>
     </>
   );

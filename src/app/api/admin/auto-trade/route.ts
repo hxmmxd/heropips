@@ -549,13 +549,13 @@ export async function POST(request: Request) {
       try {
         const positions = await farmGetPositions(accountId);
         for (const pos of positions) {
-          const hasSL = pos.stopLoss && Number(pos.stopLoss) > 0;
-          const hasTP = pos.takeProfit && Number(pos.takeProfit) > 0;
+          const hasSL = (pos as any).stopLoss && Number((pos as any).stopLoss) > 0;
+          const hasTP = (pos as any).takeProfit && Number((pos as any).takeProfit) > 0;
 
           if (!hasSL || !hasTP) {
             const sym = (pos.symbol || 'XAUUSD').toUpperCase();
             const openPrice = Number(pos.openPrice || pos.currentPrice || 1.0);
-            const isBuy = pos.type === 'POSITION_TYPE_BUY' || String(pos.type).includes('BUY') || pos.type === 0;
+            const isBuy = pos.type === 'POSITION_TYPE_BUY' || String(pos.type).includes('BUY') || (pos as any).type === 0;
 
             let precision = 2;
             if (sym.includes('JPY')) precision = 3;

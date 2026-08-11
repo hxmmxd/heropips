@@ -208,7 +208,7 @@ function HomeContent() {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data, error } = await supabase.from('profiles').select('plan, daily_signals_used, phone_verified').eq('id', user.id).maybeSingle();
+        const { data, error } = await supabase.from('profiles').select('plan, daily_signals_used').eq('id', user.id).maybeSingle();
         console.log('CLIENT FETCH PLAN DATA:', data, 'ERROR:', error);
         if (data) {
           if (data.plan) {

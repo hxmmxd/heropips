@@ -1,10 +1,14 @@
 import type { Metadata, Viewport } from 'next';
-import { Space_Grotesk, Instrument_Sans, JetBrains_Mono } from 'next/font/google';
+import { Space_Grotesk, Instrument_Sans, JetBrains_Mono, Inter } from 'next/font/google';
 import './globals.css';
 import '../components/ReferralHub.css';
 import '../components/terminal/TerminalTab.css';
 import '../components/manager/Manager.css';
 import { SignalProvider } from '@/contexts/SignalContext';
+import { cn } from "@/lib/utils";
+
+const fontSans = Inter({ subsets: ['latin'], variable: '--font-sans' });
+
 
 // Client wrapper for providers (layout.tsx is a server component)
 function SignalProviderWrapper({ children }: { children: React.ReactNode }) {
@@ -33,15 +37,6 @@ export const metadata: Metadata = {
   title: 'HeroPips | AI-Powered Trading Signals',
   description: 'Automated AI Trading Terminal & MetaTrader 5 Node Infrastructure Dashboard.',
   manifest: '/manifest.json',
-  icons: {
-    icon: [
-      { url: '/favicon-icon.png', type: 'image/png' },
-    ],
-    apple: [
-      { url: '/favicon-icon.png', type: 'image/png' },
-    ],
-    shortcut: '/favicon-icon.png',
-  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
@@ -66,7 +61,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${fontDisplay.variable} ${fontBody.variable} ${fontMono.variable} h-full antialiased`}
+      className={cn("h-full", "antialiased", fontDisplay.variable, fontBody.variable, fontMono.variable, "font-sans", fontSans.variable)}
       suppressHydrationWarning
     >
       <head>

@@ -547,6 +547,10 @@ export async function executeBrokerOrder(
   const sl = slNum;
   const tp = tpNum;
 
+  // Calculate distances so we can re-apply them to the actual fill price to prevent invalid stops (ECN slippage)
+  const slDistance = (sl && sl > 0) ? Math.abs(currentPrice - sl) : 0;
+  const tpDistance = (tp && tp > 0) ? Math.abs(currentPrice - tp) : 0;
+
   console.log(`[Broker Engine] 🔒 MANDATORY SL/TP: MT5 Farm ${action} ${vol} lot(s) ${mt5Symbol} (SL: ${sl}, TP: ${tp}) → account ${accountId}`);
 
   const payload: any = {
@@ -557,13 +561,9 @@ export async function executeBrokerOrder(
   };
   if (sl) {
     payload.stopLoss = sl;
-    payload.stop_loss = sl;
-    payload.sl = sl;
   }
   if (tp) {
     payload.takeProfit = tp;
-    payload.take_profit = tp;
-    payload.tp = tp;
   }
 
   let result = await farmExecuteTrade(accountId, payload);
@@ -620,9 +620,14 @@ export async function executeBrokerOrder(
     if (stringCode?.includes('10016') || message?.includes('stops')) {
       // ECN / Market Execution Brokers require opening first, then setting SL/TP via position modification!
       console.log('[Broker Engine] ECN Market Execution detected — opening order first then attaching SL/TP...');
-      const retry = await farmExecuteTrade(accountId, { ...payload, stopLoss: undefined, takeProfit: undefined, stop_loss: undefined, take_profit: undefined, sl: undefined, tp: undefined });
+      const retry = await farmExecuteTrade(accountId, { ...payload, stopLoss: undefined, takeProfit: undefined });
       if (retry.success) {
         result = retry;
+        // CRITICAL FIX: We must actually attach the SL/TP now!
+        const positionId = retry.result.positionId || retry.result.orderId;
+        if (positionId && (sl || tp)) {
+          console.log(`[Broker Engine] ECN order opened. SL/TP will be attached in the guaranteed loop.`);
+        }
       } else {
         const retryErr = retry.success === false ? retry.error : {};
         const retryRaw = (retryErr as any).detail || retryErr;
@@ -637,31 +642,51 @@ export async function executeBrokerOrder(
   // ── GUARANTEED SL/TP ATTACHMENT LOOP ─────────────────────────────────────
   // Robust ticket / position ID extraction across all MT5 Farm response shapes
   const resObj = result.result || {};
-  const positionTicket = String(resObj.positionId || resObj.ticket || resObj.id || resObj.orderId || resObj.position || accountId);
+  const positionTicket = String(resObj.positionId || resObj.ticket || resObj.id || resObj.orderId || (resObj as any).position || accountId);
 
-  if (positionTicket && (sl || tp)) {
+  if (positionTicket && positionTicket !== accountId && (sl || tp)) {
     console.log(`[Broker Engine] 🎯 Ensuring SL (${sl}) & TP (${tp}) on Position #${positionTicket}...`);
     
-    // Attempt 1: Direct sidecar modify position
+    // Attempt 1: Direct sidecar modify position (might fail if execution price slipped)
+    let modifySuccess = false;
     try {
-      await farmModifyPosition(accountId, positionTicket, { stopLoss: sl, takeProfit: tp });
+      const modRes = await farmModifyPosition(accountId, positionTicket, { stopLoss: sl, takeProfit: tp });
+      if (modRes && modRes.success !== false && !modRes.error) modifySuccess = true;
     } catch (modErr: any) {
       console.warn(`[Broker Engine] Position modification attempt 1 warning: ${modErr.message}`);
     }
 
-    // Attempt 2: Short 500ms delay retry for ECN execution confirmation
-    setTimeout(async () => {
+    if (!modifySuccess) {
+      // Attempt 2: Await a 1000ms delay for ECN execution confirmation and fetch actual fill price
+      await new Promise(r => setTimeout(r, 1000));
       try {
         const positions = await farmGetPositions(accountId);
         const match = positions.find((p: any) => String(p.id) === positionTicket || String(p.ticket) === positionTicket || p.symbol === mt5Symbol);
-        if (match && (!match.stopLoss || !match.takeProfit)) {
-          console.log(`[Broker Engine] Re-attaching missing SL/TP to live position #${match.id || positionTicket}...`);
-          await farmModifyPosition(accountId, String(match.id || positionTicket), { stopLoss: sl, takeProfit: tp });
+        
+        if (match) {
+          const fillPrice = match.openPrice || currentPrice;
+          let safeSl = sl;
+          let safeTp = tp;
+
+          // Re-calculate SL/TP using the exact fill price to guarantee they are valid
+          if (slDistance > 0) {
+             safeSl = action === 'BUY' ? fillPrice - slDistance : fillPrice + slDistance;
+             safeSl = Number(safeSl.toFixed(precision));
+          }
+          if (tpDistance > 0) {
+             safeTp = action === 'BUY' ? fillPrice + tpDistance : fillPrice - tpDistance;
+             safeTp = Number(safeTp.toFixed(precision));
+          }
+
+          if (!(match as any).stopLoss || !(match as any).takeProfit || !modifySuccess) {
+            console.log(`[Broker Engine] Re-attaching SL/TP to live position #${match.id || positionTicket} using fill price ${fillPrice}... SL: ${safeSl}, TP: ${safeTp}`);
+            await farmModifyPosition(accountId, String(match.id || positionTicket), { stopLoss: safeSl, takeProfit: safeTp });
+          }
         }
       } catch (retryErr: any) {
         console.warn(`[Broker Engine] Position SL/TP verification loop notice: ${retryErr.message}`);
       }
-    }, 600);
+    }
   }
 
   return {

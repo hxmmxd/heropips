@@ -363,10 +363,25 @@ export async function GET(request: Request) {
     const toTs   = Math.floor(new Date(endTime).getTime()   / 1000);
     const dealsUrl = sidecarUrl(accountId, `history/deals?from_ts=${fromTs}&to_ts=${toTs}`);
 
+    // Helper to gracefully retry if sidecar returns {"status":"waking"} (HTTP 202)
+    const fetchWithWakeRetry = async (url: string) => {
+      for (let i = 0; i < 4; i++) {
+        const res = await fetch(url, { headers: FARM_HEADERS, signal: AbortSignal.timeout(45000), cache: 'no-store' });
+        if (!res.ok) return res;
+        const data = await res.clone().json().catch(() => null);
+        if (data && data.status === 'waking') {
+          await new Promise(r => setTimeout(r, 5000));
+          continue;
+        }
+        return res;
+      }
+      return fetch(url, { headers: FARM_HEADERS, signal: AbortSignal.timeout(45000), cache: 'no-store' });
+    };
+
     const [dealsRes, infoRes, posRes] = await Promise.all([
-      fetch(dealsUrl,                                  { headers: FARM_HEADERS, signal: AbortSignal.timeout(15000) }),
-      fetch(sidecarUrl(accountId, 'account-information'), { headers: FARM_HEADERS, signal: AbortSignal.timeout(8000) }),
-      fetch(sidecarUrl(accountId, 'positions'),           { headers: FARM_HEADERS, signal: AbortSignal.timeout(8000) }),
+      fetchWithWakeRetry(dealsUrl),
+      fetchWithWakeRetry(sidecarUrl(accountId, 'account-information')),
+      fetchWithWakeRetry(sidecarUrl(accountId, 'positions')),
     ]);
 
     const rawDeals = dealsRes.ok ? await dealsRes.json() : [];
