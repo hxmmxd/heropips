@@ -84,7 +84,7 @@ export const orderWorker = new Worker<OrderJobData>(
     const payload = {
       action: data.direction,
       symbol: data.symbol,
-      volume: riskParams.lotSize || 0.01,
+      volume: parseFloat(riskParams.lotVolume) || 0.01,
       sl: data.stopLoss,
       tp: data.takeProfit,
       type: 0 // Market execution
