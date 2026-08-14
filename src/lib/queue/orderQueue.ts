@@ -70,19 +70,21 @@ export const orderWorker = new Worker<OrderJobData>(
     }
 
     // 3. Sizing / Risk Check
-    const riskParams = await calculateRiskParams({
-      symbol: data.symbol,
-      lots: 0, // Placeholder, usually we'd fetch balance
-      stopLoss: data.stopLoss,
-      takeProfit: data.takeProfit
-    });
+    const riskParams = calculateRiskParams(
+      currentPrice,
+      null,
+      data.direction,
+      10000, // Placeholder account balance
+      1.5,   // Placeholder risk percent
+      data.symbol
+    );
 
     // 4. Dispatch to MT5 local Sidecar via REST
     const url = `${FARM_BASE}/accounts/${data.accountId}/proxy/trade`;
     const payload = {
       action: data.direction,
       symbol: data.symbol,
-      volume: 0.01, // In reality, fetch Kelly lot size
+      volume: riskParams.lotSize || 0.01,
       sl: data.stopLoss,
       tp: data.takeProfit,
       type: 0 // Market execution
