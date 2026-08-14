@@ -387,13 +387,11 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
         <div className="blog-container blog-grid">
           
           {/* Sidebar / Metadata */}
-          <aside className="blog-sidebar" style={{ display: 'flex', flexDirection: 'row', gap: '32px' }}>
+          <aside className="blog-sidebar">
             
             {/* Scroll Rail (Hidden on mobile) */}
-            <div className="hidden lg:block h-full relative" style={{ alignSelf: 'stretch' }}>
-              <div style={{ position: 'sticky', top: '128px' }}>
-                <ScrollProgressRail />
-              </div>
+            <div className="hidden lg:block relative">
+              <ScrollProgressRail />
             </div>
 
             <div className="blog-sidebar-content" style={{ display: 'flex', flexDirection: 'column', flex: 1, gap: '24px' }}>

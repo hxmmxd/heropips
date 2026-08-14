@@ -17,7 +17,7 @@ html.lp-scrollable,
 body.lp-scrollable {
   position: relative !important;
   overflow: visible !important;
-  overflow-x: hidden !important;
+  overflow-x: clip !important;
   height: auto !important;
 }
 
@@ -26,7 +26,7 @@ body.lp-scrollable {
   background: var(--bg-app);
   color: var(--text-hi);
   -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 /* ── Tokens ────────────────────────────────────────────────── */
@@ -2383,7 +2383,7 @@ body.lp-scrollable {
   padding: 20px 24px;
   text-align: center;
   position: relative;
-  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.35) 100%);
+  background: linear-gradient(to bottom, #14161c 0%, #0f1115 100%);
   border-bottom-left-radius: 15px;
   border-bottom-right-radius: 15px;
   overflow: hidden;
@@ -2409,7 +2409,7 @@ body.lp-scrollable {
   display: inline-block;
   font-size: 10px;
   font-weight: 700;
-  color: var(--volt-500);
+  color: #C6FF2E;
   letter-spacing: 0.15em;
   text-transform: uppercase;
   margin-bottom: 8px;
@@ -2418,13 +2418,13 @@ body.lp-scrollable {
 .lp-sol-text {
   font-size: clamp(16px, 2.2vw, 24px);
   font-weight: 800;
-  color: #0f0f0f;
+  color: #ffffff;
   letter-spacing: -0.8px;
   line-height: 1.25;
 }
 
 .lp-sol-highlight {
-  color: var(--volt-500);
+  color: #C6FF2E;
 }
 
 @media (max-width: 768px) {
@@ -2485,7 +2485,6 @@ body.lp-scrollable {
   }
 
   .lp-noise-card-cell {
-    background: #09090b;
     border: 1px solid var(--lp-struct-color) !important;
     border-radius: 0;
     padding: 20px;
@@ -2508,7 +2507,6 @@ body.lp-scrollable {
   }
 
   .lp-narrative-solution-row {
-    background: #fafaf9;
     border: none !important;
     border-radius: 0;
     padding: 24px 20px;
@@ -3753,6 +3751,7 @@ body.lp-scrollable {
   position: relative;
   width: 100%;
   height: 55%;
+  flex-shrink: 0;
   overflow: hidden;
   background: #e5e5e5;
 }
@@ -4760,10 +4759,9 @@ body.lp-scrollable {
 }
 
 .lp-faq-item-card.open {
-  border-color: var(--volt-500);
+  border-color: rgba(27, 22, 19, 0.22);
   box-shadow: 
-    0 12px 28px -4px rgba(27, 22, 19, 0.04),
-    0 0 15px rgba(198, 255, 46, 0.02);
+    0 12px 28px -4px rgba(27, 22, 19, 0.04);
 }
 
 .lp-faq-question-btn {
@@ -4785,7 +4783,7 @@ body.lp-scrollable {
 }
 
 .lp-faq-question-btn:hover {
-  color: var(--volt-500);
+  color: var(--lp-text-dark);
 }
 
 .lp-faq-chevron {
@@ -4795,7 +4793,7 @@ body.lp-scrollable {
 
 .lp-faq-item-card.open .lp-faq-chevron {
   transform: rotate(180deg);
-  color: var(--volt-500);
+  color: var(--lp-text-dark);
 }
 
 .lp-faq-answer-wrapper {

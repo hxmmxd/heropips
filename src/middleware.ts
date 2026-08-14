@@ -49,7 +49,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // If no user and trying to access protected routes, redirect to login
-  const isStaticAsset = request.nextUrl.pathname.match(/\.(png|jpg|jpeg|gif|svg|webp|ico|json|js)$/);
+  const isStaticAsset = request.nextUrl.pathname.match(/\.(png|jpg|jpeg|gif|svg|webp|ico|json|js|mp4|webm)$/);
   if (!user && !request.nextUrl.pathname.startsWith('/login') && !request.nextUrl.pathname.startsWith('/auth') && !request.nextUrl.pathname.startsWith('/landing') && !request.nextUrl.pathname.startsWith('/blog') && !request.nextUrl.pathname.startsWith('/verify-phone') && !isStaticAsset) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';

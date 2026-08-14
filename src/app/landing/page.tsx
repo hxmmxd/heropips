@@ -619,13 +619,14 @@ function HeroPipsEcosystemSection() {
           .from('bento_cards')
           .select('*')
           .eq('is_published', true)
-          .order('order_index', { ascending: true });
+          .order('order_index', { ascending: true })
+          .limit(5);
         
         if (error) {
           console.error('Supabase fetch error:', error);
           setErrorMsg(error.message);
         } else if (data) {
-          setCards(data);
+          setCards(data.slice(0, 5));
         }
       } catch (err: any) {
         console.error('Failed to fetch bento cards:', err);
@@ -1182,6 +1183,8 @@ export default function LandingPage() {
   const heroRef = useRef<HTMLDivElement>(null);
   const [coords, setCoords] = useState({ x: 0, y: 0 });
   const [isHovered, setIsHovered] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!heroRef.current) return;
@@ -1355,18 +1358,29 @@ export default function LandingPage() {
               <div className="lp-hero-video">
                 {/* Glassmorphic video placeholder with play button */}
                 <div className="lp-video-container">
-                  <img 
-                    src="/images/hero-video-placeholder.png" 
-                    alt="HeroPips Showcase Overview" 
+                  <video 
+                    ref={videoRef}
+                    src="/videos/heropips.mp4" 
+                    poster="/images/heropips.jpg"
                     className="lp-hero-video-poster"
+                    preload="none"
+                    controls={isPlaying}
+                    playsInline 
                   />
-                  <div className="lp-video-overlay-glass">
-                    <button className="lp-video-play-btn" aria-label="Play video">
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" className="lp-play-icon">
-                        <path d="M8 5V19L19 12L8 5Z" />
-                      </svg>
-                    </button>
-                  </div>
+                  {!isPlaying && (
+                    <div className="lp-video-overlay-glass" onClick={() => {
+                      if (videoRef.current) {
+                        videoRef.current.play();
+                        setIsPlaying(true);
+                      }
+                    }} style={{ cursor: 'pointer' }}>
+                      <button className="lp-video-play-btn" aria-label="Play video">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" className="lp-play-icon">
+                          <path d="M8 5V19L19 12L8 5Z" />
+                        </svg>
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.div>
