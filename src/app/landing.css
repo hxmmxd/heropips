@@ -4848,3 +4848,88 @@ body.lp-scrollable {
     font-size: 13.5px;
   }
 }
+
+/* Abstract Card Type (Fintech/Web3) */
+.card-type-abstract {
+  background: #09090b; /* Deep dark background */
+  overflow: hidden;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.card-type-abstract:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.lp-bento-abstract-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 20px 20px;
+  background-position: center;
+  opacity: 0.8;
+}
+
+.abstract-glow {
+  position: absolute;
+  width: 120%;
+  height: 120%;
+  top: -10%;
+  left: -10%;
+  background: radial-gradient(circle at 50% 0%, rgba(198, 255, 46, 0.18) 0%, transparent 60%);
+  z-index: 1;
+  transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.8s;
+  opacity: 0.8;
+}
+
+.card-type-abstract:hover .abstract-glow {
+  transform: scale(1.1) translateY(10px);
+  opacity: 1;
+}
+
+.abstract-code {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  font-family: monospace;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.25);
+  z-index: 1;
+  text-align: right;
+  line-height: 1.5;
+  white-space: pre;
+}
+
+.card-type-abstract .lp-bento-content-overlay {
+  z-index: 2;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.card-type-abstract .lp-bento-card-title {
+  color: #ffffff;
+  font-size: 18px;
+  line-height: 1.4;
+}
+
+.card-type-abstract .lp-bento-card-desc {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+}
+
+.card-type-abstract .lp-bento-link {
+  color: #c6ff2e;
+  margin-top: 12px;
+}
+
+.card-type-abstract .lp-bento-link:hover {
+  color: #ffffff;
+}

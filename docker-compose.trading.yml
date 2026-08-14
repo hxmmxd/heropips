@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  heropips-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: heropips-worker
+    restart: unless-stopped
+    environment:
+      # Use the Docker internal DNS hostname for Redis (assuming tradegpt-redis exists in tradegpt-network)
+      - REDIS_URL=redis://tradegpt-redis:6379
+      - NODE_ENV=production
+      # Supabase URL for telemetry sink (update these on production)
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      # MT5 Orchestrator URL
+      - MT5_FARM_ORCHESTRATOR_URL=http://tradegpt-traefik:80
+      - MT5_FARM_API_KEY=${MT5_FARM_API_KEY}
+    # This must match the network name used by the MT5 Farm on Server 2
+    networks:
+      - tradegpt-network
+
+networks:
+  tradegpt-network:
+    external: true

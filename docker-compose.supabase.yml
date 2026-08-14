@@ -1,0 +1,63 @@
+# This is a template for deploying the official Supabase Docker stack on Server 1
+# Note: It is highly recommended to clone the official repository to get the full configured stack:
+# git clone --depth 1 https://github.com/supabase/supabase
+# cd supabase/docker
+# cp .env.example .env
+# docker compose up -d
+
+# Below is a minimal representation of the core services for reference
+
+version: '3.8'
+
+services:
+  # 1. Database
+  db:
+    image: supabase/postgres:15.1.1.06
+    container_name: supabase-db
+    restart: unless-stopped
+    ports:
+      - "5432:5432" # Can be exposed internally or via tunnel
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+  # 2. Auth (GoTrue)
+  auth:
+    image: supabase/gotrue:v2.132.3
+    container_name: supabase-auth
+    restart: unless-stopped
+    environment:
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${POSTGRES_PASSWORD}@db:5432/postgres
+      GOTRUE_SITE_URL: ${SITE_URL}
+      GOTRUE_JWT_SECRET: ${JWT_SECRET}
+    depends_on:
+      - db
+
+  # 3. REST API (PostgREST)
+  rest:
+    image: postgrest/postgrest:v11.2.0
+    container_name: supabase-rest
+    restart: unless-stopped
+    environment:
+      PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD}@db:5432/postgres
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+    depends_on:
+      - db
+
+  # 4. Kong API Gateway (Routes /auth and /rest)
+  kong:
+    image: kong:2.8.1
+    container_name: supabase-kong
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /var/lib/kong/kong.yml
+    volumes:
+      - ./kong.yml:/var/lib/kong/kong.yml
+
+volumes:
+  db-data:

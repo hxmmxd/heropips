@@ -1,0 +1,44 @@
+FROM node:20-alpine AS base
+
+# Install dependencies only when needed
+FROM base AS deps
+RUN apk add --no-cache libc6-compat
+WORKDIR /app
+
+# Copy package.json and lockfile
+COPY package.json package-lock.json ./
+RUN npm ci
+
+# Rebuild the source code only when needed
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+
+# We only need the TypeScript files for the workers, not a full Next.js build
+# Let's use tsx or ts-node to run them directly in the worker
+RUN npm install -g tsx
+
+# Production image, copy all the files and run tsx
+FROM base AS runner
+WORKDIR /app
+
+ENV NODE_ENV production
+
+RUN npm install -g tsx
+
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/src ./src
+
+# Create a master entrypoint script that starts all queue workers
+COPY <<EOF /app/start-workers.js
+require('child_process').fork('./node_modules/.bin/tsx', ['./src/lib/queue/orderQueue.ts']);
+require('child_process').fork('./node_modules/.bin/tsx', ['./src/lib/queue/tickConsumer.ts']);
+require('child_process').fork('./node_modules/.bin/tsx', ['./src/lib/queue/telemetrySink.ts']);
+console.log('[Worker Master] All workers started.');
+EOF
+
+USER node
+
+CMD ["node", "start-workers.js"]

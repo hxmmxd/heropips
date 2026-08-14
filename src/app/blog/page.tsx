@@ -98,6 +98,25 @@ export default async function BlogIndexPage() {
                     );
                   }
 
+                  if (card.card_type === 'abstract') {
+                    return (
+                      <Link key={card.id} href={postUrl} className={`lp-bento-card ${sizeClass} card-type-abstract hover:border-[var(--volt-400)] transition-colors duration-300 block group`}>
+                        <div className="lp-bento-abstract-bg">
+                           <div className="abstract-glow"></div>
+                        </div>
+                        <div className="abstract-code">
+                          {`import { quant } from '@heropips/core';\n\nawait quant.analyze({\n  target: '${card.slug.substring(0, 15)}',\n  mode: 'institutional'\n});`}
+                        </div>
+                        <div className="lp-bento-content-overlay">
+                          <span className={`lp-bento-tag tag-${card.tag_color}`}>{card.tag_text}</span>
+                          <h3 className="lp-bento-card-title">{card.title}</h3>
+                          {card.description && <p className="lp-bento-card-desc">{card.description}</p>}
+                          <span className="lp-bento-link mt-auto inline-block">Read Research →</span>
+                        </div>
+                      </Link>
+                    );
+                  }
+
                   return (
                     <Link key={card.id} href={postUrl} className={`lp-bento-card ${sizeClass} hover:border-[var(--volt-400)] transition-colors duration-300 block group`}>
                       {card.image_url && (
