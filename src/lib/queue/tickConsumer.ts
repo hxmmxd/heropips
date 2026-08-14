@@ -28,7 +28,7 @@ export async function startTickConsumer() {
   while (true) {
     try {
       // Block for up to 5 seconds waiting for new ticks
-      const results = await redis.xreadgroup(
+      const results = await (redis as any).xreadgroup(
         'GROUP', STREAM_GROUP, CONSUMER_NAME,
         'BLOCK', 5000,
         'COUNT', 100,

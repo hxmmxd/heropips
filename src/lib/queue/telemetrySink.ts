@@ -25,7 +25,7 @@ export async function startTelemetrySink() {
 
   while (true) {
     try {
-      const results = await redis.xreadgroup(
+      const results = await (redis as any).xreadgroup(
         'GROUP', STREAM_GROUP, CONSUMER_NAME,
         'BLOCK', 5000,
         'COUNT', BATCH_SIZE,
