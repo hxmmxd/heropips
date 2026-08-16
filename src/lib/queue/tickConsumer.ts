@@ -1,5 +1,6 @@
 import { redis } from '../redis';
 import { orderQueue } from './orderQueue';
+import { FARM_BASE, FARM_HEADERS } from '../mt5farm';
 
 const STREAM_GROUP = 'sentinel-group';
 const CONSUMER_NAME = 'sentinel-worker-1';
@@ -20,6 +21,30 @@ export async function startTickConsumer() {
     } catch (err: any) {
       if (!err.message.includes('BUSYGROUP')) {
         console.error(`[Tick Consumer] Failed to create group for ${stream}:`, err.message);
+      }
+    }
+  }
+
+  // Master Price Oracle Subscription
+  const MASTER_ACCOUNTS = process.env.MASTER_ACCOUNT_IDS ? process.env.MASTER_ACCOUNT_IDS.split(',') : ['MASTER_VANTAGE_1'];
+  console.log(`[Tick Consumer] 📡 Subscribing Master Feeds: ${MASTER_ACCOUNTS.join(', ')}`);
+  
+  for (const accountId of MASTER_ACCOUNTS) {
+    for (const symbol of symbols) {
+      try {
+        const url = `${FARM_BASE}/users/current/accounts/${accountId}/stream/subscribe`;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: FARM_HEADERS,
+          body: JSON.stringify({ symbol })
+        });
+        if (!res.ok) {
+          console.warn(`[Tick Consumer] ⚠️ Failed to subscribe ${symbol} on master ${accountId}: ${res.status}`);
+        } else {
+          console.log(`[Tick Consumer] ✅ Subscribed master ${accountId} to ${symbol}`);
+        }
+      } catch (err: any) {
+        console.error(`[Tick Consumer] ❌ Network error subscribing ${symbol} on master ${accountId}:`, err.message);
       }
     }
   }
