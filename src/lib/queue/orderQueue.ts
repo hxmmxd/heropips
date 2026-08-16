@@ -81,35 +81,57 @@ export const orderWorker = new Worker<OrderJobData>(
       data.symbol
     );
 
-    // 4. Dispatch to MT5 local Sidecar via REST
-    const url = `${FARM_BASE}/accounts/${data.accountId}/proxy/trade`;
-    const payload = {
+    // 4. Dispatch to MT5 local Sidecar via REST (Step 1: Naked Execution)
+    const tradeUrl = `${FARM_BASE}/accounts/${data.accountId}/proxy/trade`;
+    const tradePayload = {
       action: data.direction,
       symbol: data.symbol,
       volume: parseFloat(riskParams.lotVolume) || 0.01,
-      sl: data.stopLoss,
-      tp: data.takeProfit,
       type: 0 // Market execution
     };
 
-    const res = await fetch(url, {
+    const tradeRes = await fetch(tradeUrl, {
       method: 'POST',
       headers: FARM_HEADERS,
-      body: JSON.stringify(payload)
+      body: JSON.stringify(tradePayload)
     });
 
-    if (!res.ok) {
-      const errTxt = await res.text();
-      throw new Error(`[MT5 EXECUTION FAILED] ${res.status} ${errTxt}`);
+    if (!tradeRes.ok) {
+      const errTxt = await tradeRes.text();
+      throw new Error(`[MT5 EXECUTION FAILED] ${tradeRes.status} ${errTxt}`);
     }
 
-    const result = await res.json();
-    console.log(`[Order Dispatcher] ✅ Trade Executed: ${data.accountId} ${data.symbol}`, result);
+    const tradeResult = await tradeRes.json();
+    const ticket = tradeResult.order || tradeResult.ticket; // Ensure compatibility with sidecar response
+    console.log(`[Order Dispatcher] ✅ Trade Executed (Naked): ${data.accountId} ${data.symbol} Ticket: ${ticket}`);
+
+    // 5. Attach Stops (Step 2: ECN Compliance)
+    if (ticket && (data.stopLoss || data.takeProfit)) {
+      const stopsUrl = `${FARM_BASE}/accounts/${data.accountId}/proxy/positions/${ticket}`;
+      const stopsPayload = {
+        sl: data.stopLoss,
+        tp: data.takeProfit
+      };
+
+      const stopsRes = await fetch(stopsUrl, {
+        method: 'PUT',
+        headers: FARM_HEADERS,
+        body: JSON.stringify(stopsPayload)
+      });
+
+      if (!stopsRes.ok) {
+        const errTxt = await stopsRes.text();
+        console.error(`[MT5 STOPS FAILED] Failed to attach stops for ticket ${ticket}: ${stopsRes.status} ${errTxt}`);
+        // Depending on risk requirements, we might want to close the position here to avoid naked exposure
+      } else {
+        console.log(`[Order Dispatcher] 🛡️ Stops Attached: ${data.accountId} Ticket: ${ticket}`);
+      }
+    }
     
     // Concurrency throttle to prevent MT5 "Trade Context Busy" (max 10 TPS per terminal -> 100ms sleep)
     await new Promise(r => setTimeout(r, 100));
     
-    return result;
+    return tradeResult;
   },
   {
     connection: redisSubscriber,
