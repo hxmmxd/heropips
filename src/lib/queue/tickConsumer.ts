@@ -110,46 +110,37 @@ export async function startTickConsumer() {
 
               // Supabase Fan-Out Dispatch
               try {
-                // Fetch active bots from app_settings
-                const { data: configRow } = await supabase
-                  .from('app_settings')
-                  .select('value')
-                  .eq('key', 'auto_trader_bots')
-                  .single();
+                // Fetch ALL active broker accounts to fan-out the trade to everyone
+                const { data: activeAccounts, error: accountsErr } = await supabase
+                  .from('broker_accounts')
+                  .select('mt5_login, user_id, equity, balance')
+                  .eq('is_active', true);
                   
-                if (configRow && configRow.value) {
-                  let bots: any[] = [];
-                  try {
-                    bots = typeof configRow.value === 'string' ? JSON.parse(configRow.value) : configRow.value;
-                  } catch (e) {}
-
-                  // Filter for enabled bots matching this symbol
-                  const activeBots = bots.filter(b => b.isEnabled && b.symbols?.includes(symbol));
+                if (accountsErr) throw accountsErr;
+                
+                if (activeAccounts && activeAccounts.length > 0) {
+                  console.log(`[Tick Consumer] 🌐 Fanning out ${snapshot.confluenceDirection} execution to ${activeAccounts.length} global accounts.`);
                   
-                  if (activeBots.length > 0) {
-                    console.log(`[Tick Consumer] 🌐 Fanning out ${snapshot.confluenceDirection} execution to ${activeBots.length} active bots.`);
-                    
-                    for (const bot of activeBots) {
-                      await orderQueue.add('execute-trade', {
-                        accountId: bot.accountId,
-                        symbol,
-                        direction: snapshot.confluenceDirection as 'BUY'|'SELL',
-                        signalEntryPrice,
-                        // Note: Risk engine will dynamically calculate SL/TP during dispatch
-                        stopLoss: snapshot.confluenceDirection === 'BUY' ? signalEntryPrice - 0.0030 : signalEntryPrice + 0.0030,
-                        takeProfit: snapshot.confluenceDirection === 'BUY' ? signalEntryPrice + 0.0060 : signalEntryPrice - 0.0060,
-                        maxSlippagePips: 2.5,
-                        signalCreatedAt: Date.now(),
-                        ttlMs: 5000,
-                        masterAccountId: accountId
-                      });
-                    }
-                  } else {
-                    console.log(`[Tick Consumer] ℹ️ No active auto-trader bots found for ${symbol}.`);
+                  for (const account of activeAccounts) {
+                    await orderQueue.add('execute-trade', {
+                      accountId: account.mt5_login, // Use mt5_login as the accountId
+                      symbol,
+                      direction: snapshot.confluenceDirection as 'BUY'|'SELL',
+                      signalEntryPrice,
+                      // Note: Risk engine will dynamically calculate SL/TP during dispatch
+                      stopLoss: snapshot.confluenceDirection === 'BUY' ? signalEntryPrice - 0.0030 : signalEntryPrice + 0.0030,
+                      takeProfit: snapshot.confluenceDirection === 'BUY' ? signalEntryPrice + 0.0060 : signalEntryPrice - 0.0060,
+                      maxSlippagePips: 2.5,
+                      signalCreatedAt: Date.now(),
+                      ttlMs: 5000,
+                      masterAccountId: accountId
+                    });
                   }
+                } else {
+                  console.log(`[Tick Consumer] ℹ️ No active global broker accounts found for ${symbol}.`);
                 }
               } catch (err: any) {
-                console.error(`[Tick Consumer] ❌ Supabase dispatch failed:`, err.message);
+                console.error(`[Tick Consumer] ❌ Supabase fan-out dispatch failed:`, err.message);
               }
             }
 
