@@ -1,6 +1,13 @@
 import { redis } from '../redis';
 import { orderQueue } from './orderQueue';
 import { FARM_BASE, FARM_HEADERS } from '../mt5farm';
+import { getMarketSnapshot } from '../market';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 const STREAM_GROUP = 'sentinel-group';
 const CONSUMER_NAME = 'sentinel-worker-1';
@@ -81,11 +88,12 @@ export async function startTickConsumer() {
               tick[fields[i]] = fields[i + 1];
             }
             
-            // Process the tick through 12-Gate Confluence (placeholder for actual sentinel logic)
-            const passed = Math.random() > 0.999; // Extremely rare setup
+            // Process the tick through 12-Gate Confluence
+            const snapshot = await getMarketSnapshot(symbol);
+            const passed = snapshot?.signalOutcome === 'SIGNAL';
             
-            if (passed) {
-              const signalEntryPrice = parseFloat(tick.ask);
+            if (passed && snapshot) {
+              const signalEntryPrice = snapshot.confluenceDirection === 'BUY' ? parseFloat(tick.ask) : parseFloat(tick.bid);
               console.log(`[Tick Consumer] 🚀 Confluence verified on ${symbol}! Emitting signal @ ${signalEntryPrice}`);
               
               // Publish to generated signals stream
@@ -95,24 +103,54 @@ export async function startTickConsumer() {
                 '*',
                 'symbol', symbol || '',
                 'masterAccountId', accountId || '',
-                'direction', 'BUY',
+                'direction', snapshot.confluenceDirection,
                 'entryPrice', signalEntryPrice.toString(),
                 'timestamp', Date.now().toString()
               );
 
-              // We'd fan this out to all subscribed broker accounts in reality
-              // Example hardcoded dispatch:
-              await orderQueue.add('execute-trade', {
-                accountId: '5054250143', // Example account
-                symbol,
-                direction: 'BUY',
-                signalEntryPrice,
-                stopLoss: signalEntryPrice - 0.0030,
-                takeProfit: signalEntryPrice + 0.0060,
-                maxSlippagePips: 2.5,
-                signalCreatedAt: Date.now(),
-                ttlMs: 5000
-              });
+              // Supabase Fan-Out Dispatch
+              try {
+                // Fetch active bots from app_settings
+                const { data: configRow } = await supabase
+                  .from('app_settings')
+                  .select('value')
+                  .eq('key', 'auto_trader_bots')
+                  .single();
+                  
+                if (configRow && configRow.value) {
+                  let bots: any[] = [];
+                  try {
+                    bots = typeof configRow.value === 'string' ? JSON.parse(configRow.value) : configRow.value;
+                  } catch (e) {}
+
+                  // Filter for enabled bots matching this symbol
+                  const activeBots = bots.filter(b => b.isEnabled && b.symbols?.includes(symbol));
+                  
+                  if (activeBots.length > 0) {
+                    console.log(`[Tick Consumer] 🌐 Fanning out ${snapshot.confluenceDirection} execution to ${activeBots.length} active bots.`);
+                    
+                    for (const bot of activeBots) {
+                      await orderQueue.add('execute-trade', {
+                        accountId: bot.accountId,
+                        symbol,
+                        direction: snapshot.confluenceDirection as 'BUY'|'SELL',
+                        signalEntryPrice,
+                        // Note: Risk engine will dynamically calculate SL/TP during dispatch
+                        stopLoss: snapshot.confluenceDirection === 'BUY' ? signalEntryPrice - 0.0030 : signalEntryPrice + 0.0030,
+                        takeProfit: snapshot.confluenceDirection === 'BUY' ? signalEntryPrice + 0.0060 : signalEntryPrice - 0.0060,
+                        maxSlippagePips: 2.5,
+                        signalCreatedAt: Date.now(),
+                        ttlMs: 5000,
+                        masterAccountId: accountId
+                      });
+                    }
+                  } else {
+                    console.log(`[Tick Consumer] ℹ️ No active auto-trader bots found for ${symbol}.`);
+                  }
+                }
+              } catch (err: any) {
+                console.error(`[Tick Consumer] ❌ Supabase dispatch failed:`, err.message);
+              }
             }
 
             // Acknowledge the message so it's not re-delivered
