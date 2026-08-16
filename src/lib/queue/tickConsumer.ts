@@ -5,11 +5,17 @@ import { FARM_BASE, FARM_HEADERS } from '../mt5farm';
 const STREAM_GROUP = 'sentinel-group';
 const CONSUMER_NAME = 'sentinel-worker-1';
 
-// We want to track which streams we're listening to
-// The MT5 sidecars will push to stream:market:ticks:{symbol}
+// We track streams by accountId and symbol
 const symbols = ['EURUSD', 'GBPUSD', 'XAUUSD', 'BTCUSD'];
-const streams = symbols.map(s => `stream:market:ticks:${s}`);
-const ids = symbols.map(() => '>'); // > means fetch new messages never delivered to other consumers in group
+const MASTER_ACCOUNTS = process.env.MASTER_ACCOUNT_IDS ? process.env.MASTER_ACCOUNT_IDS.split(',') : ['MASTER_VANTAGE_1'];
+
+const streams: string[] = [];
+for (const acc of MASTER_ACCOUNTS) {
+  for (const sym of symbols) {
+    streams.push(`stream:market:ticks:${acc}:${sym}`);
+  }
+}
+const ids = streams.map(() => '>'); // > means fetch new messages
 
 export async function startTickConsumer() {
   console.log('[Tick Consumer] 🟢 Starting real-time market tick consumer for:', symbols.join(', '));
@@ -26,7 +32,6 @@ export async function startTickConsumer() {
   }
 
   // Master Price Oracle Subscription
-  const MASTER_ACCOUNTS = process.env.MASTER_ACCOUNT_IDS ? process.env.MASTER_ACCOUNT_IDS.split(',') : ['MASTER_VANTAGE_1'];
   console.log(`[Tick Consumer] 📡 Subscribing Master Feeds: ${MASTER_ACCOUNTS.join(', ')}`);
   
   for (const accountId of MASTER_ACCOUNTS) {
@@ -62,7 +67,11 @@ export async function startTickConsumer() {
 
       if (results) {
         for (const [streamKey, messages] of (results as any)) {
-          const symbol = streamKey.replace('stream:market:ticks:', '');
+          // Extract symbol and account from streamKey (e.g. stream:market:ticks:MASTER_VANTAGE_1:XAUUSD)
+          const parts = streamKey.split(':');
+          const symbol = parts.pop();
+          const accountId = parts.pop();
+          
           for (const message of messages) {
             const [messageId, fields] = message;
             
@@ -84,7 +93,8 @@ export async function startTickConsumer() {
                 'stream:signals:generated',
                 'MAXLEN', '~', 1000,
                 '*',
-                'symbol', symbol,
+                'symbol', symbol || '',
+                'masterAccountId', accountId || '',
                 'direction', 'BUY',
                 'entryPrice', signalEntryPrice.toString(),
                 'timestamp', Date.now().toString()

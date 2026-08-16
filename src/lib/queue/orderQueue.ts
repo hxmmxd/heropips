@@ -15,6 +15,7 @@ export interface OrderJobData {
   maxSlippagePips: number;
   signalCreatedAt: number;
   ttlMs: number;
+  masterAccountId?: string;
 }
 
 export const orderQueue = new Queue<OrderJobData>(QUEUE_NAME, {
@@ -39,8 +40,9 @@ export const orderWorker = new Worker<OrderJobData>(
     }
 
     // 2. Max Slippage Guard
-    // Fetch latest tick from Redis Stream
-    const streamKey = `stream:market:ticks:${data.symbol}`;
+    // Fetch latest tick from the specific master feed that generated the signal
+    const masterAcc = data.masterAccountId || 'MASTER_VANTAGE_1';
+    const streamKey = `stream:market:ticks:${masterAcc}:${data.symbol}`;
     const tickData = await redis.xrevrange(streamKey, '+', '-', 'COUNT', 1);
     if (!tickData || tickData.length === 0) {
       throw new Error(`[NO TICK DATA] Cannot verify slippage for ${data.symbol}`);
