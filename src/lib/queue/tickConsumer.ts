@@ -1,8 +1,29 @@
+import fs from 'fs';
+import path from 'path';
+
+// Synchronously load env first before any other imports to ensure credentials are ready
+const envPath = path.join(process.cwd(), '.env.local');
+if (fs.existsSync(envPath)) {
+  const content = fs.readFileSync(envPath, 'utf8');
+  content.split('\n').forEach(line => {
+    const trimmed = line.trim();
+    if (trimmed && !trimmed.startsWith('#')) {
+      const firstEqual = trimmed.indexOf('=');
+      if (firstEqual > 0) {
+        const key = trimmed.slice(0, firstEqual).trim();
+        const val = trimmed.slice(firstEqual + 1).trim();
+        process.env[key] = val;
+      }
+    }
+  });
+}
+
 import { redis } from '../redis';
 import { orderQueue } from './orderQueue';
-import { FARM_BASE, FARM_HEADERS } from '../mt5farm';
+import { FARM_BASE, FARM_HEADERS, sidecarUrl, resolveAccountId } from '../mt5farm';
 import { getMarketSnapshot } from '../market';
 import { createClient } from '@supabase/supabase-js';
+
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -41,10 +62,12 @@ export async function startTickConsumer() {
   // Master Price Oracle Subscription
   console.log(`[Tick Consumer] 📡 Subscribing Master Feeds: ${MASTER_ACCOUNTS.join(', ')}`);
   
-  for (const accountId of MASTER_ACCOUNTS) {
+  for (const rawAccountId of MASTER_ACCOUNTS) {
     for (const symbol of symbols) {
       try {
-        const url = `${FARM_BASE}/users/current/accounts/${accountId}/stream/subscribe`;
+        const accountId = await resolveAccountId(rawAccountId);
+        const url = sidecarUrl(accountId, 'stream/subscribe');
+        console.log(`[Tick Consumer] Debug: fetching url = ${url}`);
         const res = await fetch(url, {
           method: 'POST',
           headers: FARM_HEADERS,
@@ -56,7 +79,7 @@ export async function startTickConsumer() {
           console.log(`[Tick Consumer] ✅ Subscribed master ${accountId} to ${symbol}`);
         }
       } catch (err: any) {
-        console.error(`[Tick Consumer] ❌ Network error subscribing ${symbol} on master ${accountId}:`, err.message);
+        console.error(`[Tick Consumer] ❌ Network error subscribing ${symbol} on master ${rawAccountId}:`, err.message);
       }
     }
   }

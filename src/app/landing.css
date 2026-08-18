@@ -3820,10 +3820,10 @@ body.lp-scrollable {
 }
 
 .lp-bento-text {
-  padding: 32px 28px;
+  padding: 24px 28px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 12px;
   width: 58%;
 }
@@ -3851,6 +3851,10 @@ body.lp-scrollable {
   color: var(--text-low);
   line-height: 1.45;
   margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .lp-bento-link {
@@ -3859,7 +3863,6 @@ body.lp-scrollable {
   color: var(--text-hi);
   text-decoration: underline;
   text-underline-offset: 3px;
-  margin-top: auto;
   width: fit-content;
 }
 

@@ -28,6 +28,7 @@ import { createClient } from '@/lib/supabase/client';
 import { getUserAvatar } from '@/lib/avatar';
 import AdminSettings from '@/components/AdminSettings';
 import { BotInstance, STRATEGY_PRESETS, StrategyPreset } from '@/lib/auto-trader-matrix';
+import { Logo } from '@/components/Logo';
 
 interface AdminStats {
   totalUsers: number;
@@ -70,9 +71,24 @@ const generateUUID = () => {
 
 export default function AdminPage() {
   const [mounted, setMounted] = useState(false);
+  const [isDark, setIsDark] = useState(false);
+  
   useEffect(() => {
     setMounted(true);
+    setIsDark(document.documentElement.classList.contains('dark'));
   }, []);
+
+  const toggleTheme = () => {
+    const nextDark = !isDark;
+    setIsDark(nextDark);
+    if (nextDark) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  };
 
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -955,11 +971,7 @@ export default function AdminPage() {
             <Menu />
           </button>
           <a href="/" className="adm-topbar-brand" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
-            <img
-              src="/logos/xyrotrade-logo.png"
-              alt="XyroTrade"
-              style={{ height: '22px', width: 'auto', display: 'block' }}
-            />
+            <Logo size={22} showWordmark={true} />
             <span className="adm-topbar-badge" style={{ marginLeft: '4px' }}>Admin</span>
           </a>
         </div>
@@ -993,6 +1005,15 @@ export default function AdminPage() {
           >
             <Zap size={12} style={{ animation: farmTesting ? 'pulse 1s infinite' : 'none' }} />
             {farmTesting ? 'Pinging...' : 'Diagnose Network'}
+          </button>
+
+          <button 
+            onClick={toggleTheme} 
+            className="adm-topbar-time"
+            style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '0 12px', height: '32px' }}
+            title="Toggle Theme"
+          >
+            {isDark ? <Sun size={14} className="adm-topbar-time-icon" /> : <Moon size={14} className="adm-topbar-time-icon" />}
           </button>
 
           <div className="adm-topbar-time">

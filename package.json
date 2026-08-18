@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "worker": "tsx scripts/sentinel-worker.ts"
+    "worker": "tsx scripts/sentinel-worker.ts",
+    "backtest:deep": "tsx src/scripts/deepBacktest.ts"
   },
   "dependencies": {
     "@radix-ui/react-dropdown-menu": "^2.1.20",
@@ -35,6 +36,7 @@
     "next": "^14.2.35",
     "nodemailer": "^8.0.10",
     "pg": "^8.21.0",
+    "pg-copy-streams": "^7.0.0",
     "qrcode.react": "^4.2.0",
     "radix-ui": "^1.6.7",
     "react": "^18.3.1",
@@ -52,6 +54,7 @@
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/nodemailer": "^8.0.0",
+    "@types/pg": "^8.21.0",
     "@types/react": "^18.3.29",
     "@types/react-dom": "^18.3.7",
     "eslint": "^9",

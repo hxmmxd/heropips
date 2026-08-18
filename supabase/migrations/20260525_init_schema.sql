@@ -7,6 +7,7 @@ create table public.profiles (
   email text,
   full_name text,
   avatar_url text,
+  is_admin boolean default false,
   plan text default 'free' check (plan in ('free', 'pro', 'enterprise')),
   created_at timestamptz default now(),
   updated_at timestamptz default now()

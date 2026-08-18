@@ -64,19 +64,7 @@ export default function LoginPage() {
         });
         if (loginError) throw loginError;
 
-        // Check phone verification status
-        if (authData.user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('phone_verified')
-            .eq('id', authData.user.id)
-            .single();
 
-          if (!profile?.phone_verified) {
-            window.location.href = '/verify-phone';
-            return;
-          }
-        }
         window.location.href = '/';
       } else {
         const { data: authData, error } = await supabase.auth.signInWithPassword({
@@ -85,19 +73,7 @@ export default function LoginPage() {
         });
         if (error) throw error;
 
-        // Check phone verification status
-        if (authData.user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('phone_verified')
-            .eq('id', authData.user.id)
-            .single();
 
-          if (!profile?.phone_verified) {
-            window.location.href = '/verify-phone';
-            return;
-          }
-        }
         window.location.href = '/';
       }
     } catch (err: any) {

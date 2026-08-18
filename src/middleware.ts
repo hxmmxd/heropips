@@ -18,16 +18,10 @@ export async function middleware(request: NextRequest) {
         },
         set(name: string, value: string, options: CookieOptions) {
           request.cookies.set({ name, value });
-          response = NextResponse.next({
-            request: { headers: request.headers },
-          });
           response.cookies.set({ name, value, ...options });
         },
         remove(name: string, options: CookieOptions) {
           request.cookies.set({ name, value: '' });
-          response = NextResponse.next({
-            request: { headers: request.headers },
-          });
           response.cookies.set({ name, value: '', ...options });
         },
       },
@@ -56,34 +50,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // If user is logged in, check phone verification requirement from platform_config
-  if (user && !request.nextUrl.pathname.startsWith('/login') && !request.nextUrl.pathname.startsWith('/auth') && !isStaticAsset) {
-    const { data: configData } = await supabase
-      .from('platform_config')
-      .select('value')
-      .eq('key', 'phone_verification_required')
-      .maybeSingle();
-
-    const isRequired = configData?.value !== false && configData?.value !== 'false';
-
-    if (isRequired && !request.nextUrl.pathname.startsWith('/verify-phone')) {
-      const isCookieVerified = request.cookies.get('phone_verified')?.value === 'true';
-
-      if (!isCookieVerified) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('phone_verified')
-          .eq('id', user.id)
-          .maybeSingle();
-
-        if (!profile?.phone_verified) {
-          const url = request.nextUrl.clone();
-          url.pathname = '/verify-phone';
-          return NextResponse.redirect(url);
-        }
-      }
-    }
-  }
 
   // If user is logged in and on login page, redirect to home
   if (user && request.nextUrl.pathname.startsWith('/login')) {

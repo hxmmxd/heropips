@@ -12,7 +12,7 @@ function parseBool(val: any, fallback: boolean): boolean {
   return val === 'true' || val === true;
 }
 
-async function getGatingConfig() {
+export async function getGatingConfig() {
   try {
     const cache = await getConfigCache();
     return {
@@ -257,7 +257,7 @@ export function detectSymbol(userMessage: string, allowedSymbols?: string[]): st
 // Contract specifications per instrument
 // dollarPerPoint: how much $1 price movement is worth per 1.0 standard lot
 // minSL: minimum realistic stop loss distance in price terms
-const CONTRACT_SPECS: Record<string, { dollarPerPoint: number; minSL: number }> = {
+export const CONTRACT_SPECS: Record<string, { dollarPerPoint: number; minSL: number }> = {
   'XAU/USD': { dollarPerPoint: 100, minSL: 3.0 },
   'EUR/USD': { dollarPerPoint: 100000, minSL: 0.0008 },
   'GBP/USD': { dollarPerPoint: 100000, minSL: 0.0010 },
@@ -514,14 +514,14 @@ async function fetchHTFBias(symbol: string): Promise<'bullish' | 'bearish' | 'ne
 
 // ── Confluence Scoring Engine ──────────────────────────────
 
-interface IndicatorSignal {
+export interface IndicatorSignal {
   name: string;
   weight: number;
   direction: 'bullish' | 'bearish' | 'neutral';
   detail: string;
 }
 
-function scoreIndicators(
+export function scoreIndicators(
   price: number,
   rsi: number | null,
   macd: { macd: number; signal: number; histogram: number } | null,

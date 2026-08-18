@@ -214,25 +214,7 @@ function HomeContent() {
           if (data.plan) {
             setIsFree(data.plan === 'free' || data.plan === 'starter');
           }
-          const { data: configData } = await supabase
-            .from('platform_config')
-            .select('value')
-            .eq('key', 'phone_verification_required')
-            .maybeSingle();
 
-          const isRequired = configData?.value !== false && configData?.value !== 'false';
-
-          if (isRequired) {
-            const isCookieVerified = typeof window !== 'undefined' && (localStorage.getItem('tgpt_phone_verified') === 'true' || document.cookie.includes('phone_verified=true'));
-            const isVerified = Boolean((data as any)?.phone_verified) || isCookieVerified;
-            setPhoneVerified(isVerified);
-            if (!isVerified) {
-              window.location.href = '/verify-phone';
-              return;
-            }
-          } else {
-            setPhoneVerified(true);
-          }
         }
       }
     } catch (err) {
