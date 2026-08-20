@@ -1,6 +1,12 @@
 import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
 import { Space_Grotesk, Instrument_Sans, JetBrains_Mono } from "next/font/google";
+import "@heropips/ui/tokens.css";
+import "@heropips/ui/brand.css";
+import "@heropips/ui/loaders.css";
+import "@heropips/ui/ui.css";
+import "@/components/chrome/chrome.css";
+import "@/components/art/art.css";
 import "./globals.css";
 import { PwaRegister } from "@/components/pwa/PwaRegister";
 import { Analytics } from "@/components/analytics/Analytics";
@@ -9,20 +15,6 @@ import { THEME_INIT } from "@/lib/security-headers";
 
 const display = Space_Grotesk({ subsets: ["latin"], variable: "--nf-display", display: "swap" });
 const body = Instrument_Sans({ subsets: ["latin"], variable: "--nf-body", display: "swap" });
-// Two deliberate choices, both measured:
-//
-//  - NO `weight` array. next/font ships a STATIC file per listed weight; the
-//    variable axis is one file covering 100–800. Listing 400/500/600/700 put
-//    four mono files on the wire where one does, and font bytes are what the
-//    LCP text waits on under a throttled profile.
-//  - `preload: false`. Next preloads every next/font by default, and three
-//    competing <link rel=preload> fonts contend for the critical bandwidth the
-//    LCP paragraph needs. Mono is never the LCP element — it renders eyebrows,
-//    kickers, table units and the art labels. It still self-hosts, just off the
-//    critical path, and `display: swap` paints those in the fallback meanwhile.
-//
-// Weight 700 is load-bearing regardless: the isometric art labels sit on shaded
-// 3D solids, where 400/600 lacked the stem weight to stay legible.
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--nf-mono", display: "swap", preload: false });
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://heropips.com";
@@ -36,7 +28,17 @@ export const metadata: Metadata = {
   description:
     "HeroPips is a trading intelligence platform: scored, explained decision intelligence, executed on your broker — MT5, Binance, KuCoin — under enforced rules.",
   applicationName: "HeroPips",
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "HeroPips" },
   manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [
+      { url: "/icon-192.png" },
+    ],
+  },
   openGraph: {
     type: "website", siteName: "HeroPips", url: SITE,
     title: "HeroPips — Decision intelligence. Your broker. On rails.",

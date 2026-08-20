@@ -75,6 +75,7 @@ const ROBOTS = { key: "Cache-Control", value: "public, max-age=0, s-maxage=86400
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  allowedDevOrigins: ["*.ngrok-free.dev", "*.ngrok.io", "*.serveousercontent.com", "localhost:3000"],
   // Lets a production build run beside a live `next dev` (which owns .next).
   // Invoke `next build` DIRECTLY, never through turbo:
   //   NEXT_DIST_DIR=.next-build pnpm --filter @heropips/web exec next build
@@ -85,6 +86,7 @@ const nextConfig: NextConfig = {
   distDir: process.env.NEXT_DIST_DIR || ".next",
   poweredByHeader: false,
   reactStrictMode: true,
+  transpilePackages: ["@heropips/ui", "@heropips/contracts"],
   // Next 15 streams <head> metadata by default and only blocks for a built-in
   // bot list (Twitterbot, Slackbot, Bingbot, …). Everyone else — Lighthouse,
   // GPTBot, ClaudeBot, PerplexityBot, OAI-SearchBot, CCBot — received an EMPTY

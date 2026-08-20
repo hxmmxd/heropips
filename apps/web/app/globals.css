@@ -1,13 +1,5 @@
-@import "@heropips/ui/tokens.css";
-@import "@heropips/ui/brand.css";
-@import "@heropips/ui/loaders.css";
-@import "@heropips/ui/ui.css";
-/* Site chrome (nav + theme toggle) and the shared SVG art language. Inlined
-   here at build time rather than imported per-layout: each extra stylesheet is
-   another render-blocking request on the critical path (~300ms each under
-   simulated 4G, measured). One root sheet keeps LCP down. */
-@import "../components/chrome/chrome.css";
-@import "../components/art/art.css";
+/* Site chrome (nav + theme toggle) and the shared SVG art language.
+   Imported in layout.tsx directly for Next.js bundling. */
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 /* Smooth scrolling only for in-page anchor jumps (:focus-within), never for
@@ -18,6 +10,15 @@ html {
   -webkit-tap-highlight-color: transparent; /* we own :active states */
   -webkit-text-size-adjust: 100%;           /* no iOS landscape font inflation */
   text-size-adjust: 100%;
+  overscroll-behavior-y: none;              /* disable pull-to-refresh */
+  -webkit-touch-callout: none;              /* disable long-press callout */
+  -webkit-user-select: none;                /* disable text selection globally */
+  user-select: none;
+}
+/* Re-enable text selection for actual content */
+p, h1, h2, h3, h4, li, blockquote, code, pre, input, textarea {
+  -webkit-user-select: auto;
+  user-select: auto;
 }
 html, body { background: var(--bg-app); color: var(--text-body); }
 body {
@@ -167,3 +168,17 @@ code, .mono { font-family: var(--font-mono); }
 
 /* level-up loader (brand) */
 @keyframes hp-climb { 0% { transform: translateY(8px); opacity: 0; } 40% { opacity: 1; } 100% { transform: translateY(-8px); opacity: 0; } }
+
+/* Hide Next.js DevTools floating inspector overlay toolbar */
+nextjs-portal,
+#next-dev-tools,
+[data-nextjs-dialog-overlay] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  position: absolute !important;
+  top: -9999px !important;
+}
