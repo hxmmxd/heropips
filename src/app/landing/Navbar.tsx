@@ -16,25 +16,29 @@ import {
   ChevronDown,
   ArrowRight,
   Moon,
-  Sun
+  Sun,
+  GraduationCap,
+  Video,
+  Library
 } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 
 export const NAV_DROPDOWNS = {
-  Platform: [
+  'Ai Terminal': [
     { icon: Cpu, iconColor: 'var(--volt-500)', title: 'AI Signal Engine', desc: '12-gate quantitative validation', href: '/landing/signal-engine' },
     { icon: ShieldCheck, iconColor: '#10b981', title: 'Risk Governor', desc: 'Auto position sizing & drawdown guard', href: '#' },
     { icon: BarChart3, iconColor: '#0088cc', title: 'Analytics Dashboard', desc: 'Full performance tracking & journal', href: '#' },
     { icon: Bot, iconColor: '#8b5cf6', title: 'AI Chat Assistant', desc: 'Ask anything, get instant analysis', href: '#' },
   ],
-  'For Traders': [
-    { icon: Target, iconColor: 'var(--volt-500)', title: 'Prop Firm Traders', desc: 'Pass challenges with governed risk', href: '#' },
-    { icon: Building2, iconColor: '#0088cc', title: 'Institutional', desc: 'White-label & API for firms & funds', href: '#' },
-    { icon: Compass, iconColor: '#10b981', title: 'Beginners', desc: 'Start with guided, validated signals', href: '#' },
+  'Hero Academy': [
+    { icon: GraduationCap, iconColor: 'var(--volt-500)', title: 'Hero Bootcamp', desc: 'Intensive onboarding to get you trading profitably', href: '#' },
+    { icon: Users, iconColor: '#0088cc', title: '1-on-1 Mentorship', desc: 'Book a session with one of our funded traders', href: '#' },
+    { icon: Video, iconColor: '#10b981', title: 'Webinar Archive', desc: 'Catch up on past live sessions and market forecasts', href: '#' },
+    { icon: Library, iconColor: '#8b5cf6', title: 'Knowledge Base', desc: 'Quick lookup for trading terms and platform features', href: '#' },
   ],
   Resources: [
     { icon: BookOpen, iconColor: '#0088cc', title: 'Documentation', desc: 'Guides, API refs & tutorials', href: '#' },
-    { icon: FileText, iconColor: 'var(--volt-500)', title: 'Blog', desc: 'Strategy breakdowns & market insights', href: '#' },
+    { icon: FileText, iconColor: 'var(--volt-500)', title: 'Blog', desc: 'Strategy breakdowns & market insights', href: '/blog' },
     { icon: Users, iconColor: '#10b981', title: 'Community', desc: 'Telegram & Discord trader groups', href: '#' },
   ],
 };
@@ -103,14 +107,14 @@ export function Navbar() {
             <NavigationMenu.List className="lp-nav-links">
 
               {/* Platform Dropdown */}
-              <NavigationMenu.Item className={`lp-nav-item ${activeDropdown === 'Platform' ? 'open' : ''}`}>
-                <NavigationMenu.Trigger className="lp-nav-link" onClick={() => toggleDropdown('Platform')}>
-                  Platform
+              <NavigationMenu.Item className={`lp-nav-item ${activeDropdown === 'Ai Terminal' ? 'open' : ''}`}>
+                <NavigationMenu.Trigger className="lp-nav-link" onClick={() => toggleDropdown('Ai Terminal')}>
+                  Ai Terminal
                   <ChevronDown className="lp-nav-chevron" size={14} />
                 </NavigationMenu.Trigger>
                 <NavigationMenu.Content className="lp-nav-dropdown lp-dd-platform">
                   <div className="lp-dd-grid">
-                    {NAV_DROPDOWNS.Platform.map((item) => (
+                    {NAV_DROPDOWNS['Ai Terminal'].map((item) => (
                       <NavigationMenu.Link key={item.title} asChild>
                         <a href={item.href} className="lp-nav-dropdown-item" onClick={closeAllMenus}>
                           <div className="lp-nav-dd-icon" style={{ color: item.iconColor, background: `${item.iconColor}0c` }}>
@@ -136,15 +140,15 @@ export function Navbar() {
               </NavigationMenu.Item>
 
               {/* For Traders Dropdown */}
-              <NavigationMenu.Item className={`lp-nav-item ${activeDropdown === 'For Traders' ? 'open' : ''}`}>
-                <NavigationMenu.Trigger className="lp-nav-link" onClick={() => toggleDropdown('For Traders')}>
-                  For Traders
+              <NavigationMenu.Item className={`lp-nav-item ${activeDropdown === 'Hero Academy' ? 'open' : ''}`}>
+                <NavigationMenu.Trigger className="lp-nav-link" onClick={() => toggleDropdown('Hero Academy')}>
+                  Hero Academy
                   <ChevronDown className="lp-nav-chevron" size={14} />
                 </NavigationMenu.Trigger>
                 <NavigationMenu.Content className="lp-nav-dropdown lp-dd-traders">
                   <div className="lp-dd-cols">
                     <div className="lp-dd-col-left">
-                      {NAV_DROPDOWNS['For Traders'].map((item) => (
+                      {NAV_DROPDOWNS['Hero Academy'].map((item) => (
                         <NavigationMenu.Link key={item.title} asChild>
                           <a href={item.href} className="lp-nav-dropdown-item" onClick={closeAllMenus}>
                             <div className="lp-nav-dd-icon" style={{ color: item.iconColor, background: `${item.iconColor}0c` }}>
@@ -159,12 +163,12 @@ export function Navbar() {
                       ))}
                     </div>
                     <div className="lp-dd-col-right">
-                      <div className="lp-dd-sidebar-tag">HEROPIPS API</div>
-                      <h4 className="lp-dd-sidebar-title">Institutional Feed</h4>
-                      <p className="lp-dd-sidebar-desc">Direct websocket execution & raw data streams.</p>
+                      <div className="lp-dd-sidebar-tag">HEROPIPS COMMUNITY</div>
+                      <h4 className="lp-dd-sidebar-title">Join the Inner Circle</h4>
+                      <p className="lp-dd-sidebar-desc">Get exclusive access to private Discord channels, daily setups, and peer-to-peer reviews.</p>
                       <NavigationMenu.Link asChild>
                         <a href="#" className="lp-dd-sidebar-link" onClick={closeAllMenus}>
-                          Request API Key <ArrowRight size={11} style={{ marginLeft: 2 }} />
+                          Join Community <ArrowRight size={11} style={{ marginLeft: 2 }} />
                         </a>
                       </NavigationMenu.Link>
                     </div>
@@ -208,17 +212,7 @@ export function Navbar() {
               {/* Plain links */}
               <NavigationMenu.Item className="lp-nav-item">
                 <NavigationMenu.Link asChild>
-                  <a href="#" className="lp-nav-link">Signals</a>
-                </NavigationMenu.Link>
-              </NavigationMenu.Item>
-              <NavigationMenu.Item className="lp-nav-item">
-                <NavigationMenu.Link asChild>
                   <a href="#" className="lp-nav-link">Pricing</a>
-                </NavigationMenu.Link>
-              </NavigationMenu.Item>
-              <NavigationMenu.Item className="lp-nav-item">
-                <NavigationMenu.Link asChild>
-                  <a href="#" className="lp-nav-link">Brokers</a>
                 </NavigationMenu.Link>
               </NavigationMenu.Item>
 
@@ -301,9 +295,7 @@ export function Navbar() {
           </div>
         ))}
 
-        <a href="#" onClick={closeAllMenus}>Signals</a>
         <a href="#" onClick={closeAllMenus}>Pricing</a>
-        <a href="#" onClick={closeAllMenus}>Brokers</a>
         <div className="lp-nav-mobile-sep" />
         <a href="/login" onClick={closeAllMenus}>Log in</a>
         <a href="/login?signup=true" className="lp-nav-mobile-cta" onClick={closeAllMenus}>Signup</a>

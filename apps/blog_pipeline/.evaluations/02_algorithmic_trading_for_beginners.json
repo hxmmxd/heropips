@@ -1,0 +1,133 @@
+{
+  "evaluation_timestamp": "2026-08-19T12:15:27.908Z",
+  "topic_slug": "02_algorithmic_trading_for_beginners",
+  "topic_index": 2,
+  "word_count_actual": 347,
+  "overall_score": 53,
+  "passed": false,
+  "hard_gates": {
+    "min_word_count_met": false,
+    "no_critical_factual_errors": true,
+    "no_hyperbolic_marketing_fluff": true,
+    "valid_markdown_hierarchy": false,
+    "no_llm_boilerplate_artifacts": true
+  },
+  "dimension_scores": {
+    "institutional_tone": {
+      "score": 45,
+      "weight": 0.25,
+      "critique": "Contains retail hype words and promotional claims.",
+      "passed": false,
+      "actionable_remediation": [
+        "Eliminate promotional language and replace with probabilistic risk analysis."
+      ],
+      "strengths": [],
+      "weaknesses": [
+        "Eliminate promotional language and replace with probabilistic risk analysis."
+      ]
+    },
+    "financial_crypto_accuracy": {
+      "score": 60,
+      "weight": 0.25,
+      "critique": "Superficial descriptions of trading mechanics lacking microstructure or risk mechanics.",
+      "passed": false,
+      "actionable_remediation": [
+        "Add quantitative models for order book dynamics and execution latency."
+      ],
+      "strengths": [],
+      "weaknesses": [
+        "Add quantitative models for order book dynamics and execution latency."
+      ]
+    },
+    "word_count_depth": {
+      "score": 35,
+      "weight": 0.15,
+      "critique": "Body word count (347) is below the 1,200-word threshold.",
+      "passed": false,
+      "actionable_remediation": [
+        "Expand technical sections to achieve at least 1,350 words."
+      ],
+      "strengths": [],
+      "weaknesses": [
+        "Expand technical sections to achieve at least 1,350 words."
+      ]
+    },
+    "markdown_structure": {
+      "score": 50,
+      "weight": 0.15,
+      "critique": "Missing comparison matrix table or structured FAQ section.",
+      "passed": false,
+      "actionable_remediation": [
+        "Add comparison matrix table and 3 technical FAQ entries."
+      ],
+      "strengths": [],
+      "weaknesses": [
+        "Add comparison matrix table and 3 technical FAQ entries."
+      ]
+    },
+    "seo_optimization": {
+      "score": 70,
+      "weight": 0.1,
+      "critique": "Keyword integration is insufficient in H2 headings.",
+      "passed": false,
+      "actionable_remediation": [
+        "Include primary keyword in lead paragraph and H2s."
+      ],
+      "strengths": [],
+      "weaknesses": [
+        "Include primary keyword in lead paragraph and H2s."
+      ]
+    },
+    "readability_formatting": {
+      "score": 70,
+      "weight": 0.1,
+      "critique": "Lacks technical sub-headings and code/math callouts.",
+      "passed": false,
+      "actionable_remediation": [
+        "Add LaTeX equations and ASCII architecture diagrams."
+      ],
+      "strengths": [],
+      "weaknesses": [
+        "Add LaTeX equations and ASCII architecture diagrams."
+      ]
+    }
+  },
+  "identified_issues": [
+    {
+      "severity": "fatal",
+      "dimension": "word_count_depth",
+      "location": "Full Document",
+      "issue_description": "Actual word count (347) is less than the required 1200 words.",
+      "suggested_fix": "Expand technical depth across sections to reach at least 1200 words."
+    },
+    {
+      "severity": "fatal",
+      "dimension": "word_count_depth",
+      "location": "Full Document",
+      "issue_description": "Word count (347) is below the mandatory 1,200-word threshold.",
+      "suggested_fix": "Expand technical discussion across 5 distinct H2 sections to achieve >= 1,350 words."
+    },
+    {
+      "severity": "fatal",
+      "dimension": "institutional_tone",
+      "location": "Section 1",
+      "issue_description": "Promotional hype and unrealistic win rate claims detected.",
+      "suggested_fix": "Remove all claims of guaranteed profits; frame within risk-adjusted return paradigms."
+    },
+    {
+      "severity": "major",
+      "dimension": "markdown_structure",
+      "location": "Heading Structure",
+      "issue_description": "Expected exactly 1 H1 heading, found 0",
+      "suggested_fix": "Ensure exactly 1 H1 heading and at least 4 H2 headings without jumping heading levels."
+    },
+    {
+      "severity": "major",
+      "dimension": "markdown_structure",
+      "location": "Heading Structure",
+      "issue_description": "Expected at least 4 H2 headings, found 0",
+      "suggested_fix": "Ensure exactly 1 H1 heading and at least 4 H2 headings without jumping heading levels."
+    }
+  ],
+  "refinement_prompt_guidance": "CRITICAL FIXES REQUIRED: 1) Expand body text from 540 to 1,400+ words. 2) Eliminate marketing hype and replace with rigorous institutional analysis. 3) Add a comparison table and 3 technical FAQs."
+}

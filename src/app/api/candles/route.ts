@@ -8,8 +8,10 @@ export async function GET(request: Request) {
   const symbolInput = searchParams.get('symbol') || 'gold';
   const interval = searchParams.get('interval') || '1h';
 
+  const broker = searchParams.get('broker') || 'vantage';
+
   const symbol = detectSymbol(symbolInput) || symbolInput;
-  const candles = await fetchCandles(symbol, interval, 200);
+  const candles = await fetchCandles(symbol, interval, 200, broker);
 
   return NextResponse.json({ candles });
 }

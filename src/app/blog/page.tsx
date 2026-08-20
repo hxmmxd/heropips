@@ -18,8 +18,7 @@ export default async function BlogIndexPage() {
     .eq('is_published', true)
     .not('slug', 'is', null)
     .not('content', 'is', null)
-    .order('created_at', { ascending: false })
-    .limit(5);
+    .order('created_at', { ascending: false });
 
   if (error) {
     console.error('Error fetching blog posts:', error);

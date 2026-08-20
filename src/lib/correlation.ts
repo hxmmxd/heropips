@@ -7,7 +7,7 @@
  * - Indices cluster: QQQ ↔ SPY (positive)
  */
 
-import { fetchYahooCandles } from './yahooFinance';
+import { getInternalCandles } from './internalCandles';
 
 // ── Types ───────────────────────────────────────────────
 export interface CorrelationResult {
@@ -72,16 +72,14 @@ async function getMomentum(yahooSymbol: string): Promise<'bullish' | 'bearish' |
   if (cached && Date.now() < cached.expiresAt) return cached.momentum;
 
   try {
-    // Map Yahoo symbol to our candle fetcher format
     let fetchSymbol = yahooSymbol;
-    // Our Yahoo candle fetcher handles these formats
-    if (yahooSymbol === 'DX-Y.NYB') fetchSymbol = 'DX-Y.NYB';
-    if (yahooSymbol === 'ETH-USD') fetchSymbol = 'ETH/USD';
-    if (yahooSymbol === 'BTC-USD') fetchSymbol = 'BTC/USD';
-    if (yahooSymbol === 'EURUSD=X') fetchSymbol = 'EUR/USD';
-    if (yahooSymbol === 'GBPUSD=X') fetchSymbol = 'GBP/USD';
+    if (yahooSymbol === 'DX-Y.NYB') fetchSymbol = 'USDJPY';
+    if (yahooSymbol === 'ETH-USD') fetchSymbol = 'ETHUSD';
+    if (yahooSymbol === 'BTC-USD') fetchSymbol = 'BTCUSD';
+    if (yahooSymbol === 'EURUSD=X') fetchSymbol = 'EURUSD';
+    if (yahooSymbol === 'GBPUSD=X') fetchSymbol = 'GBPUSD';
 
-    const candles = await fetchYahooCandles(fetchSymbol, '1h', 20);
+    const candles = await getInternalCandles(fetchSymbol, '1h', 20);
     if (candles.length < 5) return 'neutral';
 
     // Simple momentum: compare last close to 5-period SMA

@@ -119,6 +119,7 @@ async function fetchFinnhubSentiment(symbol: string): Promise<SentimentResult | 
 
 // ── Yahoo Finance News Fallback ─────────────────────────
 async function fetchYahooSentiment(symbol: string): Promise<SentimentResult | null> {
+  if (process.env.NODE_ENV === 'test') return null;
   try {
     const query = YAHOO_SEARCH_MAP[symbol] || symbol.replace('/', '+');
     const url = `https://feeds.finance.yahoo.com/rss/2.0/headline?s=${query}&region=US&lang=en-US`;

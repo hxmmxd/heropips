@@ -98,14 +98,21 @@ export default function MiniChart({ symbol, height = 120 }: MiniChartProps) {
         wickUpColor: '#22c55e',
       });
 
-      // Convert datetime strings to Unix timestamps for chart
-      const chartData = candles.map((c) => ({
-        time: Math.floor(new Date(c.time.replace(' ', 'T') + 'Z').getTime() / 1000) as any,
-        open: c.open,
-        high: c.high,
-        low: c.low,
-        close: c.close,
-      }));
+      // Convert datetime strings to Unix timestamps for chart and ensure ascending order
+      const chartData = candles
+        .map((c) => {
+          // Fallback parsing: if the time already has a 'Z', don't append it again
+          const parsedDate = new Date(c.time.endsWith('Z') ? c.time : c.time.replace(' ', 'T') + 'Z');
+          return {
+            time: Math.floor(parsedDate.getTime() / 1000) as any,
+            open: c.open,
+            high: c.high,
+            low: c.low,
+            close: c.close,
+          };
+        })
+        // Lightweight Charts REQUIRES data to be strictly sorted ascending by time
+        .sort((a, b) => (a.time as number) - (b.time as number));
 
       candleSeries.setData(chartData);
       chart.timeScale().fitContent();

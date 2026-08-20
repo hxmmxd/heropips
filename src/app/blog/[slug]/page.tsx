@@ -320,6 +320,46 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
           border-radius: 4px;
         }
         
+        /* Institutional Data Tables */
+        .blog-cinematic-content table {
+          width: 100%;
+          border-collapse: separate;
+          border-spacing: 0;
+          margin-top: 2.5rem;
+          margin-bottom: 2.5rem;
+          border-radius: 8px;
+          overflow: hidden;
+          border: 1px solid var(--blog-border);
+          font-size: 0.95rem;
+        }
+        .blog-cinematic-content thead {
+          background-color: var(--blog-surface);
+        }
+        .blog-cinematic-content th {
+          text-align: left;
+          font-weight: 700;
+          color: var(--blog-title);
+          padding: 16px 24px;
+          border-bottom: 2px solid var(--blog-border);
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          font-size: 0.75rem;
+          white-space: nowrap;
+        }
+        .blog-cinematic-content td {
+          padding: 16px 24px;
+          color: var(--blog-text);
+          border-bottom: 1px solid var(--blog-border);
+          font-variant-numeric: tabular-nums;
+        }
+        .blog-cinematic-content tbody tr:last-child td {
+          border-bottom: none;
+        }
+        .blog-cinematic-content tbody tr:hover {
+          background-color: rgba(198, 255, 46, 0.03); /* subtle volt glow on hover */
+          transition: background-color 0.2s ease;
+        }
+        
         .share-btn {
           background: none;
           border: none;

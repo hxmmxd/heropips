@@ -509,16 +509,21 @@ export async function executeBrokerOrder(
   else if (upperSym.includes('EUR') || upperSym.includes('GBP') || upperSym.includes('AUD') || upperSym.includes('CAD') || upperSym.includes('CHF')) precision = 5;
   else precision = 2;
 
-  const currentPrice = Number(entryPrice) || 1.0;
+  const hasValidEntry = Number(entryPrice) > 1.0;
+  const currentPrice = hasValidEntry ? Number(entryPrice) : 0;
 
-  // ── GUARANTEED SL/TP ENFORCEMENT: Never send a trade without SL & TP ──────
-  let slNum = stopLoss != null && !isNaN(Number(stopLoss)) ? Number(Number(stopLoss).toFixed(precision)) : undefined;
-  let tpNum = takeProfit != null && !isNaN(Number(takeProfit)) ? Number(Number(takeProfit).toFixed(precision)) : undefined;
+  // ── GUARANTEED SL/TP ENFORCEMENT ──────────────────────────────────────────
+  let slNum = stopLoss != null && !isNaN(Number(stopLoss)) && Number(stopLoss) > 0 ? Number(Number(stopLoss).toFixed(precision)) : undefined;
+  let tpNum = takeProfit != null && !isNaN(Number(takeProfit)) && Number(takeProfit) > 0 ? Number(Number(takeProfit).toFixed(precision)) : undefined;
 
-  if (!slNum || !tpNum || slNum === 0 || tpNum === 0) {
-    console.log(`[Broker Engine] ⚠️ Missing SL/TP for ${mt5Symbol} @ ${currentPrice} — Calculating calculated institutional SL/TP fallbacks...`);
-    let slDist = currentPrice * 0.015; // 1.5% fallback
-    let tpDist = currentPrice * 0.030; // 3.0% fallback (1:2 R:R)
+  let slDist = 0;
+  let tpDist = 0;
+
+  // If SL or TP are missing, we MUST enforce fallbacks to prevent naked trades!
+  if (!slNum || !tpNum) {
+    console.log(`[Broker Engine] ⚠️ Missing SL/TP for ${mt5Symbol} @ ${currentPrice} — applying institutional fallbacks.`);
+    slDist = currentPrice ? currentPrice * 0.015 : 1.5; // 1.5% fallback, or generic if 0
+    tpDist = currentPrice ? currentPrice * 0.030 : 3.0; // 3.0% fallback
 
     if (upperSym.includes('XAU') || upperSym.includes('GOLD')) {
       slDist = 5.0;  // $5 SL
@@ -534,24 +539,29 @@ export async function executeBrokerOrder(
       tpDist = 600.0; // $600 TP
     }
 
-    if (!slNum || slNum === 0) {
-      slNum = action === 'BUY' ? currentPrice - slDist : currentPrice + slDist;
-      slNum = Number(slNum.toFixed(precision));
-    }
-    if (!tpNum || tpNum === 0) {
-      tpNum = action === 'BUY' ? currentPrice + tpDist : currentPrice - tpDist;
-      tpNum = Number(tpNum.toFixed(precision));
+    // Only compute absolute SL/TP for the initial payload if we have a valid entry price!
+    // Otherwise, we leave them undefined, execute naked, and attach via slDist in the loop.
+    if (hasValidEntry) {
+      if (!slNum) {
+        slNum = action === 'BUY' ? currentPrice - slDist : currentPrice + slDist;
+        slNum = Number(slNum.toFixed(precision));
+      }
+      if (!tpNum) {
+        tpNum = action === 'BUY' ? currentPrice + tpDist : currentPrice - tpDist;
+        tpNum = Number(tpNum.toFixed(precision));
+      }
     }
   }
 
   const sl = slNum;
   const tp = tpNum;
 
-  // Calculate distances so we can re-apply them to the actual fill price to prevent invalid stops (ECN slippage)
-  const slDistance = (sl && sl > 0) ? Math.abs(currentPrice - sl) : 0;
-  const tpDistance = (tp && tp > 0) ? Math.abs(currentPrice - tp) : 0;
+  // Final distances: if explicit absolute sl was provided and we have a valid entry, extract distance.
+  // Otherwise if it was a fallback without entry, we already populated slDist.
+  const finalSlDistance = (sl && sl > 0 && hasValidEntry) ? Math.abs(currentPrice - sl) : slDist;
+  const finalTpDistance = (tp && tp > 0 && hasValidEntry) ? Math.abs(currentPrice - tp) : tpDist;
 
-  console.log(`[Broker Engine] 🔒 MANDATORY SL/TP: MT5 Farm ${action} ${vol} lot(s) ${mt5Symbol} (SL: ${sl}, TP: ${tp}) → account ${accountId}`);
+  console.log(`[Broker Engine] 🔒 MANDATORY SL/TP: MT5 Farm ${action} ${vol} lot(s) ${mt5Symbol} (SL: ${sl || 'dynamic'}, TP: ${tp || 'dynamic'}) → account ${accountId}`);
 
   const payload: any = {
     actionType: action === 'BUY' ? 'ORDER_TYPE_BUY' : 'ORDER_TYPE_SELL',
@@ -559,10 +569,10 @@ export async function executeBrokerOrder(
     volume:     vol,
     comment:    'Xyro Trade Ai Signal',
   };
-  if (sl) {
+  if (sl && sl > 0) {
     payload.stopLoss = sl;
   }
-  if (tp) {
+  if (tp && tp > 0) {
     payload.takeProfit = tp;
   }
 
@@ -640,17 +650,36 @@ export async function executeBrokerOrder(
   }
 
   // ── GUARANTEED SL/TP ATTACHMENT LOOP ─────────────────────────────────────
-  // Robust ticket / position ID extraction across all MT5 Farm response shapes
+  // Robust ticket / position ID extraction: prioritize orderId/ticket/id over positionId 
+  // because the sidecar sometimes returns an internal deal hash for positionId that fails to match the actual MT5 positions array!
   const resObj = result.result || {};
-  const positionTicket = String(resObj.positionId || resObj.ticket || resObj.id || resObj.orderId || (resObj as any).position || accountId);
+  const positionTicket = String(resObj.orderId || resObj.ticket || resObj.id || resObj.positionId || (resObj as any).position || accountId);
 
-  if (positionTicket && positionTicket !== accountId && (sl || tp)) {
-    console.log(`[Broker Engine] 🎯 Ensuring SL (${sl}) & TP (${tp}) on Position #${positionTicket}...`);
+  if (positionTicket && positionTicket !== accountId && (finalSlDistance > 0 || finalTpDistance > 0)) {
+    console.log(`[Broker Engine] 🎯 Ensuring SL/TP on Position #${positionTicket}...`);
     
-    // Attempt 1: Direct sidecar modify position (might fail if execution price slipped)
+    // We must anchor the SL/TP to the actual fill price (ECN execution) to avoid TRADE_RETCODE_INVALID_STOPS
+    let fillPrice = resObj.openPrice || resObj.price || currentPrice;
+    let safeSl = sl;
+    let safeTp = tp;
+
+    // First attempt: try using the initial fill price if available
+    if (fillPrice && (finalSlDistance > 0 || finalTpDistance > 0)) {
+       if (finalSlDistance > 0) {
+          safeSl = action === 'BUY' ? fillPrice - finalSlDistance : fillPrice + finalSlDistance;
+          safeSl = Number(safeSl.toFixed(precision));
+       }
+       if (finalTpDistance > 0) {
+          safeTp = action === 'BUY' ? fillPrice + finalTpDistance : fillPrice - finalTpDistance;
+          safeTp = Number(safeTp.toFixed(precision));
+       }
+    }
+
+    // Attempt 1: Direct sidecar modify position using distance-adjusted stops
     let modifySuccess = false;
     try {
-      const modRes = await farmModifyPosition(accountId, positionTicket, { stopLoss: sl, takeProfit: tp });
+      console.log(`[Broker Engine] Attempt 1: Modifying position #${positionTicket} with SL: ${safeSl}, TP: ${safeTp}`);
+      const modRes = await farmModifyPosition(accountId, positionTicket, { stopLoss: safeSl, takeProfit: safeTp });
       if (modRes && modRes.success !== false && !modRes.error) modifySuccess = true;
     } catch (modErr: any) {
       console.warn(`[Broker Engine] Position modification attempt 1 warning: ${modErr.message}`);
@@ -664,22 +693,20 @@ export async function executeBrokerOrder(
         const match = positions.find((p: any) => String(p.id) === positionTicket || String(p.ticket) === positionTicket || p.symbol === mt5Symbol);
         
         if (match) {
-          const fillPrice = match.openPrice || currentPrice;
-          let safeSl = sl;
-          let safeTp = tp;
+          fillPrice = match.openPrice || currentPrice;
 
-          // Re-calculate SL/TP using the exact fill price to guarantee they are valid
-          if (slDistance > 0) {
-             safeSl = action === 'BUY' ? fillPrice - slDistance : fillPrice + slDistance;
+          // Re-calculate SL/TP using the exact live fill price from the position list
+          if (finalSlDistance > 0) {
+             safeSl = action === 'BUY' ? fillPrice - finalSlDistance : fillPrice + finalSlDistance;
              safeSl = Number(safeSl.toFixed(precision));
           }
-          if (tpDistance > 0) {
-             safeTp = action === 'BUY' ? fillPrice + tpDistance : fillPrice - tpDistance;
+          if (finalTpDistance > 0) {
+             safeTp = action === 'BUY' ? fillPrice + finalTpDistance : fillPrice - finalTpDistance;
              safeTp = Number(safeTp.toFixed(precision));
           }
 
           if (!(match as any).stopLoss || !(match as any).takeProfit || !modifySuccess) {
-            console.log(`[Broker Engine] Re-attaching SL/TP to live position #${match.id || positionTicket} using fill price ${fillPrice}... SL: ${safeSl}, TP: ${safeTp}`);
+            console.log(`[Broker Engine] Attempt 2: Re-attaching SL/TP to live position #${match.id || positionTicket} using fill price ${fillPrice}... SL: ${safeSl}, TP: ${safeTp}`);
             await farmModifyPosition(accountId, String(match.id || positionTicket), { stopLoss: safeSl, takeProfit: safeTp });
           }
         }

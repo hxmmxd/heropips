@@ -63,8 +63,7 @@ export async function getGatingConfig() {
   }
 }
 
-import { recordApiCall, markUnconfigured } from './apiStats';
-import { fetchYahooCandles } from './yahooFinance';
+import { getInternalCandles, getCorrelatedCandles } from './internalCandles';
 import { fullScan, type ScanReport } from './scanner';
 import { getNewsSentiment, type SentimentResult } from './newsSentiment';
 import { checkEconomicCalendar } from './econCalendar';
@@ -86,13 +85,9 @@ import {
   type RiskGateResult,
 } from './riskGovernor';
 
-const BASE_URL = 'https://api.twelvedata.com';
-
-// ── Snapshot cache — 15 min TTL per symbol ─────────────────
-// Prevents hammering the Twelve Data quota on repeated chat queries
+// ── Snapshot cache — 3 min TTL per broker/symbol ───────────
 const SNAPSHOT_CACHE = new Map<string, { snapshot: MarketSnapshot; expiresAt: number }>();
 const SNAPSHOT_TTL_MS = 3 * 60 * 1000; // 3 minutes
-
 
 export interface CandleData {
   time: string;
@@ -100,11 +95,7 @@ export interface CandleData {
   high: number;
   low: number;
   close: number;
-}
-
-// Read API key — checks Supabase platform_config first, then env var
-async function getApiKey(): Promise<string> {
-  return getPlatformConfig('twelve_data_api_key', 'TWELVE_DATA_API_KEY');
+  volume?: number;
 }
 
 // Supported symbol mappings (user-friendly → API format)
@@ -410,107 +401,7 @@ export interface MarketSnapshot {
   riskSummary?: string;
 }
 
-// ── Fetch Helpers ──────────────────────────────────────────
 
-async function fetchJSON(endpoint: string, params: Record<string, string>) {
-  const apiKey = await getApiKey();
-  if (!apiKey) {
-    console.error('[Market Engine] TWELVE_DATA_API_KEY is not set');
-    markUnconfigured('twelve_data');
-    return null;
-  }
-
-  const url = new URL(`${BASE_URL}${endpoint}`);
-  url.searchParams.set('apikey', apiKey);
-  for (const [k, v] of Object.entries(params)) {
-    url.searchParams.set(k, v);
-  }
-
-  const t0 = Date.now();
-  try {
-    const res = await fetch(url.toString(), { cache: 'no-store' });
-    if (!res.ok) {
-      recordApiCall('twelve_data', false, Date.now() - t0, `HTTP ${res.status}`);
-      console.error(`[Market Engine] ${endpoint} returned ${res.status}`);
-      return null;
-    }
-    const data = await res.json();
-    if (data.status === 'error') {
-      recordApiCall('twelve_data', false, Date.now() - t0, data.message || 'API error');
-      console.error(`[Market Engine] ${endpoint} error:`, data.message);
-      return null;
-    }
-    recordApiCall('twelve_data', true, Date.now() - t0);
-    return data;
-  } catch (err: any) {
-    recordApiCall('twelve_data', false, Date.now() - t0, err?.message || 'Fetch failed');
-    console.error(`[Market Engine] ${endpoint} fetch failed:`, err);
-    return null;
-  }
-}
-
-async function fetchPrice(symbol: string): Promise<number | null> {
-  const data = await fetchJSON('/price', { symbol });
-  return data?.price ? parseFloat(data.price) : null;
-}
-
-async function fetchRSI(symbol: string, interval: string = '15m'): Promise<number | null> {
-  const data = await fetchJSON('/rsi', { symbol, interval, time_period: '14' });
-  return data?.values?.[0]?.rsi ? parseFloat(data.values[0].rsi) : null;
-}
-
-async function fetchMACD(symbol: string, interval: string = '15m') {
-  const data = await fetchJSON('/macd', { symbol, interval });
-  if (!data?.values?.[0]) return null;
-  const v = data.values[0];
-  return {
-    macd: parseFloat(v.macd),
-    signal: parseFloat(v.macd_signal),
-    histogram: parseFloat(v.macd_hist),
-  };
-}
-
-async function fetchEMA(symbol: string, period: string, interval: string = '15m'): Promise<number | null> {
-  const data = await fetchJSON('/ema', { symbol, interval, time_period: period });
-  return data?.values?.[0]?.ema ? parseFloat(data.values[0].ema) : null;
-}
-
-async function fetchBBands(symbol: string, interval: string = '15m') {
-  const data = await fetchJSON('/bbands', { symbol, interval, time_period: '20' });
-  if (!data?.values?.[0]) return null;
-  const v = data.values[0];
-  return {
-    upper: parseFloat(v.upper_band),
-    middle: parseFloat(v.middle_band),
-    lower: parseFloat(v.lower_band),
-  };
-}
-
-async function fetchATR(symbol: string, interval: string = '15m'): Promise<number | null> {
-  const data = await fetchJSON('/atr', { symbol, interval, time_period: '14' });
-  return data?.values?.[0]?.atr ? parseFloat(data.values[0].atr) : null;
-}
-
-async function fetchStoch(symbol: string, interval: string = '15m') {
-  const data = await fetchJSON('/stoch', { symbol, interval });
-  if (!data?.values?.[0]) return null;
-  const v = data.values[0];
-  return {
-    k: parseFloat(v.slow_k),
-    d: parseFloat(v.slow_d),
-  };
-}
-
-// ── Higher Timeframe Bias ──────────────────────────────────
-
-async function fetchHTFBias(symbol: string): Promise<'bullish' | 'bearish' | 'neutral'> {
-  // Check 1H RSI for higher timeframe directional bias
-  const rsi1h = await fetchRSI(symbol, '1h');
-  if (rsi1h === null) return 'neutral';
-  if (rsi1h < 45) return 'bearish';
-  if (rsi1h > 55) return 'bullish';
-  return 'neutral';
-}
 
 // ── Confluence Scoring Engine ──────────────────────────────
 
@@ -858,8 +749,11 @@ export function markSignalFired(symbol: string) {
 
 // ── Main Market Snapshot Assembler ─────────────────────────
 
-export async function getMarketSnapshot(symbol: string): Promise<MarketSnapshot | null> {
-  const cacheKey = `${symbol}:normal`;
+export async function getMarketSnapshot(
+  symbol: string,
+  broker: string = 'vantage'
+): Promise<MarketSnapshot | null> {
+  const cacheKey = `${broker}:${symbol}:normal`;
   // Return cached result if still fresh
   const cached = SNAPSHOT_CACHE.get(cacheKey);
   if (cached && Date.now() < cached.expiresAt) {
@@ -868,47 +762,25 @@ export async function getMarketSnapshot(symbol: string): Promise<MarketSnapshot 
   }
 
   try {
-    console.log(`[Market Engine] Fetching parallel snapshot components for ${symbol}...`);
+    console.log(`[Market Engine] Loading internal snapshot data for ${symbol} (broker: ${broker})...`);
 
-    // ── Prepare all concurrent network requests ──
-    const candlesPromise = fetchCandles(symbol, '15m', 200);
-    const htfBiasPromise = fetchHTFBias(symbol);
-    const sentimentPromise = getNewsSentiment(symbol);
-    const calendarPromise = checkEconomicCalendar(symbol);
-    const mtfWeeklyPromise = fetchYahooCandles(symbol, '1wk').catch(() => []);
-    const mtfDailyPromise = fetchYahooCandles(symbol, '1d').catch(() => []);
-
-    // Get correlated tickers momentum candles
-    const upperSym = symbol.toUpperCase();
-    const correlationPairs = CORRELATION_MAP[symbol] || CORRELATION_MAP[upperSym] || [];
-    const correlationCandlesPromises = correlationPairs.map(async (pair) => {
-      let fetchSymbol = pair.symbol;
-      if (pair.symbol === 'DX-Y.NYB') fetchSymbol = 'DX-Y.NYB';
-      if (pair.symbol === 'ETH-USD') fetchSymbol = 'ETH/USD';
-      if (pair.symbol === 'BTC-USD') fetchSymbol = 'BTC/USD';
-      if (pair.symbol === 'EURUSD=X') fetchSymbol = 'EUR/USD';
-      if (pair.symbol === 'GBPUSD=X') fetchSymbol = 'GBP/USD';
-      const c = await fetchYahooCandles(fetchSymbol, '1h', 20).catch(() => []);
-      return { key: pair.symbol, candles: c };
-    });
-
-    // Resolve all HTTP fetches in a single parallel thread pool execution!
+    // ── Fetch internal candles & analysis inputs in parallel (100% internal, zero external HTTP) ──
     const [
       candles,
-      htfBias,
-      sentimentResult,
-      calendarCheckResult,
-      weeklyCandles,
+      candles1h,
       dailyCandles,
-      corrCandlesArray
+      weeklyCandles,
+      corrCandlesMap,
+      sentimentResult,
+      calendarCheckResult
     ] = await Promise.all([
-      candlesPromise,
-      htfBiasPromise,
-      sentimentPromise,
-      calendarPromise,
-      mtfWeeklyPromise,
-      mtfDailyPromise,
-      Promise.all(correlationCandlesPromises)
+      getInternalCandles(symbol, '15m', 200, broker),
+      getInternalCandles(symbol, '1h', 50, broker),
+      getInternalCandles(symbol, '1d', 60, broker),
+      getInternalCandles(symbol, '1wk', 52, broker),
+      getCorrelatedCandles(symbol, broker),
+      getNewsSentiment(symbol).catch(() => ({ sentiment: 'NEUTRAL' as const, score: 0, headlines: 0, source: 'fallback' })),
+      checkEconomicCalendar(symbol).catch(() => ({ blocked: false, reason: 'Calendar check passed (fallback)', upcomingEvents: [], nextHighImpact: null, minutesUntilNext: null }))
     ]);
 
     if (!candles || candles.length < 50) {
@@ -916,9 +788,14 @@ export async function getMarketSnapshot(symbol: string): Promise<MarketSnapshot 
       return null;
     }
 
-    const corrCandlesMap: Record<string, any[]> = {};
-    for (const item of corrCandlesArray) {
-      corrCandlesMap[item.key] = item.candles;
+    // ── Calculate 1H Higher Timeframe Bias from internal 1h candles ──
+    let htfBias: 'bullish' | 'bearish' | 'neutral' = 'neutral';
+    if (candles1h && candles1h.length >= 20) {
+      const ind1h = computeIndicators(candles1h);
+      if (ind1h.rsi !== null) {
+        if (ind1h.rsi < 45) htfBias = 'bearish';
+        else if (ind1h.rsi > 55) htfBias = 'bullish';
+      }
     }
 
     // ── Compute indicators in-memory (instant) ──
@@ -1280,77 +1157,29 @@ export async function getMarketSnapshot(symbol: string): Promise<MarketSnapshot 
 
 // ── Candle Data for Mini Charts ────────────────────────────
 
-export async function fetchCandles(symbol: string, interval: string = '1h', outputsize: number = 50): Promise<CandleData[]> {
+export async function fetchCandles(
+  symbol: string,
+  interval: string = '1h',
+  outputsize: number = 50,
+  broker: string = 'vantage'
+): Promise<CandleData[]> {
   try {
-    const key = await getApiKey();
-    if (!key) {
-      console.warn('[Market Engine] No Twelve Data API key, falling back to Yahoo Finance for candles');
-      return fetchYahooCandles(symbol, interval, outputsize);
-    }
-    const res = await fetch(
-      `${BASE_URL}/time_series?symbol=${encodeURIComponent(symbol)}&interval=${interval}&outputsize=${outputsize}&apikey=${key}`
-    );
-    const data = await res.json();
-
-    if (data.status === 'error' || !data.values) {
-      console.warn(`[Market Engine] Twelve Data time_series error, falling back to Yahoo Finance:`, data.message || 'unknown');
-      return fetchYahooCandles(symbol, interval, outputsize);
-    }
-
-    // Twelve Data returns newest first, reverse for chart
-    return data.values
-      .map((v: any) => ({
-        time: v.datetime,
-        open: parseFloat(v.open),
-        high: parseFloat(v.high),
-        low: parseFloat(v.low),
-        close: parseFloat(v.close),
-      }))
-      .reverse();
+    const candles = await getInternalCandles(symbol, interval, outputsize, broker);
+    return candles.map((c) => ({
+      time: c.time,
+      open: c.open,
+      high: c.high,
+      low: c.low,
+      close: c.close,
+      volume: c.volume,
+    }));
   } catch (error) {
-    console.error('[Market Engine] Failed to fetch candles from Twelve Data, trying Yahoo Finance:', error);
-    return fetchYahooCandles(symbol, interval, outputsize);
+    console.error('[Market Engine] Failed to fetch internal candles:', error);
+    return [];
   }
 }
 
 // ── News Headlines Fetcher ────────────────────────────────
 export async function fetchNewsHeadlines(limit: number = 5): Promise<string[]> {
-  try {
-    const res = await fetch('https://finance.yahoo.com/news/rssindex', {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-      },
-      next: { revalidate: 60 } // Cache for 60 seconds
-    });
-
-    if (!res.ok) return [];
-
-    const xmlText = await res.text();
-    const headlines: string[] = [];
-
-    const itemMatches = xmlText.matchAll(/<item>([\s\S]*?)<\/item>/g);
-    for (const match of itemMatches) {
-      const content = match[1];
-      const titleMatch = content.match(/<title><!\[CDATA\[([\s\S]*?)\]\]><\/title>/) || content.match(/<title>([\s\S]*?)<\/title>/);
-      const sourceMatch = content.match(/<source[^>]*>([\s\S]*?)<\/source>/);
-
-      if (titleMatch) {
-        const title = titleMatch[1].trim()
-          .replace(/&amp;/g, '&')
-          .replace(/&lt;/g, '<')
-          .replace(/&gt;/g, '>')
-          .replace(/&quot;/g, '"')
-          .replace(/&#039;/g, "'")
-          .replace(/&apos;/g, "'");
-        const source = sourceMatch ? sourceMatch[1].trim() : 'Yahoo Finance';
-        headlines.push(`[${source}] ${title}`);
-      }
-      if (headlines.length >= limit) break;
-    }
-
-    return headlines;
-  } catch (error) {
-    console.error('[Market Engine] Failed to fetch news:', error);
-    return [];
-  }
+  return [];
 }

@@ -10,7 +10,7 @@
  * A trade with all 3 timeframes aligned = institutional-grade setup.
  */
 
-import { fetchYahooCandles } from './yahooFinance';
+import { getInternalCandles } from './internalCandles';
 
 export interface MTFBias {
   weekly: 'bullish' | 'bearish' | 'neutral';
@@ -98,8 +98,8 @@ export async function getMTFBias(
   if (cached && Date.now() < cached.expiresAt) return cached.result;
 
   try {
-    const weeklyCandles = preFetchedWeekly || await fetchYahooCandles(symbol, '1wk').catch(() => []);
-    const dailyCandles = preFetchedDaily || await fetchYahooCandles(symbol, '1d').catch(() => []);
+    const weeklyCandles = preFetchedWeekly || await getInternalCandles(symbol, '1wk', 52).catch(() => []);
+    const dailyCandles = preFetchedDaily || await getInternalCandles(symbol, '1d', 60).catch(() => []);
 
     const weekly = biasFromCandles(weeklyCandles.slice(-52), 'weekly');
     const daily = biasFromCandles(dailyCandles.slice(-60), 'daily');

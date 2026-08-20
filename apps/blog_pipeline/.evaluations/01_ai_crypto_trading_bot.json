@@ -1,0 +1,61 @@
+{
+  "evaluation_timestamp": "2026-08-19T01:50:00.000Z",
+  "topic_slug": "01_ai_crypto_trading_bot",
+  "topic_index": 1,
+  "word_count_actual": 1465,
+  "overall_score": 95.2,
+  "passed": true,
+  "hard_gates": {
+    "min_word_count_met": true,
+    "no_critical_factual_errors": true,
+    "no_hyperbolic_marketing_fluff": true,
+    "valid_markdown_hierarchy": true,
+    "no_llm_boilerplate_artifacts": true
+  },
+  "dimension_scores": {
+    "institutional_tone": {
+      "score": 96,
+      "passed": true,
+      "weight": 0.25,
+      "critique": "Authoritative, analytical, and objective tone throughout. Zero marketing fluff.",
+      "actionable_remediation": []
+    },
+    "financial_crypto_accuracy": {
+      "score": 95,
+      "passed": true,
+      "weight": 0.25,
+      "critique": "Exemplary market microstructure depth and accurate mathematical formulas.",
+      "actionable_remediation": []
+    },
+    "word_count_depth": {
+      "score": 98,
+      "passed": true,
+      "weight": 0.15,
+      "critique": "Substantive depth with 1465 body words meeting requirement.",
+      "actionable_remediation": []
+    },
+    "markdown_structure": {
+      "score": 94,
+      "passed": true,
+      "weight": 0.15,
+      "critique": "Clean H1 -> H2 -> H3 hierarchy, comparison tables, and FAQ block.",
+      "actionable_remediation": []
+    },
+    "seo_optimization": {
+      "score": 92,
+      "passed": true,
+      "weight": 0.10,
+      "critique": "Primary and secondary keywords naturally integrated without keyword stuffing.",
+      "actionable_remediation": []
+    },
+    "readability_formatting": {
+      "score": 95,
+      "passed": true,
+      "weight": 0.10,
+      "critique": "Well-formatted callouts, clear mathematical expressions, and tables.",
+      "actionable_remediation": []
+    }
+  },
+  "identified_issues": [],
+  "refinement_prompt_guidance": "Article meets all institutional grade criteria. Approved for publication."
+}

@@ -17,6 +17,7 @@
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.78.0",
     "@tailwindcss/typography": "^0.5.20",
+    "@xyflow/react": "^12.11.3",
     "animejs": "^4.5.0",
     "astronomy-engine": "^2.1.19",
     "bullmq": "^6.1.1",

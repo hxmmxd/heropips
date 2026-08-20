@@ -87,6 +87,9 @@ const Mermaid = ({ chart }: { chart: string }) => {
   );
 };
 
+import InstitutionalFlowchart from './InstitutionalFlowchart';
+import InstitutionalPieChart from './InstitutionalPieChart';
+
 export default function MarkdownRenderer({ content }: { content: string }) {
   return (
     <ReactMarkdown
@@ -94,14 +97,40 @@ export default function MarkdownRenderer({ content }: { content: string }) {
       rehypePlugins={[rehypeRaw]}
       components={{
         code({ node, inline, className, children, ...props }: any) {
-          const match = /language-(\w+)/.exec(className || '');
-          if (!inline && match && match[1] === 'mermaid') {
+          const match = /language-([\w-]+)/.exec(className || '');
+          const lang = match ? match[1] : '';
+          
+          if (!inline && lang === 'mermaid') {
             return <Mermaid chart={String(children).replace(/\n$/, '')} />;
           }
+          if (!inline && lang === 'institutional-flowchart') {
+            try {
+              const data = JSON.parse(String(children));
+              return <InstitutionalFlowchart nodesData={JSON.stringify(data.nodes)} edgesData={JSON.stringify(data.edges)} height={data.height || '450px'} />;
+            } catch (e) {
+              return <div className="text-red-500">Error parsing flowchart JSON</div>;
+            }
+          }
+          if (!inline && lang === 'institutional-pie-chart') {
+            try {
+              const data = JSON.parse(String(children));
+              return <InstitutionalPieChart dataStr={JSON.stringify(data.data)} title={data.title} />;
+            } catch (e) {
+              return <div className="text-red-500">Error parsing pie chart JSON</div>;
+            }
+          }
+          
           return (
             <code className={className} {...props}>
               {children}
             </code>
+          );
+        },
+        table({ node, ...props }: any) {
+          return (
+            <div style={{ overflowX: 'auto', width: '100%', WebkitOverflowScrolling: 'touch' }}>
+              <table {...props} />
+            </div>
           );
         }
       }}

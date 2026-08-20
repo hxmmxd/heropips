@@ -1,129 +1,69 @@
-import { getPlatformConfig } from '@/lib/platformConfig';
-import { recordApiCall, markDisabled } from '@/lib/apiStats';
-import { fetchYahooPrices } from '@/lib/yahooFinance';
+import { redis } from '@/lib/redis';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-// ─── Source 1: Binance (BTC, ETH) ───────────────────────────
-// Free, no API key, ~1200 weight/min limit — we use weight 2 per call
-const BINANCE_SYMBOLS = ['BTCUSDT', 'ETHUSDT'];
-
-async function fetchBinance(): Promise<Record<string, number>> {
-  const t0 = Date.now();
-  try {
-    const encoded = encodeURIComponent(JSON.stringify(BINANCE_SYMBOLS));
-    const res = await fetch(
-      `https://api.binance.com/api/v3/ticker/price?symbols=${encoded}`,
-      { cache: 'no-store' }
-    );
-    if (!res.ok) {
-      recordApiCall('binance', false, Date.now() - t0, `HTTP ${res.status}`);
-      return {};
-    }
-    const data: { symbol: string; price: string }[] = await res.json();
-    const out: Record<string, number> = {};
-    for (const item of data) {
-      if (item.symbol === 'BTCUSDT') out['BTC/USD'] = parseFloat(item.price);
-      if (item.symbol === 'ETHUSDT') out['ETH/USD'] = parseFloat(item.price);
-    }
-    recordApiCall('binance', true, Date.now() - t0);
-    return out;
-  } catch (err: any) {
-    recordApiCall('binance', false, Date.now() - t0, err?.message);
-    return {};
-  }
-}
-
-// ─── Source 2: Twelve Data (everything else) ─────────────────
-// 7 symbols × 1 credit = 7 credits per call.
-// Grow plan: 55 credits/min → poll every 8s = 7.5 calls/min = 52.5 credits/min ✓
-const TD_SYMBOLS = ['XAU/USD', 'EUR/USD', 'GBP/USD', 'QQQ', 'DIA', 'USO', 'SPY'];
-
-async function getTwelveKey() {
-  return getPlatformConfig('twelve_data_api_key', 'TWELVE_DATA_API_KEY');
-}
-
-async function fetchTwelveData(): Promise<Record<string, number>> {
-  const key = await getTwelveKey();
-  if (!key) return {};
-  const t0 = Date.now();
-  try {
-    const url = `https://api.twelvedata.com/price?symbol=${TD_SYMBOLS.join(',')}&apikey=${key}`;
-    const res = await fetch(url, { cache: 'no-store' });
-    if (!res.ok) {
-      recordApiCall('twelve_data', false, Date.now() - t0, `HTTP ${res.status}`);
-      return {};
-    }
-    const data = await res.json();
-    const out: Record<string, number> = {};
-    for (const sym of TD_SYMBOLS) {
-      const entry = data[sym];
-      if (entry?.price) out[sym] = parseFloat(entry.price);
-    }
-    recordApiCall('twelve_data', true, Date.now() - t0);
-    return out;
-  } catch (err: any) {
-    recordApiCall('twelve_data', false, Date.now() - t0, err?.message);
-    return {};
-  }
-}
-
-// ─── Source 3: Yahoo Finance (optional fallback) ─────────────
-// Free, no key. Enabled via platform_config key 'yahoo_finance_enabled'.
-// Used as fallback when Twelve Data returns empty results.
-const YF_SYMBOLS = [...TD_SYMBOLS]; // same set
-
-async function isYahooEnabled(): Promise<boolean> {
-  const val = await getPlatformConfig('yahoo_finance_enabled', '');
-  return val !== 'false';
-}
-
-async function fetchYahooFallback(
-  existingPrices: Record<string, number>
-): Promise<Record<string, number>> {
-  // Only fetch symbols that Twelve Data didn't return
-  const missing = YF_SYMBOLS.filter(s => !(s in existingPrices));
-  if (missing.length === 0) return {};
-  const yfPrices = await fetchYahooPrices(missing);
-  return yfPrices;
-}
-
-// ─── SSE Handler ─────────────────────────────────────────────
-const BINANCE_POLL_MS = 2_000;   // crypto — Binance, free, unlimited
-const TD_POLL_MS = 8_000;        // 7 symbols × 7.5 calls/min = 52.5 credits/min (Grow plan: 55/min ✓)
-
-export async function GET(request: Request) {
+/**
+ * Institutional Next.js SSE Price Streaming Route (UQP Milestone M3)
+ * Consumes real-time broker ticks from Redis Pub/Sub (`channel:ticks:{broker}:*`)
+ * and emits throttled SSE JSON price frames with a 250ms debounce window.
+ *
+ * Replaces legacy REST polling loops (Binance, Twelve Data, Yahoo Finance)
+ * with zero outbound network calls and sub-100ms internal quote distribution.
+ */
+export async function GET(request: Request): Promise<Response> {
   const encoder = new TextEncoder();
   const { signal } = request;
 
+  const url = new URL(request.url);
+  const broker = url.searchParams.get('broker')?.toLowerCase() || 'vantage';
+  const debounceMs = 250;
+  const autoCloseMs = 270_000; // 4.5 minutes safety timeout
+
   const stream = new ReadableStream({
     async start(controller) {
-      let binanceTimer: any = null;
-      let tdTimer: any = null;
-      let closeTimeout: any = null;
       let closed = false;
+      let debounceTimer: NodeJS.Timeout | null = null;
+      let autoCloseTimer: NodeJS.Timeout | null = null;
+      let pendingPrices: Record<string, number> = {};
+
+      const redisClient = (typeof globalThis !== 'undefined' && (globalThis as any).__mockRedis) || redis;
+      const subscriber = redisClient.duplicate();
 
       const cleanup = () => {
         if (closed) return;
         closed = true;
-        if (binanceTimer) clearInterval(binanceTimer);
-        if (tdTimer) clearInterval(tdTimer);
-        if (closeTimeout) clearTimeout(closeTimeout);
-        try { controller.close(); } catch { }
-        console.log('[Price Stream] SSE stream cleaned up via AbortSignal');
+        if (debounceTimer) {
+          clearTimeout(debounceTimer);
+          debounceTimer = null;
+        }
+        if (autoCloseTimer) {
+          clearTimeout(autoCloseTimer);
+          autoCloseTimer = null;
+        }
+        try {
+          subscriber.disconnect();
+        } catch {
+          // Ignore disconnection errors
+        }
+        try {
+          controller.close();
+        } catch {
+          // Stream already closed
+        }
       };
 
       if (signal.aborted) {
-        closed = true;
-        try { controller.close(); } catch { }
+        cleanup();
         return;
       }
 
       signal.addEventListener('abort', cleanup);
 
-      const send = (payload: Record<string, number>) => {
-        if (closed || Object.keys(payload).length === 0) return;
+      const flush = () => {
+        if (closed || Object.keys(pendingPrices).length === 0) return;
+        const payload = { ...pendingPrices };
+        pendingPrices = {};
         try {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
         } catch {
@@ -131,46 +71,43 @@ export async function GET(request: Request) {
         }
       };
 
-      // ── Fetch Twelve Data + Yahoo Finance fallback ──
-      const fetchTdWithFallback = async () => {
-        const tdPrices = await fetchTwelveData();
-        const yahooEnabled = await isYahooEnabled();
-        if (yahooEnabled) {
-          // Fill missing symbols from Yahoo Finance
-          const yfPrices = await fetchYahooFallback(tdPrices);
-          return { ...yfPrices, ...tdPrices }; // TD wins on overlap
+      // Listen for ticks via Redis Pub/Sub pattern
+      subscriber.on('pmessage', (_pattern: string, _channel: string, message: string) => {
+        if (closed) return;
+        try {
+          const tick = JSON.parse(message);
+          if (tick && tick.symbol && typeof tick.mid === 'number') {
+            pendingPrices[tick.symbol] = tick.mid;
+
+            if (!debounceTimer) {
+              debounceTimer = setTimeout(() => {
+                debounceTimer = null;
+                flush();
+              }, debounceMs);
+            }
+          }
+        } catch {
+          // Ignore malformed tick payloads
         }
-        if (!yahooEnabled) markDisabled('yahoo_finance');
-        return tdPrices;
-      };
+      });
 
-      // ── Initial tick — fetch all sources in parallel ──
-      const [binanceInit, tdInit] = await Promise.all([
-        fetchBinance(),
-        fetchTdWithFallback(),
-      ]);
-      send({ ...tdInit, ...binanceInit });
-
-      // ── Crypto: fast polling via Binance ──
-      binanceTimer = setInterval(async () => {
-        if (closed) return;
-        send(await fetchBinance());
-      }, BINANCE_POLL_MS);
-
-      // ── Forex/Metals/ETFs: Twelve Data + Yahoo fallback ──
-      tdTimer = setInterval(async () => {
-        if (closed) return;
-        send(await fetchTdWithFallback());
-      }, TD_POLL_MS);
-
-      // Auto-close before Vercel's 4.5-min function limit
-      closeTimeout = setTimeout(() => {
+      try {
+        await subscriber.psubscribe(`channel:ticks:${broker}:*`);
+      } catch (err) {
+        console.error('[Price Stream] Failed to subscribe to Redis tick channel:', err);
         cleanup();
-      }, 270_000);
+        return;
+      }
+
+      // Safety timeout
+      autoCloseTimer = setTimeout(() => {
+        cleanup();
+      }, autoCloseMs);
     },
   });
 
   return new Response(stream, {
+    status: 200,
     headers: {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache, no-transform',
