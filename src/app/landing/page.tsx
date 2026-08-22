@@ -281,32 +281,39 @@ const LOGS = [
   "Confluence engine: US30 key volume block validated."
 ];
 
+// The twelve real gates from the confluence engine (src/lib/market.ts), so the
+// marketing demo matches what the terminal actually runs.
 const PROCESSOR_GATES = [
-  { num: '01', name: 'Vol Regime Filter', desc: 'ATR volatility state', log: 'ATR: Volatility breakout band verified.' },
-  { num: '02', name: 'Order Flow Imbalance', desc: 'L2 Bid-Ask depth check', log: 'L2 Depth: Bids outpacing asks (+14.2%).' },
-  { num: '03', name: 'Liquidity Sweeps', desc: 'Stop-run cluster scan', log: 'Sweeps: Buy-side liquidity pool swept.' },
-  { num: '04', name: 'Macro Sentiment Bias', desc: 'Financial NLP headlines', log: 'NLP: Sentiment indices tracking bullish (0.76).' },
-  { num: '05', name: 'Multi-Timeframe Align', desc: 'M15/H1/Daily market stack', log: 'Timeframes: M15 & H1 trends fully stacked.' },
-  { num: '06', name: 'Correlation Matrix', desc: 'Index correlation index', log: 'Matrix: Asset beta dispersion normalized.' },
-  { num: '07', name: 'Volume Profile Node', desc: 'POC value support', log: 'POC: Dynamic support node holding block.' },
-  { num: '08', name: 'Funding Rate Check', desc: 'Leverage liquidation guard', log: 'Funding: Liquidation threat matrix: safe.' },
-  { num: '09', name: 'Mean Reversion Bands', desc: 'Z-score standard deviation', log: 'Bands: Z-score at -1.4 (oversold bounds).' },
-  { num: '10', name: 'Spread Arbitrage', desc: 'Exchange slip cost check', log: 'Arbitrage: Feed spread verified < 0.1 pips.' },
-  { num: '11', name: 'Trend Velocity (ADX)', desc: 'Directional momentum ADX', log: 'ADX: Momentum velocity confirmed at 32.5.' },
-  { num: '12', name: 'Risk-Reward Cutoff', desc: 'R:R ratio validation', log: 'Risk-Reward: 1:2.5 minimum target cleared.' },
+  { num: '01', name: 'Confluence Score', desc: 'Weighted indicator vote', log: 'Confluence: Weighted vote 78% — grade AA.', score: 78 },
+  { num: '02', name: 'SMC Confirmation', desc: 'BOS · ChoCH · FVG · OB scan', log: 'SMC: ChoCH + unmitigated order block retest.', score: 84 },
+  { num: '03', name: 'Timeframe Alignment', desc: '1H bias agreement', log: 'HTF Bias: 1H momentum aligned with entry.', score: 81 },
+  { num: '04', name: 'Session Filter', desc: 'ICT kill-zone grading', log: 'Session: London kill zone active — Grade A.', score: 88 },
+  { num: '05', name: 'Volatility Band', desc: 'ATR regime 0.5–2.5×', log: 'Volatility: ATR ratio 1.24 — inside band.', score: 76 },
+  { num: '06', name: 'No-Conflict Check', desc: 'Bull/bear vote spread', log: 'Conflict: Directional spread 0.41 — clear.', score: 83 },
+  { num: '07', name: 'Signal Cooldown', desc: '60-min re-entry guard', log: 'Cooldown: Symbol clear — no signal in 60m.', score: 90 },
+  { num: '08', name: 'News Event Veto', desc: 'High-impact calendar block', log: 'Calendar: No high-impact events in window.', score: 95 },
+  { num: '09', name: 'Correlation Check', desc: 'Correlated asset momentum', log: 'Correlation: DXY inverse momentum agrees.', score: 80 },
+  { num: '10', name: 'MTF Stack', desc: 'Weekly · Daily · 1H stack', log: 'MTF: 2 of 3 timeframes aligned — pass.', score: 86 },
+  { num: '11', name: 'VWAP Position', desc: 'Session VWAP ±σ bands', log: 'VWAP: Price above VWAP, inside +1σ.', score: 79 },
+  { num: '12', name: 'Candle Pattern', desc: 'Reversal & continuation scan', log: 'Pattern: Bullish engulfing on last close.', score: 85 },
 ];
 
-function TerminalTypingText({ log, activeGate }: { log: string, activeGate: number }) {
+function TerminalTypingText({ log, activeGate, instant, accent }: { log: string, activeGate: number, instant?: boolean, accent?: string }) {
   const [typedCount, setTypedCount] = useState(0);
 
   useEffect(() => {
     setTypedCount(0);
     if (!log) return;
-    
+
     // We want the prefix to appear instantly, and the rest to type out.
     const colonIdx = log.indexOf(':');
     const rest = colonIdx === -1 ? log : log.substring(colonIdx + 1);
-    
+
+    if (instant) {
+      setTypedCount(rest.length);
+      return;
+    }
+
     const interval = setInterval(() => {
       setTypedCount(prev => {
         if (prev >= rest.length) {
@@ -322,17 +329,16 @@ function TerminalTypingText({ log, activeGate }: { log: string, activeGate: numb
 
   const colonIdx = log.indexOf(':');
   if (colonIdx === -1) {
-    return <span style={{ color: '#ffffff' }}>{log.substring(0, typedCount)}</span>;
+    return <span style={{ color: '#e4e4e7' }}>{log.substring(0, typedCount)}</span>;
   }
-  
+
   const prefix = log.substring(0, colonIdx + 1);
   const rest = log.substring(colonIdx + 1);
-  const tagColor = activeGate < 6 ? 'var(--volt-500)' : '#0891b2';
-  
+
   return (
     <div>
-      <span style={{ color: tagColor, fontWeight: 700, marginRight: '6px' }}>{prefix}</span>
-      <span style={{ color: '#ffffff' }}>
+      <span style={{ color: accent ?? 'var(--volt-500)', fontWeight: 700, marginRight: '6px', transition: 'color 0.5s ease' }}>{prefix}</span>
+      <span style={{ color: '#e4e4e7' }}>
         {rest.substring(0, typedCount)}
         {/* Blinking cursor */}
         <span 
@@ -351,55 +357,136 @@ function TerminalTypingText({ log, activeGate }: { log: string, activeGate: numb
   );
 }
 
-function ConfluenceProcessorSection() {
-  const [hoveredGate, setHoveredGate] = useState<number | null>(null);
-  const [activeCycleGate, setActiveCycleGate] = useState(0);
-  const [chipScore, setChipScore] = useState(83);
+type WireGeometry = { sx: number; sy: number; ex: number; ey: number; left: boolean };
 
-  // Cycle the chip score to make it look active!
+// Score-ring geometry (92×92 viewBox)
+const RING_R = 37;
+const RING_CIRC = 2 * Math.PI * RING_R;
+const RING_TICKS = 60;
+
+function ConfluenceProcessorSection() {
+  const [hoverGate, setHoverGate] = useState<number | null>(null);
+  const [pinnedGate, setPinnedGate] = useState<number | null>(null);
+  const [cycleGate, setCycleGate] = useState(0);
+  const [inView, setInView] = useState(true);
+  const [reducedMotion, setReducedMotion] = useState(false);
+  const [wires, setWires] = useState<WireGeometry[]>([]);
+  const [svgSize, setSvgSize] = useState({ w: 0, h: 0 });
+
+  const innerRef = useRef<HTMLDivElement | null>(null);
+  const chipRef = useRef<HTMLDivElement | null>(null);
+  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  // Respect the user's reduced-motion preference for the JS-driven animations
   useEffect(() => {
-    const interval = setInterval(() => {
-      setChipScore(() => Math.floor(Math.random() * (98 - 80 + 1)) + 80);
-    }, 1500);
-    return () => clearInterval(interval);
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setReducedMotion(mq.matches);
+    const onChange = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
   }, []);
 
-  // Auto-cycle active gate state when not hovering/tapping
+  // Only run the demo loop while the section is on screen
   useEffect(() => {
-    if (hoveredGate !== null) return;
+    const el = innerRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+    const io = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting), { threshold: 0.15 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  // Auto-cycle the active gate unless the user is hovering or has pinned one
+  useEffect(() => {
+    if (hoverGate !== null || pinnedGate !== null || !inView || reducedMotion) return;
     const interval = setInterval(() => {
-      setActiveCycleGate((prev) => (prev + 1) % 12);
+      setCycleGate((prev) => (prev + 1) % 12);
     }, 2000);
     return () => clearInterval(interval);
-  }, [hoveredGate]);
+  }, [hoverGate, pinnedGate, inView, reducedMotion]);
 
-  const activeGate = hoveredGate !== null ? hoveredGate : activeCycleGate;
+  // Measure the chip and each card, then route every wire from the chip's
+  // bottom edge to its card's top center so hover genuinely traces the link
+  useEffect(() => {
+    const recompute = () => {
+      const inner = innerRef.current;
+      const chip = chipRef.current;
+      if (!inner || !chip) return;
+      const innerBox = inner.getBoundingClientRect();
+      const chipBox = chip.getBoundingClientRect();
+      const chipCenterX = chipBox.left + chipBox.width / 2 - innerBox.left;
+      const next: WireGeometry[] = [];
+      cardRefs.current.slice(0, 12).forEach((card, i) => {
+        if (!card) return;
+        const box = card.getBoundingClientRect();
+        const ex = box.left + box.width / 2 - innerBox.left;
+        const ey = box.top - innerBox.top;
+        const sx = chipBox.left - innerBox.left + chipBox.width * (0.14 + 0.72 * (i / 11));
+        const sy = chipBox.bottom - innerBox.top;
+        next.push({ sx, sy, ex, ey, left: ex < chipCenterX });
+      });
+      setWires(next);
+      setSvgSize({ w: innerBox.width, h: innerBox.height });
+    };
+    recompute();
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(recompute) : null;
+    if (ro && innerRef.current) ro.observe(innerRef.current);
+    window.addEventListener('resize', recompute);
+    return () => {
+      ro?.disconnect();
+      window.removeEventListener('resize', recompute);
+    };
+  }, []);
 
-  // Dynamic colors and shadows based on active side
-  let glowColor = 'rgba(198, 255, 46, 0.05)';
-  let glowBorder = 'rgba(0, 0, 0, 0.07)';
-  let spinnerColor = 'rgba(198, 255, 46, 0.35)';
+  const activeGate = pinnedGate ?? hoverGate ?? cycleGate;
+  const chipScore = PROCESSOR_GATES[activeGate].score;
+  const activeLeft = wires[activeGate] ? wires[activeGate].left : activeGate < 6;
+
+  // Tween the displayed score: a long sweep from 0 on first reveal,
+  // then short eased tweens between gates
+  const [displayScore, setDisplayScore] = useState(0);
+  const displayRef = useRef(0);
+  const revealedRef = useRef(false);
+  useEffect(() => {
+    displayRef.current = displayScore;
+  }, [displayScore]);
+  useEffect(() => {
+    if (reducedMotion) {
+      revealedRef.current = true;
+      setDisplayScore(chipScore);
+      return;
+    }
+    if (!inView && !revealedRef.current) return;
+    const first = !revealedRef.current;
+    revealedRef.current = true;
+    const from = first ? 0 : displayRef.current;
+    const delta = chipScore - from;
+    if (delta === 0) return;
+    const dur = first ? 1200 : 450;
+    const t0 = performance.now();
+    let raf = 0;
+    const tick = (now: number) => {
+      const p = Math.min((now - t0) / dur, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setDisplayScore(from + delta * eased);
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [chipScore, reducedMotion, inView]);
+
+  // Dynamic colors and shadows based on which side the active card sits
+  let glowColor = 'rgba(198, 255, 46, 0.14)';
+  let glowBorder = 'rgba(198, 255, 46, 0.3)';
   let scoreColor = 'var(--volt-500)';
 
-  if (activeGate !== null) {
-    if (activeGate < 6) {
-      glowColor = 'rgba(198, 255, 46, 0.14)';
-      glowBorder = 'rgba(198, 255, 46, 0.3)';
-      spinnerColor = 'var(--volt-500)';
-    } else {
-      glowColor = 'rgba(8, 145, 178, 0.14)';
-      glowBorder = 'rgba(8, 145, 178, 0.3)';
-      spinnerColor = '#0891b2';
-      scoreColor = '#0891b2';
-    }
+  if (!activeLeft) {
+    glowColor = 'rgba(8, 145, 178, 0.14)';
+    glowBorder = 'rgba(8, 145, 178, 0.3)';
+    scoreColor = '#22d3ee';
   }
 
-  const handleGateClick = (idx: number) => {
-    if (hoveredGate === idx) {
-      setHoveredGate(null);
-    } else {
-      setHoveredGate(idx);
-    }
+  const togglePin = (idx: number) => {
+    setPinnedGate((prev) => (prev === idx ? null : idx));
   };
 
   return (
@@ -415,156 +502,225 @@ function ConfluenceProcessorSection() {
         <div className="lp-struct-crosshair bottom left" />
         <div className="lp-struct-crosshair bottom right" />
 
-        <div className="lp-proc-inner">
+        <div className="lp-proc-inner" ref={innerRef}>
         <div className="lp-proc-header">
           <p className="lp-proc-eyebrow">Real-Time Synthesis</p>
           <h2 className="lp-proc-title">The 12-Gate Confluence Processor</h2>
           <p className="lp-proc-desc">
-            Hover over any quantitative gate to highlight its data stream connection. Watch the engine process inputs and calculate the live confluence probability score in real-time.
+            Hover or tap any gate to trace its data stream into the core — a guided demo of the twelve checks every signal must pass before it reaches your terminal.
           </p>
         </div>
 
-        {/* Microcontroller Chip at the Top Center */}
-        <div 
+        {/* Confluence core chip */}
+        <div
+          ref={chipRef}
           className="lp-proc-chip-top"
           style={{
             borderColor: glowBorder,
             boxShadow: `0 25px 50px rgba(0,0,0,0.25), 0 0 35px ${glowColor}`,
           }}
         >
-          <div 
-            className="lp-proc-chip-glow-bg" 
+          <div
+            className="lp-proc-chip-glow-bg"
             style={{
               background: `radial-gradient(circle, ${glowColor}, transparent 70%)`
             }}
           />
-          
-          <div 
-            className="lp-proc-chip-core"
-            style={{
-              boxShadow: `0 12px 24px rgba(0, 0, 0, 0.3), 0 0 15px ${glowColor} inset`
-            }}
-          >
-            {/* Rotating core dashed ring */}
-            <div 
-              className="lp-proc-chip-spinner" 
-              style={{
-                borderColor: spinnerColor,
-                animationDuration: '8s'
-              }}
+
+          {/* Reactor-core score gauge */}
+          <div className="lp-proc-chip-core">
+            {/* Breathing glow behind the number */}
+            <div
+              className="lp-proc-core-breath"
+              style={{ background: `radial-gradient(circle, ${glowColor} 0%, transparent 68%)` }}
             />
-            <span 
-              className="lp-proc-chip-score"
-              style={{
-                color: scoreColor,
-                textShadow: `0 0 8px ${scoreColor}40`
-              }}
-            >
-              {chipScore}%
-            </span>
+            <svg className="lp-proc-ring" viewBox="0 0 92 92" aria-hidden="true">
+              <defs>
+                <linearGradient id="lp-ring-grad-volt" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#8fdc0f" />
+                  <stop offset="55%" stopColor="#c6ff2e" />
+                  <stop offset="100%" stopColor="#e5ff7a" />
+                </linearGradient>
+                <linearGradient id="lp-ring-grad-cyan" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#0e7490" />
+                  <stop offset="55%" stopColor="#22d3ee" />
+                  <stop offset="100%" stopColor="#a5f3fc" />
+                </linearGradient>
+              </defs>
+
+              {/* Slow counter-rotating orbital arcs */}
+              <circle className="lp-proc-orbit lp-proc-orbit-a" cx="46" cy="46" r="43" style={{ stroke: scoreColor }} />
+              <circle className="lp-proc-orbit lp-proc-orbit-b" cx="46" cy="46" r="30" style={{ stroke: scoreColor }} />
+
+              <g transform="rotate(-90 46 46)">
+                {/* Chronograph tick bezel — ticks light up with the score */}
+                {Array.from({ length: RING_TICKS }).map((_, i) => {
+                  const a = (i / RING_TICKS) * Math.PI * 2;
+                  const lit = i / RING_TICKS <= displayScore / 100;
+                  return (
+                    <line
+                      key={i}
+                      x1={46 + 41.5 * Math.cos(a)}
+                      y1={46 + 41.5 * Math.sin(a)}
+                      x2={46 + (lit ? 43.8 : 43.2) * Math.cos(a)}
+                      y2={46 + (lit ? 43.8 : 43.2) * Math.sin(a)}
+                      className="lp-proc-ring-tickmark"
+                      style={lit ? { stroke: scoreColor, opacity: 0.85 } : undefined}
+                    />
+                  );
+                })}
+
+                {/* Track + dual gradient arcs (crossfaded by side) */}
+                <circle className="lp-proc-ring-track" cx="46" cy="46" r={RING_R} />
+                <circle
+                  className="lp-proc-ring-arc"
+                  cx="46" cy="46" r={RING_R}
+                  stroke="url(#lp-ring-grad-volt)"
+                  style={{
+                    strokeDasharray: RING_CIRC,
+                    strokeDashoffset: RING_CIRC * (1 - displayScore / 100),
+                    opacity: activeLeft ? 1 : 0,
+                  }}
+                />
+                <circle
+                  className="lp-proc-ring-arc"
+                  cx="46" cy="46" r={RING_R}
+                  stroke="url(#lp-ring-grad-cyan)"
+                  style={{
+                    strokeDasharray: RING_CIRC,
+                    strokeDashoffset: RING_CIRC * (1 - displayScore / 100),
+                    opacity: activeLeft ? 0 : 1,
+                  }}
+                />
+
+                {/* White-hot comet head riding the arc tip */}
+                {(() => {
+                  const a = (displayScore / 100) * Math.PI * 2;
+                  const cx = 46 + RING_R * Math.cos(a);
+                  const cy = 46 + RING_R * Math.sin(a);
+                  return (
+                    <g className="lp-proc-comet" style={{ color: scoreColor }}>
+                      <circle cx={cx} cy={cy} r="3.6" fill={scoreColor} opacity="0.55" />
+                      <circle cx={cx} cy={cy} r="1.7" fill="#ffffff" opacity="0.95" />
+                    </g>
+                  );
+                })()}
+              </g>
+            </svg>
+            <div className="lp-proc-ring-label" style={{ color: scoreColor }}>
+              <span className="lp-proc-ring-value">{Math.round(displayScore)}</span>
+              <span className="lp-proc-ring-unit">%</span>
+            </div>
           </div>
 
           <div className="lp-proc-chip-info">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: '4px' }}>
-              <h3 className="lp-proc-chip-title">HEROPIPS CONFLUENCE CORE</h3>
+            <div className="lp-proc-chip-head">
+              <div>
+                <p className="lp-proc-chip-overline">HeroPips · Signal Engine</p>
+                <h3 className="lp-proc-chip-title">Confluence Core</h3>
+              </div>
               <span className="lp-proc-chip-status">
                 <span className="lp-proc-chip-status-dot" />
-                ACTIVE SYNTHESIS
+                Guided demo
               </span>
             </div>
 
-            {/* Terminal console screen displaying active log */}
-            <div 
-              className="lp-proc-terminal"
-              style={{
-                fontFamily: 'Courier New, monospace',
-                fontSize: '10px',
-                background: 'rgba(255, 255, 255, 0.04)',
-                padding: '8px 12px',
-                borderRadius: '8px',
-                textAlign: 'left',
-                minHeight: '40px',
-                display: 'flex',
-                alignItems: 'center',
-                border: '1px solid rgba(255,255,255,0.06)',
-                lineHeight: '1.4',
-                wordBreak: 'break-word'
-              }}
-            >
-              <TerminalTypingText log={PROCESSOR_GATES[activeGate].log} activeGate={activeGate} />
+            {/* Terminal readout for the active gate */}
+            <div className="lp-proc-terminal">
+              <div className="lp-proc-terminal-meta">
+                <span>Signal trace</span>
+                <span className="lp-proc-terminal-step">Gate {PROCESSOR_GATES[activeGate].num} / 12</span>
+              </div>
+              <div className="lp-proc-terminal-line">
+                <TerminalTypingText
+                  log={PROCESSOR_GATES[activeGate].log}
+                  activeGate={activeGate}
+                  instant={reducedMotion}
+                  accent={scoreColor}
+                />
+              </div>
+            </div>
+
+            {/* One tick per gate, lit as the demo walks the sequence */}
+            <div className="lp-proc-ticks" aria-hidden="true">
+              {PROCESSOR_GATES.map((_, i) => (
+                <span
+                  key={i}
+                  className="lp-proc-tick"
+                  style={i === activeGate ? { background: scoreColor, boxShadow: `0 0 8px ${scoreColor}` } : undefined}
+                />
+              ))}
             </div>
           </div>
         </div>
 
-        {/* Wires SVG Canvas linking Chip to the Grid Columns */}
-        <svg className="lp-proc-wires-svg" viewBox="0 0 100 40" preserveAspectRatio="none">
-          {/* Symmetrical branching traces from center to columns */}
-          {Array.from({ length: 6 }).map((_, idx) => {
-            const startXLeft = 38 + idx * 2;
-            const endXLeft = 10 + idx * 6;
-            const isActiveLeft = activeGate === idx;
-
-            const startXRight = 62 - idx * 2;
-            const endXRight = 90 - idx * 6;
-            const isActiveRight = activeGate === (idx + 6);
-
+        {/* Measured wire overlay — each trace runs from the chip edge to its gate card */}
+        <svg
+          className="lp-proc-wires-overlay"
+          width={svgSize.w || undefined}
+          height={svgSize.h || undefined}
+          viewBox={`0 0 ${Math.max(svgSize.w, 1)} ${Math.max(svgSize.h, 1)}`}
+          aria-hidden="true"
+        >
+          {wires.map((w, idx) => {
+            const isActive = activeGate === idx;
+            const midY = w.sy + (w.ey - w.sy) * 0.55;
+            const d = `M ${w.sx} ${w.sy} C ${w.sx} ${midY}, ${w.ex} ${midY}, ${w.ex} ${w.ey}`;
+            const accent = w.left ? 'var(--volt-500)' : '#0891b2';
             return (
-              <g key={`bus-${idx}`}>
-                {/* Left wire base & glow */}
-                <path 
-                  d={`M ${startXLeft} 0 L ${startXLeft} 10 C ${startXLeft} 20, ${endXLeft} 20, ${endXLeft} 30 L ${endXLeft} 40`}
+              <g key={`wire-${idx}`} className={isActive ? 'lp-proc-wire-set active' : 'lp-proc-wire-set'}>
+                <path
+                  d={d}
                   className="lp-proc-wire"
-                  style={{ stroke: isActiveLeft ? 'rgba(198, 255, 46, 0.25)' : undefined }}
+                  style={{ stroke: isActive ? (w.left ? 'rgba(198, 255, 46, 0.3)' : 'rgba(8, 145, 178, 0.35)') : undefined }}
                 />
-                <path 
-                  d={`M ${startXLeft} 0 L ${startXLeft} 10 C ${startXLeft} 20, ${endXLeft} 20, ${endXLeft} 30 L ${endXLeft} 40`}
-                  className="lp-proc-wire-glow left-flow"
+                <path
+                  d={d}
+                  className={`lp-proc-wire-glow ${w.left ? 'left-flow' : 'right-flow'}`}
                   style={{
-                    animationDuration: isActiveLeft ? '1.2s' : '3.5s',
-                    strokeWidth: isActiveLeft ? '1.5px' : '0.8px',
-                    opacity: activeGate === idx ? 0.9 : 0.15
+                    animationDuration: isActive ? '1.2s' : '3.5s',
+                    strokeWidth: isActive ? 1.5 : 0.8,
+                    opacity: isActive ? 0.9 : 0.15
                   }}
                 />
-                <circle cx={startXLeft} cy="1" r="0.6" fill={isActiveLeft ? 'var(--volt-500)' : 'rgba(255,255,255,0.2)'} />
-                <circle cx={endXLeft} cy="39" r="0.6" fill={isActiveLeft ? 'var(--volt-500)' : 'rgba(0,0,0,0.1)'} />
-
-                {/* Right wire base & glow */}
-                <path 
-                  d={`M ${startXRight} 0 L ${startXRight} 10 C ${startXRight} 20, ${endXRight} 20, ${endXRight} 30 L ${endXRight} 40`}
-                  className="lp-proc-wire"
-                  style={{ stroke: isActiveRight ? 'rgba(8, 145, 178, 0.25)' : undefined }}
-                />
-                <path 
-                  d={`M ${startXRight} 0 L ${startXRight} 10 C ${startXRight} 20, ${endXRight} 20, ${endXRight} 30 L ${endXRight} 40`}
-                  className="lp-proc-wire-glow right-flow"
-                  style={{
-                    animationDuration: isActiveRight ? '1.2s' : '3.5s',
-                    strokeWidth: isActiveRight ? '1.5px' : '0.8px',
-                    opacity: activeGate === (idx + 6) ? 0.9 : 0.15
-                  }}
-                />
-                <circle cx={startXRight} cy="1" r="0.6" fill={isActiveRight ? 'var(--surface-3)' : 'rgba(255,255,255,0.2)'} />
-                <circle cx={endXRight} cy="39" r="0.6" fill={isActiveRight ? 'var(--surface-3)' : 'rgba(0,0,0,0.1)'} />
+                <circle cx={w.sx} cy={w.sy} r={2} fill={isActive ? accent : 'rgba(255,255,255,0.18)'} />
+                <circle cx={w.ex} cy={w.ey} r={2} fill={isActive ? accent : 'rgba(255,255,255,0.12)'} />
               </g>
             );
           })}
         </svg>
 
+        {/* Keeps the vertical rhythm the old in-flow canvas provided */}
+        <div className="lp-proc-wires-gap" aria-hidden="true" />
+
         {/* 12 Gates Grid at the Bottom */}
         <div className="lp-proc-gates-grid">
           {PROCESSOR_GATES.map((g, idx) => {
             const isActive = activeGate === idx;
-            const isLeft = idx < 6;
+            const isLeft = wires[idx] ? wires[idx].left : idx < 6;
             const activeColor = isLeft ? 'rgba(198, 255, 46, 0.3)' : 'rgba(8, 145, 178, 0.3)';
             const numBg = isLeft ? 'var(--volt-500)' : '#0891b2';
-            
+
             return (
-              <div 
+              <div
                 key={idx}
+                ref={(el) => { cardRefs.current[idx] = el; }}
                 className="lp-proc-gate-card"
-                onMouseEnter={() => setHoveredGate(idx)}
-                onMouseLeave={() => setHoveredGate(null)}
-                onClick={() => handleGateClick(idx)}
+                role="button"
+                tabIndex={0}
+                aria-pressed={pinnedGate === idx}
+                aria-label={`Gate ${g.num} — ${g.name}: ${g.desc}`}
+                onMouseEnter={() => setHoverGate(idx)}
+                onMouseLeave={() => setHoverGate(null)}
+                onFocus={() => setHoverGate(idx)}
+                onBlur={() => setHoverGate(null)}
+                onClick={() => togglePin(idx)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    togglePin(idx);
+                  }
+                }}
                 style={{
                   borderColor: isActive ? activeColor : undefined,
                   boxShadow: isActive ? `0 6px 16px ${activeColor}15` : undefined

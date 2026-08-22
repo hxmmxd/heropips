@@ -11,10 +11,10 @@ export function Footer() {
 
       <div className="lp-footer-middle">
         <div className="lp-footer-nav">
-          <a href="#">Pricing</a>
+          <a href="/landing/pricing">Pricing</a>
           <a href="#">Terms & Conditions</a>
           <a href="#">Privacy Policy</a>
-          <a href="#">Help</a>
+          <a href="/landing/docs">Help</a>
           <a href="#">Partner Program</a>
           <a href="#">Changelog</a>
         </div>

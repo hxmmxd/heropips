@@ -3435,24 +3435,25 @@ body.lp-scrollable {
   line-height: 1.6;
 }
 
-/* Microchip at the top center */
+/* Confluence core chip at the top center */
 .lp-proc-chip-top {
-  background: #111113; /* sleek matte titanium graphite */
+  background: linear-gradient(180deg, #131316 0%, #0d0d10 100%);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 20px;
-  max-width: 540px;
+  border-radius: 18px;
+  max-width: 560px;
   width: 100%;
   margin: 0 auto;
-  padding: 18px 24px;
+  padding: 20px 22px;
   display: flex;
   align-items: center;
   gap: 20px;
-  box-shadow: 
+  box-shadow:
     0 30px 60px rgba(0, 0, 0, 0.3),
     0 10px 20px rgba(0, 0, 0, 0.15),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
   position: relative;
   z-index: 3;
+  transition: border-color 0.6s ease, box-shadow 0.6s ease;
 }
 
 .lp-proc-chip-glow-bg {
@@ -3465,82 +3466,242 @@ body.lp-scrollable {
 }
 
 .lp-proc-chip-core {
-  width: 76px;
-  height: 76px;
-  background: linear-gradient(135deg, #1d1d21 0%, #09090b 100%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 14px;
+  width: 96px;
+  height: 96px;
+  background: radial-gradient(120% 120% at 30% 20%, #1a1a1f 0%, #0a0a0c 100%);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 
-    0 8px 20px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  box-shadow:
+    0 8px 20px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
   position: relative;
-  overflow: hidden;
   flex-shrink: 0;
+  overflow: hidden;
 }
 
-.lp-proc-chip-spinner {
-  width: 58px;
-  height: 58px;
-  border: 2px dashed rgba(198, 255, 46, 0.4);
-  border-radius: 50%;
-  animation: proc-spin 12s linear infinite;
+/* Breathing glow behind the score */
+.lp-proc-core-breath {
   position: absolute;
+  inset: 12%;
+  border-radius: 50%;
+  animation: proc-breathe 3.2s ease-in-out infinite alternate;
+  pointer-events: none;
+  transition: background 0.6s ease;
 }
 
-.lp-proc-chip-score {
-  font-family: 'Pixelify Sans', monospace;
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--volt-500);
+@keyframes proc-breathe {
+  from { transform: scale(0.9); opacity: 0.5; }
+  to   { transform: scale(1.12); opacity: 1; }
+}
+
+/* Reactor gauge */
+.lp-proc-ring {
+  position: absolute;
+  inset: 2px;
+}
+
+/* Counter-rotating orbital arcs */
+.lp-proc-orbit {
+  fill: none;
+  stroke-width: 0.75;
+  opacity: 0.35;
+  transform-origin: 46px 46px;
+  transition: stroke 0.6s ease;
+}
+
+.lp-proc-orbit-a {
+  stroke-dasharray: 42 228;
+  animation: proc-orbit 14s linear infinite;
+}
+
+.lp-proc-orbit-b {
+  stroke-dasharray: 22 166;
+  animation: proc-orbit 20s linear infinite reverse;
+  opacity: 0.25;
+}
+
+@keyframes proc-orbit {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Chronograph bezel ticks */
+.lp-proc-ring-tickmark {
+  stroke: rgba(255, 255, 255, 0.12);
+  stroke-width: 1;
+  stroke-linecap: round;
+  transition: stroke 0.4s ease, opacity 0.4s ease;
+}
+
+.lp-proc-ring-track {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.07);
+  stroke-width: 3.2;
+}
+
+.lp-proc-ring-arc {
+  fill: none;
+  stroke-width: 3.2;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.45s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s ease;
+}
+
+/* White-hot arc tip */
+.lp-proc-comet {
+  filter: drop-shadow(0 0 3px currentColor) drop-shadow(0 0 9px currentColor);
+  transition: color 0.6s ease;
+}
+
+.lp-proc-ring-label {
+  display: flex;
+  align-items: baseline;
+  gap: 1px;
   z-index: 2;
-  text-shadow: 0 0 8px rgba(198, 255, 46, 0.4);
+  font-variant-numeric: tabular-nums;
+  transition: color 0.6s ease;
+}
+
+.lp-proc-ring-value {
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.lp-proc-ring-unit {
+  font-size: 10px;
+  font-weight: 700;
+  opacity: 0.65;
 }
 
 .lp-proc-chip-info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
   flex-grow: 1;
   width: 100%;
+  min-width: 0;
+}
+
+.lp-proc-chip-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+}
+
+.lp-proc-chip-overline {
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #71717a;
+  margin-bottom: 3px;
+  white-space: nowrap;
 }
 
 .lp-proc-chip-title {
-  font-size: 13px;
-  font-weight: 800;
-  color: #ffffff;
-  letter-spacing: 0.03em;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fafafa;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
 }
 
 .lp-proc-chip-status {
-  font-size: 10px;
+  font-size: 8.5px;
   font-weight: 600;
-  color: #10b981;
-  display: flex;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.22);
+  border-radius: 999px;
+  padding: 4px 9px;
+  display: inline-flex;
   align-items: center;
   gap: 5px;
+  flex-shrink: 0;
 }
 
 .lp-proc-chip-status-dot {
-  width: 5px;
-  height: 5px;
-  background: #10b981;
+  width: 4px;
+  height: 4px;
+  background: #34d399;
   border-radius: 50%;
-  box-shadow: 0 0 8px #10b981;
+  box-shadow: 0 0 6px #34d399;
   animation: proc-pulse 1.8s infinite;
 }
 
-/* Wires SVG Canvas styling */
-.lp-proc-wires-svg {
-  display: block;
+/* Terminal readout */
+.lp-proc-terminal {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 10px;
+  padding: 8px 12px 9px;
+  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.4);
+  text-align: left;
+}
+
+.lp-proc-terminal-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 5px;
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: #52525b;
+}
+
+.lp-proc-terminal-step {
+  color: #a1a1aa;
+  font-variant-numeric: tabular-nums;
+}
+
+.lp-proc-terminal-line {
+  font-family: ui-monospace, 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  min-height: 17px;
+  word-break: break-word;
+}
+
+/* Gate sequence rail — one tick per gate */
+.lp-proc-ticks {
+  display: flex;
+  gap: 4px;
+}
+
+.lp-proc-tick {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.09);
+  transition: background 0.4s ease, box-shadow 0.4s ease;
+}
+
+/* Wires overlay — geometry measured in JS so every trace lands on its card */
+.lp-proc-wires-overlay {
+  position: absolute;
+  inset: 0;
   width: 100%;
-  height: 50px;
-  margin: -6px auto -8px;
+  height: 100%;
   pointer-events: none;
   z-index: 1;
-  position: relative;
+}
+
+/* Preserves the vertical rhythm the old in-flow wire canvas provided */
+.lp-proc-wires-gap {
+  height: 50px;
+  margin: -6px auto -8px;
+  width: 100%;
 }
 
 .lp-proc-wire {
@@ -3664,6 +3825,31 @@ body.lp-scrollable {
   box-shadow: 0 0 6px rgba(16, 185, 129, 0.7);
 }
 
+.lp-proc-gate-card:focus-visible {
+  outline: 2px solid var(--volt-500);
+  outline-offset: 2px;
+}
+
+/* On narrow screens only the active trace is legible — hide the idle ones */
+@media (max-width: 640px) {
+  .lp-proc-wire-set:not(.active) {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-proc-wire-glow,
+  .lp-proc-chip-status-dot,
+  .lp-proc-core-breath,
+  .lp-proc-orbit-a,
+  .lp-proc-orbit-b {
+    animation: none;
+  }
+  .lp-proc-ring-arc {
+    transition: none;
+  }
+}
+
 /* Responsive adjustments for mobile: vertical stacked motherboard */
 @media (max-width: 1024px) {
   .lp-proc-wrap {
@@ -3682,20 +3868,19 @@ body.lp-scrollable {
     gap: 16px;
   }
   .lp-proc-chip-core {
-    width: 64px;
-    height: 64px;
+    width: 78px;
+    height: 78px;
   }
-  .lp-proc-chip-spinner {
-    width: 48px;
-    height: 48px;
-  }
-  .lp-proc-chip-score {
-    font-size: 15px;
+  .lp-proc-ring-value {
+    font-size: 17px;
   }
   .lp-proc-chip-title {
-    font-size: 11.5px;
+    font-size: 13px;
   }
-  .lp-proc-wires-svg {
+  .lp-proc-chip-overline {
+    font-size: 8px;
+  }
+  .lp-proc-wires-gap {
     height: 35px;
     margin: -4px auto -6px;
   }

@@ -26,20 +26,20 @@ import { Logo } from '@/components/Logo';
 export const NAV_DROPDOWNS = {
   'Ai Terminal': [
     { icon: Cpu, iconColor: 'var(--volt-500)', title: 'AI Signal Engine', desc: '12-gate quantitative validation', href: '/landing/signal-engine' },
-    { icon: ShieldCheck, iconColor: '#10b981', title: 'Risk Governor', desc: 'Auto position sizing & drawdown guard', href: '#' },
-    { icon: BarChart3, iconColor: '#0088cc', title: 'Analytics Dashboard', desc: 'Full performance tracking & journal', href: '#' },
-    { icon: Bot, iconColor: '#8b5cf6', title: 'AI Chat Assistant', desc: 'Ask anything, get instant analysis', href: '#' },
+    { icon: ShieldCheck, iconColor: '#10b981', title: 'Risk Governor', desc: 'Auto position sizing & drawdown guard', href: '/landing/risk-governor' },
+    { icon: BarChart3, iconColor: '#0088cc', title: 'Analytics Dashboard', desc: 'Full performance tracking & journal', href: '/landing/analytics' },
+    { icon: Bot, iconColor: '#8b5cf6', title: 'AI Chat Assistant', desc: 'Ask anything, get instant analysis', href: '/landing/ai-chat' },
   ],
   'Hero Academy': [
-    { icon: GraduationCap, iconColor: 'var(--volt-500)', title: 'Hero Bootcamp', desc: 'Intensive onboarding to get you trading profitably', href: '#' },
-    { icon: Users, iconColor: '#0088cc', title: '1-on-1 Mentorship', desc: 'Book a session with one of our funded traders', href: '#' },
-    { icon: Video, iconColor: '#10b981', title: 'Webinar Archive', desc: 'Catch up on past live sessions and market forecasts', href: '#' },
-    { icon: Library, iconColor: '#8b5cf6', title: 'Knowledge Base', desc: 'Quick lookup for trading terms and platform features', href: '#' },
+    { icon: GraduationCap, iconColor: 'var(--volt-500)', title: 'Hero Bootcamp', desc: 'Intensive onboarding to get you trading profitably', href: '/landing/academy/bootcamp' },
+    { icon: Users, iconColor: '#0088cc', title: '1-on-1 Mentorship', desc: 'Book a session with one of our funded traders', href: '/landing/academy/mentorship' },
+    { icon: Video, iconColor: '#10b981', title: 'Webinar Archive', desc: 'Catch up on past live sessions and market forecasts', href: '/landing/academy/webinars' },
+    { icon: Library, iconColor: '#8b5cf6', title: 'Knowledge Base', desc: 'Quick lookup for trading terms and platform features', href: '/landing/academy/knowledge-base' },
   ],
   Resources: [
-    { icon: BookOpen, iconColor: '#0088cc', title: 'Documentation', desc: 'Guides, API refs & tutorials', href: '#' },
+    { icon: BookOpen, iconColor: '#0088cc', title: 'Documentation', desc: 'Guides, API refs & tutorials', href: '/landing/docs' },
     { icon: FileText, iconColor: 'var(--volt-500)', title: 'Blog', desc: 'Strategy breakdowns & market insights', href: '/blog' },
-    { icon: Users, iconColor: '#10b981', title: 'Community', desc: 'Telegram & Discord trader groups', href: '#' },
+    { icon: Users, iconColor: '#10b981', title: 'Community', desc: 'Telegram & Discord trader groups', href: '/landing/community' },
   ],
 };
 
@@ -167,7 +167,7 @@ export function Navbar() {
                       <h4 className="lp-dd-sidebar-title">Join the Inner Circle</h4>
                       <p className="lp-dd-sidebar-desc">Get exclusive access to private Discord channels, daily setups, and peer-to-peer reviews.</p>
                       <NavigationMenu.Link asChild>
-                        <a href="#" className="lp-dd-sidebar-link" onClick={closeAllMenus}>
+                        <a href="/landing/community" className="lp-dd-sidebar-link" onClick={closeAllMenus}>
                           Join Community <ArrowRight size={11} style={{ marginLeft: 2 }} />
                         </a>
                       </NavigationMenu.Link>
@@ -200,7 +200,7 @@ export function Navbar() {
                   </div>
                   <div className="lp-dd-footer">
                     <NavigationMenu.Link asChild>
-                      <a href="#" className="lp-dd-footer-link" onClick={closeAllMenus}>
+                      <a href="/landing/academy/bootcamp" className="lp-dd-footer-link" onClick={closeAllMenus}>
                         <span>Learn strategies at heropips</span>
                         <ArrowRight size={13} />
                       </a>
@@ -212,7 +212,7 @@ export function Navbar() {
               {/* Plain links */}
               <NavigationMenu.Item className="lp-nav-item">
                 <NavigationMenu.Link asChild>
-                  <a href="#" className="lp-nav-link">Pricing</a>
+                  <a href="/landing/pricing" className="lp-nav-link">Pricing</a>
                 </NavigationMenu.Link>
               </NavigationMenu.Item>
 
@@ -295,7 +295,7 @@ export function Navbar() {
           </div>
         ))}
 
-        <a href="#" onClick={closeAllMenus}>Pricing</a>
+        <a href="/landing/pricing" onClick={closeAllMenus}>Pricing</a>
         <div className="lp-nav-mobile-sep" />
         <a href="/login" onClick={closeAllMenus}>Log in</a>
         <a href="/login?signup=true" className="lp-nav-mobile-cta" onClick={closeAllMenus}>Signup</a>
