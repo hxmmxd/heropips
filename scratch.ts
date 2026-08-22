@@ -17,7 +17,7 @@ async function testStatus() {
   console.log("=== Testing Signal Generation ===");
   try {
     const snapshot = await getMarketSnapshot('XAUUSD', 'mt5_25822553');
-    console.log("Signal Gen Success! Status:", snapshot?.sentiment);
+    console.log("Signal Gen Success! Snapshot retrieved.");
   } catch (err: any) {
     console.error("Signal Gen Failed:", err.message);
   }
