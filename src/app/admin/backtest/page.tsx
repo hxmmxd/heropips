@@ -416,8 +416,8 @@ export default function BacktestPage() {
                       <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={chartData}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
-                          <XAxis dataKey="index" stroke="#ffffff50" tick={{fontSize: 12}} tickFormatter={(val) => `#${val}`} />
-                          <YAxis stroke="#ffffff50" tick={{fontSize: 12}} tickFormatter={(val) => `$${val}`} />
+                          <XAxis dataKey="index" stroke="#ffffff50" tick={{fontSize: 12}} tickFormatter={(val: any) => `#${val}`} />
+                          <YAxis stroke="#ffffff50" tick={{fontSize: 12}} tickFormatter={(val: any) => `$${val}`} />
                           <RechartsTooltip 
                             contentStyle={{ backgroundColor: '#111', borderColor: '#333', borderRadius: '8px' }}
                             itemStyle={{ color: '#fff' }}
