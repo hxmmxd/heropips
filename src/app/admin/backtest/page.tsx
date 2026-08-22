@@ -422,7 +422,7 @@ export default function BacktestPage() {
                             contentStyle={{ backgroundColor: '#111', borderColor: '#333', borderRadius: '8px' }}
                             itemStyle={{ color: '#fff' }}
                             formatter={(value: any) => [`$${Number(value).toFixed(2)}`, 'Cumulative PnL']}
-                            labelFormatter={(label, payload) => payload?.[0]?.payload?.time || label}
+                            labelFormatter={(label: any, payload: any) => payload?.[0]?.payload?.time || label}
                           />
                           <Line type="monotone" dataKey="pnl" stroke="#3b82f6" strokeWidth={2} dot={false} activeDot={{ r: 6, fill: '#3b82f6' }} />
                         </LineChart>
